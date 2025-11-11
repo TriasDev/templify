@@ -217,6 +217,97 @@ Console.WriteLine($"  Loops processed: {result.LoopsProcessed}");
 
 ---
 
+## Bonus: Format Specifiers & Expressions
+
+Templify includes powerful features for formatting boolean values and evaluating logic:
+
+### Format Booleans
+
+Transform boolean values into checkboxes, Yes/No, and more:
+
+**Template:**
+```
+Task completed: {{IsCompleted:checkbox}}
+Approved: {{IsApproved:yesno}}
+Valid: {{IsValid:checkmark}}
+```
+
+**C# Data:**
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["IsCompleted"] = true,
+    ["IsApproved"] = false,
+    ["IsValid"] = true
+};
+```
+
+**Output:**
+```
+Task completed: ☑
+Approved: No
+Valid: ✓
+```
+
+**Available formatters:** `checkbox`, `yesno`, `checkmark`, `truefalse`, `onoff`, `enabled`, `active`
+
+### Boolean Expressions
+
+Evaluate logic directly in placeholders:
+
+**Template:**
+```
+Eligible: {{(Age >= 18):yesno}}
+Access: {{(IsActive and IsVerified):checkbox}}
+```
+
+**Data:**
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["Age"] = 25,
+    ["IsActive"] = true,
+    ["IsVerified"] = true
+};
+```
+
+**Output:**
+```
+Eligible: Yes
+Access: ☑
+```
+
+### Using JSON Data
+
+Business users can provide data as JSON:
+
+**data.json:**
+```json
+{
+  "Name": "John Doe",
+  "IsActive": true,
+  "Items": [
+    { "Name": "Product A", "Price": 10.00 }
+  ]
+}
+```
+
+**C# Code:**
+```csharp
+using System.Text.Json;
+
+string jsonText = File.ReadAllText("data.json");
+var data = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonText);
+
+processor.ProcessTemplate(templateStream, outputStream, data);
+```
+
+📚 **Learn More:**
+- [Format Specifiers Guide](guides/format-specifiers.md) - Complete formatting reference
+- [Boolean Expressions Guide](guides/boolean-expressions.md) - Logic evaluation reference
+
+---
+
 ## Next Steps
 
 Now that you've generated your first document, explore more advanced features:
@@ -274,6 +365,8 @@ Now that you've generated your first document, explore more advanced features:
 | `{{Name}}` | Simple placeholder | `["Name"] = "John"` |
 | `{{User.Email}}` | Nested property | Object with `Email` property |
 | `{{Items[0]}}` | Array index | List or array |
+| `{{IsActive:checkbox}}` | Format specifier | `["IsActive"] = true` → ☑ |
+| `{{(Age >= 18):yesno}}` | Boolean expression | `["Age"] = 25` → Yes |
 | `{{#if Active}}...{{/if}}` | Conditional | `["Active"] = true` |
 | `{{#foreach Items}}...{{/foreach}}` | Loop | List or array |
 

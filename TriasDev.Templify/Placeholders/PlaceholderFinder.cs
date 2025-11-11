@@ -7,14 +7,19 @@ namespace TriasDev.Templify.Placeholders;
 /// </summary>
 public sealed class PlaceholderFinder
 {
-    // Pattern: {{variableName}} where variableName can be:
+    // Pattern: {{variableName}} or {{variableName:format}} or {{(expression):format}}
+    // where variableName can be:
     // - Simple: Name, OrderId
     // - Nested with dots: Customer.Address.City
     // - Nested with brackets: Items[0], Settings[Theme]
     // - Mixed: Orders[0].Customer.Name
     // - Loop metadata: @index, @first, @last, @count
     // - Current item: . or this (for primitive collections)
-    private static readonly Regex PlaceholderPattern = new(@"\{\{(\.|this|@?[\w\.\[\]]+)\}\}", RegexOptions.Compiled);
+    // - Expression: (var1 and var2), (not IsActive), (Count > 0), ((var1 or var2) and var3)
+    // Optional format specifier: :checkbox, :yesno, :checkmark, etc.
+    private static readonly Regex PlaceholderPattern = new(
+        @"\{\{(\.|this|@?[\w\.\[\]]+|\([^\}]+\))(?::(\w+))?\}\}",
+        RegexOptions.Compiled);
 
     /// <summary>
     /// Finds all placeholders in the specified text.
@@ -34,10 +39,17 @@ public sealed class PlaceholderFinder
         {
             if (match.Success && match.Groups.Count >= 2)
             {
+                // Group 1: Variable name
+                // Group 2: Optional format specifier (captured by second group if present)
+                string? format = match.Groups.Count >= 3 && match.Groups[2].Success
+                    ? match.Groups[2].Value
+                    : null;
+
                 yield return new PlaceholderMatch
                 {
                     FullMatch = match.Value,
                     VariableName = match.Groups[1].Value,
+                    Format = format,
                     StartIndex = match.Index,
                     Length = match.Length
                 };

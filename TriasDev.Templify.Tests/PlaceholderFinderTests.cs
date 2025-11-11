@@ -185,4 +185,224 @@ public class PlaceholderFinderTests
         Assert.Equal("Banana", variableNames[1]);
         Assert.Equal("Zebra", variableNames[2]);
     }
+
+    #region Format Specifier Tests
+
+    [Fact]
+    public void FindPlaceholders_WithFormatSpecifier_ParsesFormat()
+    {
+        // Arrange
+        string text = "{{IsActive:checkbox}}";
+
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Single(matches);
+        Assert.Equal("{{IsActive:checkbox}}", matches[0].FullMatch);
+        Assert.Equal("IsActive", matches[0].VariableName);
+        Assert.Equal("checkbox", matches[0].Format);
+    }
+
+    [Fact]
+    public void FindPlaceholders_WithoutFormatSpecifier_FormatIsNull()
+    {
+        // Arrange
+        string text = "{{IsActive}}";
+
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Single(matches);
+        Assert.Equal("{{IsActive}}", matches[0].FullMatch);
+        Assert.Equal("IsActive", matches[0].VariableName);
+        Assert.Null(matches[0].Format);
+    }
+
+    [Fact]
+    public void FindPlaceholders_WithMultipleFormats_ParsesAllFormats()
+    {
+        // Arrange
+        string text = "{{IsActive:checkbox}} {{IsEnabled:yesno}} {{Status:checkmark}}";
+
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Equal(3, matches.Count);
+        Assert.Equal("checkbox", matches[0].Format);
+        Assert.Equal("yesno", matches[1].Format);
+        Assert.Equal("checkmark", matches[2].Format);
+    }
+
+    [Fact]
+    public void FindPlaceholders_WithMixedFormatAndNoFormat_ParsesCorrectly()
+    {
+        // Arrange
+        string text = "{{Name}} is {{IsActive:checkbox}} and {{Age}}";
+
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Equal(3, matches.Count);
+        Assert.Null(matches[0].Format);
+        Assert.Equal("checkbox", matches[1].Format);
+        Assert.Null(matches[2].Format);
+    }
+
+    [Fact]
+    public void FindPlaceholders_WithNestedPropertyAndFormat_ParsesBoth()
+    {
+        // Arrange
+        string text = "{{Customer.IsActive:yesno}}";
+
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Single(matches);
+        Assert.Equal("Customer.IsActive", matches[0].VariableName);
+        Assert.Equal("yesno", matches[0].Format);
+    }
+
+    [Fact]
+    public void FindPlaceholders_WithIndexerAndFormat_ParsesBoth()
+    {
+        // Arrange
+        string text = "{{Items[0]:checkbox}}";
+
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Single(matches);
+        Assert.Equal("Items[0]", matches[0].VariableName);
+        Assert.Equal("checkbox", matches[0].Format);
+    }
+
+    [Fact]
+    public void FindPlaceholders_WithComplexPathAndFormat_ParsesBoth()
+    {
+        // Arrange
+        string text = "{{Orders[0].Customer.IsActive:yesno}}";
+
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Single(matches);
+        Assert.Equal("Orders[0].Customer.IsActive", matches[0].VariableName);
+        Assert.Equal("yesno", matches[0].Format);
+    }
+
+    [Fact]
+    public void FindPlaceholders_WithLoopMetadataAndFormat_ParsesBoth()
+    {
+        // Arrange
+        string text = "{{@first:checkbox}} {{@last:yesno}}";
+
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Equal(2, matches.Count);
+        Assert.Equal("@first", matches[0].VariableName);
+        Assert.Equal("checkbox", matches[0].Format);
+        Assert.Equal("@last", matches[1].VariableName);
+        Assert.Equal("yesno", matches[1].Format);
+    }
+
+    [Fact]
+    public void FindPlaceholders_WithCurrentItemAndFormat_ParsesBoth()
+    {
+        // Arrange
+        string text = "{{.:checkbox}} {{this:yesno}}";
+
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Equal(2, matches.Count);
+        Assert.Equal(".", matches[0].VariableName);
+        Assert.Equal("checkbox", matches[0].Format);
+        Assert.Equal("this", matches[1].VariableName);
+        Assert.Equal("yesno", matches[1].Format);
+    }
+
+    [Fact]
+    public void IsValidPlaceholder_WithFormatSpecifier_ReturnsTrue()
+    {
+        // Arrange
+        string placeholder = "{{IsActive:checkbox}}";
+
+        // Act
+        bool isValid = _finder.IsValidPlaceholder(placeholder);
+
+        // Assert
+        Assert.True(isValid);
+    }
+
+    [Fact]
+    public void ExtractVariableName_WithFormatSpecifier_ReturnsVariableName()
+    {
+        // Arrange
+        string placeholder = "{{IsActive:checkbox}}";
+
+        // Act
+        string? variableName = _finder.ExtractVariableName(placeholder);
+
+        // Assert
+        Assert.Equal("IsActive", variableName);
+    }
+
+    [Fact]
+    public void FindPlaceholders_WithUppercaseFormat_ParsesCorrectly()
+    {
+        // Arrange
+        string text = "{{IsActive:CHECKBOX}}";
+
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Single(matches);
+        Assert.Equal("CHECKBOX", matches[0].Format);
+    }
+
+    [Fact]
+    public void FindPlaceholders_WithNumbersInFormat_ParsesCorrectly()
+    {
+        // Arrange
+        string text = "{{Value:format123}}";
+
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Single(matches);
+        Assert.Equal("format123", matches[0].Format);
+    }
+
+    [Theory]
+    [InlineData("{{IsActive:checkbox}}", "checkbox")]
+    [InlineData("{{IsActive:yesno}}", "yesno")]
+    [InlineData("{{IsActive:truefalse}}", "truefalse")]
+    [InlineData("{{IsActive:onoff}}", "onoff")]
+    [InlineData("{{IsActive:enabled}}", "enabled")]
+    [InlineData("{{IsActive:active}}", "active")]
+    [InlineData("{{IsActive:checkmark}}", "checkmark")]
+    [InlineData("{{IsActive:check}}", "check")]
+    public void FindPlaceholders_WithBuiltInFormats_ParsesCorrectly(string text, string expectedFormat)
+    {
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Single(matches);
+        Assert.Equal(expectedFormat, matches[0].Format);
+    }
+
+    #endregion
 }

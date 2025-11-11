@@ -72,6 +72,8 @@ Or in Visual Studio: `Install-Package TriasDev.Templify`
 - ✅ **Placeholders**: `{{Name}}`, `{{User.Email}}`
 - ✅ **Nested data**: `{{Company.Address.City}}`
 - ✅ **Array indexing**: `{{Items[0].Name}}`
+- ✅ **Boolean format specifiers**: `{{IsActive:checkbox}}`, `{{IsVerified:yesno}}`
+- ✅ **Boolean expressions**: `{{(Age >= 18 and HasLicense):yesno}}`
 - ✅ **Conditionals**: `{{#if IsActive}}...{{else}}...{{/if}}`
 - ✅ **Loops**: `{{#foreach Items}}...{{/foreach}}`
 - ✅ **Nested loops**: Loops inside loops (arbitrary depth)
@@ -79,7 +81,9 @@ Or in Visual Studio: `Install-Package TriasDev.Templify`
 - ✅ **Loop variables**: `@index`, `@first`, `@last`, `@count`
 - ✅ **Formatting preservation**: Bold, italic, colors, fonts maintained
 - ✅ **Comparison operators**: `>`, `<`, `>=`, `<=`, `==`, `!=`
-- ✅ **Logical operators**: `&&`, `||`
+- ✅ **Logical operators**: `and`, `or`, `not`
+- ✅ **Localization**: Format specifiers adapt to cultures (en, de, fr, es, it, pt)
+- ✅ **JSON support**: Use JSON data instead of C# dictionaries
 - ✅ **Type coercion**: Automatic number/date conversions
 
 ### Q: What is NOT supported?
@@ -280,6 +284,212 @@ if (result.MissingVariables.Any())
 ```
 
 Missing variables are left as-is: `{{MissingVar}}` remains in output.
+
+### Q: How do I format boolean values as checkboxes or Yes/No?
+
+**A:** Use format specifiers with the `:format` syntax:
+
+**Template**:
+```
+Task complete: {{IsCompleted:checkbox}}
+Approved: {{IsApproved:yesno}}
+Valid: {{IsValid:checkmark}}
+```
+
+**C# Data**:
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["IsCompleted"] = true,
+    ["IsApproved"] = false,
+    ["IsValid"] = true
+};
+```
+
+**JSON Data**:
+```json
+{
+  "IsCompleted": true,
+  "IsApproved": false,
+  "IsValid": true
+}
+```
+
+**Output**:
+```
+Task complete: ☑
+Approved: No
+Valid: ✓
+```
+
+**Available formatters**:
+- `checkbox` → ☑/☐
+- `yesno` → Yes/No
+- `checkmark` → ✓/✗
+- `truefalse` → True/False
+- `onoff` → On/Off
+- `enabled` → Enabled/Disabled
+- `active` → Active/Inactive
+
+See the [Format Specifiers Guide](guides/format-specifiers.md) for complete documentation.
+
+### Q: Can I use JSON instead of C# dictionaries?
+
+**A:** **Yes!** While Templify processes C# `Dictionary<string, object>` internally, JSON can be easily converted:
+
+**JSON Data File** (`data.json`):
+```json
+{
+  "CompanyName": "Acme Corp",
+  "IsActive": true,
+  "Items": [
+    { "Name": "Product A", "Price": 10.00 },
+    { "Name": "Product B", "Price": 20.00 }
+  ]
+}
+```
+
+**C# Code**:
+```csharp
+using System.Text.Json;
+
+// Read and deserialize JSON
+string jsonText = File.ReadAllText("data.json");
+var data = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonText);
+
+// Process template
+var processor = new DocumentTemplateProcessor();
+processor.ProcessTemplate(templateStream, outputStream, data);
+```
+
+JSON is particularly useful for:
+- Business users providing data
+- API integrations
+- Configuration files
+- Testing with sample data
+
+### Q: How do boolean expressions work in placeholders?
+
+**A:** Use parentheses to evaluate logic directly in placeholders:
+
+**Template**:
+```
+Eligible: {{(Age >= 18):yesno}}
+Access granted: {{(IsActive and IsVerified):checkbox}}
+Can proceed: {{(HasPermissionA or HasPermissionB):checkmark}}
+```
+
+**Data**:
+```json
+{
+  "Age": 25,
+  "IsActive": true,
+  "IsVerified": true,
+  "HasPermissionA": false,
+  "HasPermissionB": true
+}
+```
+
+**Output**:
+```
+Eligible: Yes
+Access granted: ☑
+Can proceed: ✓
+```
+
+**Supported operators**:
+- Logical: `and`, `or`, `not`
+- Comparison: `==`, `!=`, `>`, `>=`, `<`, `<=`
+- Nested: `((var1 or var2) and var3)`
+
+See the [Boolean Expressions Guide](guides/boolean-expressions.md) for complete documentation.
+
+### Q: Can I combine expressions with format specifiers?
+
+**A:** **Yes!** This is one of the most powerful features:
+
+**Template**:
+```
+Qualified driver: {{((Age >= 18) and (HasLicense or HasPermit)):yesno}}
+```
+
+**Data**:
+```json
+{
+  "Age": 20,
+  "HasLicense": false,
+  "HasPermit": true
+}
+```
+
+**Output**:
+```
+Qualified driver: Yes
+```
+
+**More examples**:
+```
+Over budget: {{(Spent > Budget):checkbox}}
+Status OK: {{(not HasErrors):checkmark}}
+Premium member: {{(MembershipLevel >= 3):enabled}}
+```
+
+### Q: How do I customize boolean formatters?
+
+**A:** Register custom formatters with the registry:
+
+```csharp
+var registry = new BooleanFormatterRegistry();
+registry.Register("thumbs", new BooleanFormatter("👍", "👎"));
+registry.Register("traffic", new BooleanFormatter("🟢", "🔴"));
+
+var options = new PlaceholderReplacementOptions
+{
+    BooleanFormatterRegistry = registry
+};
+var processor = new DocumentTemplateProcessor(options);
+```
+
+**Template**:
+```
+User feedback: {{IsPositive:thumbs}}
+System status: {{IsOperational:traffic}}
+```
+
+**Output**:
+```
+User feedback: 👍
+System status: 🟢
+```
+
+### Q: Do format specifiers work with localization?
+
+**A:** **Yes!** Format specifiers automatically adapt to the culture:
+
+**German Output**:
+```csharp
+var options = new PlaceholderReplacementOptions
+{
+    Culture = new CultureInfo("de-DE"),
+    BooleanFormatterRegistry = new BooleanFormatterRegistry(new CultureInfo("de-DE"))
+};
+var processor = new DocumentTemplateProcessor(options);
+```
+
+**Template**: `{{IsActive:yesno}}`
+**Output (de-DE)**: `Ja` or `Nein`
+**Output (fr-FR)**: `Oui` or `Non`
+**Output (es-ES)**: `Sí` or `No`
+
+**Supported languages for yesno**:
+- English (en): Yes/No
+- German (de): Ja/Nein
+- French (fr): Oui/Non
+- Spanish (es): Sí/No
+- Italian (it): Sì/No
+- Portuguese (pt): Sim/Não
+
+Symbol-based formatters (checkbox, checkmark) are universal.
 
 ---
 
