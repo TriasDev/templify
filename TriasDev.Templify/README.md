@@ -9,14 +9,17 @@ TriasDev.Templify is built on the Microsoft OpenXML SDK and provides a straightf
 ## Features
 
 - **Simple placeholder syntax**: Use `{{variableName}}` in your Word templates
+- **Boolean format specifiers**: Display booleans as checkboxes (☑/☐), Yes/No, checkmarks (✓/✗), and more
+- **Boolean expressions**: Evaluate logic in placeholders with `and`, `or`, `not`, and comparison operators
 - **Conditional blocks**: Use `{{#if condition}}...{{else}}...{{/if}}` for dynamic content
 - **Advanced conditions**: Support for `eq`, `ne`, `gt`, `lt`, `gte`, `lte`, `and`, `or`, `not` operators
 - **Loops and iterations**: Use `{{#foreach}}...{{/foreach}}` to repeat content for collections
 - **Loop metadata**: Access index, first/last flags, and count within loops
 - **Formatting preservation**: Bold, italic, fonts, colors, and styles are automatically preserved
 - **Nested data structures**: Access nested objects with dot notation and array indexing
-- **Type-safe data binding**: Pass values via `Dictionary<string, object>`
+- **Type-safe data binding**: Pass values via `Dictionary<string, object>` or JSON
 - **Smart value conversion**: Automatically converts numbers, dates, booleans to readable strings
+- **Localization support**: Format specifiers adapt to cultures (en, de, fr, es, it, pt)
 - **Table support**: Replace placeholders in table cells, repeat table rows, conditional table rows
 - **Configurable behavior**: Control what happens when variables are missing
 - **No Word required**: Pure OpenXML processing, no COM automation
@@ -847,9 +850,209 @@ The library automatically converts common .NET types to readable strings:
 - **String**: Used as-is
 - **Numbers** (int, decimal, double, etc.): Formatted with culture-specific settings
 - **DateTime/DateTimeOffset**: Formatted using standard date/time format
-- **Boolean**: "True" or "False"
+- **Boolean**: "True" or "False" (or use format specifiers for custom display)
 - **Null**: Empty string or handled based on MissingVariableBehavior
 - **Custom objects**: Uses `ToString()` method
+
+## Format Specifiers
+
+Format specifiers allow you to control how boolean values are displayed in your documents. Use the `:format` syntax to transform boolean values into checkboxes, Yes/No text, checkmarks, and more.
+
+### Quick Example
+
+**Template:**
+```
+Status: {{IsActive:checkbox}}
+Verified: {{IsVerified:yesno}}
+Valid: {{IsValid:checkmark}}
+```
+
+**C# Data:**
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["IsActive"] = true,
+    ["IsVerified"] = false,
+    ["IsValid"] = true
+};
+```
+
+**JSON Data:**
+```json
+{
+  "IsActive": true,
+  "IsVerified": false,
+  "IsValid": true
+}
+```
+
+**Output:**
+```
+Status: ☑
+Verified: No
+Valid: ✓
+```
+
+### Available Formatters
+
+| Format | True | False | Use Case |
+|--------|------|-------|----------|
+| `checkbox` | ☑ | ☐ | Task lists, checklists |
+| `yesno` | Yes | No | Questions, confirmations |
+| `checkmark` | ✓ | ✗ | Validation, requirements |
+| `truefalse` | True | False | Technical output |
+| `onoff` | On | Off | Settings, switches |
+| `enabled` | Enabled | Disabled | Feature flags |
+| `active` | Active | Inactive | Status indicators |
+
+### Localization
+
+Format specifiers automatically adapt to the specified culture:
+
+```csharp
+// German output
+var options = new PlaceholderReplacementOptions
+{
+    Culture = new CultureInfo("de-DE"),
+    BooleanFormatterRegistry = new BooleanFormatterRegistry(new CultureInfo("de-DE"))
+};
+var processor = new DocumentTemplateProcessor(options);
+```
+
+**Template:** `{{IsActive:yesno}}`
+**Output (de-DE):** `Ja` or `Nein`
+**Output (fr-FR):** `Oui` or `Non`
+**Output (es-ES):** `Sí` or `No`
+
+### Custom Formatters
+
+Create your own boolean formatters:
+
+```csharp
+var registry = new BooleanFormatterRegistry();
+registry.Register("thumbs", new BooleanFormatter("👍", "👎"));
+
+var options = new PlaceholderReplacementOptions
+{
+    BooleanFormatterRegistry = registry
+};
+var processor = new DocumentTemplateProcessor(options);
+```
+
+**Template:** `{{IsPositive:thumbs}}`
+**Output:** `👍` or `👎`
+
+For complete documentation, see the [Format Specifiers Guide](../docs/guides/format-specifiers.md).
+
+## Boolean Expressions
+
+Boolean expressions allow you to evaluate logic directly within placeholders, eliminating the need for separate conditional blocks for simple boolean checks.
+
+### Quick Example
+
+**Template:**
+```
+Eligible: {{(Age >= 18):yesno}}
+Access: {{(IsActive and IsVerified):checkbox}}
+Can proceed: {{(HasPermissionA or HasPermissionB):checkmark}}
+```
+
+**C# Data:**
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["Age"] = 25,
+    ["IsActive"] = true,
+    ["IsVerified"] = true,
+    ["HasPermissionA"] = false,
+    ["HasPermissionB"] = true
+};
+```
+
+**JSON Data:**
+```json
+{
+  "Age": 25,
+  "IsActive": true,
+  "IsVerified": true,
+  "HasPermissionA": false,
+  "HasPermissionB": true
+}
+```
+
+**Output:**
+```
+Eligible: Yes
+Access: ☑
+Can proceed: ✓
+```
+
+### Operators
+
+**Logical:**
+- `and` - Both conditions must be true
+- `or` - At least one condition must be true
+- `not` - Negates the condition
+
+**Comparison:**
+- `==` - Equal to
+- `!=` - Not equal to
+- `>` - Greater than
+- `>=` - Greater than or equal
+- `<` - Less than
+- `<=` - Less than or equal
+
+### Nested Expressions
+
+Use parentheses to control evaluation order:
+
+**Template:**
+```
+Approved: {{((Age >= 18) and (HasLicense or HasPermit)):yesno}}
+```
+
+**Data:**
+```json
+{
+  "Age": 20,
+  "HasLicense": false,
+  "HasPermit": true
+}
+```
+
+**Output:**
+```
+Approved: Yes
+```
+
+### In Loops
+
+Expressions work seamlessly in loops:
+
+**Template:**
+```
+{{#foreach Employees}}
+- {{Name}}: {{(IsActive and HasCompletedTraining):checkbox}}
+{{/foreach}}
+```
+
+**Data:**
+```json
+{
+  "Employees": [
+    { "Name": "Alice", "IsActive": true, "HasCompletedTraining": true },
+    { "Name": "Bob", "IsActive": true, "HasCompletedTraining": false }
+  ]
+}
+```
+
+**Output:**
+```
+- Alice: ☑
+- Bob: ☐
+```
+
+For complete documentation, see the [Boolean Expressions Guide](../docs/guides/boolean-expressions.md).
 
 ## Supported Document Locations
 

@@ -1,4 +1,5 @@
 using System.Globalization;
+using TriasDev.Templify.Formatting;
 
 namespace TriasDev.Templify.Core;
 
@@ -19,6 +20,12 @@ public sealed class PlaceholderReplacementOptions
     /// Use <see cref="CultureInfo.InvariantCulture"/> for culture-independent formatting.
     /// </summary>
     public CultureInfo Culture { get; init; } = CultureInfo.CurrentCulture;
+
+    /// <summary>
+    /// Gets or initializes the boolean formatter registry for custom boolean display formats.
+    /// If null, a default registry with culture-aware formatters will be created automatically.
+    /// </summary>
+    public BooleanFormatterRegistry? BooleanFormatterRegistry { get; init; }
 
     /// <summary>
     /// Creates a new instance of <see cref="PlaceholderReplacementOptions"/> with default settings.

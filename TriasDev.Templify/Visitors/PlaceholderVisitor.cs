@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using TriasDev.Templify.Conditionals;
 using TriasDev.Templify.Core;
+using TriasDev.Templify.Expressions;
 using TriasDev.Templify.Loops;
 using TriasDev.Templify.Placeholders;
 using TriasDev.Templify.Utilities;
@@ -50,10 +51,56 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
     /// <param name="context">The evaluation context for resolving variables.</param>
     public void VisitPlaceholder(PlaceholderMatch placeholder, Paragraph paragraph, IEvaluationContext context)
     {
-        // Try to resolve the variable from the context
-        if (!context.TryResolveVariable(placeholder.VariableName, out object? value))
+        object? value;
+        bool resolved;
+
+        // Check if this is an expression
+        if (placeholder.IsExpression)
         {
-            // Variable not found - handle based on options
+            // Parse and evaluate the expression
+            var parser = new BooleanExpressionParser();
+            BooleanExpression? expression = parser.Parse(placeholder.VariableName);
+
+            if (expression != null)
+            {
+                try
+                {
+                    var dataContext = new EvaluationContextAdapter(context);
+                    bool result = expression.Evaluate(dataContext);
+                    value = result;
+                    resolved = true;
+                }
+                catch (ArgumentException)
+                {
+                    resolved = false;
+                    value = null;
+                }
+                catch (InvalidOperationException)
+                {
+                    resolved = false;
+                    value = null;
+                }
+                catch (InvalidCastException)
+                {
+                    resolved = false;
+                    value = null;
+                }
+            }
+            else
+            {
+                resolved = false;
+                value = null;
+            }
+        }
+        else
+        {
+            // Try to resolve the variable from the context
+            resolved = context.TryResolveVariable(placeholder.VariableName, out value);
+        }
+
+        if (!resolved)
+        {
+            // Variable/expression not found - handle based on options
             _missingVariables.Add(placeholder.VariableName);
 
             switch (_options.MissingVariableBehavior)
@@ -64,7 +111,7 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
                     break;
 
                 case MissingVariableBehavior.ThrowException:
-                    throw new InvalidOperationException($"Missing variable: {placeholder.VariableName}");
+                    throw new InvalidOperationException($"Missing variable or invalid expression: {placeholder.VariableName}");
 
                 case MissingVariableBehavior.LeaveUnchanged:
                 default:
@@ -74,8 +121,12 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         }
         else
         {
-            // Variable found - convert to string and replace
-            string replacementValue = ValueConverter.ConvertToString(value, _options.Culture);
+            // Variable/expression found - convert to string with optional format and replace
+            string replacementValue = ValueConverter.ConvertToString(
+                value,
+                _options.Culture,
+                placeholder.Format,
+                _options.BooleanFormatterRegistry);
             ReplacePlaceholderInParagraph(paragraph, placeholder, replacementValue);
             _replacementCount++;
         }
