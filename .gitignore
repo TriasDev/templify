@@ -309,31 +309,23 @@ opensource.html
 opensource.xlsx
 opensource.mmd
 
-# Bastion Host Virtual Machine in the PREF environment
-MunichRe.CART.Presentation.Web.Backend/Properties/PublishProfiles/cart-pref-web.pubxml
-MunichRe.CART.Presentation.Web.Backend/appsettings.Development.mr.json
-
-# Host log files
-MunichRe.CART.Host.AntiMalware/*.log
-MunichRe.CART.Host.Ops/*.log
-MunichRe.CART.Host.Scheduler/*.log
-MunichRe.CART.Presentation.Web.Backend/*.log
-
-
-
 # Mac files
 *.DS_Store
 
-MunichRe.CART.Presentation.Web.Backend/appsettings.Development.ajo.json
-/api-calls/certificates/public.key
-/api-calls/certificates/private.key
-/api-calls/certificates/docusign-viaspro-production-private.key
-/api-calls/certificates/docusign-viaspro-production-public.key
-/api-calls/certificates/docusign-viaspro-staging-private.key
-/api-calls/certificates/docusign-viaspro-staging-public.key
-*.key
-/MunichRe.CART.Presentation.Web.Frontend/.claude/settings.local.json
+# User-specific files
+*.DotSettings.user
+
+# Local settings
 /.claude/settings.local.json
+
+# Security - never commit keys or certificates
+*.key
+*.pem
+*.pfx
+*.cer
+certificates/
 
 # Demo data files - removed from history
 TriasDev.Templify.Demo/Data/
+process-data*.json
+**/publish/

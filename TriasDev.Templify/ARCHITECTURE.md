@@ -34,6 +34,48 @@ TriasDev.Templify is intentionally designed to be **simple, focused, and maintai
 
 ### High-Level Overview
 
+```mermaid
+graph TB
+    Client[Client Application] --> Processor[DocumentTemplateProcessor<br/>Main Entry Point]
+    Processor -->|Creates| Context[GlobalEvaluationContext]
+    Processor -->|Constructs| Composite[CompositeVisitor]
+    Processor -->|Delegates to| Walker[DocumentWalker<br/>Document Traversal]
+
+    Walker -->|Detects| CV[ConditionalVisitor]
+    Walker -->|Detects| LV[LoopVisitor]
+    Walker -->|Detects| PV[PlaceholderVisitor]
+
+    CV -->|Evaluates| Condition{Condition?}
+    Condition -->|True| Keep[Keep Content]
+    Condition -->|False| Remove[Remove Content]
+
+    LV -->|For Each Item| Clone[Clone Content]
+    Clone -->|Creates| LoopCtx[LoopEvaluationContext]
+    LoopCtx -->|Recursive| Walker
+
+    PV -->|Resolves from| Context
+    PV -->|Replaces| Text[Text in Document]
+
+    style Processor fill:#e1f5ff
+    style Walker fill:#fff4e1
+    style CV fill:#ffe1f5
+    style LV fill:#e1ffe1
+    style PV fill:#f5e1ff
+    style Context fill:#ffe1e1
+```
+
+#### Architecture Flow
+
+The processing follows this sequence:
+
+1. **Client** provides template and data
+2. **DocumentTemplateProcessor** orchestrates the process
+3. **DocumentWalker** traverses the document tree
+4. **Visitors** process template elements in order: Conditionals → Loops → Placeholders
+5. **EvaluationContext** provides variable resolution with proper scoping
+
+### ASCII Diagram (Alternative View)
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    Client Application                        │
@@ -148,6 +190,94 @@ TriasDev.Templify is intentionally designed to be **simple, focused, and maintai
    │
    └─▶ Remove original loop block (markers + content)
 ```
+
+### Processing Sequence Diagram
+
+Here's how a template with conditionals, loops, and placeholders is processed:
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant P as DocumentTemplateProcessor
+    participant W as DocumentWalker
+    participant CV as ConditionalVisitor
+    participant LV as LoopVisitor
+    participant PV as PlaceholderVisitor
+    participant Ctx as EvaluationContext
+
+    C->>P: ProcessTemplate(template, data)
+    P->>Ctx: Create GlobalEvaluationContext(data)
+    P->>W: Create DocumentWalker
+    P->>P: Build Visitor Composite
+    P->>W: Walk(document, visitors, context)
+
+    loop For each element in document
+        W->>W: Detect element type
+
+        alt Is Conditional Block
+            W->>CV: VisitConditional(element, context)
+            CV->>Ctx: Resolve condition variable
+            Ctx-->>CV: Variable value
+            CV->>CV: Evaluate condition
+            alt Condition is true
+                CV->>CV: Keep content, remove markers
+            else Condition is false
+                CV->>CV: Remove entire block
+            end
+        end
+
+        alt Is Loop Block
+            W->>LV: VisitLoop(element, context)
+            LV->>Ctx: Resolve collection
+            Ctx-->>LV: Collection items
+            loop For each item in collection
+                LV->>LV: Clone content
+                LV->>Ctx: Create LoopEvaluationContext(item)
+                LV->>W: Walk cloned content (recursive)
+                Note over W,PV: Process nested conditionals,<br/>loops, placeholders
+            end
+            LV->>LV: Remove original loop block
+        end
+
+        alt Is Placeholder
+            W->>PV: VisitPlaceholder(element, context)
+            PV->>Ctx: Resolve variable path
+            Ctx-->>PV: Variable value
+            PV->>PV: Replace text with value
+        end
+    end
+
+    W-->>P: Processing complete
+    P-->>C: ProcessingResult
+```
+
+**Key Points**:
+- Processing order: **Conditionals → Loops → Placeholders**
+- Loop processing is **recursive** (enables nested loops)
+- Each loop iteration creates a new **LoopEvaluationContext**
+- Context hierarchy enables proper variable scoping
+
+### Context Hierarchy Visualization
+
+```mermaid
+graph TD
+    Global[GlobalEvaluationContext<br/>User: 'John Doe'<br/>Date: '2025-01-15'] --> Loop1[LoopEvaluationContext<br/>OrderID: 'ORD-001'<br/>@index: 0]
+    Global --> Loop2[LoopEvaluationContext<br/>OrderID: 'ORD-002'<br/>@index: 1]
+
+    Loop1 --> Nested1[LoopEvaluationContext<br/>Item: 'Product A'<br/>@index: 0<br/>Parent: ORD-001]
+    Loop1 --> Nested2[LoopEvaluationContext<br/>Item: 'Product B'<br/>@index: 1<br/>Parent: ORD-001]
+
+    style Global fill:#e1f5ff
+    style Loop1 fill:#e1ffe1
+    style Loop2 fill:#e1ffe1
+    style Nested1 fill:#fff4e1
+    style Nested2 fill:#fff4e1
+```
+
+**Variable Resolution**:
+- Inner contexts **shadow** outer contexts
+- Special variables (`@index`, `@first`, `@last`, `@count`) are loop-specific
+- Parent context accessible when variable not found in current scope
 
 ## Legacy Architecture (Pre-Phase 2 - Deprecated)
 

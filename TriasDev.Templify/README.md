@@ -927,13 +927,21 @@ catch (Exception ex)
 - .NET 9.0 or later
 - DocumentFormat.OpenXml 3.3.0 or later
 
+## About
+
+**Templify** is created and maintained by **TriasDev GmbH & Co. KG**.
+
+This library powers document generation in [ViasPro](https://viaspro.com), processing thousands of enterprise compliance documents daily.
+
 ## License
 
-Part of the TriasDev ViasPro project.
+*[License information to be added]*
+
+© 2025 TriasDev GmbH & Co. KG
 
 ## Contributing
 
-For internal development within TriasDev. See the main repository documentation for contribution guidelines.
+Contributions are welcome! Please see the main repository for contribution guidelines.
 
 ## See Also
 
