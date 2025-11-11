@@ -1,0 +1,117 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:TriasDev.Templify.Gui.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="600"
+        x:Class="TriasDev.Templify.Gui.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="Templify Template Processor"
+        Width="700" Height="600"
+        MinWidth="600" MinHeight="500">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto">
+
+        <!-- Title -->
+        <TextBlock Grid.Row="0"
+                   Text="Templify Template Processor"
+                   FontSize="20"
+                   FontWeight="Bold"
+                   Margin="0,0,0,20"/>
+
+        <!-- Template File Selection -->
+        <Grid Grid.Row="1" ColumnDefinitions="100,*,100" Margin="0,0,0,10">
+            <TextBlock Grid.Column="0" Text="Template File:" VerticalAlignment="Center"/>
+            <TextBox Grid.Column="1"
+                     Text="{Binding TemplatePath}"
+                     IsReadOnly="True"
+                     Watermark="Select a .docx template file"
+                     Margin="10,0,10,0"/>
+            <Button Grid.Column="2"
+                    Content="Browse..."
+                    Command="{Binding BrowseTemplateCommand}"/>
+        </Grid>
+
+        <!-- JSON Data File Selection -->
+        <Grid Grid.Row="2" ColumnDefinitions="100,*,100" Margin="0,0,0,10">
+            <TextBlock Grid.Column="0" Text="JSON Data:" VerticalAlignment="Center"/>
+            <TextBox Grid.Column="1"
+                     Text="{Binding JsonPath}"
+                     IsReadOnly="True"
+                     Watermark="Select a .json data file"
+                     Margin="10,0,10,0"/>
+            <Button Grid.Column="2"
+                    Content="Browse..."
+                    Command="{Binding BrowseJsonCommand}"/>
+        </Grid>
+
+        <!-- Output File Selection -->
+        <Grid Grid.Row="3" ColumnDefinitions="100,*,100" Margin="0,0,0,20">
+            <TextBlock Grid.Column="0" Text="Output File:" VerticalAlignment="Center"/>
+            <TextBox Grid.Column="1"
+                     Text="{Binding OutputPath}"
+                     IsReadOnly="True"
+                     Watermark="Output will be saved here"
+                     Margin="10,0,10,0"/>
+            <Button Grid.Column="2"
+                    Content="Browse..."
+                    Command="{Binding BrowseOutputCommand}"/>
+        </Grid>
+
+        <!-- Action Buttons -->
+        <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="10" Margin="0,0,0,20">
+            <Button Content="Validate Template"
+                    Command="{Binding ValidateTemplateCommand}"
+                    Width="150"/>
+            <Button Content="Process Template"
+                    Command="{Binding ProcessTemplateCommand}"
+                    Width="150"/>
+        </StackPanel>
+
+        <!-- Status and Progress -->
+        <StackPanel Grid.Row="5" Margin="0,0,0,10">
+            <TextBlock Text="{Binding StatusMessage}"
+                       FontWeight="SemiBold"
+                       Margin="0,0,0,5"/>
+            <ProgressBar Value="{Binding Progress}"
+                         IsIndeterminate="{Binding IsProcessing}"
+                         IsVisible="{Binding IsProcessing}"
+                         Height="4"/>
+        </StackPanel>
+
+        <!-- Results Display -->
+        <Border Grid.Row="6"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                BorderThickness="1"
+                Padding="10"
+                Margin="0,0,0,10">
+            <ScrollViewer>
+                <ItemsControl ItemsSource="{Binding Results}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <SelectableTextBlock Text="{Binding}"
+                                                 TextWrapping="Wrap"
+                                                 Margin="0,2"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Bottom Action Buttons -->
+        <StackPanel Grid.Row="7" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+            <Button Content="Open Output File"
+                    Command="{Binding OpenOutputFileCommand}"
+                    Width="130"/>
+            <Button Content="Clear"
+                    Command="{Binding ClearCommand}"
+                    Width="80"/>
+        </StackPanel>
+
+    </Grid>
+</Window>
