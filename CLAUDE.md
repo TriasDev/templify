@@ -67,12 +67,84 @@ dotnet run --project TriasDev.Templify.Benchmarks/TriasDev.Templify.Benchmarks.c
 # Run demo application
 dotnet run --project TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj
 
-# Run converter CLI
-dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- [arguments]
+# Run converter CLI (full command)
+dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- [command] [arguments]
+
+# Run converter CLI (using helper scripts - recommended)
+./scripts/analyze.sh template.docx
+./scripts/convert.sh template.docx
+./scripts/validate.sh template.docx
+./scripts/clean.sh template.docx
 
 # Run GUI application
 dotnet run --project TriasDev.Templify.Gui/TriasDev.Templify.Gui.csproj
 ```
+
+### Converter CLI Tool
+
+The converter tool helps migrate OpenXMLTemplates documents to Templify format.
+
+**Location:** `TriasDev.Templify.Converter/`
+
+**Available Commands:**
+```bash
+# Analyze OpenXMLTemplates document
+./scripts/analyze.sh template.docx [--output report.md]
+
+# Convert to Templify format
+./scripts/convert.sh template.docx [--output new-template.docx]
+
+# Validate Word document structure
+./scripts/validate.sh template.docx
+
+# Remove SDT wrappers
+./scripts/clean.sh template.docx [--output cleaned.docx]
+```
+
+**Helper Scripts:**
+- Location: `scripts/` directory
+- Bash scripts (`.sh`) for macOS/Linux
+- CMD scripts (`.cmd`) for Windows
+- Reduce verbose `dotnet run` commands to simple calls
+- Must be run from repository root
+
+**Common Development Tasks:**
+
+Testing converter changes:
+```bash
+# Make changes to converter code
+# Build and test with a sample document
+./scripts/analyze.sh test-templates/sample.docx
+./scripts/convert.sh test-templates/sample.docx
+./scripts/validate.sh test-templates/sample-templify.docx
+```
+
+Adding new conversion logic:
+1. Modify converters in `TriasDev.Templify.Converter/Converters/`
+2. Update analyzers in `TriasDev.Templify.Converter/Analyzers/` if needed
+3. Test with various OpenXMLTemplates formats
+4. Update converter README with new capabilities
+
+Debugging converter issues:
+```bash
+# Use full command for more control
+dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- analyze template.docx --output debug-report.md
+
+# Review generated reports
+cat template-analysis-report.md
+cat template-templify-conversion-report.md
+```
+
+**Key Converter Components:**
+- `Program.cs` - CLI entry point, command parsing
+- `Analyzers/` - Content control detection and analysis
+- `Converters/` - OpenXMLTemplates to Templify conversion logic
+- `Validators/` - Document validation
+- `Models/` - Data structures for analysis results
+
+**Documentation:**
+- 📖 [Full Converter Documentation](TriasDev.Templify.Converter/README.md)
+- 📜 [Script Usage Guide](scripts/README.md)
 
 ## Architecture & Code Organization
 

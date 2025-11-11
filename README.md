@@ -110,18 +110,88 @@ dotnet run --project TriasDev.Templify.Gui/TriasDev.Templify.Gui.csproj
 
 ### 🔧 CLI Converter Tool
 
-Command-line tool for converting documents and analyzing templates.
+Command-line tool for migrating OpenXMLTemplates documents to Templify format, with analysis, validation, and cleanup capabilities.
 
 **Run the converter:**
 ```bash
+# Full command
 dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- [command] [options]
+
+# Or use helper scripts (recommended)
+./scripts/[command].sh [options]          # macOS/Linux
+scripts\[command].cmd [options]           # Windows
 ```
 
-**Commands:**
-- `analyze` - Analyze document structure
-- `convert` - Convert OpenXMLTemplates documents to Templify format
-- `validate` - Validate template syntax
-- `clean` - Clean up document structure
+**Available Commands:**
+
+- **`analyze`** - Inspect OpenXMLTemplates documents and identify content controls
+  ```bash
+  ./scripts/analyze.sh template.docx
+  ./scripts/analyze.sh template.docx --output report.md
+  ```
+
+- **`convert`** - Convert OpenXMLTemplates to Templify format
+  ```bash
+  ./scripts/convert.sh template.docx
+  ./scripts/convert.sh template.docx --output new-template.docx
+  ```
+
+- **`validate`** - Validate Word document structure and schema
+  ```bash
+  ./scripts/validate.sh template.docx
+  ```
+
+- **`clean`** - Remove Structured Document Tag (SDT) wrappers
+  ```bash
+  ./scripts/clean.sh template.docx
+  ./scripts/clean.sh template.docx --output cleaned.docx
+  ```
+
+**Migration Workflow Example:**
+```bash
+# Step 1: Analyze the template
+./scripts/analyze.sh old-template.docx
+
+# Step 2: Review the analysis report
+cat old-template-analysis-report.md
+
+# Step 3: Convert to Templify format
+./scripts/convert.sh old-template.docx
+
+# Step 4: Validate the converted document
+./scripts/validate.sh old-template-templify.docx
+
+# Step 5: Test with actual data
+# Use demo or custom code with Templify library
+```
+
+**Batch Processing Example:**
+```bash
+# Convert all templates in a directory
+for template in templates/*.docx; do
+  ./scripts/convert.sh "$template"
+done
+```
+
+📖 **[Full Converter Documentation](TriasDev.Templify.Converter/README.md)** | 📜 **[Script Usage Guide](scripts/README.md)**
+
+#### Migrating from OpenXMLTemplates
+
+The converter automatically translates OpenXMLTemplates content control tags to Templify placeholders:
+
+| OpenXMLTemplates | Templify |
+|-----------------|----------|
+| `variable_CompanyName` | `{{CompanyName}}` |
+| `conditionalRemove_IsActive` | `{{#if IsActive}}...{{/if}}` |
+| `conditionalRemove_Count_gt_0` | `{{#if Count > 0}}...{{/if}}` |
+| `repeating_LineItems` | `{{#foreach LineItems}}...{{/foreach}}` |
+
+**Benefits of migrating:**
+- ✅ Simpler template creation (no content controls required)
+- ✅ Human-readable placeholders
+- ✅ Better Word compatibility (no SDT corruption)
+- ✅ Modern architecture with better performance
+- ✅ Easier maintenance and debugging
 
 ### 🎯 Demo Application
 
