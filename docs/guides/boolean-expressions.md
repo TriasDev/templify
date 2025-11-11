@@ -814,7 +814,7 @@ System Requirements Check
 =========================
 
 {{#foreach Requirements}}
-{{Name}}: {{(IsM et):checkmark}}
+{{Name}}: {{(IsMet):checkmark}}
 {{/foreach}}
 
 Overall Status: {{((CPUMeetsReq and MemoryMeetsReq) and DiskMeetsReq):active}}

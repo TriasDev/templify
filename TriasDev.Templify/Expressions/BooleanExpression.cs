@@ -134,7 +134,11 @@ internal sealed class ComparisonExpression : BooleanExpression
             {
                 return leftComparable.CompareTo(right);
             }
-            catch
+            catch (ArgumentException)
+            {
+                return 0;
+            }
+            catch (InvalidCastException)
             {
                 return 0;
             }

@@ -70,7 +70,17 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
                     value = result;
                     resolved = true;
                 }
-                catch
+                catch (ArgumentException)
+                {
+                    resolved = false;
+                    value = null;
+                }
+                catch (InvalidOperationException)
+                {
+                    resolved = false;
+                    value = null;
+                }
+                catch (InvalidCastException)
                 {
                     resolved = false;
                     value = null;

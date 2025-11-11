@@ -42,7 +42,15 @@ internal sealed class BooleanExpressionParser
         {
             return ParseOrExpression();
         }
-        catch
+        catch (FormatException)
+        {
+            return null;
+        }
+        catch (ArgumentException)
+        {
+            return null;
+        }
+        catch (InvalidOperationException)
         {
             return null;
         }
