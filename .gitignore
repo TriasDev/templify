@@ -334,3 +334,6 @@ MunichRe.CART.Presentation.Web.Backend/appsettings.Development.ajo.json
 *.key
 /MunichRe.CART.Presentation.Web.Frontend/.claude/settings.local.json
 /.claude/settings.local.json
+
+# Demo data files - removed from history
+TriasDev.Templify.Demo/Data/
