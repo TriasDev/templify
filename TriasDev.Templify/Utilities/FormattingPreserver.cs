@@ -59,4 +59,57 @@ internal static class FormattingPreserver
         RunProperties? original = ExtractRunProperties(runs);
         return CloneRunProperties(original);
     }
+
+    /// <summary>
+    /// Applies markdown-style formatting to RunProperties (bold, italic, strikethrough).
+    /// Creates new RunProperties if none exist, or merges with existing properties.
+    /// </summary>
+    /// <param name="baseProperties">The base RunProperties to start with (can be null).</param>
+    /// <param name="isBold">Whether to apply bold formatting.</param>
+    /// <param name="isItalic">Whether to apply italic formatting.</param>
+    /// <param name="isStrikethrough">Whether to apply strikethrough formatting.</param>
+    /// <returns>RunProperties with the markdown formatting applied.</returns>
+    public static RunProperties? ApplyMarkdownFormatting(
+        RunProperties? baseProperties,
+        bool isBold,
+        bool isItalic,
+        bool isStrikethrough)
+    {
+        // If no formatting needed, return base properties as-is
+        if (!isBold && !isItalic && !isStrikethrough)
+        {
+            return baseProperties;
+        }
+
+        // Create new properties if none exist, or clone existing ones
+        RunProperties properties = baseProperties != null
+            ? (RunProperties)baseProperties.CloneNode(true)
+            : new RunProperties();
+
+        // Apply bold formatting
+        if (isBold)
+        {
+            // Remove existing Bold element if present to avoid duplicates
+            properties.RemoveAllChildren<Bold>();
+            properties.Append(new Bold());
+        }
+
+        // Apply italic formatting
+        if (isItalic)
+        {
+            // Remove existing Italic element if present to avoid duplicates
+            properties.RemoveAllChildren<Italic>();
+            properties.Append(new Italic());
+        }
+
+        // Apply strikethrough formatting
+        if (isStrikethrough)
+        {
+            // Remove existing Strike element if present to avoid duplicates
+            properties.RemoveAllChildren<Strike>();
+            properties.Append(new Strike());
+        }
+
+        return properties;
+    }
 }

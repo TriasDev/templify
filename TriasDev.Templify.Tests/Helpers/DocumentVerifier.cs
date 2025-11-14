@@ -61,6 +61,22 @@ public sealed class DocumentVerifier : IDisposable
     }
 
     /// <summary>
+    /// Gets all runs from a specific paragraph.
+    /// </summary>
+    public List<Run> GetRuns(int paragraphIndex)
+    {
+        IEnumerable<Paragraph> paragraphs = _body.Elements<Paragraph>();
+
+        if (paragraphIndex < 0 || paragraphIndex >= paragraphs.Count())
+        {
+            throw new ArgumentOutOfRangeException(nameof(paragraphIndex));
+        }
+
+        Paragraph paragraph = paragraphs.ElementAt(paragraphIndex);
+        return paragraph.Elements<Run>().ToList();
+    }
+
+    /// <summary>
     /// Gets the RunProperties from a specific run in a specific paragraph.
     /// </summary>
     public RunProperties? GetRunProperties(int paragraphIndex, int runIndex = 0)

@@ -250,8 +250,12 @@ The library uses a **visitor pattern** for processing Word documents, enabling:
 - `PropertyPaths/PropertyPathSegment.cs` - Path segment types
 - `PropertyPaths/PropertyPathResolver.cs` - Resolves nested paths (Customer.Address.City, Items[0])
 
+**Markdown:**
+- `Markdown/MarkdownSegment.cs` - Data structure for text + formatting flags
+- `Markdown/MarkdownParser.cs` - Parses markdown syntax into segments
+
 **Utilities:**
-- `Utilities/FormattingPreserver.cs` - Preserves OpenXML formatting
+- `Utilities/FormattingPreserver.cs` - Preserves OpenXML formatting and applies markdown formatting
 - `Utilities/JsonDataParser.cs` - Parses JSON to data dictionary
 
 ## Key Implementation Details
@@ -279,6 +283,35 @@ The library uses a **visitor pattern** for processing Word documents, enabling:
 ```
 
 **Loop metadata:** `{{@index}}`, `{{@first}}`, `{{@last}}`, `{{@count}}`
+
+### Markdown Syntax
+
+Variable values support markdown formatting for dynamic text styling:
+
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["Message"] = "My name is **Alice**"  // Bold
+};
+```
+
+**Supported markdown:**
+- `**text**` or `__text__` → Bold
+- `*text*` or `_text_` → Italic
+- `~~text~~` → Strikethrough
+- `***text***` → Bold + Italic
+
+**Implementation notes:**
+- MarkdownParser detects and parses markdown syntax into MarkdownSegment objects
+- PlaceholderVisitor checks for markdown using `MarkdownParser.ContainsMarkdown()`
+- When markdown detected, creates multiple Run elements (one per segment) instead of single Run
+- FormattingPreserver.ApplyMarkdownFormatting() merges markdown formatting with template formatting
+- Malformed markdown (unclosed markers) renders as plain text
+
+**Architecture:**
+- `MarkdownParser.Parse()` returns List<MarkdownSegment> with text + formatting flags
+- `UpdateParagraphTextWithMarkdown()` in PlaceholderVisitor generates Run elements for each segment
+- Formatting is merged, not replaced: red template + markdown bold = red bold text
 
 ### Text Processing Strategy
 

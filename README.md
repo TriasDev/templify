@@ -18,6 +18,7 @@ Templify is a focused .NET 9 library built on the OpenXML SDK that enables dynam
 
 **Key Features:**
 - 📝 Simple placeholder syntax: `{{variableName}}`
+- ✨ Markdown formatting in variable values: `**bold**`, `*italic*`, `~~strikethrough~~`
 - 🔀 Conditional blocks: `{{#if condition}}...{{else}}...{{/if}}`
 - 🔁 Loops and iterations: `{{#foreach collection}}...{{/foreach}}`
 - 🌳 Nested data structures with dot notation and array indexing
@@ -140,6 +141,25 @@ dotnet add package TriasDev.Templify
    ```
 
 3. **Done!** Open `output.docx` and see the result.
+
+### Markdown Formatting (New!)
+
+Variable values can include markdown syntax for text formatting:
+
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["Message"] = "My name is **Alice**" // **bold**
+};
+```
+
+**Supported markdown:**
+- `**text**` or `__text__` → Bold
+- `*text*` or `_text_` → Italic
+- `~~text~~` → Strikethrough
+- `***text***` → Bold + Italic
+
+The markdown formatting is automatically merged with any existing template formatting (e.g., red text + markdown bold = red bold text).
 
 📖 **[Full Quick Start Guide](docs/quick-start.md)** | 📚 **[Tutorial Series](docs/tutorials/)**
 

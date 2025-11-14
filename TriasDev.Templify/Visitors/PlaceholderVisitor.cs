@@ -4,6 +4,7 @@ using TriasDev.Templify.Conditionals;
 using TriasDev.Templify.Core;
 using TriasDev.Templify.Expressions;
 using TriasDev.Templify.Loops;
+using TriasDev.Templify.Markdown;
 using TriasDev.Templify.Placeholders;
 using TriasDev.Templify.Utilities;
 
@@ -161,6 +162,7 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
 
     /// <summary>
     /// Replaces a single placeholder in the paragraph with the replacement value.
+    /// Supports markdown formatting in replacement values.
     /// </summary>
     /// <param name="paragraph">The paragraph containing the placeholder.</param>
     /// <param name="placeholder">The placeholder to replace.</param>
@@ -181,12 +183,23 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         // Concatenate all text from runs
         string fullText = string.Concat(runs.Select(r => r.InnerText));
 
-        // Replace the placeholder in the full text
-        string replacedText = fullText.Remove(placeholder.StartIndex, placeholder.Length)
-                                      .Insert(placeholder.StartIndex, replacementValue);
+        // Calculate the text before and after the placeholder
+        string textBefore = fullText.Substring(0, placeholder.StartIndex);
+        string textAfter = fullText.Substring(placeholder.StartIndex + placeholder.Length);
 
-        // Update the paragraph with the new text
-        UpdateParagraphText(paragraph, runs, replacedText);
+        // Check if replacement value contains markdown
+        if (MarkdownParser.ContainsMarkdown(replacementValue))
+        {
+            // Parse markdown and create multiple runs with formatting
+            List<MarkdownSegment> segments = MarkdownParser.Parse(replacementValue);
+            UpdateParagraphTextWithMarkdown(paragraph, runs, textBefore, segments, textAfter);
+        }
+        else
+        {
+            // No markdown - use simple text replacement
+            string replacedText = textBefore + replacementValue + textAfter;
+            UpdateParagraphText(paragraph, runs, replacedText);
+        }
     }
 
     /// <summary>
@@ -214,5 +227,74 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
 
         // Insert the new run at the beginning of the paragraph
         paragraph.AppendChild(newRun);
+    }
+
+    /// <summary>
+    /// Updates the paragraph text with markdown-formatted segments.
+    /// Creates multiple runs with appropriate formatting for each segment.
+    /// </summary>
+    /// <param name="paragraph">The paragraph to update.</param>
+    /// <param name="runs">The original runs in the paragraph.</param>
+    /// <param name="textBefore">Text before the placeholder.</param>
+    /// <param name="segments">Markdown-parsed segments to insert.</param>
+    /// <param name="textAfter">Text after the placeholder.</param>
+    private static void UpdateParagraphTextWithMarkdown(
+        Paragraph paragraph,
+        List<Run> runs,
+        string textBefore,
+        List<MarkdownSegment> segments,
+        string textAfter)
+    {
+        // Extract base formatting from the original runs
+        RunProperties? baseProperties = FormattingPreserver.ExtractAndCloneRunProperties(runs);
+
+        // Remove all existing runs
+        foreach (Run run in runs)
+        {
+            run.Remove();
+        }
+
+        // Add text before placeholder (if any)
+        if (!string.IsNullOrEmpty(textBefore))
+        {
+            Text text = new Text(textBefore);
+            text.Space = SpaceProcessingModeValues.Preserve;
+            Run beforeRun = new Run(text);
+            FormattingPreserver.ApplyRunProperties(beforeRun, FormattingPreserver.CloneRunProperties(baseProperties));
+            paragraph.AppendChild(beforeRun);
+        }
+
+        // Add markdown segments with appropriate formatting
+        foreach (MarkdownSegment segment in segments)
+        {
+            if (string.IsNullOrEmpty(segment.Text))
+            {
+                continue;
+            }
+
+            Text text = new Text(segment.Text);
+            text.Space = SpaceProcessingModeValues.Preserve;
+            Run segmentRun = new Run(text);
+
+            // Apply base formatting merged with markdown formatting
+            RunProperties? mergedProperties = FormattingPreserver.ApplyMarkdownFormatting(
+                FormattingPreserver.CloneRunProperties(baseProperties),
+                segment.IsBold,
+                segment.IsItalic,
+                segment.IsStrikethrough);
+
+            FormattingPreserver.ApplyRunProperties(segmentRun, mergedProperties);
+            paragraph.AppendChild(segmentRun);
+        }
+
+        // Add text after placeholder (if any)
+        if (!string.IsNullOrEmpty(textAfter))
+        {
+            Text text = new Text(textAfter);
+            text.Space = SpaceProcessingModeValues.Preserve;
+            Run afterRun = new Run(text);
+            FormattingPreserver.ApplyRunProperties(afterRun, FormattingPreserver.CloneRunProperties(baseProperties));
+            paragraph.AppendChild(afterRun);
+        }
     }
 }

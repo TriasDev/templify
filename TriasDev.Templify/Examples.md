@@ -6,18 +6,19 @@ This document provides practical examples for common use cases.
 
 1. [Basic Variable Replacement](#basic-variable-replacement)
 2. [Working with Different Data Types](#working-with-different-data-types)
-3. [Table Replacement](#table-replacement)
-4. [Loops and Iterations](#loops-and-iterations)
-5. [Nested Loops](#nested-loops)
-6. [Loop Metadata](#loop-metadata)
-7. [Lists in Loops](#lists-in-loops)
-8. [Conditional Blocks](#conditional-blocks)
-9. [Nested Conditionals](#nested-conditionals)
-10. [Handling Missing Variables](#handling-missing-variables)
-11. [Error Handling](#error-handling)
-12. [Processing Multiple Templates](#processing-multiple-templates)
-13. [Web Application Integration](#web-application-integration)
-14. [Report Generation](#report-generation)
+3. [Markdown Formatting](#markdown-formatting)
+4. [Table Replacement](#table-replacement)
+5. [Loops and Iterations](#loops-and-iterations)
+6. [Nested Loops](#nested-loops)
+7. [Loop Metadata](#loop-metadata)
+8. [Lists in Loops](#lists-in-loops)
+9. [Conditional Blocks](#conditional-blocks)
+10. [Nested Conditionals](#nested-conditionals)
+11. [Handling Missing Variables](#handling-missing-variables)
+12. [Error Handling](#error-handling)
+13. [Processing Multiple Templates](#processing-multiple-templates)
+14. [Web Application Integration](#web-application-integration)
+15. [Report Generation](#report-generation)
 
 ---
 
@@ -130,6 +131,104 @@ var data = new Dictionary<string, object>
 
 // In template: {{CompanyAddress}}
 // Output: Main Street 123, 10115 Berlin, Germany
+```
+
+---
+
+## Markdown Formatting
+
+Templify supports markdown syntax in variable values for text formatting. This allows you to dynamically apply bold, italic, and strikethrough formatting to your documents without modifying the template.
+
+### Basic Markdown Syntax
+
+```csharp
+using TriasDev.Templify;
+
+// Template: {{Message}}
+
+var data = new Dictionary<string, object>
+{
+    ["Message"] = "My name is **Alice**" // Bold
+};
+
+// Result: "My name is " (plain) + "Alice" (bold)
+```
+
+**Supported Markdown:**
+- `**text**` or `__text__` → **Bold**
+- `*text*` or `_text_` → *Italic*
+- `~~text~~` → ~~Strikethrough~~
+- `***text***` → ***Bold + Italic***
+
+### Mixed Formatting
+
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["Summary"] = "Normal **bold** and *italic* and ~~strikethrough~~ text"
+};
+
+// Result: Multiple runs with different formatting applied
+```
+
+### Markdown with Template Formatting
+
+Markdown formatting is **merged** with existing template formatting. If your template has formatted text, markdown adds to it:
+
+```csharp
+// Template has red text: {{Message}}
+var data = new Dictionary<string, object>
+{
+    ["Message"] = "Red text with **bold**"
+};
+
+// Result: "Red text with " (red) + "bold" (red + bold)
+// The bold formatting is added to the existing red color
+```
+
+### Markdown in Loops
+
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["Items"] = new List<string>
+    {
+        "Item **one** is bold",
+        "Item *two* is italic",
+        "Item ~~three~~ is strikethrough"
+    }
+};
+
+// Template:
+// {{#foreach Items}}
+// - {{.}}
+// {{/foreach}}
+
+// Result: Each item rendered with appropriate formatting
+```
+
+### Complex Formatting Example
+
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["Report"] = "Status: **Completed** | Priority: *High* | Previous status: ~~Pending~~",
+    ["Notes"] = "This is ***very important*** information",
+    ["Warning"] = "**Warning:** Do not modify ~~outdated~~ *deprecated* fields"
+};
+```
+
+### Malformed Markdown
+
+If markdown syntax is malformed (unclosed markers), it renders as plain text:
+
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["Invalid"] = "Hello **world"  // Missing closing **
+};
+
+// Result: "Hello **world" (rendered literally, no formatting)
 ```
 
 ---
