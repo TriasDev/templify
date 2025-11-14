@@ -265,13 +265,9 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         }
 
         // Add markdown segments with appropriate formatting
+        // Note: Empty segments are filtered by the parser
         foreach (MarkdownSegment segment in segments)
         {
-            if (string.IsNullOrEmpty(segment.Text))
-            {
-                continue;
-            }
-
             Text text = new Text(segment.Text);
             text.Space = SpaceProcessingModeValues.Preserve;
             Run segmentRun = new Run(text);

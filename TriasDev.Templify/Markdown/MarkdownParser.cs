@@ -13,13 +13,14 @@ internal static class MarkdownParser
     // - ***text*** for bold+italic
     // - **text** or __text__ for bold
     // - *text* or _text_ for italic
+    // Character class restrictions ([^~], [^*], [^_]) prevent catastrophic backtracking
     private static readonly Regex MarkdownPattern = new(
-        @"(~~(?<strike>.+?)~~)" +                           // ~~strikethrough~~
-        @"|((?<!\*)\*\*\*(?<bolditalic>.+?)\*\*\*(?!\*))" + // ***bold+italic*** (not part of ****)
-        @"|(?<!\*)\*\*(?<bold>.+?)\*\*(?!\*)" +             // **bold** (not part of ***)
-        @"|__(?<bold2>.+?)__" +                             // __bold__
-        @"|(?<![*_])\*(?<italic>.+?)\*(?![*_])" +           // *italic* (not part of ** or _)
-        @"|(?<![*_])_(?<italic2>.+?)_(?![*_])",             // _italic_ (not part of __ or *)
+        @"(~~(?<strike>[^~]+?)~~)" +                           // ~~strikethrough~~
+        @"|((?<!\*)\*\*\*(?<bolditalic>[^*]+?)\*\*\*(?!\*))" + // ***bold+italic*** (not part of ****)
+        @"|(?<!\*)\*\*(?<bold>[^*]+?)\*\*(?!\*)" +             // **bold** (not part of ***)
+        @"|__(?<bold2>[^_]+?)__" +                             // __bold__
+        @"|(?<![*_])\*(?<italic>[^*]+?)\*(?![*_])" +           // *italic* (not part of ** or _)
+        @"|(?<![*_])_(?<italic2>[^_]+?)_(?![*_])",             // _italic_ (not part of __ or *)
         RegexOptions.Compiled);
 
     /// <summary>
@@ -39,11 +40,14 @@ internal static class MarkdownParser
 
         foreach (Match match in MarkdownPattern.Matches(text))
         {
-            // Add any plain text before this match
+            // Add any plain text before this match (filter empty segments)
             if (match.Index > lastIndex)
             {
                 string plainText = text.Substring(lastIndex, match.Index - lastIndex);
-                segments.Add(new MarkdownSegment(plainText));
+                if (!string.IsNullOrEmpty(plainText))
+                {
+                    segments.Add(new MarkdownSegment(plainText));
+                }
             }
 
             // Determine the formatting based on which group matched
@@ -89,15 +93,22 @@ internal static class MarkdownParser
                 content = match.Value;
             }
 
-            segments.Add(new MarkdownSegment(content, isBold, isItalic, isStrikethrough));
+            // Only add non-empty segments
+            if (!string.IsNullOrEmpty(content))
+            {
+                segments.Add(new MarkdownSegment(content, isBold, isItalic, isStrikethrough));
+            }
             lastIndex = match.Index + match.Length;
         }
 
-        // Add any remaining plain text after the last match
+        // Add any remaining plain text after the last match (filter empty segments)
         if (lastIndex < text.Length)
         {
             string remainingText = text.Substring(lastIndex);
-            segments.Add(new MarkdownSegment(remainingText));
+            if (!string.IsNullOrEmpty(remainingText))
+            {
+                segments.Add(new MarkdownSegment(remainingText));
+            }
         }
 
         // If no markdown was found, return the entire text as a single segment

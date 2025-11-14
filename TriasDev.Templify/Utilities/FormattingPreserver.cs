@@ -62,9 +62,11 @@ internal static class FormattingPreserver
 
     /// <summary>
     /// Applies markdown-style formatting to RunProperties (bold, italic, strikethrough).
-    /// Creates new RunProperties if none exist, or merges with existing properties.
+    /// Creates new RunProperties if none exist, or modifies existing properties.
+    /// Note: This method modifies the passed baseProperties object if non-null.
+    /// Callers should pass a cloned copy if they need to preserve the original.
     /// </summary>
-    /// <param name="baseProperties">The base RunProperties to start with (can be null).</param>
+    /// <param name="baseProperties">The base RunProperties to modify (can be null).</param>
     /// <param name="isBold">Whether to apply bold formatting.</param>
     /// <param name="isItalic">Whether to apply italic formatting.</param>
     /// <param name="isStrikethrough">Whether to apply strikethrough formatting.</param>
@@ -81,10 +83,8 @@ internal static class FormattingPreserver
             return baseProperties;
         }
 
-        // Create new properties if none exist, or clone existing ones
-        RunProperties properties = baseProperties != null
-            ? (RunProperties)baseProperties.CloneNode(true)
-            : new RunProperties();
+        // Create new properties if none exist, or use existing ones (caller should have cloned)
+        RunProperties properties = baseProperties ?? new RunProperties();
 
         // Apply bold formatting
         if (isBold)
