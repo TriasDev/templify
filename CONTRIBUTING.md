@@ -130,6 +130,98 @@ Relates to #456
 
 ---
 
+## Commit Message Format
+
+We follow the [Conventional Commits](https://www.conventionalcommits.org/) specification for commit messages. This leads to more readable commit history and enables automated changelog generation.
+
+### Format
+
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+### Types
+
+**Types that appear in CHANGELOG:**
+- `feat:` - New feature → Goes in "Added" section
+- `fix:` - Bug fix → Goes in "Fixed" section
+- `perf:` - Performance improvement → Goes in "Performance" or "Changed" section
+- Breaking changes: Add `BREAKING CHANGE:` in commit body → Goes in "Breaking Changes" section
+
+**Types for internal changes (NOT in CHANGELOG):**
+- `docs:` - Documentation changes only
+- `style:` - Code formatting, whitespace, missing semicolons
+- `refactor:` - Code restructuring without changing behavior
+- `test:` - Adding or updating tests
+- `chore:` - Maintenance tasks, dependency updates
+- `ci:` - CI/CD configuration changes
+- `build:` - Build system or tooling changes
+
+### Scope (Optional)
+
+The scope provides additional context:
+- `feat(loops):` - Loop-related feature
+- `fix(placeholders):` - Placeholder bug fix
+- `docs(contributing):` - Contributing documentation
+- `ci(workflow):` - Workflow configuration
+
+### Examples
+
+```bash
+# Feature with body
+feat: add support for custom date format specifiers
+
+Implements #42
+
+# Bug fix
+fix: resolve placeholder replacement in nested table cells
+
+Fixes #38
+
+# Documentation
+docs(readme): update installation instructions
+
+# Breaking change
+feat!: change placeholder syntax to use curly braces
+
+BREAKING CHANGE: Placeholder syntax changed from {{var}} to ${var}.
+Update all templates before upgrading.
+
+# Multiple changes
+feat(conditionals): add support for 'or' operator in conditions
+
+- Implements logical OR operator
+- Updates conditional evaluator
+- Adds comprehensive tests
+```
+
+### When Making a Commit
+
+1. **Choose the appropriate type** based on your change
+2. **If type is `feat`, `fix`, `perf`, or breaking change:**
+   - Also update `CHANGELOG.md` in the `[Unreleased]` section
+   - Ensure commit description matches changelog entry
+3. **Write clear, descriptive commit messages**
+   - Use present tense: "add feature" not "added feature"
+   - Be specific: "fix date formatting in German locale" not "fix bug"
+4. **Reference issues** in commit body or footer
+
+### CHANGELOG Mapping
+
+| Commit Type | CHANGELOG Section | Required |
+|-------------|-------------------|----------|
+| `feat:` | `### Added` | Yes |
+| `fix:` | `### Fixed` | Yes |
+| `perf:` | `### Performance` or `### Changed` | Yes |
+| `BREAKING CHANGE:` | `### Breaking Changes` | Yes |
+| `docs:`, `style:`, `refactor:`, etc. | Not included | No |
+
+---
+
 ## Development Setup
 
 ### Prerequisites
