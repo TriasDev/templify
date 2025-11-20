@@ -4,7 +4,7 @@
 [![Build Status](https://img.shields.io/github/actions/workflow/status/TriasDev/templify/build.yml?branch=main)](https://github.com/TriasDev/templify/actions)
 [![Test Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/TriasDev/templify)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![.NET](https://img.shields.io/badge/.NET-9.0-purple)](https://dotnet.microsoft.com/download)
+[![.NET](https://img.shields.io/badge/.NET-6.0%2B-purple)](https://dotnet.microsoft.com/download)
 
 > A modern .NET library for processing Word document templates without Microsoft Word
 
@@ -14,7 +14,7 @@
 
 ## Overview
 
-Templify is a focused .NET 9 library built on the OpenXML SDK that enables dynamic Word document generation through simple placeholder replacement, conditionals, and loops. Unlike complex templating systems, Templify provides an intuitive API for the most common use case: replacing `{{placeholders}}` in Word templates with actual data, without requiring Microsoft Word installation.
+Templify is a focused .NET library built on the OpenXML SDK that enables dynamic Word document generation through simple placeholder replacement, conditionals, and loops. Unlike complex templating systems, Templify provides an intuitive API for the most common use case: replacing `{{placeholders}}` in Word templates with actual data, without requiring Microsoft Word installation.
 
 **Key Features:**
 - 📝 Simple placeholder syntax: `{{variableName}}`
@@ -171,7 +171,7 @@ This repository contains multiple projects organized as a complete solution:
 
 ```
 templify/
-├── TriasDev.Templify/          # Core library (.NET 9.0)
+├── TriasDev.Templify/          # Core library (.NET 6.0+)
 ├── TriasDev.Templify.Tests/    # xUnit test suite (109+ tests, 100% coverage)
 ├── TriasDev.Templify.Gui/      # Cross-platform GUI application (Avalonia)
 ├── TriasDev.Templify.Converter/# CLI tool for document conversion
@@ -203,7 +203,7 @@ templify/
 ### Prerequisites
 
 **Prerequisites:**
-- .NET 9.0 SDK or later
+- .NET 6.0 SDK or later
 - Git
 
 **Clone and build:**
@@ -230,7 +230,7 @@ dotnet run --project TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj
 The main template processing library. Provides `DocumentTemplateProcessor` for replacing placeholders, evaluating conditionals, and processing loops in Word documents.
 
 **Architecture:** Visitor pattern with context-aware evaluation
-**Target:** .NET 9.0
+**Target:** .NET 6.0+
 **Dependencies:** DocumentFormat.OpenXml 3.3.0
 
 📖 [Full Library Documentation](TriasDev.Templify/README.md) | 🏗️ [Architecture Details](TriasDev.Templify/ARCHITECTURE.md) | 📝 [Code Examples](TriasDev.Templify/Examples.md)
@@ -436,7 +436,7 @@ dotnet restore templify.sln
 
 ### Requirements
 
-- **.NET 9.0 SDK** or later
+- **.NET 6.0 SDK** or later
 - **Visual Studio 2022** (optional, for GUI development) or **Rider**
 - **Git** for version control
 
@@ -460,7 +460,7 @@ This repository includes **CLAUDE.md** with comprehensive guidance for AI coding
 
 ## Requirements
 
-- **.NET 9.0** or later
+- **.NET 6.0** or later
 - **DocumentFormat.OpenXml 3.3.0** (automatically restored)
 - **Avalonia 11.3.8** (for GUI project)
 - **xUnit** (for test project)
