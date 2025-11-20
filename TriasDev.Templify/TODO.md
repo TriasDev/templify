@@ -1,4 +1,4 @@
-# TriasDev.Templify TODO
+# Templify TODO
 
 ## Test Statistics
 

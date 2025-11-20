@@ -229,7 +229,7 @@ dotnet run --project TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj
 
 ## Projects
 
-### 📚 TriasDev.Templify (Core Library)
+### 📚 Templify (Core Library)
 
 The main template processing library. Provides `DocumentTemplateProcessor` for replacing placeholders, evaluating conditionals, and processing loops in Word documents.
 

@@ -1,6 +1,6 @@
 # API Reference
 
-Welcome to the TriasDev.Templify API reference documentation.
+Welcome to the Templify API reference documentation.
 
 ## Namespaces
 

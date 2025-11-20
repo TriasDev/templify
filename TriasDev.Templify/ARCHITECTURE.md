@@ -1,11 +1,11 @@
-# TriasDev.Templify Architecture
+# Templify Architecture
 
 **Last Updated**: 2025-11-09
 **Current Version**: Post-Phase 2 Refactoring (Visitor Pattern)
 
 ## Current State (November 2025)
 
-TriasDev.Templify now uses a **visitor pattern architecture** for processing Word document templates. This architecture was implemented as part of Phase 2 refactoring to enable:
+Templify now uses a **visitor pattern architecture** for processing Word document templates. This architecture was implemented as part of Phase 2 refactoring to enable:
 - ✅ Conditionals inside loops
 - ✅ Nested loops (arbitrary depth)
 - ✅ Table row loops
@@ -19,7 +19,7 @@ TriasDev.Templify now uses a **visitor pattern architecture** for processing Wor
 
 ## Design Philosophy
 
-TriasDev.Templify is intentionally designed to be **simple, focused, and maintainable**. This library provides the essential features most applications need: variable replacement, nested data structures, conditionals, and collection iteration, without the complexity of advanced templating engines.
+Templify is intentionally designed to be **simple, focused, and maintainable**. This library provides the essential features most applications need: variable replacement, nested data structures, conditionals, and collection iteration, without the complexity of advanced templating engines.
 
 ### Design Principles
 
@@ -901,7 +901,7 @@ If complex features are needed, consider:
 
 ## Conclusion
 
-TriasDev.Templify prioritizes **simplicity** and **maintainability** over feature completeness. By focusing on the most common use case (variable replacement), we achieve:
+Templify prioritizes **simplicity** and **maintainability** over feature completeness. By focusing on the most common use case (variable replacement), we achieve:
 
 - Easy to understand and modify
 - Quick to test and debug

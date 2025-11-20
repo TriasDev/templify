@@ -1,4 +1,4 @@
-# Welcome to TriasDev.Templify
+# Welcome to Templify
 
 **High-performance Word document templating engine for .NET**
 

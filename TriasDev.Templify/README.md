@@ -1,10 +1,10 @@
-# TriasDev.Templify
+# Templify
 
 A simple, focused .NET library for replacing placeholders in Word documents (.docx) without requiring Microsoft Word to be installed.
 
 ## Overview
 
-TriasDev.Templify is built on the Microsoft OpenXML SDK and provides a straightforward API for variable replacement in Word document templates. Unlike complex templating systems, this library focuses on the most common use case: replacing `{{placeholders}}` with actual values.
+Templify is built on the Microsoft OpenXML SDK and provides a straightforward API for variable replacement in Word document templates. Unlike complex templating systems, this library focuses on the most common use case: replacing `{{placeholders}}` with actual values.
 
 ## Features
 
@@ -93,7 +93,7 @@ Status: True
 
 ## Nested Data Structures
 
-TriasDev.Templify supports accessing nested properties, collections, and dictionaries using mixed notation.
+Templify supports accessing nested properties, collections, and dictionaries using mixed notation.
 
 ### Supported Syntax
 
@@ -235,7 +235,7 @@ var data = new Dictionary<string, object>
 
 ## Conditional Blocks
 
-TriasDev.Templify supports conditional content using `{{#if condition}}...{{else}}...{{/if}}` syntax. Show or hide content based on data values and complex expressions.
+Templify supports conditional content using `{{#if condition}}...{{else}}...{{/if}}` syntax. Show or hide content based on data values and complex expressions.
 
 ### Basic Conditional Syntax
 
@@ -366,7 +366,7 @@ Shipping: 5-7 business days within Germany
 
 ### Nested Conditionals
 
-TriasDev.Templify fully supports nested conditionals, allowing you to create complex branching logic:
+Templify fully supports nested conditionals, allowing you to create complex branching logic:
 
 **Example: Multi-Level Decision Tree**
 
@@ -433,7 +433,7 @@ VIP Customer Benefits:
 
 ## Loops and Iterations
 
-TriasDev.Templify supports repeating content for collections using the `{{#foreach}}...{{/foreach}}` syntax. Loops work with both paragraphs and table rows.
+Templify supports repeating content for collections using the `{{#foreach}}...{{/foreach}}` syntax. Loops work with both paragraphs and table rows.
 
 ### Basic Loop Syntax
 
@@ -597,7 +597,7 @@ var data = new Dictionary<string, object>
 
 ### Automatic Formatting Preservation
 
-TriasDev.Templify automatically preserves all character formatting when replacing placeholders. This means:
+Templify automatically preserves all character formatting when replacing placeholders. This means:
 
 - **Bold text** stays bold
 - *Italic text* stays italic
@@ -757,7 +757,7 @@ var processor = new DocumentTemplateProcessor(options);
 
 ### Culture and Formatting
 
-TriasDev.Templify allows you to control how numbers, dates, and other culture-sensitive values are formatted in your documents. This is particularly important for international documents or when you need consistent formatting across different systems.
+Templify allows you to control how numbers, dates, and other culture-sensitive values are formatted in your documents. This is particularly important for international documents or when you need consistent formatting across different systems.
 
 ```csharp
 using System.Globalization;

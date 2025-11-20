@@ -1,4 +1,4 @@
-# TriasDev.Templify Examples
+# Templify Examples
 
 This document provides practical examples for common use cases.
 
@@ -598,7 +598,7 @@ Assigned to: Diana
 
 ## Lists in Loops
 
-TriasDev.Templify fully preserves Word's bullet and numbered list formatting when used inside `{{#foreach}}` loops. This allows you to create dynamic lists with proper formatting.
+Templify fully preserves Word's bullet and numbered list formatting when used inside `{{#foreach}}` loops. This allows you to create dynamic lists with proper formatting.
 
 ### Bullet List with Simple Strings
 
@@ -1766,7 +1766,7 @@ finally
 
 ## Culture-Specific Formatting Examples
 
-TriasDev.Templify supports culture-specific formatting for numbers, dates, and other locale-sensitive values. This is essential for creating localized documents or ensuring consistent formatting across different systems.
+Templify supports culture-specific formatting for numbers, dates, and other locale-sensitive values. This is essential for creating localized documents or ensuring consistent formatting across different systems.
 
 ### Example 1: US Invoice with US Formatting
 

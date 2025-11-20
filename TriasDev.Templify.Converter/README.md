@@ -1,4 +1,4 @@
-# TriasDev.Templify.Converter
+# Templify Converter
 
 > CLI tool for converting OpenXMLTemplates documents to Templify format
 
