@@ -1,3 +1,6 @@
+// Copyright (c) 2025 TriasDev GmbH & Co. KG
+// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using TriasDev.Templify.Core;

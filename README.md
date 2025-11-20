@@ -3,7 +3,7 @@
 [![NuGet](https://img.shields.io/nuget/v/TriasDev.Templify.svg)](https://www.nuget.org/packages/TriasDev.Templify/)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/TriasDev/templify/build.yml?branch=main)](https://github.com/TriasDev/templify/actions)
 [![Test Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/TriasDev/templify)
-[![License](https://img.shields.io/badge/license-TBD-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-9.0-purple)](https://dotnet.microsoft.com/download)
 
 > A modern .NET library for processing Word document templates without Microsoft Word
@@ -500,9 +500,9 @@ We believe in giving back to the .NET community and providing developers with a 
 
 ## License
 
-*[License information to be added]*
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-© 2025 TriasDev GmbH & Co. KG
+Copyright © 2025 TriasDev GmbH & Co. KG
 
 ## Related Projects
 
