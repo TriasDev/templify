@@ -287,7 +287,9 @@ dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csp
 
 ### Code Style
 
-We follow standard C# coding conventions. Key guidelines:
+We follow standard C# coding conventions. The repository includes an `.editorconfig` file that automatically enforces these conventions in most modern IDEs (Visual Studio, VS Code, Rider, etc.). Your editor should automatically apply these settings when you open the project.
+
+Key guidelines:
 
 **Naming Conventions:**
 - **Private fields:** `_camelCase` (with underscore prefix)
