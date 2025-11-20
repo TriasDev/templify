@@ -287,10 +287,10 @@ public class LoopEvaluationContextTests
     }
 
     // Use reflection to access internal LoopContext and LoopEvaluationContext types
-    private static readonly Type LoopContextType = typeof(DocumentTemplateProcessor).Assembly
+    private static readonly Type _loopContextType = typeof(DocumentTemplateProcessor).Assembly
         .GetType("TriasDev.Templify.Loops.LoopContext")!;
 
-    private static readonly Type LoopEvaluationContextType = typeof(DocumentTemplateProcessor).Assembly
+    private static readonly Type _loopEvaluationContextType = typeof(DocumentTemplateProcessor).Assembly
         .GetType("TriasDev.Templify.Loops.LoopEvaluationContext")!;
 
     // Helper method to create LoopContext instances using reflection
@@ -302,7 +302,7 @@ public class LoopEvaluationContextTests
         object? parent = null)
     {
         return Activator.CreateInstance(
-            LoopContextType,
+            _loopContextType,
             currentItem,
             index,
             count,
@@ -316,7 +316,7 @@ public class LoopEvaluationContextTests
         IEvaluationContext parent)
     {
         return (IEvaluationContext)Activator.CreateInstance(
-            LoopEvaluationContextType,
+            _loopEvaluationContextType,
             loopContext,
             parent)!;
     }

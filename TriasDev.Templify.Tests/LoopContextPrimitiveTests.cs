@@ -14,13 +14,13 @@ namespace TriasDev.Templify.Tests;
 
 public class LoopContextPrimitiveTests
 {
-    private static readonly Type LoopContextType = typeof(DocumentTemplateProcessor).Assembly
+    private static readonly Type _loopContextType = typeof(DocumentTemplateProcessor).Assembly
         .GetType("TriasDev.Templify.Loops.LoopContext")!;
 
-    private static readonly MethodInfo CreateContextsMethod = LoopContextType
+    private static readonly MethodInfo _createContextsMethod = _loopContextType
         .GetMethod("CreateContexts", BindingFlags.Static | BindingFlags.Public)!;
 
-    private static readonly MethodInfo TryResolveVariableMethod = LoopContextType
+    private static readonly MethodInfo _tryResolveVariableMethod = _loopContextType
         .GetMethod("TryResolveVariable", BindingFlags.Public | BindingFlags.Instance)!;
 
     [Fact]
@@ -28,13 +28,13 @@ public class LoopContextPrimitiveTests
     {
         // Arrange
         List<string> items = new List<string> { "Item One", "Item Two", "Item Three" };
-        object result = CreateContextsMethod.Invoke(null, new object[] { items, "Items", null! })!;
+        object result = _createContextsMethod.Invoke(null, new object[] { items, "Items", null! })!;
         IList contexts = (IList)result;
         object firstContext = contexts[0]!;
 
         // Act
         object[] parameters = new object[] { ".", null! };
-        bool success = (bool)TryResolveVariableMethod.Invoke(firstContext, parameters)!;
+        bool success = (bool)_tryResolveVariableMethod.Invoke(firstContext, parameters)!;
 
         // Assert
         Assert.True(success);
@@ -43,7 +43,7 @@ public class LoopContextPrimitiveTests
         // Check second item
         object secondContext = contexts[1]!;
         parameters = new object[] { ".", null! };
-        success = (bool)TryResolveVariableMethod.Invoke(secondContext, parameters)!;
+        success = (bool)_tryResolveVariableMethod.Invoke(secondContext, parameters)!;
         Assert.True(success);
         Assert.Equal("Item Two", parameters[1]);
     }
@@ -53,13 +53,13 @@ public class LoopContextPrimitiveTests
     {
         // Arrange
         List<int> items = new List<int> { 10, 20, 30 };
-        object result = CreateContextsMethod.Invoke(null, new object[] { items, "Numbers", null! })!;
+        object result = _createContextsMethod.Invoke(null, new object[] { items, "Numbers", null! })!;
         IList contexts = (IList)result;
         object firstContext = contexts[0]!;
 
         // Act
         object[] parameters = new object[] { "this", null! };
-        bool success = (bool)TryResolveVariableMethod.Invoke(firstContext, parameters)!;
+        bool success = (bool)_tryResolveVariableMethod.Invoke(firstContext, parameters)!;
 
         // Assert
         Assert.True(success);
@@ -71,13 +71,13 @@ public class LoopContextPrimitiveTests
     {
         // Arrange
         List<decimal> items = new List<decimal> { 99.99m, 149.99m, 249.99m };
-        object result = CreateContextsMethod.Invoke(null, new object[] { items, "Prices", null! })!;
+        object result = _createContextsMethod.Invoke(null, new object[] { items, "Prices", null! })!;
         IList contexts = (IList)result;
         object lastContext = contexts[2]!;
 
         // Act
         object[] parameters = new object[] { ".", null! };
-        bool success = (bool)TryResolveVariableMethod.Invoke(lastContext, parameters)!;
+        bool success = (bool)_tryResolveVariableMethod.Invoke(lastContext, parameters)!;
 
         // Assert
         Assert.True(success);

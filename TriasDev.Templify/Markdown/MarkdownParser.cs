@@ -17,7 +17,7 @@ internal static class MarkdownParser
     // - **text** or __text__ for bold
     // - *text* or _text_ for italic
     // Character class restrictions ([^~], [^*], [^_]) prevent catastrophic backtracking
-    private static readonly Regex MarkdownPattern = new(
+    private static readonly Regex _markdownPattern = new(
         @"(~~(?<strike>[^~]+?)~~)" +                           // ~~strikethrough~~
         @"|((?<!\*)\*\*\*(?<bolditalic>[^*]+?)\*\*\*(?!\*))" + // ***bold+italic*** (not part of ****)
         @"|(?<!\*)\*\*(?<bold>[^*]+?)\*\*(?!\*)" +             // **bold** (not part of ***)
@@ -41,7 +41,7 @@ internal static class MarkdownParser
         List<MarkdownSegment> segments = new();
         int lastIndex = 0;
 
-        foreach (Match match in MarkdownPattern.Matches(text))
+        foreach (Match match in _markdownPattern.Matches(text))
         {
             // Add any plain text before this match (filter empty segments)
             if (match.Index > lastIndex)
@@ -135,6 +135,6 @@ internal static class MarkdownParser
             return false;
         }
 
-        return MarkdownPattern.IsMatch(text);
+        return _markdownPattern.IsMatch(text);
     }
 }

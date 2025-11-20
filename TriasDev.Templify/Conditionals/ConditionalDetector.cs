@@ -14,15 +14,15 @@ namespace TriasDev.Templify.Conditionals;
 /// </summary>
 internal static class ConditionalDetector
 {
-    private static readonly Regex IfStartPattern = new Regex(
+    private static readonly Regex _ifStartPattern = new Regex(
         @"\{\{#if\s+(.+?)\}\}",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    private static readonly Regex ElsePattern = new Regex(
+    private static readonly Regex _elsePattern = new Regex(
         @"\{\{else\}\}",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    private static readonly Regex IfEndPattern = new Regex(
+    private static readonly Regex _ifEndPattern = new Regex(
         @"\{\{/if\}\}",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
@@ -71,7 +71,7 @@ internal static class ConditionalDetector
 
             if (text != null)
             {
-                Match ifMatch = IfStartPattern.Match(text);
+                Match ifMatch = _ifStartPattern.Match(text);
                 if (ifMatch.Success)
                 {
                     string conditionExpression = ifMatch.Groups[1].Value.Trim();
@@ -161,8 +161,8 @@ internal static class ConditionalDetector
         if (startText != null)
         {
             // Count all {{#if and {{/if}} occurrences in the same element
-            MatchCollection ifMatches = IfStartPattern.Matches(startText);
-            MatchCollection endMatches = IfEndPattern.Matches(startText);
+            MatchCollection ifMatches = _ifStartPattern.Matches(startText);
+            MatchCollection endMatches = _ifEndPattern.Matches(startText);
 
             // The depth after this element is: initial (1) + additional ifs - all ends
             depth = depth + (ifMatches.Count - 1) - endMatches.Count;
@@ -184,11 +184,11 @@ internal static class ConditionalDetector
             }
 
             // Count all {{#if occurrences in this element
-            MatchCollection ifMatches = IfStartPattern.Matches(text);
+            MatchCollection ifMatches = _ifStartPattern.Matches(text);
             depth += ifMatches.Count;
 
             // Count all {{/if}} occurrences in this element
-            MatchCollection endMatches = IfEndPattern.Matches(text);
+            MatchCollection endMatches = _ifEndPattern.Matches(text);
             depth -= endMatches.Count;
 
             if (depth == 0)
@@ -197,7 +197,7 @@ internal static class ConditionalDetector
             }
 
             // Check for else at our depth level (before we decremented)
-            if (ElsePattern.IsMatch(text) && (depth + endMatches.Count) == 1 && elseIndex == -1)
+            if (_elsePattern.IsMatch(text) && (depth + endMatches.Count) == 1 && elseIndex == -1)
             {
                 // Only capture the first else at our depth level
                 elseIndex = i;
@@ -241,7 +241,7 @@ internal static class ConditionalDetector
             return false;
         }
 
-        return IfStartPattern.IsMatch(text) || ElsePattern.IsMatch(text) || IfEndPattern.IsMatch(text);
+        return _ifStartPattern.IsMatch(text) || _elsePattern.IsMatch(text) || _ifEndPattern.IsMatch(text);
     }
 
     /// <summary>
@@ -261,7 +261,7 @@ internal static class ConditionalDetector
 
             if (text != null)
             {
-                Match ifMatch = IfStartPattern.Match(text);
+                Match ifMatch = _ifStartPattern.Match(text);
                 if (ifMatch.Success)
                 {
                     string conditionExpression = ifMatch.Groups[1].Value.Trim();
@@ -336,11 +336,11 @@ internal static class ConditionalDetector
                 continue;
             }
 
-            if (IfStartPattern.IsMatch(text))
+            if (_ifStartPattern.IsMatch(text))
             {
                 depth++;
             }
-            else if (IfEndPattern.IsMatch(text))
+            else if (_ifEndPattern.IsMatch(text))
             {
                 depth--;
                 if (depth == 0)
@@ -348,7 +348,7 @@ internal static class ConditionalDetector
                     return (elseIndex, i); // Found matching end
                 }
             }
-            else if (ElsePattern.IsMatch(text) && depth == 1 && elseIndex == -1)
+            else if (_elsePattern.IsMatch(text) && depth == 1 && elseIndex == -1)
             {
                 // Only capture the first else at our depth level
                 elseIndex = i;

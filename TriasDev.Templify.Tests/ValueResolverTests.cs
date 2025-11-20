@@ -13,7 +13,7 @@ namespace TriasDev.Templify.Tests;
 
 public class ValueResolverTests
 {
-    private static readonly Type ValueResolverType = typeof(DocumentTemplateProcessor).Assembly
+    private static readonly Type _valueResolverType = typeof(DocumentTemplateProcessor).Assembly
         .GetType("TriasDev.Templify.Placeholders.ValueResolver")!;
 
     private readonly object _resolver;
@@ -21,8 +21,8 @@ public class ValueResolverTests
 
     public ValueResolverTests()
     {
-        _resolver = Activator.CreateInstance(ValueResolverType)!;
-        _tryResolveMethod = ValueResolverType.GetMethod("TryResolveValue", BindingFlags.Public | BindingFlags.Instance)!;
+        _resolver = Activator.CreateInstance(_valueResolverType)!;
+        _tryResolveMethod = _valueResolverType.GetMethod("TryResolveValue", BindingFlags.Public | BindingFlags.Instance)!;
     }
 
     private bool TryResolveValue(Dictionary<string, object> data, string variablePath, out object? value)
