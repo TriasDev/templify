@@ -194,7 +194,7 @@ templify/
 - **[Architecture Guide](TriasDev.Templify/ARCHITECTURE.md)** - Design patterns and technical decisions
 - **[Performance Benchmarks](TriasDev.Templify/PERFORMANCE.md)** - Speed and optimization details
 - **[CLAUDE.md](CLAUDE.md)** - Development guide for AI-assisted coding
-- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute *(coming soon)*
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to Templify
 
 ---
 
@@ -498,6 +498,30 @@ Templify is battle-tested in production, processing thousands of documents daily
 ### Why Open Source?
 We believe in giving back to the .NET community and providing developers with a modern, maintainable alternative to legacy Word templating solutions.
 
+## Contributing
+
+We welcome contributions from the community! Whether you're fixing bugs, adding features, improving documentation, or suggesting enhancements, your contributions are appreciated.
+
+### How to Contribute
+
+1. **Report bugs** - Open an issue with detailed reproduction steps
+2. **Suggest features** - Share your ideas through GitHub issues
+3. **Submit pull requests** - Fork the repo, make changes, and submit a PR
+4. **Improve documentation** - Help make our docs clearer and more comprehensive
+
+### Getting Started
+
+- Read our **[Contributing Guide](CONTRIBUTING.md)** for detailed guidelines
+- Check our **[Code of Conduct](CODE_OF_CONDUCT.md)** for community standards
+- Review **[CLAUDE.md](CLAUDE.md)** for development workflows and architecture
+
+### Development Requirements
+
+- .NET 6.0 SDK or later
+- All contributions must maintain 100% test coverage
+- Follow existing code style and conventions
+- Update documentation for any new features
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
@@ -511,5 +535,5 @@ Copyright © 2025 TriasDev GmbH & Co. KG
 ---
 
 **Getting Started:** For library usage, see [TriasDev.Templify/README.md](TriasDev.Templify/README.md)
-**Contributing:** For development guidelines, see [CLAUDE.md](CLAUDE.md)
+**Contributing:** See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines and [CLAUDE.md](CLAUDE.md) for development workflows
 **Architecture:** For technical deep-dive, see [ARCHITECTURE.md](TriasDev.Templify/ARCHITECTURE.md)
