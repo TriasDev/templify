@@ -324,6 +324,7 @@ opensource.mmd
 *.pfx
 *.cer
 certificates/
+.env
 
 # Demo data files - removed from history
 TriasDev.Templify.Demo/Data/
