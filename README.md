@@ -1,7 +1,8 @@
 # Templify
 
 [![NuGet](https://img.shields.io/nuget/v/TriasDev.Templify.svg)](https://www.nuget.org/packages/TriasDev.Templify/)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/TriasDev/templify/build.yml?branch=main)](https://github.com/TriasDev/templify/actions)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/TriasDev/templify/ci.yml?branch=main)](https://github.com/TriasDev/templify/actions)
+[![Documentation](https://img.shields.io/badge/docs-online-blue)](https://triasdev.github.io/templify/)
 [![Test Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/TriasDev/templify)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-6.0%2B-purple)](https://dotnet.microsoft.com/download)
@@ -182,6 +183,8 @@ templify/
 ---
 
 ## Documentation
+
+🌐 **[View Full Documentation Online →](https://triasdev.github.io/templify/)**
 
 ### 📖 For Users
 - **[Quick Start Guide](docs/quick-start.md)** - Get started in 5 minutes

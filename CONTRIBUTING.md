@@ -417,21 +417,64 @@ chore/update-dependencies
 ### When to Update Documentation
 
 Update documentation when you:
-- **Add new features** - Document in README.md, Examples.md
-- **Change public APIs** - Update API reference in library README.md
+- **Add new features** - Document in README.md, Examples.md, and docs/
+- **Change public APIs** - Update API reference and XML comments
 - **Modify architecture** - Update ARCHITECTURE.md
 - **Add complex logic** - Add inline code comments
 - **Fix bugs** - Update troubleshooting sections if applicable
 
 ### Documentation Files
 
+**Repository Documentation:**
 - **[README.md](README.md)** - Project overview, getting started
 - **[TriasDev.Templify/README.md](TriasDev.Templify/README.md)** - API reference, usage guide
 - **[TriasDev.Templify/Examples.md](TriasDev.Templify/Examples.md)** - Comprehensive code examples
 - **[TriasDev.Templify/ARCHITECTURE.md](TriasDev.Templify/ARCHITECTURE.md)** - Design patterns, technical decisions
 - **[CLAUDE.md](CLAUDE.md)** - Development guide for contributors
+
+**User Documentation (docs/ folder):**
 - **[docs/quick-start.md](docs/quick-start.md)** - Quick start guide
 - **[docs/tutorials/](docs/tutorials/)** - Step-by-step tutorials
+- **[docs/guides/](docs/guides/)** - Feature guides
+- **[docs/FAQ.md](docs/FAQ.md)** - Frequently asked questions
+
+**XML Documentation:**
+- All public APIs must have XML documentation comments
+- XML comments are automatically generated into `.xml` files for IntelliSense
+- Run `dotnet build` to verify XML comment validity
+
+### Documentation Website
+
+We use [DocFX](https://dotnet.github.io/docfx/) to generate our documentation website.
+
+**Preview Documentation Locally:**
+```bash
+# Build the library (generates XML docs)
+dotnet build TriasDev.Templify/TriasDev.Templify.csproj -c Release
+
+# Install DocFX (one-time setup)
+dotnet tool install -g docfx
+
+# Generate API metadata
+docfx metadata docfx_project/docfx.json
+
+# Build the documentation site
+docfx build docfx_project/docfx.json
+
+# Serve locally (view at http://localhost:8080)
+docfx serve _site
+```
+
+**Documentation Workflow:**
+1. Make changes to markdown files in `docs/` or XML comments in code
+2. Build and preview locally to verify changes
+3. Submit PR - documentation is automatically deployed on merge to `main`
+4. View live site at https://triasdev.github.io/templify/
+
+**Adding New Documentation:**
+- Place user-facing docs in `docs/` folder
+- Add entries to `docfx_project/articles/toc.yml` for navigation
+- Follow existing structure and formatting
 
 ### Documentation Style
 
@@ -439,6 +482,7 @@ Update documentation when you:
 - **Use examples** - Show, don't just tell
 - **Keep updated** - Docs should match current code
 - **Use proper markdown** - Follow CommonMark specification
+- **Add code samples** - Include runnable examples where applicable
 
 ---
 

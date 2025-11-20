@@ -5,6 +5,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
+    <!-- XML Documentation -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn> <!-- Suppress missing XML doc warnings -->
+
     <!-- NuGet Package Metadata -->
     <PackageId>TriasDev.Templify</PackageId>
     <Version>1.0.0</Version>

@@ -10,7 +10,7 @@ namespace TriasDev.Templify.Conditionals;
 
 /// <summary>
 /// Evaluates conditional expressions for conditional blocks.
-/// Supports operators: =, !=, >, <, >=, <=, and, or, not
+/// Supports operators: =, !=, &gt;, &lt;, &gt;=, &lt;=, and, or, not
 /// </summary>
 internal sealed class ConditionalEvaluator
 {
