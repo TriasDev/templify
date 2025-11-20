@@ -20,7 +20,7 @@ public sealed class PlaceholderFinder
     // - Current item: . or this (for primitive collections)
     // - Expression: (var1 and var2), (not IsActive), (Count > 0), ((var1 or var2) and var3)
     // Optional format specifier: :checkbox, :yesno, :checkmark, etc.
-    private static readonly Regex PlaceholderPattern = new(
+    private static readonly Regex _placeholderPattern = new(
         @"\{\{(\.|this|@?[\w\.\[\]]+|\([^\}]+\))(?::(\w+))?\}\}",
         RegexOptions.Compiled);
 
@@ -36,7 +36,7 @@ public sealed class PlaceholderFinder
             yield break;
         }
 
-        MatchCollection matches = PlaceholderPattern.Matches(text);
+        MatchCollection matches = _placeholderPattern.Matches(text);
 
         foreach (Match match in matches)
         {
@@ -82,7 +82,7 @@ public sealed class PlaceholderFinder
             return false;
         }
 
-        return PlaceholderPattern.IsMatch(text);
+        return _placeholderPattern.IsMatch(text);
     }
 
     /// <summary>
@@ -97,7 +97,7 @@ public sealed class PlaceholderFinder
             return null;
         }
 
-        Match match = PlaceholderPattern.Match(placeholder);
+        Match match = _placeholderPattern.Match(placeholder);
 
         if (match.Success && match.Groups.Count >= 2)
         {

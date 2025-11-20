@@ -12,7 +12,7 @@ namespace TriasDev.Templify.PropertyPaths;
 /// </summary>
 internal sealed class PropertyPath
 {
-    private static readonly Regex PathPattern = new Regex(
+    private static readonly Regex _pathPattern = new Regex(
         @"^(\w+)(?:\.(\w+)|\[([^\]]+)\])*$",
         RegexOptions.Compiled);
 

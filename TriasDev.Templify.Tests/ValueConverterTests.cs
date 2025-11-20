@@ -16,20 +16,20 @@ namespace TriasDev.Templify.Tests;
 public class ValueConverterTests
 {
     // Use reflection to access the internal static class
-    private static readonly Type ValueConverterType = typeof(DocumentTemplateProcessor).Assembly
+    private static readonly Type _valueConverterType = typeof(DocumentTemplateProcessor).Assembly
         .GetType("TriasDev.Templify.Placeholders.ValueConverter")!;
 
-    private static readonly MethodInfo ConvertToStringMethod = ValueConverterType
+    private static readonly MethodInfo _convertToStringMethod = _valueConverterType
         .GetMethod("ConvertToString", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic,
             null, new[] { typeof(object), typeof(CultureInfo) }, null)!;
 
-    private static readonly MethodInfo ConvertToStringWithFormatMethod = ValueConverterType
+    private static readonly MethodInfo ConvertToStringWithFormatMethod = _valueConverterType
         .GetMethod("ConvertToString", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic,
             null, new[] { typeof(object), typeof(CultureInfo), typeof(string), typeof(BooleanFormatterRegistry) }, null)!;
 
     private static string ConvertToString(object? value)
     {
-        return (string)ConvertToStringMethod.Invoke(null, new[] { value, CultureInfo.InvariantCulture })!;
+        return (string)_convertToStringMethod.Invoke(null, new[] { value, CultureInfo.InvariantCulture })!;
     }
 
     private static string ConvertToString(object? value, CultureInfo culture, string? format, BooleanFormatterRegistry? registry)
