@@ -42,7 +42,10 @@ public class RepeatingConverter
         foreach (SdtElement innerSdt in innerControls)
         {
             string? innerTag = OpenXmlHelpers.GetContentControlTag(innerSdt);
-            if (innerTag == null) continue;
+            if (innerTag == null)
+            {
+                continue;
+            }
 
             // Convert inner variables (relative to loop item)
             if (innerTag.StartsWith("variable_"))

@@ -127,9 +127,20 @@ internal sealed class ComparisonExpression : BooleanExpression
 
     private static int Compare(object? left, object? right)
     {
-        if (left == null && right == null) return 0;
-        if (left == null) return -1;
-        if (right == null) return 1;
+        if (left == null && right == null)
+        {
+            return 0;
+        }
+
+        if (left == null)
+        {
+            return -1;
+        }
+
+        if (right == null)
+        {
+            return 1;
+        }
 
         if (left is IComparable leftComparable && right is IComparable)
         {

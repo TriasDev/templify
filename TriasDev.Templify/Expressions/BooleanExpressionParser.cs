@@ -62,12 +62,19 @@ internal sealed class BooleanExpressionParser
     private BooleanExpression? ParseOrExpression()
     {
         BooleanExpression? left = ParseAndExpression();
-        if (left == null) return null;
+        if (left == null)
+        {
+            return null;
+        }
 
         while (ConsumeKeyword("or"))
         {
             BooleanExpression? right = ParseAndExpression();
-            if (right == null) return null;
+            if (right == null)
+            {
+                return null;
+            }
+
             left = new OrExpression(left, right);
         }
 
@@ -77,12 +84,19 @@ internal sealed class BooleanExpressionParser
     private BooleanExpression? ParseAndExpression()
     {
         BooleanExpression? left = ParseUnaryExpression();
-        if (left == null) return null;
+        if (left == null)
+        {
+            return null;
+        }
 
         while (ConsumeKeyword("and"))
         {
             BooleanExpression? right = ParseUnaryExpression();
-            if (right == null) return null;
+            if (right == null)
+            {
+                return null;
+            }
+
             left = new AndExpression(left, right);
         }
 
@@ -120,7 +134,10 @@ internal sealed class BooleanExpressionParser
 
         // Try to parse comparison
         string? identifier = ParseIdentifier();
-        if (identifier == null) return null;
+        if (identifier == null)
+        {
+            return null;
+        }
 
         SkipWhitespace();
 

@@ -295,7 +295,10 @@ public class TemplateAnalyzer
     {
         // Try to find the paragraph number
         Document? doc = sdt.Ancestors<Document>().FirstOrDefault();
-        if (doc == null) return "Unknown";
+        if (doc == null)
+        {
+            return "Unknown";
+        }
 
         List<Paragraph> allParagraphs = doc.Descendants<Paragraph>().ToList();
         Paragraph? paragraph = sdt.Ancestors<Paragraph>().FirstOrDefault();
