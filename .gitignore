@@ -331,7 +331,7 @@ process-data*.json
 **/publish/
 
 # DocFX generated files
-_site/
+docfx_project/_site/
 docfx_project/api/*.yml
 docfx_project/api/.manifest
 docfx_project/obj/
