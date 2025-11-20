@@ -289,7 +289,7 @@ internal static class ConditionalDetector
                     {
                         for (int j = elseIndex + 1; j < endIndex; j++)
                         {
-                        elseContentRows.Add(rows[j]);
+                            elseContentRows.Add(rows[j]);
                         }
                     }
 

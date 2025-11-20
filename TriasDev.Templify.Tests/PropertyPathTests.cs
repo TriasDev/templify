@@ -54,7 +54,7 @@ public class PropertyPathTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(1, segments.Count);
+        Assert.Single(segments);
         Assert.Equal("Name", GetSegmentName(segments[0]!));
         Assert.False(GetSegmentIsIndexer(segments[0]!));
         Assert.True(GetIsSimple(result));

@@ -65,7 +65,7 @@ public sealed class ValidationTests
         Assert.False(result.IsValid);
         Assert.Single(result.Errors);
         Assert.Equal("Test error", result.Errors[0].Message);
-        Assert.Equal(1, result.AllPlaceholders.Count);
+        Assert.Single(result.AllPlaceholders);
         Assert.Empty(result.MissingVariables);
     }
 
