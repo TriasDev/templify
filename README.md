@@ -6,6 +6,7 @@
 [![Test Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/TriasDev/templify)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-6.0%2B-purple)](https://dotnet.microsoft.com/download)
+[![Changelog](https://img.shields.io/badge/changelog-Keep%20a%20Changelog-orange)](CHANGELOG.md)
 
 > A modern .NET library for processing Word document templates without Microsoft Word
 

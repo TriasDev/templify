@@ -486,6 +486,75 @@ docfx serve _site
 
 ---
 
+## Changelog Maintenance
+
+We maintain a changelog following the [Keep a Changelog](https://keepachangelog.com/) format in `CHANGELOG.md`.
+
+### When to Update the Changelog
+
+Update `CHANGELOG.md` for **every PR** that changes functionality:
+- ✅ New features (even small ones)
+- ✅ Bug fixes
+- ✅ API changes
+- ✅ Performance improvements
+- ✅ Breaking changes
+- ❌ Documentation-only changes (optional)
+- ❌ Internal refactoring with no user impact (optional)
+
+### How to Update the Changelog
+
+**During Development:**
+1. Add your changes to the `[Unreleased]` section
+2. Use the appropriate category:
+   - **Added** - New features
+   - **Changed** - Changes in existing functionality
+   - **Deprecated** - Soon-to-be removed features
+   - **Removed** - Removed features
+   - **Fixed** - Bug fixes
+   - **Security** - Vulnerability fixes
+
+**Example Entry:**
+```markdown
+## [Unreleased]
+
+### Added
+- Support for custom date formats in placeholders (#42)
+
+### Fixed
+- Placeholder replacement in nested table cells (#38)
+```
+
+**On Release:**
+
+Maintainers will:
+1. Move `[Unreleased]` items to a new version section
+2. Add the release date
+3. Update version links at the bottom
+4. Create a git tag matching the version
+
+**Example:**
+```markdown
+## [Unreleased]
+
+## [1.1.0] - 2025-11-25
+
+### Added
+- Support for custom date formats in placeholders (#42)
+
+[Unreleased]: https://github.com/TriasDev/templify/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/TriasDev/templify/releases/tag/v1.1.0
+```
+
+### Changelog Best Practices
+
+- **Write for users**, not developers - Focus on impact, not implementation
+- **Use present tense** - "Add support for..." not "Added support for..."
+- **Be specific** - "Fix date formatting in German locale" not "Fix bug"
+- **Group related changes** - Combine similar items into one bullet
+- **Link to issues** - Use issue numbers for context (#123)
+
+---
+
 ## Additional Resources
 
 ### Helpful Documentation
