@@ -23,7 +23,7 @@ public class ValueConverterTests
         .GetMethod("ConvertToString", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic,
             null, new[] { typeof(object), typeof(CultureInfo) }, null)!;
 
-    private static readonly MethodInfo ConvertToStringWithFormatMethod = _valueConverterType
+    private static readonly MethodInfo _convertToStringWithFormatMethod = _valueConverterType
         .GetMethod("ConvertToString", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic,
             null, new[] { typeof(object), typeof(CultureInfo), typeof(string), typeof(BooleanFormatterRegistry) }, null)!;
 
@@ -34,7 +34,7 @@ public class ValueConverterTests
 
     private static string ConvertToString(object? value, CultureInfo culture, string? format, BooleanFormatterRegistry? registry)
     {
-        return (string)ConvertToStringWithFormatMethod.Invoke(null, new object?[] { value, culture, format, registry })!;
+        return (string)_convertToStringWithFormatMethod.Invoke(null, new object?[] { value, culture, format, registry })!;
     }
 
     [Fact]

@@ -9,20 +9,20 @@ namespace TriasDev.Templify.Tests.Expressions;
 public class BooleanExpressionParserTests
 {
     // Use reflection to access internal types
-    private static readonly Type ParserType = typeof(DocumentTemplateProcessor).Assembly
+    private static readonly Type _parserType = typeof(DocumentTemplateProcessor).Assembly
         .GetType("TriasDev.Templify.Expressions.BooleanExpressionParser")!;
 
-    private static readonly Type ExpressionType = typeof(DocumentTemplateProcessor).Assembly
+    private static readonly Type _expressionType = typeof(DocumentTemplateProcessor).Assembly
         .GetType("TriasDev.Templify.Expressions.BooleanExpression")!;
 
     private object CreateParser()
     {
-        return Activator.CreateInstance(ParserType)!;
+        return Activator.CreateInstance(_parserType)!;
     }
 
     private object? Parse(object parser, string text)
     {
-        MethodInfo? parseMethod = ParserType.GetMethod("Parse");
+        MethodInfo? parseMethod = _parserType.GetMethod("Parse");
         return parseMethod?.Invoke(parser, new object[] { text });
     }
 
@@ -50,7 +50,7 @@ public class BooleanExpressionParserTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.IsAssignableFrom(ExpressionType, result);
+        Assert.IsAssignableFrom(_expressionType, result);
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public class BooleanExpressionParserTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.IsAssignableFrom(ExpressionType, result);
+        Assert.IsAssignableFrom(_expressionType, result);
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public class BooleanExpressionParserTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.IsAssignableFrom(ExpressionType, result);
+        Assert.IsAssignableFrom(_expressionType, result);
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public class BooleanExpressionParserTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.IsAssignableFrom(ExpressionType, result);
+        Assert.IsAssignableFrom(_expressionType, result);
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public class BooleanExpressionParserTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.IsAssignableFrom(ExpressionType, result);
+        Assert.IsAssignableFrom(_expressionType, result);
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public class BooleanExpressionParserTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.IsAssignableFrom(ExpressionType, result);
+        Assert.IsAssignableFrom(_expressionType, result);
     }
 
     [Fact]
