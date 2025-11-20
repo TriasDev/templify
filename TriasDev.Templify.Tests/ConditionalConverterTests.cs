@@ -22,7 +22,7 @@ public class ConditionalConverterTests
         {
             MainDocumentPart mainPart = doc.AddMainDocumentPart();
             mainPart.Document = new Document(new Body());
-            Body body = mainPart.Document.Body;
+            Body body = mainPart.Document.Body!;
 
             // Create content control: conditionalRemove_field_not
             SdtBlock sdt = new SdtBlock(
@@ -74,7 +74,7 @@ public class ConditionalConverterTests
         {
             MainDocumentPart mainPart = doc.AddMainDocumentPart();
             mainPart.Document = new Document(new Body());
-            Body body = mainPart.Document.Body;
+            Body body = mainPart.Document.Body!;
 
             SdtBlock sdt = new SdtBlock(
                 new SdtProperties(
@@ -121,7 +121,7 @@ public class ConditionalConverterTests
         {
             MainDocumentPart mainPart = doc.AddMainDocumentPart();
             mainPart.Document = new Document(new Body());
-            Body body = mainPart.Document.Body;
+            Body body = mainPart.Document.Body!;
 
             SdtBlock sdt = new SdtBlock(
                 new SdtProperties(
@@ -169,7 +169,7 @@ public class ConditionalConverterTests
         {
             MainDocumentPart mainPart = doc.AddMainDocumentPart();
             mainPart.Document = new Document(new Body());
-            Body body = mainPart.Document.Body;
+            Body body = mainPart.Document.Body!;
 
             SdtBlock sdt = new SdtBlock(
                 new SdtProperties(
@@ -219,7 +219,7 @@ public class ConditionalConverterTests
         {
             MainDocumentPart mainPart = doc.AddMainDocumentPart();
             mainPart.Document = new Document(new Body());
-            Body body = mainPart.Document.Body;
+            Body body = mainPart.Document.Body!;
 
             SdtBlock sdt = new SdtBlock(
                 new SdtProperties(
@@ -268,7 +268,7 @@ public class ConditionalConverterTests
         {
             MainDocumentPart mainPart = doc.AddMainDocumentPart();
             mainPart.Document = new Document(new Body());
-            Body body = mainPart.Document.Body;
+            Body body = mainPart.Document.Body!;
 
             SdtBlock sdt = new SdtBlock(
                 new SdtProperties(
@@ -315,7 +315,7 @@ public class ConditionalConverterTests
         {
             MainDocumentPart mainPart = doc.AddMainDocumentPart();
             mainPart.Document = new Document(new Body());
-            Body body = mainPart.Document.Body;
+            Body body = mainPart.Document.Body!;
 
             SdtBlock sdt = new SdtBlock(
                 new SdtProperties(

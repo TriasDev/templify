@@ -38,7 +38,7 @@ public class LoopContextTests
         string collectionName = "Items";
 
         // Act
-        object result = CreateContextsMethod.Invoke(null, new object[] { items, collectionName, null })!;
+        object result = CreateContextsMethod.Invoke(null, new object[] { items, collectionName, null! })!;
         IList contexts = (IList)result;
 
         // Assert
@@ -69,7 +69,7 @@ public class LoopContextTests
         string collectionName = "Items";
 
         // Act
-        object result = CreateContextsMethod.Invoke(null, new object[] { items, collectionName, null })!;
+        object result = CreateContextsMethod.Invoke(null, new object[] { items, collectionName, null! })!;
         IList contexts = (IList)result;
 
         // Assert
@@ -81,7 +81,7 @@ public class LoopContextTests
     {
         // Arrange
         List<string> items = new List<string> { "First", "Second" };
-        object result = CreateContextsMethod.Invoke(null, new object[] { items, "Items", null })!;
+        object result = CreateContextsMethod.Invoke(null, new object[] { items, "Items", null! })!;
         IList contexts = (IList)result;
         object context = contexts[0]!;
 
@@ -118,7 +118,7 @@ public class LoopContextTests
         {
             new TestItem { Name = "Item1", Value = 100 }
         };
-        object result = CreateContextsMethod.Invoke(null, new object[] { items, "Items", null })!;
+        object result = CreateContextsMethod.Invoke(null, new object[] { items, "Items", null! })!;
         IList contexts = (IList)result;
         object context = contexts[0]!;
 
@@ -143,7 +143,7 @@ public class LoopContextTests
                 Address = new Address { City = "Munich" }
             }
         };
-        object result = CreateContextsMethod.Invoke(null, new object[] { items, "Customers", null })!;
+        object result = CreateContextsMethod.Invoke(null, new object[] { items, "Customers", null! })!;
         IList contexts = (IList)result;
         object context = contexts[0]!;
 
@@ -164,7 +164,7 @@ public class LoopContextTests
         {
             new TestItem { Name = "Item1", Value = 100 }
         };
-        object result = CreateContextsMethod.Invoke(null, new object[] { items, "Items", null })!;
+        object result = CreateContextsMethod.Invoke(null, new object[] { items, "Items", null! })!;
         IList contexts = (IList)result;
         object context = contexts[0]!;
 

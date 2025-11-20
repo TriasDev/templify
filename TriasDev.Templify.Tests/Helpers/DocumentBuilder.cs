@@ -15,8 +15,6 @@ public sealed class DocumentBuilder
     private readonly MemoryStream _stream;
     private readonly WordprocessingDocument _document;
     private readonly Body _body;
-    private int _nextAbstractNumId = 0;
-    private int _nextNumId = 1;
 
     public DocumentBuilder()
     {

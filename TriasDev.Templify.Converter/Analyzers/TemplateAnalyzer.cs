@@ -33,6 +33,11 @@ public class TemplateAnalyzer
             throw new InvalidOperationException("Document has no main document part");
         }
 
+        if (document.MainDocumentPart.Document?.Body == null)
+        {
+            throw new InvalidOperationException("Document has no body");
+        }
+
         // Find all Sdt elements (Structured Document Tags = Content Controls)
         List<SdtElement> contentControls = document.MainDocumentPart.Document.Body
             .Descendants<SdtElement>()

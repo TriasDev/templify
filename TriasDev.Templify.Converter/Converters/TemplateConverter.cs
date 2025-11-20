@@ -45,6 +45,11 @@ public class TemplateConverter
                 throw new InvalidOperationException("Document has no main document part");
             }
 
+            if (document.MainDocumentPart.Document?.Body == null)
+            {
+                throw new InvalidOperationException("Document has no body");
+            }
+
             // Find all content controls
             List<SdtElement> contentControls = document.MainDocumentPart.Document.Body
                 .Descendants<SdtElement>()
