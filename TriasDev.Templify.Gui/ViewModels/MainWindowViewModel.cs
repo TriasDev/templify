@@ -93,7 +93,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private async Task ValidateTemplateAsync()
     {
         if (string.IsNullOrEmpty(TemplatePath))
+        {
             return;
+        }
 
         IsProcessing = true;
         StatusMessage = "Validating template...";
@@ -158,7 +160,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private async Task ProcessTemplateAsync()
     {
         if (string.IsNullOrEmpty(TemplatePath) || string.IsNullOrEmpty(JsonPath) || string.IsNullOrEmpty(OutputPath))
+        {
             return;
+        }
 
         IsProcessing = true;
         StatusMessage = "Processing template...";
@@ -224,7 +228,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private void OpenOutputFile()
     {
         if (string.IsNullOrEmpty(OutputPath) || !File.Exists(OutputPath))
+        {
             return;
+        }
 
         try
         {
@@ -256,7 +262,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private void UpdateOutputPath()
     {
         if (string.IsNullOrEmpty(TemplatePath))
+        {
             return;
+        }
 
         string dir = Path.GetDirectoryName(TemplatePath) ?? ".";
         string filename = GenerateOutputFileName();

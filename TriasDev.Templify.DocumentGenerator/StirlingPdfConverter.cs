@@ -102,7 +102,10 @@ public class StirlingPdfConverter : IDisposable
     /// </summary>
     private static bool IsZipFile(byte[] bytes)
     {
-        if (bytes.Length < 4) return false;
+        if (bytes.Length < 4)
+        {
+            return false;
+        }
         // ZIP file magic number: 50 4B 03 04 or 50 4B 05 06
         return bytes[0] == 0x50 && bytes[1] == 0x4B &&
                (bytes[2] == 0x03 || bytes[2] == 0x05);

@@ -13,22 +13,22 @@ namespace TriasDev.Templify.Tests;
 
 public class PropertyPathResolverTests
 {
-    private static readonly Type PropertyPathType = typeof(DocumentTemplateProcessor).Assembly
+    private static readonly Type _propertyPathType = typeof(DocumentTemplateProcessor).Assembly
         .GetType("TriasDev.Templify.PropertyPaths.PropertyPath")!;
 
-    private static readonly Type PropertyPathResolverType = typeof(DocumentTemplateProcessor).Assembly
+    private static readonly Type _propertyPathResolverType = typeof(DocumentTemplateProcessor).Assembly
         .GetType("TriasDev.Templify.PropertyPaths.PropertyPathResolver")!;
 
-    private static readonly MethodInfo ParseMethod = PropertyPathType
+    private static readonly MethodInfo _parseMethod = _propertyPathType
         .GetMethod("Parse", BindingFlags.Static | BindingFlags.Public)!;
 
-    private static readonly MethodInfo ResolvePathMethod = PropertyPathResolverType
+    private static readonly MethodInfo _resolvePathMethod = _propertyPathResolverType
         .GetMethod("ResolvePath", BindingFlags.Public | BindingFlags.Static)!;
 
     private object? ResolvePath(object root, string pathString)
     {
-        object path = ParseMethod.Invoke(null, new object[] { pathString })!;
-        return ResolvePathMethod.Invoke(null, new[] { root, path });
+        object path = _parseMethod.Invoke(null, new object[] { pathString })!;
+        return _resolvePathMethod.Invoke(null, new[] { root, path });
     }
 
     [Fact]

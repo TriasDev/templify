@@ -14,19 +14,19 @@ namespace TriasDev.Templify.Loops;
 /// </summary>
 internal static class LoopDetector
 {
-    private static readonly Regex ForeachStartPattern = new Regex(
+    private static readonly Regex _foreachStartPattern = new Regex(
         @"\{\{#foreach\s+([\w.]+)\}\}",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    private static readonly Regex ForeachEndPattern = new Regex(
+    private static readonly Regex _foreachEndPattern = new Regex(
         @"\{\{/foreach\}\}",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    private static readonly Regex EmptyStartPattern = new Regex(
+    private static readonly Regex _emptyStartPattern = new Regex(
         @"\{\{#empty\}\}",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    private static readonly Regex EmptyEndPattern = new Regex(
+    private static readonly Regex _emptyEndPattern = new Regex(
         @"\{\{/empty\}\}",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
@@ -74,7 +74,7 @@ internal static class LoopDetector
 
             if (text != null)
             {
-                Match foreachMatch = ForeachStartPattern.Match(text);
+                Match foreachMatch = _foreachStartPattern.Match(text);
                 if (foreachMatch.Success)
                 {
                     string collectionName = foreachMatch.Groups[1].Value;
@@ -130,8 +130,8 @@ internal static class LoopDetector
         if (startText != null)
         {
             // Count all {{#foreach and {{/foreach}} occurrences in the same element
-            MatchCollection startMatches = ForeachStartPattern.Matches(startText);
-            MatchCollection endMatches = ForeachEndPattern.Matches(startText);
+            MatchCollection startMatches = _foreachStartPattern.Matches(startText);
+            MatchCollection endMatches = _foreachEndPattern.Matches(startText);
 
             // The depth after this element is: initial (1) + additional starts - all ends
             depth = depth + (startMatches.Count - 1) - endMatches.Count;
@@ -153,11 +153,11 @@ internal static class LoopDetector
             }
 
             // Count all {{#foreach occurrences in this element
-            MatchCollection startMatches = ForeachStartPattern.Matches(text);
+            MatchCollection startMatches = _foreachStartPattern.Matches(text);
             depth += startMatches.Count;
 
             // Count all {{/foreach}} occurrences in this element
-            MatchCollection endMatches = ForeachEndPattern.Matches(text);
+            MatchCollection endMatches = _foreachEndPattern.Matches(text);
             depth -= endMatches.Count;
 
             if (depth == 0)
@@ -216,7 +216,7 @@ internal static class LoopDetector
             return false;
         }
 
-        return ForeachStartPattern.IsMatch(text) || ForeachEndPattern.IsMatch(text);
+        return _foreachStartPattern.IsMatch(text) || _foreachEndPattern.IsMatch(text);
     }
 
     /// <summary>
@@ -239,7 +239,7 @@ internal static class LoopDetector
 
             if (text != null)
             {
-                Match foreachMatch = ForeachStartPattern.Match(text);
+                Match foreachMatch = _foreachStartPattern.Match(text);
                 if (foreachMatch.Success)
                 {
                     string collectionName = foreachMatch.Groups[1].Value;
@@ -306,11 +306,11 @@ internal static class LoopDetector
                 continue;
             }
 
-            if (ForeachStartPattern.IsMatch(text))
+            if (_foreachStartPattern.IsMatch(text))
             {
                 depth++;
             }
-            else if (ForeachEndPattern.IsMatch(text))
+            else if (_foreachEndPattern.IsMatch(text))
             {
                 depth--;
                 if (depth == 0)
@@ -353,8 +353,8 @@ internal static class LoopDetector
                 // For simplicity, we check if there's at least one {{/foreach}} in the cell
                 // and that the number of starts <= number of ends (meaning this specific loop is closed)
 
-                MatchCollection startMatches = ForeachStartPattern.Matches(cellText);
-                MatchCollection endMatches = ForeachEndPattern.Matches(cellText);
+                MatchCollection startMatches = _foreachStartPattern.Matches(cellText);
+                MatchCollection endMatches = _foreachEndPattern.Matches(cellText);
 
                 // If this cell has at least as many end markers as start markers,
                 // then at least one complete loop exists in this cell

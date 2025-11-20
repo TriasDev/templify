@@ -153,3 +153,13 @@ csharp_using_directive_placement = outside_namespace:warning
 
 # File header (copyright notice)
 file_header_template = Copyright (c) 2025 TriasDev GmbH & Co. KG\nLicensed under the MIT License. See LICENSE file in the project root for full license information.
+
+# .NET diagnostic severity overrides
+# IDE0011: Add braces
+dotnet_diagnostic.IDE0011.severity = warning
+
+# IDE0040: Add accessibility modifiers
+dotnet_diagnostic.IDE0040.severity = warning
+
+# IDE1006: Naming rule violations
+dotnet_diagnostic.IDE1006.severity = warning

@@ -11,7 +11,7 @@ namespace TriasDev.Templify.Demo;
 
 internal class Program
 {
-    static void Main(string[] args)
+    private static void Main(string[] args)
     {
         Console.WriteLine("=== Templify Comprehensive Demo ===");
         Console.WriteLine();
@@ -74,7 +74,7 @@ internal class Program
         DemonstrateRealProcessTemplate();
     }
 
-    static void CreateComprehensiveTemplate(string filePath)
+    private static void CreateComprehensiveTemplate(string filePath)
     {
         using WordprocessingDocument doc = WordprocessingDocument.Create(filePath, WordprocessingDocumentType.Document);
         MainDocumentPart mainPart = doc.AddMainDocumentPart();
@@ -303,7 +303,7 @@ internal class Program
         mainPart.Document.Save();
     }
 
-    static Dictionary<string, object> CreateComprehensiveTestData()
+    private static Dictionary<string, object> CreateComprehensiveTestData()
     {
         return new Dictionary<string, object>
         {
@@ -447,7 +447,7 @@ internal class Program
         };
     }
 
-    static ProcessingResult ProcessTemplate(string templatePath, string outputPath, Dictionary<string, object> data)
+    private static ProcessingResult ProcessTemplate(string templatePath, string outputPath, Dictionary<string, object> data)
     {
         try
         {
@@ -470,7 +470,7 @@ internal class Program
         }
     }
 
-    static void DemonstrateJsonInput(string outputDir)
+    private static void DemonstrateJsonInput(string outputDir)
     {
         Console.WriteLine("=== JSON Input Demo ===");
         Console.WriteLine();
@@ -564,7 +564,7 @@ internal class Program
         }
     }
 
-    static void CreateSimpleJsonTemplate(string filePath)
+    private static void CreateSimpleJsonTemplate(string filePath)
     {
         using WordprocessingDocument doc = WordprocessingDocument.Create(filePath, WordprocessingDocumentType.Document);
         MainDocumentPart mainPart = doc.AddMainDocumentPart();
@@ -616,7 +616,7 @@ internal class Program
         mainPart.Document.Save();
     }
 
-    static void DemonstrateValidation(string outputDir)
+    private static void DemonstrateValidation(string outputDir)
     {
         Console.WriteLine("=== Template Validation Demo ===");
         Console.WriteLine();
@@ -778,7 +778,7 @@ internal class Program
         Console.WriteLine("   • Improve user experience");
     }
 
-    static void DemonstrateRealProcessTemplate()
+    private static void DemonstrateRealProcessTemplate()
     {
         Console.WriteLine("=== Real Process Template Demo ===");
         Console.WriteLine();
@@ -944,7 +944,7 @@ internal class Program
         }
     }
 
-    static string? FindProjectDirectory(string startDir)
+    private static string? FindProjectDirectory(string startDir)
     {
         DirectoryInfo? current = new DirectoryInfo(startDir);
 
@@ -962,7 +962,7 @@ internal class Program
         return null;
     }
 
-    static void CreateValidTemplate(string filePath)
+    private static void CreateValidTemplate(string filePath)
     {
         using WordprocessingDocument doc = WordprocessingDocument.Create(filePath, WordprocessingDocumentType.Document);
         MainDocumentPart mainPart = doc.AddMainDocumentPart();
@@ -986,7 +986,7 @@ internal class Program
         mainPart.Document.Save();
     }
 
-    static void CreateTemplateWithUnmatchedConditional(string filePath)
+    private static void CreateTemplateWithUnmatchedConditional(string filePath)
     {
         using WordprocessingDocument doc = WordprocessingDocument.Create(filePath, WordprocessingDocumentType.Document);
         MainDocumentPart mainPart = doc.AddMainDocumentPart();
@@ -1003,7 +1003,7 @@ internal class Program
         mainPart.Document.Save();
     }
 
-    static void CreateTemplateWithUnmatchedLoop(string filePath)
+    private static void CreateTemplateWithUnmatchedLoop(string filePath)
     {
         using WordprocessingDocument doc = WordprocessingDocument.Create(filePath, WordprocessingDocumentType.Document);
         MainDocumentPart mainPart = doc.AddMainDocumentPart();
@@ -1020,7 +1020,7 @@ internal class Program
         mainPart.Document.Save();
     }
 
-    static void CreateTemplateForDataValidation(string filePath)
+    private static void CreateTemplateForDataValidation(string filePath)
     {
         using WordprocessingDocument doc = WordprocessingDocument.Create(filePath, WordprocessingDocumentType.Document);
         MainDocumentPart mainPart = doc.AddMainDocumentPart();
@@ -1038,7 +1038,7 @@ internal class Program
     }
 
     // Helper methods for document creation
-    static void AddTitle(Body body, string text)
+    private static void AddTitle(Body body, string text)
     {
         Paragraph para = body.AppendChild(new Paragraph());
         Run run = para.AppendChild(new Run());
@@ -1048,7 +1048,7 @@ internal class Program
         run.AppendChild(new Text(text));
     }
 
-    static void AddHeading(Body body, string text)
+    private static void AddHeading(Body body, string text)
     {
         Paragraph para = body.AppendChild(new Paragraph());
         Run run = para.AppendChild(new Run());
@@ -1058,26 +1058,33 @@ internal class Program
         run.AppendChild(new Text(text));
     }
 
-    static void AddParagraph(Body body, string text)
+    private static void AddParagraph(Body body, string text)
     {
         Paragraph para = body.AppendChild(new Paragraph());
         Run run = para.AppendChild(new Run());
         run.AppendChild(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
     }
 
-    static void AddFormattedParagraph(Body body, string text, bool bold = false, bool italic = false)
+    private static void AddFormattedParagraph(Body body, string text, bool bold = false, bool italic = false)
     {
         Paragraph para = body.AppendChild(new Paragraph());
         Run run = para.AppendChild(new Run());
         RunProperties props = run.AppendChild(new RunProperties());
 
-        if (bold) props.AppendChild(new Bold());
-        if (italic) props.AppendChild(new Italic());
+        if (bold)
+        {
+            props.AppendChild(new Bold());
+        }
+
+        if (italic)
+        {
+            props.AppendChild(new Italic());
+        }
 
         run.AppendChild(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
     }
 
-    static void AddBulletListItem(Body body, string text, WordprocessingDocument document)
+    private static void AddBulletListItem(Body body, string text, WordprocessingDocument document)
     {
         EnsureNumberingPart(document);
 
@@ -1095,7 +1102,7 @@ internal class Program
         run.AppendChild(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
     }
 
-    static void AddNumberedListItem(Body body, string text, WordprocessingDocument document)
+    private static void AddNumberedListItem(Body body, string text, WordprocessingDocument document)
     {
         EnsureNumberingPart(document);
 
@@ -1113,7 +1120,7 @@ internal class Program
         run.AppendChild(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
     }
 
-    static void EnsureNumberingPart(WordprocessingDocument document)
+    private static void EnsureNumberingPart(WordprocessingDocument document)
     {
         MainDocumentPart mainPart = document.MainDocumentPart!;
 
@@ -1160,7 +1167,7 @@ internal class Program
         }
     }
 
-    static Table CreateTable(Body body, int rows, int cols)
+    private static Table CreateTable(Body body, int rows, int cols)
     {
         Table table = new Table();
 
@@ -1193,7 +1200,7 @@ internal class Program
         return table;
     }
 
-    static void SetCellText(Table table, int row, int col, string text)
+    private static void SetCellText(Table table, int row, int col, string text)
     {
         TableRow? tr = table.Elements<TableRow>().ElementAtOrDefault(row);
         TableCell? cell = tr?.Elements<TableCell>().ElementAtOrDefault(col);

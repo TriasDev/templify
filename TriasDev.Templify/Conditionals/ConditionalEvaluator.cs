@@ -392,8 +392,15 @@ internal sealed class ConditionalEvaluator
     /// </summary>
     private bool AreEqual(object? left, object? right)
     {
-        if (left == null && right == null) return true;
-        if (left == null || right == null) return false;
+        if (left == null && right == null)
+        {
+            return true;
+        }
+
+        if (left == null || right == null)
+        {
+            return false;
+        }
 
         return left.ToString() == right.ToString();
     }

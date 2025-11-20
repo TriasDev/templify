@@ -14,20 +14,20 @@ namespace TriasDev.Templify.Tests;
 
 public class LoopContextTests
 {
-    private static readonly Type LoopContextType = typeof(DocumentTemplateProcessor).Assembly
+    private static readonly Type _loopContextType = typeof(DocumentTemplateProcessor).Assembly
         .GetType("TriasDev.Templify.Loops.LoopContext")!;
 
-    private static readonly MethodInfo CreateContextsMethod = LoopContextType
+    private static readonly MethodInfo _createContextsMethod = _loopContextType
         .GetMethod("CreateContexts", BindingFlags.Static | BindingFlags.Public)!;
 
-    private static readonly PropertyInfo CurrentItemProp = LoopContextType.GetProperty("CurrentItem")!;
-    private static readonly PropertyInfo IndexProp = LoopContextType.GetProperty("Index")!;
-    private static readonly PropertyInfo CountProp = LoopContextType.GetProperty("Count")!;
-    private static readonly PropertyInfo IsFirstProp = LoopContextType.GetProperty("IsFirst")!;
-    private static readonly PropertyInfo IsLastProp = LoopContextType.GetProperty("IsLast")!;
-    private static readonly PropertyInfo CollectionNameProp = LoopContextType.GetProperty("CollectionName")!;
+    private static readonly PropertyInfo _currentItemProp = _loopContextType.GetProperty("CurrentItem")!;
+    private static readonly PropertyInfo _indexProp = _loopContextType.GetProperty("Index")!;
+    private static readonly PropertyInfo _countProp = _loopContextType.GetProperty("Count")!;
+    private static readonly PropertyInfo _isFirstProp = _loopContextType.GetProperty("IsFirst")!;
+    private static readonly PropertyInfo _isLastProp = _loopContextType.GetProperty("IsLast")!;
+    private static readonly PropertyInfo _collectionNameProp = _loopContextType.GetProperty("CollectionName")!;
 
-    private static readonly MethodInfo TryResolveVariableMethod = LoopContextType
+    private static readonly MethodInfo _tryResolveVariableMethod = _loopContextType
         .GetMethod("TryResolveVariable", BindingFlags.Public | BindingFlags.Instance)!;
 
     [Fact]
@@ -38,7 +38,7 @@ public class LoopContextTests
         string collectionName = "Items";
 
         // Act
-        object result = CreateContextsMethod.Invoke(null, new object[] { items, collectionName, null! })!;
+        object result = _createContextsMethod.Invoke(null, new object[] { items, collectionName, null! })!;
         IList contexts = (IList)result;
 
         // Assert
@@ -46,19 +46,19 @@ public class LoopContextTests
 
         // Check first context
         object firstContext = contexts[0]!;
-        Assert.Equal("First", CurrentItemProp.GetValue(firstContext));
-        Assert.Equal(0, IndexProp.GetValue(firstContext));
-        Assert.Equal(3, CountProp.GetValue(firstContext));
-        Assert.True((bool)IsFirstProp.GetValue(firstContext)!);
-        Assert.False((bool)IsLastProp.GetValue(firstContext)!);
-        Assert.Equal("Items", CollectionNameProp.GetValue(firstContext));
+        Assert.Equal("First", _currentItemProp.GetValue(firstContext));
+        Assert.Equal(0, _indexProp.GetValue(firstContext));
+        Assert.Equal(3, _countProp.GetValue(firstContext));
+        Assert.True((bool)_isFirstProp.GetValue(firstContext)!);
+        Assert.False((bool)_isLastProp.GetValue(firstContext)!);
+        Assert.Equal("Items", _collectionNameProp.GetValue(firstContext));
 
         // Check last context
         object lastContext = contexts[2]!;
-        Assert.Equal("Third", CurrentItemProp.GetValue(lastContext));
-        Assert.Equal(2, IndexProp.GetValue(lastContext));
-        Assert.False((bool)IsFirstProp.GetValue(lastContext)!);
-        Assert.True((bool)IsLastProp.GetValue(lastContext)!);
+        Assert.Equal("Third", _currentItemProp.GetValue(lastContext));
+        Assert.Equal(2, _indexProp.GetValue(lastContext));
+        Assert.False((bool)_isFirstProp.GetValue(lastContext)!);
+        Assert.True((bool)_isLastProp.GetValue(lastContext)!);
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public class LoopContextTests
         string collectionName = "Items";
 
         // Act
-        object result = CreateContextsMethod.Invoke(null, new object[] { items, collectionName, null! })!;
+        object result = _createContextsMethod.Invoke(null, new object[] { items, collectionName, null! })!;
         IList contexts = (IList)result;
 
         // Assert
@@ -81,31 +81,31 @@ public class LoopContextTests
     {
         // Arrange
         List<string> items = new List<string> { "First", "Second" };
-        object result = CreateContextsMethod.Invoke(null, new object[] { items, "Items", null! })!;
+        object result = _createContextsMethod.Invoke(null, new object[] { items, "Items", null! })!;
         IList contexts = (IList)result;
         object context = contexts[0]!;
 
         // Act & Assert - @index
         object[] parameters = new object[] { "@index", null! };
-        bool indexResult = (bool)TryResolveVariableMethod.Invoke(context, parameters)!;
+        bool indexResult = (bool)_tryResolveVariableMethod.Invoke(context, parameters)!;
         Assert.True(indexResult);
         Assert.Equal(0, parameters[1]);
 
         // Act & Assert - @first
         parameters = new object[] { "@first", null! };
-        bool firstResult = (bool)TryResolveVariableMethod.Invoke(context, parameters)!;
+        bool firstResult = (bool)_tryResolveVariableMethod.Invoke(context, parameters)!;
         Assert.True(firstResult);
         Assert.True((bool)parameters[1]!);
 
         // Act & Assert - @last
         parameters = new object[] { "@last", null! };
-        bool lastResult = (bool)TryResolveVariableMethod.Invoke(context, parameters)!;
+        bool lastResult = (bool)_tryResolveVariableMethod.Invoke(context, parameters)!;
         Assert.True(lastResult);
         Assert.False((bool)parameters[1]!);
 
         // Act & Assert - @count
         parameters = new object[] { "@count", null! };
-        bool countResult = (bool)TryResolveVariableMethod.Invoke(context, parameters)!;
+        bool countResult = (bool)_tryResolveVariableMethod.Invoke(context, parameters)!;
         Assert.True(countResult);
         Assert.Equal(2, parameters[1]);
     }
@@ -118,13 +118,13 @@ public class LoopContextTests
         {
             new TestItem { Name = "Item1", Value = 100 }
         };
-        object result = CreateContextsMethod.Invoke(null, new object[] { items, "Items", null! })!;
+        object result = _createContextsMethod.Invoke(null, new object[] { items, "Items", null! })!;
         IList contexts = (IList)result;
         object context = contexts[0]!;
 
         // Act
         object[] parameters = new object[] { "Name", null! };
-        bool success = (bool)TryResolveVariableMethod.Invoke(context, parameters)!;
+        bool success = (bool)_tryResolveVariableMethod.Invoke(context, parameters)!;
 
         // Assert
         Assert.True(success);
@@ -143,13 +143,13 @@ public class LoopContextTests
                 Address = new Address { City = "Munich" }
             }
         };
-        object result = CreateContextsMethod.Invoke(null, new object[] { items, "Customers", null! })!;
+        object result = _createContextsMethod.Invoke(null, new object[] { items, "Customers", null! })!;
         IList contexts = (IList)result;
         object context = contexts[0]!;
 
         // Act
         object[] parameters = new object[] { "Address.City", null! };
-        bool success = (bool)TryResolveVariableMethod.Invoke(context, parameters)!;
+        bool success = (bool)_tryResolveVariableMethod.Invoke(context, parameters)!;
 
         // Assert
         Assert.True(success);
@@ -164,13 +164,13 @@ public class LoopContextTests
         {
             new TestItem { Name = "Item1", Value = 100 }
         };
-        object result = CreateContextsMethod.Invoke(null, new object[] { items, "Items", null! })!;
+        object result = _createContextsMethod.Invoke(null, new object[] { items, "Items", null! })!;
         IList contexts = (IList)result;
         object context = contexts[0]!;
 
         // Act
         object[] parameters = new object[] { "NonExistentProperty", null! };
-        bool success = (bool)TryResolveVariableMethod.Invoke(context, parameters)!;
+        bool success = (bool)_tryResolveVariableMethod.Invoke(context, parameters)!;
 
         // Assert
         Assert.False(success);

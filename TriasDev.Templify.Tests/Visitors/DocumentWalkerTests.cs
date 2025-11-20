@@ -360,9 +360,20 @@ public sealed class DocumentWalkerTests
             }
 
             // Remove markers
-            if (conditional.StartMarker.Parent != null) conditional.StartMarker.Remove();
-            if (conditional.ElseMarker?.Parent != null) conditional.ElseMarker.Remove();
-            if (conditional.EndMarker.Parent != null) conditional.EndMarker.Remove();
+            if (conditional.StartMarker.Parent != null)
+            {
+                conditional.StartMarker.Remove();
+            }
+
+            if (conditional.ElseMarker?.Parent != null)
+            {
+                conditional.ElseMarker.Remove();
+            }
+
+            if (conditional.EndMarker.Parent != null)
+            {
+                conditional.EndMarker.Remove();
+            }
         }
 
         public void VisitLoop(LoopBlock loop, IEvaluationContext context)
