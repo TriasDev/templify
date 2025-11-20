@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>TriasDev.Templify.Benchmarks.ConditionalBenchmarks-20251109-142925</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.6, macOS Sequoia 15.6.1 (24G90) [Darwin 24.6.0]
+Apple M1 Max, 1 CPU, 10 logical and 10 physical cores
+.NET SDK 9.0.100
+  [Host]     : .NET 9.0.0 (9.0.0, 9.0.24.52809), Arm64 RyuJIT armv8.0-a
+  Job-YFEFPZ : .NET 9.0.0 (9.0.0, 9.0.24.52809), Arm64 RyuJIT armv8.0-a
+</code></pre>
+<pre><code>IterationCount=10  WarmupCount=3  
+</code></pre>
+
+<table>
+<thead><tr><th>Method            </th><th>Mean</th><th>Error</th><th>StdDev</th><th>Ratio</th><th>RatioSD</th><th>Gen0</th><th>Gen1</th><th>Allocated</th><th>Alloc Ratio</th>
+</tr>
+</thead><tbody><tr><td>Conditional_10_AllTrue</td><td>142.5 &mu;s</td><td>5.35 &mu;s</td><td>2.80 &mu;s</td><td>1.00</td><td>0.03</td><td>26.3672</td><td>2.9297</td><td>161.78 KB</td><td>1.00</td>
+</tr><tr><td>Conditional_10_AllFalse</td><td>141.9 &mu;s</td><td>4.55 &mu;s</td><td>2.38 &mu;s</td><td>1.00</td><td>0.02</td><td>26.3672</td><td>2.9297</td><td>161.78 KB</td><td>1.00</td>
+</tr><tr><td>Conditional_50_AllTrue</td><td>552.2 &mu;s</td><td>9.53 &mu;s</td><td>6.30 &mu;s</td><td>3.88</td><td>0.08</td><td>83.9844</td><td>23.4375</td><td>515.28 KB</td><td>3.18</td>
+</tr><tr><td>Conditional_50_AllFalse</td><td>564.4 &mu;s</td><td>9.52 &mu;s</td><td>4.98 &mu;s</td><td>3.96</td><td>0.08</td><td>82.0313</td><td>19.5313</td><td>515.31 KB</td><td>3.19</td>
+</tr><tr><td>Conditional_100_AllTrue</td><td>1,100.9 &mu;s</td><td>14.60 &mu;s</td><td>9.66 &mu;s</td><td>7.73</td><td>0.16</td><td>152.3438</td><td>50.7813</td><td>950.81 KB</td><td>5.88</td>
+</tr><tr><td>Conditional_100_AllFalse</td><td>1,113.7 &mu;s</td><td>62.33 &mu;s</td><td>41.23 &mu;s</td><td>7.82</td><td>0.31</td><td>148.4375</td><td>46.8750</td><td>950.81 KB</td><td>5.88</td>
+</tr></tbody></table>
+</body>
+</html>
