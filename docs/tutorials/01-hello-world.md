@@ -19,7 +19,7 @@ By the end of this tutorial, you'll be able to:
 
 ## Prerequisites
 
-- .NET 9.0 SDK installed
+- .NET 6.0 SDK or later installed
 - Code editor (VS 2022, VS Code, or Rider)
 - Templify NuGet package installed
 - Microsoft Word (for creating templates)
@@ -53,6 +53,10 @@ Your balance: {{Balance}} EUR
 ```
 
 Save it in your project directory.
+
+**Template Preview:**
+
+![Hello World Template - showing placeholders in Word document](../images/examples/templates/hello-world-template.png)
 
 **Important Tips**:
 - Type placeholders in one go without formatting changes
@@ -127,6 +131,12 @@ Welcome to Templify. Today is 2025-01-15 and you are customer #12345.
 Your account status: True
 Your balance: 1250.50 EUR
 ```
+
+**Processed Document Preview:**
+
+![Hello World Output - showing replaced values in final document](../images/examples/outputs/hello-world-output.png)
+
+You can see how all placeholders have been replaced with actual data from the dictionary.
 
 ---
 

@@ -1,0 +1,79 @@
+site_name: Templify Documentation
+site_description: .NET library for replacing placeholders in Word documents without Microsoft Word
+site_author: TriasDev
+site_url: https://triasdev.github.io/templify/
+repo_url: https://github.com/triasdev/templify
+repo_name: triasdev/templify
+
+theme:
+  name: material
+  palette:
+    # Light mode
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.details
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - attr_list
+  - md_in_html
+
+plugins:
+  - search:
+      lang: en
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/triasdev/templify
+
+nav:
+  - Home: index.md
+  - Quick Start: quick-start.md
+  - Tutorials:
+    - tutorials/index.md
+    - Hello World: tutorials/01-hello-world.md
+    - Invoice Generator: tutorials/02-invoice-generator.md
+  - Guides:
+    - guides/index.md
+    - Boolean Expressions: guides/boolean-expressions.md
+    - Format Specifiers: guides/format-specifiers.md
+  - FAQ: FAQ.md

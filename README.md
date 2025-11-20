@@ -209,6 +209,7 @@ templify/
 **Prerequisites:**
 - .NET 6.0 SDK or later
 - Git
+- Python 3.11+ (for documentation)
 
 **Clone and build:**
 ```bash
@@ -225,6 +226,19 @@ dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj
 **Run demo:**
 ```bash
 dotnet run --project TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj
+```
+
+**Build documentation locally:**
+```bash
+# Install dependencies
+pip3 install -r requirements.txt
+
+# Build static site
+mkdocs build
+
+# Or serve with live reload
+mkdocs serve
+# Opens at http://127.0.0.1:8000/templify/
 ```
 
 ## Projects

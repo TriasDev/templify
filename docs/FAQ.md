@@ -26,7 +26,7 @@ Common questions and answers about using Templify for Word document templating.
 ### Q: What are the system requirements?
 
 **A:**
-- **.NET 9.0 or later**
+- **.NET 6.0 or later** (supports .NET 6.0, 8.0, and 9.0)
 - **DocumentFormat.OpenXml 3.3.0** (automatically installed via NuGet)
 - Any platform supported by .NET (Windows, macOS, Linux)
 - **No Microsoft Word installation required**
