@@ -439,7 +439,7 @@ Placeholder name matching depends on your data structure:
 
 **Note for developers:** If your data comes from code (not JSON files), property names may be case-insensitive depending on how the data is structured.
 
-**Best practice for template authors:** Always match the exact case used in your JSON keys to avoid confusion and ensure templates work reliably
+**Best practice for template authors:** Always match the exact case used in your JSON keys to avoid confusion and ensure templates work reliably.
 
 ## Formatting Placeholders
 
