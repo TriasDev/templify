@@ -67,13 +67,22 @@ extra:
 
 nav:
   - Home: index.md
-  - Quick Start: quick-start.md
+  - For Template Authors:
+    - Getting Started: for-template-authors/getting-started.md
+    - JSON Basics: for-template-authors/json-basics.md
+    - Template Syntax: for-template-authors/template-syntax.md
+    - Placeholders: for-template-authors/placeholders.md
+    - Conditionals: for-template-authors/conditionals.md
+    - Loops: for-template-authors/loops.md
+    - Format Specifiers: for-template-authors/format-specifiers.md
+    - Boolean Expressions: for-template-authors/boolean-expressions.md
+    - Best Practices: for-template-authors/best-practices.md
+    - Examples Gallery: for-template-authors/examples-gallery.md
+  - For Developers:
+    - Coming Soon: for-developers/quick-start.md
   - Tutorials:
     - tutorials/index.md
     - Hello World: tutorials/01-hello-world.md
     - Invoice Generator: tutorials/02-invoice-generator.md
-  - Guides:
-    - guides/index.md
-    - Boolean Expressions: guides/boolean-expressions.md
-    - Format Specifiers: guides/format-specifiers.md
   - FAQ: FAQ.md
+  - Quick Start (Legacy): quick-start.md
