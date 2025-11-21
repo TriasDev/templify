@@ -418,7 +418,9 @@ Empty strings are replaced with nothing (empty text).
 
 ### Case Sensitivity
 
-Remember that placeholder names are case-sensitive:
+Placeholder name matching depends on your data structure:
+
+**Dictionary keys (JSON) are case-sensitive:**
 
 **JSON:**
 ```json
@@ -434,6 +436,10 @@ Remember that placeholder names are case-sensitive:
 {{CustomerName}}  → Bob
 {{customername}}  → {{customername}} (not found!)
 ```
+
+**Note for developers:** If your data comes from code (not JSON files), property names may be case-insensitive depending on how the data is structured.
+
+**Best practice for template authors:** Always match the exact case used in your JSON keys to avoid confusion and ensure templates work reliably.
 
 ## Formatting Placeholders
 
