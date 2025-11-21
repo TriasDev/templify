@@ -1,89 +1,120 @@
 # Templify Documentation
 
-Welcome to **Templify** - a .NET library for replacing placeholders in Word documents without requiring Microsoft Word.
+Welcome to **Templify** - a powerful tool for creating dynamic Word documents from templates with placeholders, conditionals, and loops.
+
+---
+
+## 👥 Choose Your Path
+
+### 📝 I Create Word Templates
+
+**I design Word documents and want to add dynamic placeholders.**
+
+I work with Word documents and need to create templates with placeholders like `{{CustomerName}}` that get filled in with data. I don't need to write code - I just need to know how to structure my templates and data.
+
+**→ [Get Started as a Template Author](for-template-authors/getting-started.md)**
+
+**Quick Links:**
+- [JSON Basics](for-template-authors/json-basics.md) - Understanding your data format
+- [Template Syntax Reference](for-template-authors/template-syntax.md) - Complete syntax guide
+- [Examples Gallery](for-template-authors/examples-gallery.md) - Real-world templates
+- [Best Practices](for-template-authors/best-practices.md) - Tips for great templates
+
+---
+
+### 💻 I'm a Developer
+
+**I'm integrating Templify into my .NET application.**
+
+I'm a software developer who wants to use the Templify library in my C# application to programmatically generate Word documents from templates.
+
+**→ [Get Started as a Developer](for-developers/quick-start.md)** *(Coming soon)*
+
+**Quick Links:**
+- [Installation Guide](for-developers/installation.md) *(Coming soon)*
+- [API Reference](for-developers/api-reference.md) *(Coming soon)*
+- [Code Examples](for-developers/examples.md) *(Coming soon)*
+- [Architecture Overview](for-developers/architecture.md) *(Coming soon)*
+
+---
 
 ## What is Templify?
 
-Templify provides a simple, intuitive way to generate Word documents from templates with placeholders (`{{variableName}}`), conditionals, and loops. Perfect for generating invoices, reports, contracts, and any other document-based automation.
+Templify lets you create Word document templates with special placeholders that get replaced with actual data. Perfect for generating:
+
+- **Invoices & Receipts** - Customer invoices with line items
+- **Reports** - Formatted reports from database data
+- **Contracts** - Contracts with dynamic clauses
+- **Letters** - Mail merge for personalized letters
+- **Certificates** - Batch-generated certificates
 
 ## Key Features
 
-✨ **Simple Placeholder Replacement** - `{{VariableName}}` syntax
+✨ **Simple Placeholders** - `{{VariableName}}` syntax
 🔁 **Loops** - Repeat sections with `{{#foreach}}...{{/foreach}}`
 ⚡ **Conditionals** - Dynamic content with `{{#if}}...{{else}}...{{/if}}`
-📊 **Table Support** - Loop through table rows with data
-🎨 **Formatting Preservation** - Maintains Word document styling
-🚀 **No Microsoft Word Required** - Uses Open XML SDK
+📊 **Table Support** - Loop through table rows
+🎨 **Formatting** - Preserves Word styling and supports markdown
+🚀 **No Word Required** - Uses Open XML SDK (template authors still use Word to create templates)
 
 ## Quick Example
 
-```csharp
-using TriasDev.Templify;
+### Template (in Word):
 
-var data = new Dictionary<string, object>
-{
-    ["CustomerName"] = "John Doe",
-    ["InvoiceDate"] = DateTime.Now.ToString("yyyy-MM-dd"),
-    ["Items"] = new List<Dictionary<string, object>>
-    {
-        new() { ["Product"] = "Service A", ["Price"] = "$100" },
-        new() { ["Product"] = "Service B", ["Price"] = "$200" }
-    }
-};
+```
+Invoice for {{CustomerName}}
+Date: {{InvoiceDate}}
 
-var processor = new DocumentTemplateProcessor();
-using var templateStream = File.OpenRead("invoice-template.docx");
-using var outputStream = File.Create("invoice-output.docx");
-
-var result = processor.ProcessTemplate(templateStream, outputStream, data);
+Items:
+{{#foreach Items}}
+- {{Product}}: {{Price}}
+{{/foreach}}
 ```
 
-## Get Started
+### Data (JSON):
 
-### 📚 [Quick Start Guide](quick-start.md)
-Install Templify and create your first document in 5 minutes
+```json
+{
+  "CustomerName": "John Doe",
+  "InvoiceDate": "2024-01-15",
+  "Items": [
+    { "Product": "Service A", "Price": "$100" },
+    { "Product": "Service B", "Price": "$200" }
+  ]
+}
+```
 
-### 🎓 [Tutorials](tutorials/)
-Step-by-step guides from basics to advanced features
+### Output:
 
-### 📖 [Feature Guides](guides/)
-In-depth guides for specific features and use cases
+```
+Invoice for John Doe
+Date: 2024-01-15
+
+Items:
+- Service A: $100
+- Service B: $200
+```
+
+---
+
+## Additional Resources
 
 ### ❓ [FAQ](FAQ.md)
 Common questions and troubleshooting tips
 
-## Installation
+### 🎓 [Tutorials](tutorials/)
+Step-by-step guides from basics to advanced features
 
-Install via NuGet Package Manager:
+### 📖 [Quick Start Guide](quick-start.md)
+Create your first document in 5 minutes
 
-```bash
-dotnet add package TriasDev.Templify
-```
-
-Or via Package Manager Console:
-
-```powershell
-Install-Package TriasDev.Templify
-```
-
-## Use Cases
-
-- **Invoices & Receipts** - Generate customer invoices with line items
-- **Reports** - Create formatted reports from database data
-- **Contracts** - Generate contracts with dynamic clauses
-- **Letters** - Mail merge functionality for letters
-- **Certificates** - Batch generate certificates with participant data
-
-## Target Framework
-
-- **.NET 6.0 or later** - Supports .NET 6.0, 8.0, and 9.0
-
-## License
+## Open Source
 
 Templify is open source and licensed under the [MIT License](https://github.com/triasdev/templify/blob/main/LICENSE).
 
-## Support
+## Support & Community
 
-- 📖 [Documentation](quick-start.md)
+- 📖 [Documentation](for-template-authors/getting-started.md)
 - 🐛 [Report Issues](https://github.com/triasdev/templify/issues)
 - 💬 [Discussions](https://github.com/triasdev/templify/discussions)
+- 🌟 [Star on GitHub](https://github.com/triasdev/templify)

@@ -303,8 +303,8 @@ processor.ProcessTemplate(templateStream, outputStream, data);
 ```
 
 📚 **Learn More:**
-- [Format Specifiers Guide](guides/format-specifiers.md) - Complete formatting reference
-- [Boolean Expressions Guide](guides/boolean-expressions.md) - Logic evaluation reference
+- [Format Specifiers Guide](for-template-authors/format-specifiers.md) - Complete formatting reference
+- [Boolean Expressions Guide](for-template-authors/boolean-expressions.md) - Logic evaluation reference
 
 ---
 

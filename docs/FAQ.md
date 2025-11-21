@@ -331,7 +331,7 @@ Valid: ✓
 - `enabled` → Enabled/Disabled
 - `active` → Active/Inactive
 
-See the [Format Specifiers Guide](guides/format-specifiers.md) for complete documentation.
+See the [Format Specifiers Guide](for-template-authors/format-specifiers.md) for complete documentation.
 
 ### Q: Can I use JSON instead of C# dictionaries?
 
@@ -402,7 +402,7 @@ Can proceed: ✓
 - Comparison: `==`, `!=`, `>`, `>=`, `<`, `<=`
 - Nested: `((var1 or var2) and var3)`
 
-See the [Boolean Expressions Guide](guides/boolean-expressions.md) for complete documentation.
+See the [Boolean Expressions Guide](for-template-authors/boolean-expressions.md) for complete documentation.
 
 ### Q: Can I combine expressions with format specifiers?
 
