@@ -170,9 +170,7 @@ Excellent work! You earned an A grade.
 **JSON:**
 ```json
 {
-  "Years
-
-Experience": 5,
+  "YearsExperience": 5,
   "MinimumOrder": 100,
   "OrderAmount": 100
 }
