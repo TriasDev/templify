@@ -97,7 +97,7 @@ Second user: {{Users[1].Name}}, age {{Users[1].Age}}
 
 ### Case Sensitivity
 
-Placeholder names are **case-sensitive**. `{{Name}}` and `{{name}}` are different.
+JSON keys are **case-sensitive**. `{{Name}}` and `{{name}}` are different. Always match the exact case used in your JSON data.
 
 ---
 

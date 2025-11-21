@@ -273,11 +273,13 @@ Always validate your JSON before using it with Templify:
 
 ### Double-Check Placeholder Names
 
-**Case-sensitive matching:**
+**JSON keys are case-sensitive:**
 - Template: `{{CustomerName}}`
 - JSON: `"CustomerName"` ✅
 - JSON: `"customername"` ❌
 - JSON: `"customer_name"` ❌
+
+Always match the exact case from your JSON data.
 
 ### Verify Closing Tags
 
