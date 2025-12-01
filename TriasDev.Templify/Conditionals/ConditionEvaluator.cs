@@ -87,20 +87,23 @@ public sealed class ConditionEvaluator : IConditionEvaluator
     }
 
     /// <inheritdoc/>
-    public Task<bool> EvaluateAsync(string expression, Dictionary<string, object> data)
+    public Task<bool> EvaluateAsync(string expression, Dictionary<string, object> data, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         return Task.FromResult(Evaluate(expression, data));
     }
 
     /// <inheritdoc/>
-    public Task<bool> EvaluateAsync(string expression, string jsonData)
+    public Task<bool> EvaluateAsync(string expression, string jsonData, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         return Task.FromResult(Evaluate(expression, jsonData));
     }
 
     /// <inheritdoc/>
-    public Task<bool> EvaluateAsync(string expression, IEvaluationContext context)
+    public Task<bool> EvaluateAsync(string expression, IEvaluationContext context, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         return Task.FromResult(Evaluate(expression, context));
     }
 

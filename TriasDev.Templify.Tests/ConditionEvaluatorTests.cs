@@ -310,5 +310,40 @@ public class ConditionEvaluatorTests
         Assert.Throws<ArgumentNullException>(() => _evaluator.CreateContext((string)null!));
     }
 
+    [Fact]
+    public async Task EvaluateAsync_WithNullExpression_ThrowsArgumentNullException()
+    {
+        Dictionary<string, object> data = new() { ["Key"] = "Value" };
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() => _evaluator.EvaluateAsync(null!, data));
+    }
+
+    [Fact]
+    public async Task EvaluateAsync_WithNullDictionary_ThrowsArgumentNullException()
+    {
+        await Assert.ThrowsAsync<ArgumentNullException>(() => _evaluator.EvaluateAsync("IsActive", (Dictionary<string, object>)null!));
+    }
+
+    [Fact]
+    public async Task EvaluateAsync_WithNullJsonData_ThrowsArgumentNullException()
+    {
+        await Assert.ThrowsAsync<ArgumentNullException>(() => _evaluator.EvaluateAsync("IsActive", (string)null!));
+    }
+
+    [Fact]
+    public async Task EvaluateAsync_WithNullContext_ThrowsArgumentNullException()
+    {
+        await Assert.ThrowsAsync<ArgumentNullException>(() => _evaluator.EvaluateAsync("IsActive", (IEvaluationContext)null!));
+    }
+
+    [Fact]
+    public async Task EvaluateAsync_WithCancelledToken_ThrowsOperationCanceledException()
+    {
+        Dictionary<string, object> data = new() { ["IsActive"] = true };
+        CancellationToken cancelledToken = new(canceled: true);
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() => _evaluator.EvaluateAsync("IsActive", data, cancelledToken));
+    }
+
     #endregion
 }

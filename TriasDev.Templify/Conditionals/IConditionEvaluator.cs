@@ -86,28 +86,34 @@ public interface IConditionEvaluator
     /// </summary>
     /// <param name="expression">The expression to evaluate.</param>
     /// <param name="data">The data dictionary containing variables to resolve.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A task that resolves to true if the condition is met; otherwise, false.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="expression"/> or <paramref name="data"/> is null.</exception>
-    Task<bool> EvaluateAsync(string expression, Dictionary<string, object> data);
+    /// <exception cref="OperationCanceledException">Thrown when the operation is canceled.</exception>
+    Task<bool> EvaluateAsync(string expression, Dictionary<string, object> data, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Asynchronously evaluates a conditional expression against JSON data.
     /// </summary>
     /// <param name="expression">The expression to evaluate.</param>
     /// <param name="jsonData">A JSON string representing the data object.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A task that resolves to true if the condition is met; otherwise, false.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="expression"/> or <paramref name="jsonData"/> is null.</exception>
     /// <exception cref="System.Text.Json.JsonException">Thrown when JSON is invalid or root is not an object.</exception>
-    Task<bool> EvaluateAsync(string expression, string jsonData);
+    /// <exception cref="OperationCanceledException">Thrown when the operation is canceled.</exception>
+    Task<bool> EvaluateAsync(string expression, string jsonData, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Asynchronously evaluates a conditional expression using a pre-created evaluation context.
     /// </summary>
     /// <param name="expression">The expression to evaluate.</param>
     /// <param name="context">The evaluation context containing variable data.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A task that resolves to true if the condition is met; otherwise, false.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="expression"/> or <paramref name="context"/> is null.</exception>
-    Task<bool> EvaluateAsync(string expression, IEvaluationContext context);
+    /// <exception cref="OperationCanceledException">Thrown when the operation is canceled.</exception>
+    Task<bool> EvaluateAsync(string expression, IEvaluationContext context, CancellationToken cancellationToken = default);
 
     #endregion
 
