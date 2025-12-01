@@ -141,4 +141,38 @@ public interface IConditionEvaluator
     IEvaluationContext CreateContext(string jsonData);
 
     #endregion
+
+    #region CreateConditionContext
+
+    /// <summary>
+    /// Creates a condition context from a data dictionary for efficient batch evaluations.
+    /// </summary>
+    /// <param name="data">The data dictionary containing variables to resolve.</param>
+    /// <returns>A condition context that allows direct evaluation of multiple expressions.</returns>
+    /// <remarks>
+    /// <para>
+    /// Use this method when evaluating multiple expressions against the same data.
+    /// The returned <see cref="IConditionContext"/> provides a cleaner API for batch evaluations.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="data"/> is null.</exception>
+    /// <example>
+    /// <code>
+    /// var context = evaluator.CreateConditionContext(data);
+    /// bool r1 = context.Evaluate("IsActive");
+    /// bool r2 = context.Evaluate("Count > 0");
+    /// </code>
+    /// </example>
+    IConditionContext CreateConditionContext(Dictionary<string, object> data);
+
+    /// <summary>
+    /// Creates a condition context from JSON data for efficient batch evaluations.
+    /// </summary>
+    /// <param name="jsonData">A JSON string representing the data object.</param>
+    /// <returns>A condition context that allows direct evaluation of multiple expressions.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="jsonData"/> is null.</exception>
+    /// <exception cref="System.Text.Json.JsonException">Thrown when JSON is invalid or root is not an object.</exception>
+    IConditionContext CreateConditionContext(string jsonData);
+
+    #endregion
 }
