@@ -121,4 +121,21 @@ public sealed class ConditionEvaluator : IConditionEvaluator
         Dictionary<string, object> data = JsonDataParser.ParseJsonToDataDictionary(jsonData);
         return new GlobalEvaluationContext(data);
     }
+
+    /// <inheritdoc/>
+    public IConditionContext CreateConditionContext(Dictionary<string, object> data)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        IEvaluationContext context = new GlobalEvaluationContext(data);
+        return new ConditionContext(_evaluator, context);
+    }
+
+    /// <inheritdoc/>
+    public IConditionContext CreateConditionContext(string jsonData)
+    {
+        ArgumentNullException.ThrowIfNull(jsonData);
+        Dictionary<string, object> data = JsonDataParser.ParseJsonToDataDictionary(jsonData);
+        IEvaluationContext context = new GlobalEvaluationContext(data);
+        return new ConditionContext(_evaluator, context);
+    }
 }
