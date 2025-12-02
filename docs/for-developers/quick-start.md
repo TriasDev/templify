@@ -1,27 +1,8 @@
-# Developer Documentation - Coming Soon!
+# Quick Start for Developers
 
-We're currently reorganizing our documentation to better serve both template authors and developers.
+Get started with Templify in your .NET application.
 
-## What's Coming
-
-The developer documentation section will include:
-
-- **Installation Guide** - NuGet package installation and setup
-- **Quick Start Guide** - Your first Templify integration in C#
-- **API Reference** - Complete API documentation with examples
-- **Code Examples** - Real-world integration patterns
-- **Architecture Overview** - Understanding the visitor pattern and internals
-- **Performance Guide** - Optimization tips and benchmarks
-
-## In the Meantime
-
-You can find comprehensive developer documentation in:
-
-- **[Main Library README](../../TriasDev.Templify/README.md)** - Complete API reference with C# examples
-- **[Examples.md](../../TriasDev.Templify/Examples.md)** - Extensive code samples
-- **[Architecture.md](../../TriasDev.Templify/ARCHITECTURE.md)** - Detailed architecture documentation
-
-## Quick Installation
+## Installation
 
 ```bash
 dotnet add package TriasDev.Templify

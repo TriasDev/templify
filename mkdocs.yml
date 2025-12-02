@@ -79,7 +79,8 @@ nav:
     - Best Practices: for-template-authors/best-practices.md
     - Examples Gallery: for-template-authors/examples-gallery.md
   - For Developers:
-    - Coming Soon: for-developers/quick-start.md
+    - Quick Start: for-developers/quick-start.md
+    - Condition Evaluation: for-developers/condition-evaluation.md
   - Tutorials:
     - tutorials/index.md
     - Hello World: tutorials/01-hello-world.md

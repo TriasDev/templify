@@ -163,6 +163,35 @@ var data = new Dictionary<string, object>
 
 The markdown formatting is automatically merged with any existing template formatting (e.g., red text + markdown bold = red bold text).
 
+### Standalone Condition Evaluation
+
+Use Templify's condition engine without processing Word documents:
+
+```csharp
+using TriasDev.Templify.Conditionals;
+
+var evaluator = new ConditionEvaluator();
+var data = new Dictionary<string, object>
+{
+    ["IsActive"] = true,
+    ["Count"] = 5,
+    ["Status"] = "Active"
+};
+
+// Single evaluations
+bool result = evaluator.Evaluate("IsActive and Count > 0", data);
+
+// Batch evaluation (more efficient for multiple conditions)
+var context = evaluator.CreateConditionContext(data);
+bool r1 = context.Evaluate("IsActive");
+bool r2 = context.Evaluate("Count > 3");
+bool r3 = context.Evaluate("Status = \"Active\"");
+```
+
+**Supported operators:** `=`, `!=`, `>`, `<`, `>=`, `<=`, `and`, `or`, `not`
+
+📖 **[Full Condition Evaluation Guide](https://triasdev.github.io/templify/for-developers/condition-evaluation/)**
+
 📖 **[Full Quick Start Guide](docs/quick-start.md)** | 📚 **[Tutorial Series](docs/tutorials/)**
 
 ---

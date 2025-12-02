@@ -230,6 +230,10 @@ The library uses a **visitor pattern** for processing Word documents, enabling:
 - `Conditionals/ConditionalDetector.cs` - Finds conditional blocks
 - `Conditionals/ConditionalProcessor.cs` - Legacy processor (kept for reference)
 - `Conditionals/ConditionalEvaluator.cs` - Evaluates expressions with operators
+- `Conditionals/IConditionEvaluator.cs` - Public interface for standalone condition evaluation
+- `Conditionals/ConditionEvaluator.cs` - Public implementation of standalone evaluator
+- `Conditionals/IConditionContext.cs` - Public interface for batch evaluation context
+- `Conditionals/ConditionContext.cs` - Public implementation of batch evaluation context
 
 **Loops:**
 - `Loops/LoopBlock.cs` - Data structure for loop blocks
