@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-12-02
+
+### Added
+- **Standalone Condition Evaluation API** - Use Templify's condition engine without processing Word documents
+  - `IConditionEvaluator` interface for evaluating conditional expressions against data
+  - `ConditionEvaluator` implementation with full operator support
+  - `IConditionContext` interface for efficient batch evaluation of multiple expressions
+  - `ConditionContext` implementation for reusable evaluation contexts
+  - `CreateConditionContext()` methods for creating batch evaluation contexts
+  - Async methods with `CancellationToken` support
+  - Thread-safe implementation
+- **Developer Documentation** - New documentation section for developers
+  - Comprehensive condition evaluation API guide
+  - Code examples for Dictionary and JSON data sources
+
+### Changed
+- Documentation reorganized into template author and developer sections
+- Clarified case sensitivity behavior for JSON keys vs object properties
+
+### Improved
+- Code quality enforcement via `.editorconfig` rules
+- Test coverage increased to 743 tests
+
 ## [1.0.0] - 2025-11-20
 
 ### Added
@@ -64,5 +87,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cross-platform: Windows, Linux, macOS
 - No Microsoft Word installation required
 
-[Unreleased]: https://github.com/TriasDev/templify/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/TriasDev/templify/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/TriasDev/templify/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/TriasDev/templify/releases/tag/v1.0.0
