@@ -1,0 +1,77 @@
+name: Sonarqube Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build and analyze
+    runs-on: self-hosted
+    env:
+      SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+      - name: Add summary header
+        run: |
+          echo "# 🔍 SonarQube Analysis Report" >> $GITHUB_STEP_SUMMARY
+          echo "**Repository:** ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+      - name: Cache SonarQube packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+      - name: Cache SonarQube scanner
+        id: cache-sonar-scanner
+        uses: actions/cache@v4
+        with:
+          path: ./.sonar/scanner
+          key: ${{ runner.os }}-sonar-scanner
+          restore-keys: ${{ runner.os }}-sonar-scanner
+      - name: Install SonarQube scanner
+        if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
+        run: |
+          echo "## 📦 Installing SonarQube Scanner" >> $GITHUB_STEP_SUMMARY
+          echo "Installing dotnet-sonarscanner tool..." >> $GITHUB_STEP_SUMMARY
+          mkdir -p ./.sonar/scanner
+          dotnet tool update dotnet-sonarscanner --tool-path ./.sonar/scanner
+          echo "✅ SonarQube scanner installed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+      - name: Cache status summary
+        run: |
+          echo "## 💾 Cache Status" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.cache-sonar-scanner.outputs.cache-hit }}" == "true" ]; then
+            echo "✅ **SonarQube Scanner:** Cache hit - using cached version" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⬇️ **SonarQube Scanner:** Cache miss - downloaded fresh version" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+      - name: Build and analyze
+        run: |
+          echo "## 🔨 Build & Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "Starting SonarQube analysis..." >> $GITHUB_STEP_SUMMARY
+
+          ./.sonar/scanner/dotnet-sonarscanner begin /k:"TriasDev_templify_8a5e67a9-f60c-48a0-9327-7eee6085006d" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="${SONAR_HOST_URL}" /d:sonar.sourceEncoding=UTF-8
+          dotnet build templify.sln
+          ./.sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+
+          echo "✅ **Build:** Completed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **SonarQube Analysis:** Completed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 Analysis Results" >> $GITHUB_STEP_SUMMARY
+          echo "**Project Key:** \`TriasDev_templify_8a5e67a9-f60c-48a0-9327-7eee6085006d\`" >> $GITHUB_STEP_SUMMARY
+          echo "**SonarQube Host:** \`${SONAR_HOST_URL}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🔗 Links" >> $GITHUB_STEP_SUMMARY
+          echo "- [View SonarQube Report](${SONAR_HOST_URL}/dashboard?id=TriasDev_templify_8a5e67a9-f60c-48a0-9327-7eee6085006d)" >> $GITHUB_STEP_SUMMARY
+          echo "- [GitHub Repository](https://github.com/${{ github.repository }})" >> $GITHUB_STEP_SUMMARY
