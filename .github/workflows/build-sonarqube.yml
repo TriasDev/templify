@@ -11,7 +11,7 @@ jobs:
     name: Build and analyze
     runs-on: ubuntu-latest
     env:
-      SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
     steps:
       - uses: actions/checkout@v4
