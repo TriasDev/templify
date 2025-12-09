@@ -111,8 +111,8 @@ public sealed class TextTemplateProcessor
     {
         ConditionalEvaluator evaluator = new ConditionalEvaluator();
 
-        // Process conditionals from deepest to shallowest (like DocumentWalker)
-        // For text, we'll use a simple iterative approach
+        // Process conditionals iteratively from outermost inward
+        // Always processes the first {{#if ...}} found, handling nested conditionals in subsequent iterations
         int maxIterations = 100; // Prevent infinite loops
         int iteration = 0;
 
@@ -130,9 +130,6 @@ public sealed class TextTemplateProcessor
             {
                 throw new InvalidOperationException($"Unmatched {{{{#if}}}} tag at position {ifStart}");
             }
-
-            // Extract the conditional block
-            string conditionalBlock = text.Substring(ifStart, ifEnd - ifStart + "{{/if}}".Length);
 
             // Parse the condition expression
             int conditionStart = ifStart + "{{#if ".Length;
@@ -199,7 +196,11 @@ public sealed class TextTemplateProcessor
             }
 
             // Replace the entire conditional block with the kept content
-            text = text.Substring(0, ifStart) + contentToKeep + text.Substring(ifEnd + "{{/if}}".Length);
+            StringBuilder builder = new StringBuilder();
+            builder.Append(text.Substring(0, ifStart));
+            builder.Append(contentToKeep);
+            builder.Append(text.Substring(ifEnd + "{{/if}}".Length));
+            text = builder.ToString();
         }
 
         if (iteration >= maxIterations)
@@ -306,7 +307,11 @@ public sealed class TextTemplateProcessor
             }
 
             // Replace the entire loop block with the expanded content
-            text = text.Substring(0, loopStart) + expandedContent.ToString() + text.Substring(loopEnd + "{{/foreach}}".Length);
+            StringBuilder textBuilder = new StringBuilder();
+            textBuilder.Append(text.Substring(0, loopStart));
+            textBuilder.Append(expandedContent);
+            textBuilder.Append(text.Substring(loopEnd + "{{/foreach}}".Length));
+            text = textBuilder.ToString();
         }
 
         if (iteration >= maxIterations)

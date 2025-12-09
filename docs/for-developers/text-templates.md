@@ -549,6 +549,20 @@ string header = @"
 ---
 ";
 
+// Body template
+string bodyTemplate = @"
+Dear {{RecipientName}},
+
+Thank you for your order #{{OrderId}}.
+
+{{#foreach Items}}
+- {{Name}}: {{Quantity}}
+{{/foreach}}
+
+Best regards,
+{{CompanyName}}
+";
+
 // Footer template
 string footer = @"
 ---
@@ -574,6 +588,7 @@ string message = string.Format(
 
 **After:**
 ```csharp
+var processor = new TextTemplateProcessor();
 var result = processor.ProcessTemplate(
     "Hello {{Name}}, your order #{{OrderId}} is ready.",
     new Dictionary<string, object>
