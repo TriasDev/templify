@@ -11,18 +11,18 @@
 
     <!-- NuGet Package Metadata -->
     <PackageId>TriasDev.Templify</PackageId>
-    <Version>1.0.0</Version>
+    <Version>1.2.0</Version>
     <Authors>TriasDev GmbH &amp; Co. KG</Authors>
     <Company>TriasDev GmbH &amp; Co. KG</Company>
-    <Description>High-performance Word document templating engine for .NET. Replace placeholders, evaluate conditionals, and process loops in .docx files without Microsoft Word. Built on OpenXML SDK with 100% test coverage.</Description>
+    <Description>High-performance templating engine for .NET. Process Word documents (.docx) and plain text templates with the same powerful syntax. Replace placeholders, evaluate conditionals, and process loops without Microsoft Word. Built on OpenXML SDK with 100% test coverage.</Description>
     <Copyright>Copyright © 2025 TriasDev GmbH &amp; Co. KG</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/TriasDev/templify</PackageProjectUrl>
     <RepositoryUrl>https://github.com/TriasDev/templify</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageTags>word;docx;template;openxml;document-generation;templating;word-documents;office;dotnet</PackageTags>
+    <PackageTags>word;docx;template;openxml;document-generation;templating;word-documents;office;dotnet;email;text-templates</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Initial public release of Templify.</PackageReleaseNotes>
+    <PackageReleaseNotes>Added TextTemplateProcessor for email and plain text templating using the same template syntax as Word documents.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
