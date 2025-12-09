@@ -69,13 +69,15 @@ public sealed class TextTemplateProcessor
                 replacementCount,
                 missingVariables.OrderBy(v => v).ToList());
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException ex) when (ex.Message.Contains("Missing variable"))
         {
-            // Re-throw InvalidOperationException (e.g., missing variables with ThrowException behavior)
+            // Re-throw only when it's a missing variable with ThrowException behavior
+            // This allows the caller to handle it as an intentional validation error
             throw;
         }
         catch (Exception ex)
         {
+            // All other exceptions (including template syntax errors) are returned as failures
             return TextProcessingResult.Failure($"Processing failed: {ex.Message}");
         }
     }

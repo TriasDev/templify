@@ -457,7 +457,11 @@ Items:
     public void ProcessTemplate_EmailTemplate_ProcessesCorrectly()
     {
         // Arrange
-        var processor = new TextTemplateProcessor();
+        var options = new PlaceholderReplacementOptions
+        {
+            Culture = System.Globalization.CultureInfo.InvariantCulture
+        };
+        var processor = new TextTemplateProcessor(options);
         string template = @"Dear {{CustomerName}},
 
 Thank you for your order #{{OrderId}}.
