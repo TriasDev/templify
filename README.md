@@ -16,7 +16,7 @@
 
 ## Overview
 
-Templify is a focused .NET library built on the OpenXML SDK that enables dynamic Word document generation through simple placeholder replacement, conditionals, and loops. Unlike complex templating systems, Templify provides an intuitive API for the most common use case: replacing `{{placeholders}}` in Word templates with actual data, without requiring Microsoft Word installation.
+Templify is a focused .NET library built on the OpenXML SDK that enables dynamic Word document generation and text template processing through simple placeholder replacement, conditionals, and loops. Unlike complex templating systems, Templify provides an intuitive API for the most common use cases: replacing `{{placeholders}}` in Word templates with actual data, and generating dynamic text content for emails and notifications.
 
 **Key Features:**
 - 📝 Simple placeholder syntax: `{{variableName}}`
@@ -26,6 +26,7 @@ Templify is a focused .NET library built on the OpenXML SDK that enables dynamic
 - 🌳 Nested data structures with dot notation and array indexing
 - 🎨 Automatic formatting preservation (bold, italic, fonts, colors)
 - 📊 Full table support including row loops
+- 📧 **NEW:** Text template processing for emails and notifications
 - 🚀 No Microsoft Word required (pure OpenXML processing)
 
 ---
