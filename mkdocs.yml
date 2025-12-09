@@ -80,6 +80,7 @@ nav:
     - Examples Gallery: for-template-authors/examples-gallery.md
   - For Developers:
     - Quick Start: for-developers/quick-start.md
+    - Text Template Processing: for-developers/text-templates.md
     - Condition Evaluation: for-developers/condition-evaluation.md
   - Tutorials:
     - tutorials/index.md
