@@ -59,18 +59,10 @@ public class RepeatingConverter
         OpenXmlElement? lastMovedElement = OpenXmlHelpers.UnwrapContentControl(sdt);
 
         // Insert {{/foreach}} after the last moved element
-        // To avoid collision with nested loop end markers, always create a new paragraph
+        // Use the helper method to properly handle paragraph boundaries
         if (lastMovedElement != null)
         {
-            // Create a new paragraph with the end marker
-            Paragraph endParagraph = new Paragraph(
-                new Run(
-                    new RunProperties(new Highlight() { Val = HighlightColorValues.Green }),
-                    new Text("{{/foreach}}")
-                )
-            );
-
-            lastMovedElement.InsertAfterSelf(endParagraph);
+            OpenXmlHelpers.InsertTextAfter(lastMovedElement, "{{/foreach}}", HighlightColorValues.Green);
         }
 
         return true;
