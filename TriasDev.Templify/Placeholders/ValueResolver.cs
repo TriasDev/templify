@@ -104,8 +104,7 @@ internal sealed class ValueResolver
         }
 
         PropertyPath subPath = PropertyPath.Parse(subPathBuilder.ToString());
-        value = PropertyPathResolver.ResolvePath(rootObject, subPath);
-        return value != null;
+        return PropertyPathResolver.TryResolvePath(rootObject, subPath, out value);
     }
 
     /// <summary>
