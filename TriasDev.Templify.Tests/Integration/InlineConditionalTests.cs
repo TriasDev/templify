@@ -162,12 +162,12 @@ public sealed class InlineConditionalTests
     }
 
     [Fact]
-    public void ProcessTemplate_InlineConditional_MultipleInSameParagraph_MixedConditions()
+    public void ProcessTemplate_InlineConditional_MultipleParagraphs_MixedConditions()
     {
         // Arrange: Two separate paragraphs, each with one inline conditional
-        // This tests that multiple inline conditionals work (just in separate paragraphs)
-        // Note: Multiple inline conditionals in the SAME paragraph is a more complex scenario
-        // that would require multiple detection passes
+        // This tests that inline conditionals work across multiple paragraphs
+        // Note: Multiple inline conditionals in the SAME paragraph are covered by tests
+        // in the "Multiple Inline Conditionals in Same Paragraph" region
         DocumentBuilder builder = new DocumentBuilder();
 
         // First paragraph: prefix conditional
