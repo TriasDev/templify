@@ -627,6 +627,67 @@ public sealed class InlineConditionalTests
 
     #endregion
 
+    #region Malformed Conditionals
+
+    [Fact]
+    public void ProcessTemplate_InlineConditional_UnmatchedIfStart_ThrowsException()
+    {
+        // Arrange: Unmatched {{#if}} without {{/if}} - should throw
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraphWithRuns(
+            ("Before ", null),
+            ("{{#if Missing}}", null),
+            (" After", null)
+        );
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Missing"] = true
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act & Assert - unmatched conditionals throw InvalidOperationException
+        InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() =>
+            processor.ProcessTemplate(templateStream, outputStream, data));
+
+        Assert.Contains("no matching", ex.Message);
+    }
+
+    [Fact]
+    public void ProcessTemplate_InlineConditional_UnmatchedIfEnd_PreservesAsText()
+    {
+        // Arrange: Unmatched {{/if}} without {{#if}} - left as text (no start marker detected)
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraphWithRuns(
+            ("Before ", null),
+            ("{{/if}}", null),
+            (" After", null)
+        );
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>();
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert - orphaned {{/if}} is left as text since no conditional was detected
+        Assert.True(result.IsSuccess);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        Assert.Equal(1, verifier.GetParagraphCount());
+        Assert.Equal("Before {{/if}} After", verifier.GetParagraphText(0));
+    }
+
+    #endregion
+
     #region Nested Inline Conditionals
 
     [Fact]
