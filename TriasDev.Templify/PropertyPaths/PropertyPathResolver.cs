@@ -23,7 +23,9 @@ internal sealed class PropertyPathResolver
     /// <para>
     /// When a null value is encountered mid-path (e.g., resolving "Address.City" when Address is null),
     /// this method returns true with a null value. This is intentional: the path is considered valid
-    /// because the property exists in the type definition, even though traversal cannot continue.
+    /// because all segments up to the null value were successfully resolved; traversal simply cannot
+    /// continue beyond the null. The method does not inspect type metadata for the remaining segments
+    /// once a null value is encountered.
     /// </para>
     /// <para>
     /// This behavior allows template validation to correctly distinguish between:
