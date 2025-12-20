@@ -123,9 +123,9 @@ public class ValueResolverTests
     }
 
     [Fact]
-    public void TryResolveValue_WithNullInChain_ReturnsFalse()
+    public void TryResolveValue_WithNullInChain_ReturnsTrue()
     {
-        // Arrange
+        // Arrange - Address is null but path is valid
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Customer"] = new Customer { Name = "Alice", Address = null }
@@ -135,7 +135,9 @@ public class ValueResolverTests
         bool result = TryResolveValue(data, "Customer.Address.City", out object? value);
 
         // Assert
-        Assert.False(result);
+        // The path exists (Customer.Address exists), but Address is null
+        // This should return TRUE (path is valid) with null value
+        Assert.True(result);
         Assert.Null(value);
     }
 
@@ -211,6 +213,72 @@ public class ValueResolverTests
         Assert.True(result);
         Assert.Equal("Berlin", value);
     }
+
+    #region Null Value vs Missing Variable Tests
+
+    [Fact]
+    public void TryResolveValue_WithDirectNullValue_ReturnsTrue()
+    {
+        // Arrange - key exists with null value
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["street2"] = null!
+        };
+
+        // Act
+        bool result = TryResolveValue(data, "street2", out object? value);
+
+        // Assert
+        // Variable EXISTS (even though value is null)
+        Assert.True(result);
+        Assert.Null(value);
+    }
+
+    [Fact]
+    public void TryResolveValue_WithNestedNullValue_ReturnsTrue()
+    {
+        // Arrange - nested path where the value is null
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["address"] = new Dictionary<string, object?>
+            {
+                ["street1"] = "Main St",
+                ["street2"] = null
+            }
+        };
+
+        // Act
+        bool result = TryResolveValue(data, "address.street2", out object? value);
+
+        // Assert
+        // Path exists, value is null - should return TRUE
+        Assert.True(result);
+        Assert.Null(value);
+    }
+
+    [Fact]
+    public void TryResolveValue_WithMissingNestedKey_ReturnsFalse()
+    {
+        // Arrange - nested key does NOT exist
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["address"] = new Dictionary<string, object>
+            {
+                ["street1"] = "Main St"
+                // street2 does NOT exist
+            }
+        };
+
+        // Act
+        bool result = TryResolveValue(data, "address.street2", out object? value);
+
+        // Assert
+        // Key does NOT exist - should return FALSE
+        Assert.False(result);
+        Assert.Null(value);
+    }
+
+    #endregion
 
     // Test classes
     public class Customer

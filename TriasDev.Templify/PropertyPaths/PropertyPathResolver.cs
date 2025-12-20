@@ -12,6 +12,60 @@ namespace TriasDev.Templify.PropertyPaths;
 internal sealed class PropertyPathResolver
 {
     /// <summary>
+    /// Tries to resolve a property path starting from the given root object.
+    /// Distinguishes between "path exists with null value" and "path doesn't exist".
+    /// </summary>
+    /// <param name="root">The root object to start navigation from. If null, returns true with null value.</param>
+    /// <param name="path">The property path to resolve.</param>
+    /// <param name="value">The resolved value if the path exists; otherwise, null.</param>
+    /// <returns>True if the path exists (even if the value is null); false if the path doesn't exist.</returns>
+    /// <remarks>
+    /// <para>
+    /// When a null value is encountered mid-path (e.g., resolving "Address.City" when Address is null),
+    /// this method returns true with a null value. This is intentional: the path is considered valid
+    /// because all segments up to the null value were successfully resolved; traversal simply cannot
+    /// continue beyond the null. The method does not inspect type metadata for the remaining segments
+    /// once a null value is encountered.
+    /// </para>
+    /// <para>
+    /// This behavior allows template validation to correctly distinguish between:
+    /// <list type="bullet">
+    /// <item><description>"street2": null - Variable exists with null value (no warning)</description></item>
+    /// <item><description>"street2" not in data - Variable is missing (warning)</description></item>
+    /// </list>
+    /// </para>
+    /// </remarks>
+    public static bool TryResolvePath(object? root, PropertyPath path, out object? value)
+    {
+        if (path == null)
+        {
+            throw new ArgumentNullException(nameof(path));
+        }
+
+        value = null;
+        object? current = root;
+
+        foreach (PropertyPathSegment segment in path.Segments)
+        {
+            if (current == null)
+            {
+                // Previous segment was null - path ends here
+                // This is valid: we found the path, value is null
+                return true;
+            }
+
+            if (!TryResolveSegment(current, segment, out current))
+            {
+                // Segment not found - path doesn't exist
+                return false;
+            }
+        }
+
+        value = current;
+        return true;
+    }
+
+    /// <summary>
     /// Resolves a property path starting from the given root object.
     /// </summary>
     /// <param name="root">The root object to start navigation from.</param>
@@ -45,25 +99,41 @@ internal sealed class PropertyPathResolver
     }
 
     /// <summary>
-    /// Resolves a single segment of the path.
+    /// Tries to resolve a single segment of the path.
+    /// Distinguishes between "found with null value" and "not found".
     /// </summary>
-    private static object? ResolveSegment(object current, PropertyPathSegment segment)
+    /// <param name="current">The current object to resolve against.</param>
+    /// <param name="segment">The segment to resolve.</param>
+    /// <param name="value">The resolved value if found; otherwise, null.</param>
+    /// <returns>True if the segment was found (even if value is null); false if not found.</returns>
+    private static bool TryResolveSegment(object current, PropertyPathSegment segment, out object? value)
     {
         if (segment.IsIndexer)
         {
-            return ResolveIndexer(current, segment);
+            return TryResolveIndexer(current, segment, out value);
         }
         else
         {
-            return ResolveProperty(current, segment);
+            return TryResolveProperty(current, segment, out value);
         }
     }
 
     /// <summary>
-    /// Resolves an indexer segment (e.g., [0] or [Key]).
+    /// Resolves a single segment of the path.
     /// </summary>
-    private static object? ResolveIndexer(object current, PropertyPathSegment segment)
+    private static object? ResolveSegment(object current, PropertyPathSegment segment)
     {
+        TryResolveSegment(current, segment, out object? value);
+        return value;
+    }
+
+    /// <summary>
+    /// Tries to resolve an indexer segment (e.g., [0] or [Key]).
+    /// </summary>
+    private static bool TryResolveIndexer(object current, PropertyPathSegment segment, out object? value)
+    {
+        value = null;
+
         // Try as numeric index for collections/arrays
         if (segment.Index.HasValue)
         {
@@ -73,9 +143,10 @@ internal sealed class PropertyPathResolver
                 int index = segment.Index.Value;
                 if (index >= 0 && index < list.Count)
                 {
-                    return list[index];
+                    value = list[index];
+                    return true;
                 }
-                return null;
+                return false;
             }
 
             // Check if it's an array
@@ -84,9 +155,10 @@ internal sealed class PropertyPathResolver
                 int index = segment.Index.Value;
                 if (index >= 0 && index < array.Length)
                 {
-                    return array.GetValue(index);
+                    value = array.GetValue(index);
+                    return true;
                 }
-                return null;
+                return false;
             }
         }
 
@@ -95,9 +167,10 @@ internal sealed class PropertyPathResolver
         {
             if (dictionary.Contains(segment.Name))
             {
-                return dictionary[segment.Name];
+                value = dictionary[segment.Name];
+                return true;
             }
-            return null;
+            return false;
         }
 
         // Try generic dictionary with string key
@@ -121,7 +194,8 @@ internal sealed class PropertyPathResolver
                             bool exists = (bool)containsKey.Invoke(current, new object[] { segment.Name })!;
                             if (exists)
                             {
-                                return indexerProp.GetValue(current, new object[] { segment.Name });
+                                value = indexerProp.GetValue(current, new object[] { segment.Name });
+                                return true;
                             }
                         }
                     }
@@ -129,14 +203,15 @@ internal sealed class PropertyPathResolver
             }
         }
 
-        return null;
+        return false;
     }
 
     /// <summary>
-    /// Resolves a property segment (e.g., Customer or Address).
+    /// Tries to resolve a property segment (e.g., Customer or Address).
     /// </summary>
-    private static object? ResolveProperty(object current, PropertyPathSegment segment)
+    private static bool TryResolveProperty(object current, PropertyPathSegment segment, out object? value)
     {
+        value = null;
         Type currentType = current.GetType();
 
         // Try as property
@@ -145,7 +220,8 @@ internal sealed class PropertyPathResolver
 
         if (property != null && property.CanRead)
         {
-            return property.GetValue(current);
+            value = property.GetValue(current);
+            return true;
         }
 
         // Try as field
@@ -154,13 +230,19 @@ internal sealed class PropertyPathResolver
 
         if (field != null)
         {
-            return field.GetValue(current);
+            value = field.GetValue(current);
+            return true;
         }
 
         // Try as dictionary key (for dictionaries accessed with dot notation)
-        if (current is IDictionary dictionary && dictionary.Contains(segment.Name))
+        if (current is IDictionary dictionary)
         {
-            return dictionary[segment.Name];
+            if (dictionary.Contains(segment.Name))
+            {
+                value = dictionary[segment.Name];
+                return true;
+            }
+            return false;
         }
 
         // Try generic dictionary with string key
@@ -181,7 +263,8 @@ internal sealed class PropertyPathResolver
                             bool exists = (bool)containsKey.Invoke(current, new object[] { segment.Name })!;
                             if (exists)
                             {
-                                return indexerProp.GetValue(current, new object[] { segment.Name });
+                                value = indexerProp.GetValue(current, new object[] { segment.Name });
+                                return true;
                             }
                         }
                     }
@@ -189,6 +272,7 @@ internal sealed class PropertyPathResolver
             }
         }
 
-        return null;
+        return false;
     }
+
 }
