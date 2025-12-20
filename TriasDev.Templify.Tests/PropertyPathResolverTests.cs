@@ -218,6 +218,22 @@ public class PropertyPathResolverTests
     #region TryResolvePath Tests - Null vs Missing Distinction
 
     [Fact]
+    public void TryResolvePath_WithNullRoot_ReturnsTrueWithNullValue()
+    {
+        // Arrange - root is null
+        object? root = null;
+
+        // Act
+        bool result = TryResolvePath(root, "AnyPath", out object? value);
+
+        // Assert
+        // Null root is treated as "path exists but value is null"
+        // This is consistent with null-in-chain behavior
+        Assert.True(result);
+        Assert.Null(value);
+    }
+
+    [Fact]
     public void TryResolvePath_DictionaryKeyExistsWithNullValue_ReturnsTrue()
     {
         // Arrange - key exists but value is null

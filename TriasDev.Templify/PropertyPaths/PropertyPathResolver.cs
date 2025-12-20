@@ -15,10 +15,24 @@ internal sealed class PropertyPathResolver
     /// Tries to resolve a property path starting from the given root object.
     /// Distinguishes between "path exists with null value" and "path doesn't exist".
     /// </summary>
-    /// <param name="root">The root object to start navigation from.</param>
+    /// <param name="root">The root object to start navigation from. If null, returns true with null value.</param>
     /// <param name="path">The property path to resolve.</param>
     /// <param name="value">The resolved value if the path exists; otherwise, null.</param>
     /// <returns>True if the path exists (even if the value is null); false if the path doesn't exist.</returns>
+    /// <remarks>
+    /// <para>
+    /// When a null value is encountered mid-path (e.g., resolving "Address.City" when Address is null),
+    /// this method returns true with a null value. This is intentional: the path is considered valid
+    /// because the property exists in the type definition, even though traversal cannot continue.
+    /// </para>
+    /// <para>
+    /// This behavior allows template validation to correctly distinguish between:
+    /// <list type="bullet">
+    /// <item><description>"street2": null - Variable exists with null value (no warning)</description></item>
+    /// <item><description>"street2" not in data - Variable is missing (warning)</description></item>
+    /// </list>
+    /// </para>
+    /// </remarks>
     public static bool TryResolvePath(object? root, PropertyPath path, out object? value)
     {
         if (path == null)
