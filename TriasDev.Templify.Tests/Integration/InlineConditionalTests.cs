@@ -626,4 +626,125 @@ public sealed class InlineConditionalTests
     }
 
     #endregion
+
+    #region Nested Inline Conditionals
+
+    [Fact]
+    public void ProcessTemplate_NestedInlineConditionals_OuterTrue_InnerTrue()
+    {
+        // Arrange: Nested conditionals - {{#if A}}...{{#if B}}...{{/if}}...{{/if}}
+        // This tests the nesting depth tracking in FindAllInlineConditionals
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraphWithRuns(
+            ("Start ", null),
+            ("{{#if HasDetails}}", null),
+            ("Details: ", null),
+            ("{{#if HasSubDetails}}", null),
+            ("({{SubDetails}})", null),
+            ("{{/if}}", null),
+            ("{{/if}}", null),
+            (" End", null)
+        );
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["HasDetails"] = true,
+            ["HasSubDetails"] = true,
+            ["SubDetails"] = "inner content"
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        Assert.Equal(1, verifier.GetParagraphCount());
+        Assert.Equal("Start Details: (inner content) End", verifier.GetParagraphText(0));
+    }
+
+    [Fact]
+    public void ProcessTemplate_NestedInlineConditionals_OuterTrue_InnerFalse()
+    {
+        // Arrange: Outer true, inner false
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraphWithRuns(
+            ("Start ", null),
+            ("{{#if HasDetails}}", null),
+            ("Details: ", null),
+            ("{{#if HasSubDetails}}", null),
+            ("({{SubDetails}})", null),
+            ("{{/if}}", null),
+            ("{{/if}}", null),
+            (" End", null)
+        );
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["HasDetails"] = true
+            // HasSubDetails is missing - inner condition false
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        Assert.Equal(1, verifier.GetParagraphCount());
+        Assert.Equal("Start Details:  End", verifier.GetParagraphText(0));
+    }
+
+    [Fact]
+    public void ProcessTemplate_NestedInlineConditionals_OuterFalse()
+    {
+        // Arrange: Outer false - inner should not matter
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraphWithRuns(
+            ("Start ", null),
+            ("{{#if HasDetails}}", null),
+            ("Details: ", null),
+            ("{{#if HasSubDetails}}", null),
+            ("({{SubDetails}})", null),
+            ("{{/if}}", null),
+            ("{{/if}}", null),
+            (" End", null)
+        );
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            // HasDetails is missing - outer condition false
+            ["HasSubDetails"] = true,
+            ["SubDetails"] = "this should not appear"
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        Assert.Equal(1, verifier.GetParagraphCount());
+        Assert.Equal("Start  End", verifier.GetParagraphText(0));
+    }
+
+    #endregion
 }

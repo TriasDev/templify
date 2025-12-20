@@ -1,6 +1,7 @@
 // Copyright (c) 2025 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Text;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -199,28 +200,61 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
         // Process from right to left to preserve positions
         conditionals.Reverse();
 
+        // Use StringBuilder for efficient string manipulation
+        StringBuilder result = new StringBuilder(fullText);
+
         foreach (InlineConditionalInfo info in conditionals)
         {
             // Evaluate the condition
             bool conditionResult = _evaluator.Evaluate(info.Condition, context);
 
-            // Calculate the replacement
-            string replacement;
-            if (conditionResult)
-            {
-                replacement = info.IfContent;
-            }
-            else
-            {
-                replacement = info.ElseContent ?? "";
-            }
+            // Calculate the replacement - recursively process nested conditionals in content
+            string rawContent = conditionResult ? info.IfContent : (info.ElseContent ?? "");
+            string replacement = ProcessNestedInlineConditionals(rawContent, context);
 
-            // Replace in the full text
-            fullText = fullText.Substring(0, info.StartIndex) + replacement + fullText.Substring(info.EndIndex);
+            // Replace in the result (right to left preserves positions)
+            result.Remove(info.StartIndex, info.EndIndex - info.StartIndex);
+            result.Insert(info.StartIndex, replacement);
         }
 
         // Now rebuild the paragraph with the new text
-        RebuildParagraphText(paragraph, fullText);
+        RebuildParagraphText(paragraph, result.ToString());
+    }
+
+    /// <summary>
+    /// Recursively processes nested inline conditionals within text content.
+    /// </summary>
+    /// <param name="text">The text that may contain nested conditionals.</param>
+    /// <param name="context">The evaluation context.</param>
+    /// <returns>The text with all nested conditionals processed.</returns>
+    private string ProcessNestedInlineConditionals(string text, IEvaluationContext context)
+    {
+        // Find conditionals in this text
+        List<InlineConditionalInfo> conditionals = FindAllInlineConditionals(text);
+
+        if (conditionals.Count == 0)
+        {
+            return text;
+        }
+
+        // Process from right to left
+        conditionals.Reverse();
+
+        StringBuilder result = new StringBuilder(text);
+
+        foreach (InlineConditionalInfo info in conditionals)
+        {
+            bool conditionResult = _evaluator.Evaluate(info.Condition, context);
+
+            // Recursively process nested conditionals in the chosen branch
+            string rawContent = conditionResult ? info.IfContent : (info.ElseContent ?? "");
+            string replacement = ProcessNestedInlineConditionals(rawContent, context);
+
+            result.Remove(info.StartIndex, info.EndIndex - info.StartIndex);
+            result.Insert(info.StartIndex, replacement);
+        }
+
+        return result.ToString();
     }
 
     /// <summary>
@@ -256,6 +290,7 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
             int depth = 1;
             int pos = ifMatch.Index + ifMatch.Length;
             int elsePos = -1;
+            int elseLength = 0;
 
             while (pos < text.Length && depth > 0)
             {
@@ -284,9 +319,9 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
 
                         if (elsePos >= 0)
                         {
-                            Match elseMatch = _elsePattern.Match(text, elsePos);
+                            // Use stored elseLength instead of redundant Match operation
                             ifContent = text.Substring(ifMatch.Index + ifMatch.Length, elsePos - (ifMatch.Index + ifMatch.Length));
-                            elseContent = text.Substring(elsePos + elseMatch.Length, nextEndMatch.Index - (elsePos + elseMatch.Length));
+                            elseContent = text.Substring(elsePos + elseLength, nextEndMatch.Index - (elsePos + elseLength));
                         }
                         else
                         {
@@ -314,8 +349,9 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
                 }
                 else if (nextElsePos <= nextIfPos && nextElsePos <= nextEndPos && nextElseMatch.Success && depth == 1)
                 {
-                    // Found else at our level
+                    // Found else at our level - store position and length
                     elsePos = nextElseMatch.Index;
+                    elseLength = nextElseMatch.Length;
                     pos = nextElseMatch.Index + nextElseMatch.Length;
                 }
                 else
