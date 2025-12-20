@@ -385,4 +385,245 @@ public sealed class InlineConditionalTests
         Assert.Equal(1, verifier.GetParagraphCount());
         Assert.Equal("Total: 50", verifier.GetParagraphText(0));
     }
+
+    #region Multiple Inline Conditionals in Same Paragraph
+
+    [Fact]
+    public void ProcessTemplate_MultipleInlineConditionals_SameParagraph_BothTrue()
+    {
+        // Arrange: Two inline conditionals in same paragraph, both conditions true
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraphWithRuns(
+            ("{{#if Prefix}}", null),
+            ("{{Prefix}} ", null),
+            ("{{/if}}", null),
+            ("{{Name}}", null),
+            ("{{#if Suffix}}", null),
+            (", {{Suffix}}", null),
+            ("{{/if}}", null)
+        );
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Prefix"] = "Dr.",
+            ["Name"] = "John",
+            ["Suffix"] = "PhD"
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        Assert.Equal(1, verifier.GetParagraphCount());
+        Assert.Equal("Dr. John, PhD", verifier.GetParagraphText(0));
+    }
+
+    [Fact]
+    public void ProcessTemplate_MultipleInlineConditionals_SameParagraph_BothFalse()
+    {
+        // Arrange: Two inline conditionals in same paragraph, both conditions false
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraphWithRuns(
+            ("{{#if Prefix}}", null),
+            ("{{Prefix}} ", null),
+            ("{{/if}}", null),
+            ("{{Name}}", null),
+            ("{{#if Suffix}}", null),
+            (", {{Suffix}}", null),
+            ("{{/if}}", null)
+        );
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            // Prefix missing
+            ["Name"] = "John"
+            // Suffix missing
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        Assert.Equal(1, verifier.GetParagraphCount());
+        Assert.Equal("John", verifier.GetParagraphText(0));
+    }
+
+    [Fact]
+    public void ProcessTemplate_MultipleInlineConditionals_SameParagraph_FirstFalseSecondTrue()
+    {
+        // Arrange: Two inline conditionals, first false, second true
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraphWithRuns(
+            ("{{#if Prefix}}", null),
+            ("{{Prefix}} ", null),
+            ("{{/if}}", null),
+            ("{{Name}}", null),
+            ("{{#if Suffix}}", null),
+            (", {{Suffix}}", null),
+            ("{{/if}}", null)
+        );
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            // Prefix missing - first condition false
+            ["Name"] = "John",
+            ["Suffix"] = "PhD" // second condition true
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        Assert.Equal(1, verifier.GetParagraphCount());
+        Assert.Equal("John, PhD", verifier.GetParagraphText(0));
+    }
+
+    [Fact]
+    public void ProcessTemplate_MultipleInlineConditionals_SameParagraph_FirstTrueSecondFalse()
+    {
+        // Arrange: Two inline conditionals, first true, second false
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraphWithRuns(
+            ("{{#if Prefix}}", null),
+            ("{{Prefix}} ", null),
+            ("{{/if}}", null),
+            ("{{Name}}", null),
+            ("{{#if Suffix}}", null),
+            (", {{Suffix}}", null),
+            ("{{/if}}", null)
+        );
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Prefix"] = "Dr.", // first condition true
+            ["Name"] = "John"
+            // Suffix missing - second condition false
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        Assert.Equal(1, verifier.GetParagraphCount());
+        Assert.Equal("Dr. John", verifier.GetParagraphText(0));
+    }
+
+    [Fact]
+    public void ProcessTemplate_ThreeInlineConditionals_SameParagraph_MixedConditions()
+    {
+        // Arrange: Three inline conditionals in same paragraph
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraphWithRuns(
+            ("{{#if Greeting}}", null),
+            ("{{Greeting}} ", null),
+            ("{{/if}}", null),
+            ("{{#if Title}}", null),
+            ("{{Title}} ", null),
+            ("{{/if}}", null),
+            ("{{Name}}", null),
+            ("{{#if Suffix}}", null),
+            (", {{Suffix}}", null),
+            ("{{/if}}", null)
+        );
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Greeting"] = "Hello", // true
+            // Title missing - false
+            ["Name"] = "John",
+            ["Suffix"] = "Esq." // true
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        Assert.Equal(1, verifier.GetParagraphCount());
+        Assert.Equal("Hello John, Esq.", verifier.GetParagraphText(0));
+    }
+
+    [Fact]
+    public void ProcessTemplate_MultipleInlineConditionals_WithElse_SameParagraph()
+    {
+        // Arrange: Two inline conditionals with else branches
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraphWithRuns(
+            ("{{#if IsFormal}}", null),
+            ("Dear ", null),
+            ("{{else}}", null),
+            ("Hi ", null),
+            ("{{/if}}", null),
+            ("{{Name}}", null),
+            ("{{#if HasTitle}}", null),
+            (" ({{Title}})", null),
+            ("{{else}}", null),
+            (" (no title)", null),
+            ("{{/if}}", null)
+        );
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["IsFormal"] = false, // should show "Hi "
+            ["Name"] = "Alice",
+            ["HasTitle"] = true,
+            ["Title"] = "Manager"
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        Assert.Equal(1, verifier.GetParagraphCount());
+        Assert.Equal("Hi Alice (Manager)", verifier.GetParagraphText(0));
+    }
+
+    #endregion
 }

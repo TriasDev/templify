@@ -28,7 +28,7 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
     private readonly ConditionalEvaluator _evaluator;
 
     private static readonly Regex _ifStartPattern = new Regex(
-        @"\{\{#if\s+.+?\}\}",
+        @"\{\{#if\s+(.+?)\}\}",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     private static readonly Regex _elsePattern = new Regex(
@@ -55,23 +55,27 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
         bool isInlineConditional = conditional.StartMarker == conditional.EndMarker
                                    && conditional.StartMarker is Paragraph;
 
-        // Evaluate the condition using the provided context
-        bool conditionResult = _evaluator.Evaluate(conditional.ConditionExpression, context);
-
         if (isInlineConditional)
         {
             // Process at Run level to preserve surrounding content
-            ProcessInlineConditional(conditional, conditionResult);
-        }
-        else if (conditionResult)
-        {
-            // Condition is TRUE: Keep IF branch, remove ELSE branch
-            ProcessTrueBranch(conditional);
+            // This handles multiple inline conditionals in the same paragraph
+            ProcessInlineConditional(conditional, context);
         }
         else
         {
-            // Condition is FALSE: Remove IF branch, keep ELSE branch
-            ProcessFalseBranch(conditional);
+            // Evaluate the condition using the provided context
+            bool conditionResult = _evaluator.Evaluate(conditional.ConditionExpression, context);
+
+            if (conditionResult)
+            {
+                // Condition is TRUE: Keep IF branch, remove ELSE branch
+                ProcessTrueBranch(conditional);
+            }
+            else
+            {
+                // Condition is FALSE: Remove IF branch, keep ELSE branch
+                ProcessFalseBranch(conditional);
+            }
         }
     }
 
@@ -162,316 +166,209 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
     /// <summary>
     /// Processes an inline conditional where {{#if}} and {{/if}} are in the same paragraph.
     /// Works at the Run level to preserve content before and after the conditional.
+    /// Handles multiple inline conditionals in the same paragraph.
     /// </summary>
     /// <param name="conditional">The inline conditional block.</param>
-    /// <param name="conditionResult">Whether the condition evaluated to true.</param>
-    private void ProcessInlineConditional(ConditionalBlock conditional, bool conditionResult)
+    /// <param name="context">The evaluation context for resolving variables.</param>
+    private void ProcessInlineConditional(ConditionalBlock conditional, IEvaluationContext context)
     {
         Paragraph paragraph = (Paragraph)conditional.StartMarker;
-        List<Run> runs = paragraph.Elements<Run>().ToList();
 
-        // Find the boundaries of the conditional within the runs
-        int ifStartRunIndex = -1;
-        int ifStartTextPosition = -1;
-        int elseRunIndex = -1;
-        int elseTextPosition = -1;
-        int ifEndRunIndex = -1;
-        int ifEndTextPosition = -1;
+        // Process all inline conditionals in this paragraph by working on the combined text
+        // We need to handle multiple conditionals, so we work on the full paragraph text
+        ProcessAllInlineConditionalsInParagraph(paragraph, context);
+    }
 
-        // Scan runs to find the markers
-        for (int i = 0; i < runs.Count; i++)
+    /// <summary>
+    /// Processes all inline conditionals in a paragraph by working on the combined text.
+    /// </summary>
+    private void ProcessAllInlineConditionalsInParagraph(Paragraph paragraph, IEvaluationContext context)
+    {
+        // Get the full text of the paragraph
+        string fullText = paragraph.InnerText;
+
+        // Find all conditionals and process them from right to left
+        // This preserves text positions as we make replacements
+        List<InlineConditionalInfo> conditionals = FindAllInlineConditionals(fullText);
+
+        if (conditionals.Count == 0)
         {
-            string? runText = runs[i].InnerText;
-            if (string.IsNullOrEmpty(runText))
-            {
-                continue;
-            }
-
-            // Find {{#if ...}}
-            if (ifStartRunIndex == -1)
-            {
-                Match ifMatch = _ifStartPattern.Match(runText);
-                if (ifMatch.Success)
-                {
-                    ifStartRunIndex = i;
-                    ifStartTextPosition = ifMatch.Index;
-                }
-            }
-
-            // Find {{else}} (only look after we found {{#if}})
-            if (ifStartRunIndex != -1 && elseRunIndex == -1 && ifEndRunIndex == -1)
-            {
-                Match elseMatch = _elsePattern.Match(runText);
-                if (elseMatch.Success)
-                {
-                    elseRunIndex = i;
-                    elseTextPosition = elseMatch.Index;
-                }
-            }
-
-            // Find {{/if}} (only look after we found {{#if}})
-            if (ifStartRunIndex != -1 && ifEndRunIndex == -1)
-            {
-                Match endMatch = _ifEndPattern.Match(runText);
-                if (endMatch.Success)
-                {
-                    ifEndRunIndex = i;
-                    ifEndTextPosition = endMatch.Index;
-                }
-            }
-        }
-
-        if (ifStartRunIndex == -1 || ifEndRunIndex == -1)
-        {
-            // Couldn't find markers - fall back to standard processing
-            if (conditionResult)
-            {
-                ProcessTrueBranch(conditional);
-            }
-            else
-            {
-                ProcessFalseBranch(conditional);
-            }
             return;
         }
 
-        // Process the conditional at text level
-        ProcessInlineConditionalText(
-            paragraph,
-            runs,
-            ifStartRunIndex,
-            ifStartTextPosition,
-            elseRunIndex,
-            elseTextPosition,
-            ifEndRunIndex,
-            ifEndTextPosition,
-            conditionResult);
-    }
+        // Process from right to left to preserve positions
+        conditionals.Reverse();
 
-    /// <summary>
-    /// Processes inline conditional text, removing markers and unwanted content.
-    /// </summary>
-    private void ProcessInlineConditionalText(
-        Paragraph paragraph,
-        List<Run> runs,
-        int ifStartRunIndex,
-        int ifStartTextPosition,
-        int elseRunIndex,
-        int elseTextPosition,
-        int ifEndRunIndex,
-        int ifEndTextPosition,
-        bool conditionResult)
-    {
-        // Strategy: Rebuild the paragraph text, keeping only the appropriate parts
-        // 1. Keep everything before {{#if}}
-        // 2. If condition true: keep IF content (between {{#if}} and {{else}}/{{/if}})
-        // 3. If condition false and has else: keep ELSE content (between {{else}} and {{/if}})
-        // 4. Keep everything after {{/if}}
-
-        // Process each run, modifying text as needed
-        for (int i = 0; i < runs.Count; i++)
+        foreach (InlineConditionalInfo info in conditionals)
         {
-            Run run = runs[i];
-            Text? textElement = run.GetFirstChild<Text>();
-            if (textElement == null)
-            {
-                continue;
-            }
+            // Evaluate the condition
+            bool conditionResult = _evaluator.Evaluate(info.Condition, context);
 
-            string text = textElement.Text ?? "";
-
-            if (i < ifStartRunIndex)
+            // Calculate the replacement
+            string replacement;
+            if (conditionResult)
             {
-                // Before the conditional - keep as-is
-                continue;
-            }
-            else if (i > ifEndRunIndex)
-            {
-                // After the conditional - keep as-is
-                continue;
-            }
-            else if (i == ifStartRunIndex && i == ifEndRunIndex)
-            {
-                // The entire conditional is in one run
-                text = ProcessSingleRunConditional(
-                    text,
-                    ifStartTextPosition,
-                    elseRunIndex == i ? elseTextPosition : -1,
-                    ifEndTextPosition,
-                    conditionResult);
-                textElement.Text = text;
-            }
-            else if (i == ifStartRunIndex)
-            {
-                // Start run - remove from {{#if}} onwards
-                Match ifMatch = _ifStartPattern.Match(text);
-                if (ifMatch.Success)
-                {
-                    string beforeIf = text.Substring(0, ifMatch.Index);
-                    string afterIfMarker = text.Substring(ifMatch.Index + ifMatch.Length);
-
-                    if (conditionResult)
-                    {
-                        // Keep content after the marker (IF content)
-                        textElement.Text = beforeIf + afterIfMarker;
-                    }
-                    else
-                    {
-                        // Remove IF content - just keep text before marker
-                        textElement.Text = beforeIf;
-                    }
-                }
-            }
-            else if (i == ifEndRunIndex)
-            {
-                // End run - remove up to and including {{/if}}
-                Match endMatch = _ifEndPattern.Match(text);
-                if (endMatch.Success)
-                {
-                    string afterEnd = text.Substring(endMatch.Index + endMatch.Length);
-
-                    if (conditionResult)
-                    {
-                        // Keep content before the marker (IF content) + content after
-                        string beforeEnd = text.Substring(0, endMatch.Index);
-                        textElement.Text = beforeEnd + afterEnd;
-                    }
-                    else if (elseRunIndex == i)
-                    {
-                        // Else is in same run - extract ELSE content
-                        Match elseMatch = _elsePattern.Match(text);
-                        if (elseMatch.Success)
-                        {
-                            string elseContent = text.Substring(
-                                elseMatch.Index + elseMatch.Length,
-                                endMatch.Index - (elseMatch.Index + elseMatch.Length));
-                            textElement.Text = elseContent + afterEnd;
-                        }
-                        else
-                        {
-                            textElement.Text = afterEnd;
-                        }
-                    }
-                    else
-                    {
-                        // Just keep content after {{/if}}
-                        textElement.Text = afterEnd;
-                    }
-                }
-            }
-            else if (elseRunIndex != -1 && i == elseRunIndex)
-            {
-                // Else run
-                Match elseMatch = _elsePattern.Match(text);
-                if (elseMatch.Success)
-                {
-                    if (conditionResult)
-                    {
-                        // Remove from {{else}} onwards
-                        textElement.Text = text.Substring(0, elseMatch.Index);
-                    }
-                    else
-                    {
-                        // Keep content after {{else}}
-                        textElement.Text = text.Substring(elseMatch.Index + elseMatch.Length);
-                    }
-                }
+                replacement = info.IfContent;
             }
             else
             {
-                // Middle run - part of IF or ELSE content
-                bool isInIfContent = elseRunIndex == -1 || i < elseRunIndex;
-                bool isInElseContent = elseRunIndex != -1 && i > elseRunIndex;
-
-                if (conditionResult && isInIfContent)
-                {
-                    // Keep IF content
-                    continue;
-                }
-                else if (!conditionResult && isInElseContent)
-                {
-                    // Keep ELSE content
-                    continue;
-                }
-                else
-                {
-                    // Remove this content
-                    textElement.Text = "";
-                }
+                replacement = info.ElseContent ?? "";
             }
+
+            // Replace in the full text
+            fullText = fullText.Substring(0, info.StartIndex) + replacement + fullText.Substring(info.EndIndex);
         }
 
-        // Clean up empty runs
-        foreach (Run run in runs)
-        {
-            Text? textElement = run.GetFirstChild<Text>();
-            if (textElement != null && string.IsNullOrEmpty(textElement.Text))
-            {
-                // Check if run has other content (like breaks)
-                if (!run.ChildElements.Any(c => !(c is Text) && !(c is RunProperties)))
-                {
-                    TemplateElementHelper.SafeRemove(run);
-                }
-            }
-        }
+        // Now rebuild the paragraph with the new text
+        RebuildParagraphText(paragraph, fullText);
     }
 
     /// <summary>
-    /// Processes a conditional that's entirely within a single run.
+    /// Information about an inline conditional found in text.
     /// </summary>
-    private string ProcessSingleRunConditional(
-        string text,
-        int ifStartPosition,
-        int elsePosition,
-        int ifEndPosition,
-        bool conditionResult)
+    private class InlineConditionalInfo
     {
-        Match ifMatch = _ifStartPattern.Match(text);
-        Match endMatch = _ifEndPattern.Match(text);
+        public int StartIndex { get; set; }
+        public int EndIndex { get; set; }
+        public string Condition { get; set; } = "";
+        public string IfContent { get; set; } = "";
+        public string? ElseContent { get; set; }
+    }
 
-        if (!ifMatch.Success || !endMatch.Success)
+    /// <summary>
+    /// Finds all inline conditionals in text, properly handling nesting.
+    /// </summary>
+    private List<InlineConditionalInfo> FindAllInlineConditionals(string text)
+    {
+        List<InlineConditionalInfo> result = new List<InlineConditionalInfo>();
+
+        int searchStart = 0;
+        while (searchStart < text.Length)
         {
-            return text;
-        }
-
-        string beforeIf = text.Substring(0, ifMatch.Index);
-        string afterEnd = text.Substring(endMatch.Index + endMatch.Length);
-
-        if (elsePosition >= 0)
-        {
-            Match elseMatch = _elsePattern.Match(text);
-            if (elseMatch.Success)
+            // Find next {{#if
+            Match ifMatch = _ifStartPattern.Match(text, searchStart);
+            if (!ifMatch.Success)
             {
-                string ifContent = text.Substring(
-                    ifMatch.Index + ifMatch.Length,
-                    elseMatch.Index - (ifMatch.Index + ifMatch.Length));
-                string elseContent = text.Substring(
-                    elseMatch.Index + elseMatch.Length,
-                    endMatch.Index - (elseMatch.Index + elseMatch.Length));
+                break;
+            }
 
-                if (conditionResult)
+            // Find the matching {{/if}} considering nesting
+            int depth = 1;
+            int pos = ifMatch.Index + ifMatch.Length;
+            int elsePos = -1;
+
+            while (pos < text.Length && depth > 0)
+            {
+                // Look for next marker
+                Match nextIfMatch = _ifStartPattern.Match(text, pos);
+                Match nextEndMatch = _ifEndPattern.Match(text, pos);
+                Match nextElseMatch = _elsePattern.Match(text, pos);
+
+                // Find which comes first
+                int nextIfPos = nextIfMatch.Success ? nextIfMatch.Index : int.MaxValue;
+                int nextEndPos = nextEndMatch.Success ? nextEndMatch.Index : int.MaxValue;
+                int nextElsePos = nextElseMatch.Success ? nextElseMatch.Index : int.MaxValue;
+
+                if (nextEndPos <= nextIfPos && nextEndPos <= nextElsePos && nextEndMatch.Success)
                 {
-                    return beforeIf + ifContent + afterEnd;
+                    depth--;
+                    if (depth == 0)
+                    {
+                        // Found the matching end
+                        int endIndex = nextEndMatch.Index + nextEndMatch.Length;
+
+                        // Extract content
+                        string condition = ifMatch.Groups[1].Value.Trim();
+                        string ifContent;
+                        string? elseContent = null;
+
+                        if (elsePos >= 0)
+                        {
+                            Match elseMatch = _elsePattern.Match(text, elsePos);
+                            ifContent = text.Substring(ifMatch.Index + ifMatch.Length, elsePos - (ifMatch.Index + ifMatch.Length));
+                            elseContent = text.Substring(elsePos + elseMatch.Length, nextEndMatch.Index - (elsePos + elseMatch.Length));
+                        }
+                        else
+                        {
+                            ifContent = text.Substring(ifMatch.Index + ifMatch.Length, nextEndMatch.Index - (ifMatch.Index + ifMatch.Length));
+                        }
+
+                        result.Add(new InlineConditionalInfo
+                        {
+                            StartIndex = ifMatch.Index,
+                            EndIndex = endIndex,
+                            Condition = condition,
+                            IfContent = ifContent,
+                            ElseContent = elseContent
+                        });
+
+                        searchStart = endIndex;
+                        break;
+                    }
+                    pos = nextEndMatch.Index + nextEndMatch.Length;
+                }
+                else if (nextIfPos <= nextEndPos && nextIfPos <= nextElsePos && nextIfMatch.Success)
+                {
+                    depth++;
+                    pos = nextIfMatch.Index + nextIfMatch.Length;
+                }
+                else if (nextElsePos <= nextIfPos && nextElsePos <= nextEndPos && nextElseMatch.Success && depth == 1)
+                {
+                    // Found else at our level
+                    elsePos = nextElseMatch.Index;
+                    pos = nextElseMatch.Index + nextElseMatch.Length;
                 }
                 else
                 {
-                    return beforeIf + elseContent + afterEnd;
+                    // No more markers found
+                    break;
                 }
+            }
+
+            if (depth > 0)
+            {
+                // Unmatched conditional, skip it
+                searchStart = ifMatch.Index + ifMatch.Length;
             }
         }
 
-        // No else branch
-        string content = text.Substring(
-            ifMatch.Index + ifMatch.Length,
-            endMatch.Index - (ifMatch.Index + ifMatch.Length));
+        return result;
+    }
 
-        if (conditionResult)
+    /// <summary>
+    /// Rebuilds a paragraph's text content while preserving formatting of the first run.
+    /// </summary>
+    private void RebuildParagraphText(Paragraph paragraph, string newText)
+    {
+        // Get current runs and their properties
+        List<Run> runs = paragraph.Elements<Run>().ToList();
+
+        // Get formatting from first run with text
+        RunProperties? formatting = null;
+        foreach (Run run in runs)
         {
-            return beforeIf + content + afterEnd;
+            if (run.RunProperties != null)
+            {
+                formatting = (RunProperties)run.RunProperties.CloneNode(true);
+                break;
+            }
         }
-        else
+
+        // Remove all runs
+        foreach (Run run in runs)
         {
-            return beforeIf + afterEnd;
+            run.Remove();
         }
+
+        // Add new run with the processed text
+        Run newRun = new Run();
+        if (formatting != null)
+        {
+            newRun.RunProperties = formatting;
+        }
+        Text textElement = new Text(newText);
+        textElement.Space = SpaceProcessingModeValues.Preserve;
+        newRun.Append(textElement);
+        paragraph.Append(newRun);
     }
 }
