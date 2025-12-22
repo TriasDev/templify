@@ -295,6 +295,7 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
 
             int endMatchIndex = -1;
             int endMatchLength = 0;
+            bool hasElseAtOurLevel = false;
 
             while (pos < text.Length && depth > 0)
             {
@@ -336,6 +337,14 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
                 }
                 else if (minPos == nextElseIfPos && depth == 1)
                 {
+                    // Validate: elseif cannot appear after else
+                    if (hasElseAtOurLevel)
+                    {
+                        throw new InvalidOperationException(
+                            "Invalid conditional structure: '{{#elseif}}' cannot appear after '{{else}}'. " +
+                            "The '{{else}}' branch must be the last branch before '{{/if}}'.");
+                    }
+
                     // elseif at our level
                     branchMarkers.Add((nextElseIfMatch.Index, nextElseIfMatch.Length, nextElseIfMatch.Groups[1].Value.Trim()));
                     pos = nextElseIfMatch.Index + nextElseIfMatch.Length;
@@ -343,6 +352,7 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
                 else if (minPos == nextElsePos && depth == 1)
                 {
                     // else at our level
+                    hasElseAtOurLevel = true;
                     branchMarkers.Add((nextElseMatch.Index, nextElseMatch.Length, null)); // null condition for else
                     pos = nextElseMatch.Index + nextElseMatch.Length;
                 }
