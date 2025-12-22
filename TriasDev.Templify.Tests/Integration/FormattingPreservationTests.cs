@@ -748,4 +748,141 @@ public sealed class FormattingPreservationTests
     }
 
     #endregion
+
+    #region Multi-placeholder shading preservation
+
+    [Fact]
+    public void ProcessTemplate_MultiplePlaceholders_DifferentShadings_PreservesEachShading()
+    {
+        // Arrange - Create a paragraph with multiple placeholders, each with different shading
+        // This simulates real-world templates like: C{{Confidentiality}}I{{Integrity}}A{{Availability}}
+        // where each segment has different background colors
+        DocumentBuilder builder = new DocumentBuilder();
+
+        // Orange shading for "C" prefix and confidentiality placeholder
+        RunProperties orangeShading = DocumentBuilder.CreateFormatting(color: "FFFFFF", shadingFill: "BE8E18");
+        // Dark shading for "I" prefix and integrity placeholder
+        RunProperties darkShading = DocumentBuilder.CreateFormatting(color: "FFFFFF", shadingFill: "232323");
+        // Blue shading for "A" prefix and availability placeholder
+        RunProperties blueShading = DocumentBuilder.CreateFormatting(color: "FFFFFF", shadingFill: "175788");
+
+        builder.AddParagraphWithRuns(
+            ("C{{Confidentiality}}", orangeShading),
+            ("I{{Integrity}}", darkShading),
+            ("A{{Availability}}", blueShading)
+        );
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Confidentiality"] = "3",
+            ["Integrity"] = "1",
+            ["Availability"] = "2"
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(3, result.ReplacementCount);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+
+        // Verify text is correct
+        string text = verifier.GetParagraphText(0);
+        Assert.Equal("C3I1A2", text);
+
+        // Verify each segment has its correct shading preserved
+        // Run 0: "C3" with orange shading
+        RunProperties? run0Props = verifier.GetRunProperties(0, 0);
+        Assert.NotNull(run0Props);
+        DocumentVerifier.VerifyFormatting(run0Props, expectedColor: "FFFFFF", expectedShadingFill: "BE8E18");
+
+        // Run 1: "I1" with dark shading
+        RunProperties? run1Props = verifier.GetRunProperties(0, 1);
+        Assert.NotNull(run1Props);
+        DocumentVerifier.VerifyFormatting(run1Props, expectedColor: "FFFFFF", expectedShadingFill: "232323");
+
+        // Run 2: "A2" with blue shading
+        RunProperties? run2Props = verifier.GetRunProperties(0, 2);
+        Assert.NotNull(run2Props);
+        DocumentVerifier.VerifyFormatting(run2Props, expectedColor: "FFFFFF", expectedShadingFill: "175788");
+    }
+
+    [Fact]
+    public void ProcessTemplate_MultiplePlaceholders_SplitAcrossRuns_PreservesEachShading()
+    {
+        // Arrange - More realistic case: placeholder split across multiple runs (like Word often does)
+        // "C" | "{{" | "Confidentiality" | "}}" all with same shading
+        DocumentBuilder builder = new DocumentBuilder();
+
+        RunProperties orangeShading = DocumentBuilder.CreateFormatting(color: "FFFFFF", shadingFill: "BE8E18");
+        RunProperties darkShading = DocumentBuilder.CreateFormatting(color: "FFFFFF", shadingFill: "232323");
+
+        builder.AddParagraphWithRuns(
+            ("C", orangeShading),
+            ("{{", orangeShading),
+            ("Confidentiality", orangeShading),
+            ("}}", orangeShading),
+            ("I", darkShading),
+            ("{{", darkShading),
+            ("Integrity", darkShading),
+            ("}}", darkShading)
+        );
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Confidentiality"] = "3",
+            ["Integrity"] = "1"
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2, result.ReplacementCount);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+
+        // Verify text is correct
+        string text = verifier.GetParagraphText(0);
+        Assert.Equal("C3I1", text);
+
+        // Get all runs - should have "C3" with orange and "I1" with dark
+        var runs = verifier.GetAllRunsInParagraph(0);
+        Assert.True(runs.Count >= 2, $"Expected at least 2 runs but got {runs.Count}");
+
+        // Find the run containing "C" or "3" - should have orange shading
+        bool foundOrangeShadedRun = runs.Any(r =>
+        {
+            string runText = r.InnerText;
+            var shading = r.RunProperties?.Shading;
+            return (runText.Contains("C") || runText.Contains("3")) &&
+                   shading?.Fill?.Value == "BE8E18";
+        });
+        Assert.True(foundOrangeShadedRun, "Expected orange-shaded run containing C or 3");
+
+        // Find the run containing "I" or "1" - should have dark shading
+        bool foundDarkShadedRun = runs.Any(r =>
+        {
+            string runText = r.InnerText;
+            var shading = r.RunProperties?.Shading;
+            return (runText.Contains("I") || runText.Contains("1")) &&
+                   shading?.Fill?.Value == "232323";
+        });
+        Assert.True(foundDarkShadedRun, "Expected dark-shaded run containing I or 1");
+    }
+
+    #endregion
 }

@@ -104,6 +104,22 @@ public sealed class DocumentVerifier : IDisposable
     }
 
     /// <summary>
+    /// Gets all runs in a specific paragraph.
+    /// </summary>
+    public List<Run> GetAllRunsInParagraph(int paragraphIndex)
+    {
+        List<Paragraph> paragraphs = _body.Elements<Paragraph>().ToList();
+
+        if (paragraphIndex < 0 || paragraphIndex >= paragraphs.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(paragraphIndex),
+                $"Paragraph index {paragraphIndex} is out of range (0-{paragraphs.Count - 1})");
+        }
+
+        return paragraphs[paragraphIndex].Descendants<Run>().ToList();
+    }
+
+    /// <summary>
     /// Gets the number of tables in the document.
     /// </summary>
     public int GetTableCount()
