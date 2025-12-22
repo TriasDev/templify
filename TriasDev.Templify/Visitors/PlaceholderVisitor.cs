@@ -258,6 +258,11 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
             if (placeholderEnd > runStart && placeholderEnd <= runEnd)
             {
                 endRunIndex = i;
+            }
+
+            // Only break once both indices are found to avoid returning (-1, someIndex)
+            if (startRunIndex >= 0 && endRunIndex >= 0)
+            {
                 break;
             }
         }
