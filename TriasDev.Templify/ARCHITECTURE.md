@@ -756,6 +756,36 @@ OpenXML splits text into `Run` elements for formatting. A placeholder like `{{Co
 
 This approach trades some formatting complexity for correctness.
 
+### Per-Run Optimization (December 2025)
+
+When a placeholder is entirely contained within a single run, the library uses an optimized
+per-run replacement strategy that preserves the run's complete formatting:
+
+```
+Multi-run case (placeholder spans runs):
+  [Run1: "{{Na"] [Run2: "me}}"]  →  Merge all runs, use first run's formatting
+
+Single-run case (placeholder within one run):
+  [Run: "C{{Value}}"]  →  Replace in-place, preserve ALL run formatting
+```
+
+**Why this matters**: The multi-run merge approach extracts formatting from the first run,
+which can lose certain properties like highlight colors and shading that are specific to
+individual runs. The per-run optimization preserves:
+
+- Highlight colors (yellow, cyan, etc.)
+- Background shading (Shading element with Fill)
+- All other RunProperties (bold, italic, color, font, etc.)
+
+**Implementation** (`PlaceholderVisitor.cs`):
+1. `BuildRunBoundaries()` - Maps character indices to runs
+2. `FindRunsForPlaceholder()` - Detects if placeholder spans single or multiple runs
+3. `ReplacePlaceholderInSingleRun()` - Updates run text in-place, preserving formatting
+4. `ReplaceRunText()` - Simple text replacement while keeping RunProperties
+
+This optimization is transparent to users and automatically applies when placeholders
+are not split across multiple runs (the common case in well-formed templates).
+
 ## Value Conversion Strategy
 
 ```csharp

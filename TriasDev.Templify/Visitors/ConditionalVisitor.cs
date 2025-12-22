@@ -13,8 +13,8 @@ using TriasDev.Templify.Placeholders;
 namespace TriasDev.Templify.Visitors;
 
 /// <summary>
-/// Visitor that processes conditional blocks ({{#if}}/{{else}}/{{/if}}).
-/// Evaluates conditions and removes false branches.
+/// Visitor that processes conditional blocks ({{#if}}/{{#elseif}}/{{else}}/{{/if}}).
+/// Evaluates conditions and removes non-matching branches.
 /// </summary>
 /// <remarks>
 /// This visitor wraps the logic from ConditionalProcessor into the visitor pattern.
@@ -28,25 +28,13 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
 {
     private readonly ConditionalEvaluator _evaluator;
 
-    private static readonly Regex _ifStartPattern = new Regex(
-        @"\{\{#if\s+(.+?)\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-    private static readonly Regex _elsePattern = new Regex(
-        @"\{\{else\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-    private static readonly Regex _ifEndPattern = new Regex(
-        @"\{\{/if\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
     public ConditionalVisitor()
     {
         _evaluator = new ConditionalEvaluator();
     }
 
     /// <summary>
-    /// Processes a conditional block by evaluating the condition and keeping the appropriate branch.
+    /// Processes a conditional block by evaluating branches in order and keeping the first matching one.
     /// </summary>
     /// <param name="conditional">The conditional block to process.</param>
     /// <param name="context">The evaluation context for resolving variables.</param>
@@ -64,20 +52,61 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
         }
         else
         {
-            // Evaluate the condition using the provided context
-            bool conditionResult = _evaluator.Evaluate(conditional.ConditionExpression, context);
+            // Find the first matching branch
+            ConditionalBranch? matchingBranch = FindMatchingBranch(conditional, context);
 
-            if (conditionResult)
+            // Process branches: keep matching branch content, remove everything else
+            ProcessBranches(conditional, matchingBranch);
+        }
+    }
+
+    /// <summary>
+    /// Finds the first branch whose condition evaluates to true, or the else branch.
+    /// </summary>
+    private ConditionalBranch? FindMatchingBranch(ConditionalBlock conditional, IEvaluationContext context)
+    {
+        foreach (ConditionalBranch branch in conditional.Branches)
+        {
+            if (branch.IsElseBranch)
             {
-                // Condition is TRUE: Keep IF branch, remove ELSE branch
-                ProcessTrueBranch(conditional);
+                // Else branch - always matches as fallback
+                return branch;
             }
-            else
+
+            if (_evaluator.Evaluate(branch.ConditionExpression!, context))
             {
-                // Condition is FALSE: Remove IF branch, keep ELSE branch
-                ProcessFalseBranch(conditional);
+                return branch;
             }
         }
+
+        // No branch matched (all conditions false and no else)
+        return null;
+    }
+
+    /// <summary>
+    /// Processes conditional branches: removes all markers and non-matching branch content.
+    /// </summary>
+    private void ProcessBranches(ConditionalBlock conditional, ConditionalBranch? matchingBranch)
+    {
+        // Remove all branch markers
+        foreach (ConditionalBranch branch in conditional.Branches)
+        {
+            TemplateElementHelper.SafeRemove(branch.Marker);
+        }
+
+        // Remove content of non-matching branches
+        foreach (ConditionalBranch branch in conditional.Branches)
+        {
+            if (branch != matchingBranch)
+            {
+                TemplateElementHelper.SafeRemoveRange(branch.ContentElements);
+            }
+        }
+
+        // Remove the end marker
+        TemplateElementHelper.SafeRemove(conditional.EndMarker);
+
+        // Matching branch content (if any) remains in the document
     }
 
     /// <summary>
@@ -105,63 +134,6 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
     {
         // ConditionalVisitor doesn't process regular paragraphs
         // This method is no-op to satisfy the interface
-    }
-
-    /// <summary>
-    /// Processes conditional when condition is TRUE.
-    /// Keeps IF content, removes ELSE content and all markers.
-    /// </summary>
-    /// <remarks>
-    /// This method is extracted from ConditionalProcessor.ProcessTrueBranch()
-    /// to eliminate duplication.
-    /// </remarks>
-    private void ProcessTrueBranch(ConditionalBlock conditional)
-    {
-        // Remove the start marker (if it still has a parent)
-        TemplateElementHelper.SafeRemove(conditional.StartMarker);
-
-        // Remove ELSE content elements (if any)
-        TemplateElementHelper.SafeRemoveRange(conditional.ElseContentElements);
-
-        // Remove the else marker (if any)
-        if (conditional.ElseMarker != null)
-        {
-            TemplateElementHelper.SafeRemove(conditional.ElseMarker);
-        }
-
-        // Remove the end marker
-        TemplateElementHelper.SafeRemove(conditional.EndMarker);
-
-        // IF content elements remain in the document
-    }
-
-    /// <summary>
-    /// Processes conditional when condition is FALSE.
-    /// Removes IF content, keeps ELSE content (if any), removes all markers.
-    /// </summary>
-    /// <remarks>
-    /// This method is extracted from ConditionalProcessor.ProcessFalseBranch()
-    /// to eliminate duplication.
-    /// </remarks>
-    private void ProcessFalseBranch(ConditionalBlock conditional)
-    {
-        // Remove the start marker
-        TemplateElementHelper.SafeRemove(conditional.StartMarker);
-
-        // Remove IF content elements
-        TemplateElementHelper.SafeRemoveRange(conditional.IfContentElements);
-
-        // Remove the else marker (if any)
-        if (conditional.ElseMarker != null)
-        {
-            TemplateElementHelper.SafeRemove(conditional.ElseMarker);
-        }
-
-        // Remove the end marker
-        TemplateElementHelper.SafeRemove(conditional.EndMarker);
-
-        // ELSE content elements (if any) remain in the document
-        // If there's no else branch, nothing remains (which is correct)
     }
 
     /// <summary>
@@ -205,12 +177,23 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
 
         foreach (InlineConditionalInfo info in conditionals)
         {
-            // Evaluate the condition
-            bool conditionResult = _evaluator.Evaluate(info.Condition, context);
+            // Find the first matching branch
+            string replacement = "";
+            foreach (var branch in info.Branches)
+            {
+                if (branch.Condition == null)
+                {
+                    // Else branch - always matches
+                    replacement = ProcessNestedInlineConditionals(branch.Content, context);
+                    break;
+                }
 
-            // Calculate the replacement - recursively process nested conditionals in content
-            string rawContent = conditionResult ? info.IfContent : (info.ElseContent ?? "");
-            string replacement = ProcessNestedInlineConditionals(rawContent, context);
+                if (_evaluator.Evaluate(branch.Condition, context))
+                {
+                    replacement = ProcessNestedInlineConditionals(branch.Content, context);
+                    break;
+                }
+            }
 
             // Replace in the result (right to left preserves positions)
             result.Remove(info.StartIndex, info.EndIndex - info.StartIndex);
@@ -244,11 +227,22 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
 
         foreach (InlineConditionalInfo info in conditionals)
         {
-            bool conditionResult = _evaluator.Evaluate(info.Condition, context);
+            // Find the first matching branch
+            string replacement = "";
+            foreach (var branch in info.Branches)
+            {
+                if (branch.Condition == null)
+                {
+                    replacement = ProcessNestedInlineConditionals(branch.Content, context);
+                    break;
+                }
 
-            // Recursively process nested conditionals in the chosen branch
-            string rawContent = conditionResult ? info.IfContent : (info.ElseContent ?? "");
-            string replacement = ProcessNestedInlineConditionals(rawContent, context);
+                if (_evaluator.Evaluate(branch.Condition, context))
+                {
+                    replacement = ProcessNestedInlineConditionals(branch.Content, context);
+                    break;
+                }
+            }
 
             result.Remove(info.StartIndex, info.EndIndex - info.StartIndex);
             result.Insert(info.StartIndex, replacement);
@@ -258,19 +252,24 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
     }
 
     /// <summary>
+    /// Represents a branch within an inline conditional.
+    /// </summary>
+    /// <param name="Condition">The condition expression, or null for else branch.</param>
+    /// <param name="Content">The content of the branch.</param>
+    private sealed record InlineBranch(string? Condition, string Content);
+
+    /// <summary>
     /// Information about an inline conditional found in text.
     /// </summary>
     private class InlineConditionalInfo
     {
         public int StartIndex { get; set; }
         public int EndIndex { get; set; }
-        public string Condition { get; set; } = "";
-        public string IfContent { get; set; } = "";
-        public string? ElseContent { get; set; }
+        public List<InlineBranch> Branches { get; set; } = new List<InlineBranch>();
     }
 
     /// <summary>
-    /// Finds all inline conditionals in text, properly handling nesting.
+    /// Finds all inline conditionals in text, properly handling nesting and elseif branches.
     /// </summary>
     private List<InlineConditionalInfo> FindAllInlineConditionals(string text)
     {
@@ -280,88 +279,120 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
         while (searchStart < text.Length)
         {
             // Find next {{#if
-            Match ifMatch = _ifStartPattern.Match(text, searchStart);
+            Match ifMatch = ConditionalPatterns.IfStart.Match(text, searchStart);
             if (!ifMatch.Success)
             {
                 break;
             }
 
-            // Find the matching {{/if}} considering nesting
+            // Find all branch markers and the matching {{/if}} considering nesting
             int depth = 1;
             int pos = ifMatch.Index + ifMatch.Length;
-            int elsePos = -1;
-            int elseLength = 0;
+
+            // Track branch markers at our level (depth 1)
+            List<(int Index, int Length, string? Condition)> branchMarkers = new List<(int, int, string?)>();
+            branchMarkers.Add((ifMatch.Index, ifMatch.Length, ifMatch.Groups[1].Value.Trim())); // if marker
+
+            int endMatchIndex = -1;
+            int endMatchLength = 0;
+            bool hasElseAtOurLevel = false;
 
             while (pos < text.Length && depth > 0)
             {
                 // Look for next marker
-                Match nextIfMatch = _ifStartPattern.Match(text, pos);
-                Match nextEndMatch = _ifEndPattern.Match(text, pos);
-                Match nextElseMatch = _elsePattern.Match(text, pos);
+                Match nextIfMatch = ConditionalPatterns.IfStart.Match(text, pos);
+                Match nextEndMatch = ConditionalPatterns.IfEnd.Match(text, pos);
+                Match nextElseIfMatch = ConditionalPatterns.ElseIf.Match(text, pos);
+                Match nextElseMatch = ConditionalPatterns.Else.Match(text, pos);
 
                 // Find which comes first
                 int nextIfPos = nextIfMatch.Success ? nextIfMatch.Index : int.MaxValue;
                 int nextEndPos = nextEndMatch.Success ? nextEndMatch.Index : int.MaxValue;
+                int nextElseIfPos = nextElseIfMatch.Success ? nextElseIfMatch.Index : int.MaxValue;
                 int nextElsePos = nextElseMatch.Success ? nextElseMatch.Index : int.MaxValue;
 
-                if (nextEndPos <= nextIfPos && nextEndPos <= nextElsePos && nextEndMatch.Success)
-                {
-                    depth--;
-                    if (depth == 0)
-                    {
-                        // Found the matching end
-                        int endIndex = nextEndMatch.Index + nextEndMatch.Length;
+                int minPos = Math.Min(Math.Min(nextIfPos, nextEndPos), Math.Min(nextElseIfPos, nextElsePos));
 
-                        // Extract content
-                        string condition = ifMatch.Groups[1].Value.Trim();
-                        string ifContent;
-                        string? elseContent = null;
-
-                        if (elsePos >= 0)
-                        {
-                            // Use stored elseLength instead of redundant Match operation
-                            ifContent = text.Substring(ifMatch.Index + ifMatch.Length, elsePos - (ifMatch.Index + ifMatch.Length));
-                            elseContent = text.Substring(elsePos + elseLength, nextEndMatch.Index - (elsePos + elseLength));
-                        }
-                        else
-                        {
-                            ifContent = text.Substring(ifMatch.Index + ifMatch.Length, nextEndMatch.Index - (ifMatch.Index + ifMatch.Length));
-                        }
-
-                        result.Add(new InlineConditionalInfo
-                        {
-                            StartIndex = ifMatch.Index,
-                            EndIndex = endIndex,
-                            Condition = condition,
-                            IfContent = ifContent,
-                            ElseContent = elseContent
-                        });
-
-                        searchStart = endIndex;
-                        break;
-                    }
-                    pos = nextEndMatch.Index + nextEndMatch.Length;
-                }
-                else if (nextIfPos <= nextEndPos && nextIfPos <= nextElsePos && nextIfMatch.Success)
-                {
-                    depth++;
-                    pos = nextIfMatch.Index + nextIfMatch.Length;
-                }
-                else if (nextElsePos <= nextIfPos && nextElsePos <= nextEndPos && nextElseMatch.Success && depth == 1)
-                {
-                    // Found else at our level - store position and length
-                    elsePos = nextElseMatch.Index;
-                    elseLength = nextElseMatch.Length;
-                    pos = nextElseMatch.Index + nextElseMatch.Length;
-                }
-                else
+                if (minPos == int.MaxValue)
                 {
                     // No more markers found
                     break;
                 }
+
+                if (minPos == nextEndPos)
+                {
+                    depth--;
+                    if (depth == 0)
+                    {
+                        endMatchIndex = nextEndMatch.Index;
+                        endMatchLength = nextEndMatch.Length;
+                        break;
+                    }
+                    pos = nextEndMatch.Index + nextEndMatch.Length;
+                }
+                else if (minPos == nextIfPos)
+                {
+                    depth++;
+                    pos = nextIfMatch.Index + nextIfMatch.Length;
+                }
+                else if (minPos == nextElseIfPos && depth == 1)
+                {
+                    // Validate: elseif cannot appear after else
+                    if (hasElseAtOurLevel)
+                    {
+                        throw new InvalidOperationException(
+                            "Invalid conditional structure: '{{#elseif}}' cannot appear after '{{else}}'. " +
+                            "The '{{else}}' branch must be the last branch before '{{/if}}'.");
+                    }
+
+                    // elseif at our level
+                    branchMarkers.Add((nextElseIfMatch.Index, nextElseIfMatch.Length, nextElseIfMatch.Groups[1].Value.Trim()));
+                    pos = nextElseIfMatch.Index + nextElseIfMatch.Length;
+                }
+                else if (minPos == nextElsePos && depth == 1)
+                {
+                    // else at our level
+                    hasElseAtOurLevel = true;
+                    branchMarkers.Add((nextElseMatch.Index, nextElseMatch.Length, null)); // null condition for else
+                    pos = nextElseMatch.Index + nextElseMatch.Length;
+                }
+                else
+                {
+                    // Marker at deeper level, just skip
+                    pos = minPos + 1;
+                }
             }
 
-            if (depth > 0)
+            if (endMatchIndex >= 0)
+            {
+                // Successfully found matching end
+                int endIndex = endMatchIndex + endMatchLength;
+
+                // Build branches from markers
+                InlineConditionalInfo info = new InlineConditionalInfo
+                {
+                    StartIndex = ifMatch.Index,
+                    EndIndex = endIndex,
+                    Branches = new List<InlineBranch>()
+                };
+
+                for (int m = 0; m < branchMarkers.Count; m++)
+                {
+                    var marker = branchMarkers[m];
+                    int contentStart = marker.Index + marker.Length;
+                    int contentEnd = (m + 1 < branchMarkers.Count)
+                        ? branchMarkers[m + 1].Index
+                        : endMatchIndex;
+
+                    string content = text.Substring(contentStart, contentEnd - contentStart);
+
+                    info.Branches.Add(new InlineBranch(marker.Condition, content));
+                }
+
+                result.Add(info);
+                searchStart = endIndex;
+            }
+            else
             {
                 // Unmatched conditional, skip it
                 searchStart = ifMatch.Index + ifMatch.Length;
@@ -372,39 +403,553 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
     }
 
     /// <summary>
-    /// Rebuilds a paragraph's text content while preserving formatting of the first run.
+    /// Rebuilds a paragraph's text content while preserving formatting from original runs.
+    /// Uses a run-level approach: keeps runs that don't contain conditional markers,
+    /// and only rebuilds runs that contain conditional text.
     /// </summary>
     private void RebuildParagraphText(Paragraph paragraph, string newText)
     {
-        // Get current runs and their properties
-        List<Run> runs = paragraph.Elements<Run>().ToList();
+        // Get current runs
+        List<Run> originalRuns = paragraph.Elements<Run>().ToList();
 
-        // Get formatting from first run with text
-        RunProperties? formatting = null;
-        foreach (Run run in runs)
+        // Categorize runs: those with conditional markers vs those without
+        List<(Run Run, string Text, bool HasConditional, int Index)> runInfo =
+            new List<(Run, string, bool, int)>();
+
+        for (int i = 0; i < originalRuns.Count; i++)
         {
-            if (run.RunProperties != null)
+            Run run = originalRuns[i];
+            string text = run.InnerText;
+            bool hasConditional = text.Contains("{{#if") || text.Contains("{{/if") ||
+                                  text.Contains("{{#") || text.Contains("{{/") ||
+                                  text.Contains("{{else}}");
+            runInfo.Add((run, text, hasConditional, i));
+        }
+
+        // If no runs have conditionals, the new text should match and we can use
+        // the simpler formatting preservation approach
+        bool anyConditionalRuns = runInfo.Any(r => r.HasConditional);
+
+        if (!anyConditionalRuns)
+        {
+            // No conditional markers in runs - use simple text replacement
+            RebuildParagraphTextSimple(paragraph, newText, originalRuns);
+            return;
+        }
+
+        // Build mapping of original text positions to runs (including non-text runs like tabs)
+        List<(int StartPos, int EndPos, Run Run, bool IsTab)> runPositions =
+            new List<(int, int, Run, bool)>();
+
+        int currentPos = 0;
+        foreach (Run run in originalRuns)
+        {
+            bool isTab = run.Elements<TabChar>().Any();
+            string text = run.InnerText;
+            int length = text.Length;
+
+            if (isTab || length > 0)
             {
-                formatting = (RunProperties)run.RunProperties.CloneNode(true);
-                break;
+                runPositions.Add((currentPos, currentPos + Math.Max(length, isTab ? 1 : 0), run, isTab));
+            }
+
+            currentPos += length;
+            if (isTab && length == 0)
+            {
+                currentPos += 1; // Account for tab as 1 character position
             }
         }
 
-        // Remove all runs
-        foreach (Run run in runs)
+        // Find which runs should be preserved (non-conditional runs that exist in new text)
+        // and which should be rebuilt
+        string originalText = string.Concat(originalRuns.Select(r => r.InnerText));
+
+        // Remove all original runs
+        foreach (Run run in originalRuns)
         {
             run.Remove();
         }
 
-        // Add new run with the processed text
-        Run newRun = new Run();
-        if (formatting != null)
+        // Rebuild using segment matching with tab preservation
+        RebuildWithTabPreservation(paragraph, newText, originalRuns, runPositions, originalText);
+    }
+
+    /// <summary>
+    /// Simple paragraph rebuild when no conditional markers are present.
+    /// </summary>
+    private void RebuildParagraphTextSimple(Paragraph paragraph, string newText, List<Run> originalRuns)
+    {
+        // Build text segments with formatting
+        List<(string Text, RunProperties? Properties)> originalSegments =
+            new List<(string, RunProperties?)>();
+
+        foreach (Run run in originalRuns)
         {
-            newRun.RunProperties = formatting;
+            string runText = run.InnerText;
+            if (!string.IsNullOrEmpty(runText))
+            {
+                RunProperties? props = run.RunProperties != null
+                    ? (RunProperties)run.RunProperties.CloneNode(true)
+                    : null;
+                originalSegments.Add((runText, props));
+            }
         }
-        Text textElement = new Text(newText);
-        textElement.Space = SpaceProcessingModeValues.Preserve;
-        newRun.Append(textElement);
-        paragraph.Append(newRun);
+
+        List<(string Text, RunProperties? Properties)> newSegments =
+            MapTextToFormattedSegments(newText, originalSegments);
+
+        // Remove original runs
+        foreach (Run run in originalRuns)
+        {
+            run.Remove();
+        }
+
+        // Create new runs
+        foreach ((string text, RunProperties? props) in newSegments)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                continue;
+            }
+
+            Run newRun = new Run();
+            if (props != null)
+            {
+                newRun.RunProperties = (RunProperties)props.CloneNode(true);
+            }
+            Text textElement = new Text(text);
+            textElement.Space = SpaceProcessingModeValues.Preserve;
+            newRun.Append(textElement);
+            paragraph.Append(newRun);
+        }
+    }
+
+    /// <summary>
+    /// Rebuilds paragraph with tab preservation by tracking which original runs
+    /// map to which portions of the new text.
+    /// </summary>
+    private void RebuildWithTabPreservation(
+        Paragraph paragraph,
+        string newText,
+        List<Run> originalRuns,
+        List<(int StartPos, int EndPos, Run Run, bool IsTab)> runPositions,
+        string originalText)
+    {
+        // Build segments from non-conditional original runs
+        List<(string Text, RunProperties? Properties)> textSegments =
+            new List<(string, RunProperties?)>();
+
+        foreach (Run run in originalRuns)
+        {
+            string text = run.InnerText;
+            if (!string.IsNullOrEmpty(text) &&
+                !text.Contains("{{#if") && !text.Contains("{{/if") &&
+                !text.Contains("{{#") && !text.Contains("{{/") &&
+                !text.Contains("{{else}}"))
+            {
+                RunProperties? props = run.RunProperties != null
+                    ? (RunProperties)run.RunProperties.CloneNode(true)
+                    : null;
+                textSegments.Add((text, props));
+            }
+        }
+
+        // Get formatted segments for new text
+        List<(string Text, RunProperties? Properties)> newSegments =
+            MapTextToFormattedSegments(newText, textSegments);
+
+        // Track tab runs from original
+        List<(Run TabRun, int OriginalPos)> tabRuns = new List<(Run, int)>();
+        int pos = 0;
+        foreach (Run run in originalRuns)
+        {
+            if (run.Elements<TabChar>().Any())
+            {
+                RunProperties? props = run.RunProperties != null
+                    ? (RunProperties)run.RunProperties.CloneNode(true)
+                    : null;
+                Run clonedTab = new Run();
+                if (props != null)
+                {
+                    clonedTab.RunProperties = props;
+                }
+                clonedTab.Append(new TabChar());
+                tabRuns.Add((clonedTab, pos));
+            }
+            pos += run.InnerText.Length;
+        }
+
+        // Calculate where each tab should go in the new text
+        // Tabs that were between text segments that still exist should be preserved
+        List<(Run TabRun, int NewPos)> newTabPositions = new List<(Run, int)>();
+
+        foreach ((Run tabRun, int origPos) in tabRuns)
+        {
+            // Find where this position maps to in new text
+            int newPos = MapOriginalPositionToNew(origPos, originalText, newText);
+            if (newPos >= 0)
+            {
+                newTabPositions.Add((tabRun, newPos));
+            }
+        }
+
+        // Sort tabs by position
+        newTabPositions = newTabPositions.OrderBy(t => t.NewPos).ToList();
+
+        // Output runs, interleaving tabs
+        int currentPos = 0;
+        int tabIdx = 0;
+
+        foreach ((string text, RunProperties? props) in newSegments)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                continue;
+            }
+
+            // Insert tabs that should come before this position
+            while (tabIdx < newTabPositions.Count && newTabPositions[tabIdx].NewPos <= currentPos)
+            {
+                paragraph.Append(newTabPositions[tabIdx].TabRun);
+                tabIdx++;
+            }
+
+            // Create text run
+            Run newRun = new Run();
+            if (props != null)
+            {
+                newRun.RunProperties = (RunProperties)props.CloneNode(true);
+            }
+            Text textElement = new Text(text);
+            textElement.Space = SpaceProcessingModeValues.Preserve;
+            newRun.Append(textElement);
+            paragraph.Append(newRun);
+
+            currentPos += text.Length;
+        }
+
+        // Append remaining tabs
+        while (tabIdx < newTabPositions.Count)
+        {
+            paragraph.Append(newTabPositions[tabIdx].TabRun);
+            tabIdx++;
+        }
+    }
+
+    /// <summary>
+    /// Maps a position from original text to new text.
+    /// Uses the text content before and after the position to find the mapping.
+    /// </summary>
+    private int MapOriginalPositionToNew(int origPos, string originalText, string newText)
+    {
+        // Get text before this position in original (excluding conditional markers)
+        string textBefore = "";
+        int searchPos = 0;
+        while (searchPos < origPos && searchPos < originalText.Length)
+        {
+            // Skip conditional markers
+            if (originalText.Substring(searchPos).StartsWith("{{#if"))
+            {
+                int endMarker = originalText.IndexOf("}}", searchPos);
+                if (endMarker >= 0)
+                {
+                    searchPos = endMarker + 2;
+                }
+                else
+                {
+                    break;
+                }
+                continue;
+            }
+            if (originalText.Substring(searchPos).StartsWith("{{/if"))
+            {
+                int endMarker = originalText.IndexOf("}}", searchPos);
+                if (endMarker >= 0)
+                {
+                    searchPos = endMarker + 2;
+                }
+                else
+                {
+                    break;
+                }
+                continue;
+            }
+            if (originalText.Substring(searchPos).StartsWith("{{else}}"))
+            {
+                searchPos += 8;
+                continue;
+            }
+
+            textBefore += originalText[searchPos];
+            searchPos++;
+        }
+
+        // Find where this "textBefore" ends in newText
+        if (string.IsNullOrEmpty(textBefore))
+        {
+            return 0;
+        }
+
+        // Try to find the end of textBefore in newText
+        // Start from the end of textBefore and work backwards
+        for (int matchLen = Math.Min(textBefore.Length, 20); matchLen > 0; matchLen--)
+        {
+            string suffix = textBefore.Substring(textBefore.Length - matchLen);
+            int idx = newText.IndexOf(suffix);
+            if (idx >= 0)
+            {
+                return idx + suffix.Length;
+            }
+        }
+
+        return -1;
+    }
+
+    /// <summary>
+    /// Maps new text to formatted segments by using position-aware matching.
+    /// Builds a mapping from original character positions to formatting, then applies to new text.
+    /// </summary>
+    private List<(string Text, RunProperties? Properties)> MapTextToFormattedSegments(
+        string newText,
+        List<(string Text, RunProperties? Properties)> originalSegments)
+    {
+        if (string.IsNullOrEmpty(newText) || originalSegments.Count == 0)
+        {
+            // Fall back to using first available formatting
+            RunProperties? defaultProps = originalSegments.FirstOrDefault().Properties;
+            return new List<(string, RunProperties?)> { (newText, defaultProps) };
+        }
+
+        // Build a character-level formatting map from original segments
+        // This maps each character position in the original text to its RunProperties
+        List<RunProperties?> originalCharFormatting = new List<RunProperties?>();
+        foreach ((string text, RunProperties? props) in originalSegments)
+        {
+            for (int i = 0; i < text.Length; i++)
+            {
+                originalCharFormatting.Add(props);
+            }
+        }
+
+        string originalFullText = string.Concat(originalSegments.Select(s => s.Text));
+
+        // Build new text's formatting by finding where each character came from in original
+        // This handles the case where conditionals are removed but other text stays in place
+        List<RunProperties?> newCharFormatting = new List<RunProperties?>();
+
+        for (int i = 0; i < newText.Length; i++)
+        {
+            // Find this character's position in the original text
+            // Use context-aware matching to handle duplicate characters
+            int origPos = FindOriginalPosition(newText, i, originalFullText, originalCharFormatting);
+
+            if (origPos >= 0 && origPos < originalCharFormatting.Count)
+            {
+                newCharFormatting.Add(originalCharFormatting[origPos]);
+            }
+            else
+            {
+                // Fallback: use first available non-conditional formatting
+                newCharFormatting.Add(GetDefaultFormatting(originalSegments));
+            }
+        }
+
+        // Merge consecutive characters with same formatting into segments
+        List<(string Text, RunProperties? Properties)> result = new List<(string, RunProperties?)>();
+        if (newCharFormatting.Count == 0)
+        {
+            return result;
+        }
+
+        int segmentStart = 0;
+        RunProperties? currentProps = newCharFormatting[0];
+
+        for (int i = 1; i <= newCharFormatting.Count; i++)
+        {
+            bool endOfText = i == newCharFormatting.Count;
+            bool formattingChanged = !endOfText && !FormattingMatches(currentProps, newCharFormatting[i]);
+
+            if (endOfText || formattingChanged)
+            {
+                string segment = newText.Substring(segmentStart, i - segmentStart);
+                result.Add((segment, currentProps));
+
+                if (!endOfText)
+                {
+                    segmentStart = i;
+                    currentProps = newCharFormatting[i];
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Finds where a character at position in newText came from in originalText.
+    /// Uses context matching to handle cases with duplicate characters.
+    /// </summary>
+    private int FindOriginalPosition(
+        string newText,
+        int newPos,
+        string originalText,
+        List<RunProperties?> originalFormatting)
+    {
+        // Strategy: find the position in original text that has matching surrounding context
+        // Look for context before and after the character
+
+        int contextSize = 5;
+        string targetChar = newText[newPos].ToString();
+
+        // Build context around the character in new text
+        int contextStart = Math.Max(0, newPos - contextSize);
+        int contextEnd = Math.Min(newText.Length, newPos + contextSize + 1);
+        string newContext = newText.Substring(contextStart, contextEnd - contextStart);
+        int charPosInContext = newPos - contextStart;
+
+        // Find all occurrences of the target character in original text
+        List<int> candidates = new List<int>();
+        for (int i = 0; i < originalText.Length; i++)
+        {
+            if (originalText[i] == newText[newPos])
+            {
+                candidates.Add(i);
+            }
+        }
+
+        if (candidates.Count == 0)
+        {
+            return -1;
+        }
+
+        if (candidates.Count == 1)
+        {
+            return candidates[0];
+        }
+
+        // Find the candidate with best context match
+        int bestCandidate = candidates[0];
+        int bestScore = -1;
+
+        foreach (int candidate in candidates)
+        {
+            // Build context around this candidate in original text
+            int origContextStart = Math.Max(0, candidate - contextSize);
+            int origContextEnd = Math.Min(originalText.Length, candidate + contextSize + 1);
+            string origContext = originalText.Substring(origContextStart, origContextEnd - origContextStart);
+
+            // Score based on how many context characters match
+            int score = 0;
+            int minLen = Math.Min(newContext.Length, origContext.Length);
+            for (int i = 0; i < minLen; i++)
+            {
+                if (i < newContext.Length && i < origContext.Length &&
+                    newContext[i] == origContext[i])
+                {
+                    score++;
+                }
+            }
+
+            if (score > bestScore)
+            {
+                bestScore = score;
+                bestCandidate = candidate;
+            }
+        }
+
+        return bestCandidate;
+    }
+
+    /// <summary>
+    /// Gets default formatting from non-conditional segments.
+    /// </summary>
+    private RunProperties? GetDefaultFormatting(List<(string Text, RunProperties? Properties)> segments)
+    {
+        foreach ((string text, RunProperties? props) in segments)
+        {
+            if (!string.IsNullOrEmpty(text) &&
+                !text.StartsWith("{{#") && !text.StartsWith("{{/") &&
+                !text.Contains("{{#if") && !text.Contains("{{/if") &&
+                !text.Contains("{{else}}"))
+            {
+                return props;
+            }
+        }
+        return segments.FirstOrDefault().Properties;
+    }
+
+    /// <summary>
+    /// Checks if two RunProperties are equivalent for the purpose of merging segments.
+    /// Compares all relevant formatting properties to ensure segments with different
+    /// formatting are not incorrectly merged.
+    /// </summary>
+    private bool FormattingMatches(RunProperties? a, RunProperties? b)
+    {
+        if (a == null && b == null)
+        {
+            return true;
+        }
+
+        if (a == null || b == null)
+        {
+            return false;
+        }
+
+        // Shading fill
+        var aShadeFill = a.Shading?.Fill?.Value;
+        var bShadeFill = b.Shading?.Fill?.Value;
+
+        // Text color
+        var aColor = a.Color?.Val?.Value;
+        var bColor = b.Color?.Val?.Value;
+
+        // Highlight color
+        var aHighlight = a.Highlight?.Val?.Value;
+        var bHighlight = b.Highlight?.Val?.Value;
+
+        // Bold / Italic (OnOffValue semantics: treat null as false)
+        var aBold = a.Bold?.Val ?? false;
+        var bBold = b.Bold?.Val ?? false;
+
+        var aItalic = a.Italic?.Val ?? false;
+        var bItalic = b.Italic?.Val ?? false;
+
+        // Underline style
+        var aUnderline = a.Underline?.Val?.Value;
+        var bUnderline = b.Underline?.Val?.Value;
+
+        // Font family (RunFonts)
+        var aAsciiFont = a.RunFonts?.Ascii?.Value;
+        var bAsciiFont = b.RunFonts?.Ascii?.Value;
+
+        var aHighAnsiFont = a.RunFonts?.HighAnsi?.Value;
+        var bHighAnsiFont = b.RunFonts?.HighAnsi?.Value;
+
+        var aEastAsiaFont = a.RunFonts?.EastAsia?.Value;
+        var bEastAsiaFont = b.RunFonts?.EastAsia?.Value;
+
+        var aComplexFont = a.RunFonts?.ComplexScript?.Value;
+        var bComplexFont = b.RunFonts?.ComplexScript?.Value;
+
+        // Font size (half-points as string, e.g. "24")
+        var aFontSize = a.FontSize?.Val?.Value;
+        var bFontSize = b.FontSize?.Val?.Value;
+
+        var aFontSizeCs = a.FontSizeComplexScript?.Val?.Value;
+        var bFontSizeCs = b.FontSizeComplexScript?.Val?.Value;
+
+        return
+            aShadeFill == bShadeFill &&
+            aColor == bColor &&
+            aHighlight == bHighlight &&
+            aBold == bBold &&
+            aItalic == bItalic &&
+            aUnderline == bUnderline &&
+            aAsciiFont == bAsciiFont &&
+            aHighAnsiFont == bHighAnsiFont &&
+            aEastAsiaFont == bEastAsiaFont &&
+            aComplexFont == bComplexFont &&
+            aFontSize == bFontSize &&
+            aFontSizeCs == bFontSizeCs;
     }
 }
