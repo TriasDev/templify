@@ -153,6 +153,49 @@ Your account is inactive.
 {{/if}}
 ```
 
+### Conditional with ElseIf
+
+Use `{{#elseif}}` for multiple conditions:
+
+```
+{{#if Condition1}}
+  Content for condition 1
+{{#elseif Condition2}}
+  Content for condition 2
+{{#elseif Condition3}}
+  Content for condition 3
+{{else}}
+  Default content
+{{/if}}
+```
+
+**JSON:**
+```json
+{
+  "Score": 75
+}
+```
+
+**Template:**
+```
+{{#if Score >= 90}}
+Grade: A
+{{#elseif Score >= 80}}
+Grade: B
+{{#elseif Score >= 70}}
+Grade: C
+{{else}}
+Grade: F
+{{/if}}
+```
+
+**Output:**
+```
+Grade: C
+```
+
+**Note:** The `{{else}}` branch must always be last.
+
 ### Conditional with Comparisons
 
 ```
@@ -566,6 +609,7 @@ Will output with the indentation preserved.
 | Array | `{{Array[0]}}` | `{{Colors[0]}}` |
 | If | `{{#if ...}}...{{/if}}` | `{{#if IsActive}}...{{/if}}` |
 | If/Else | `{{#if ...}}...{{else}}...{{/if}}` | See above |
+| If/ElseIf | `{{#if ...}}...{{#elseif ...}}...{{/if}}` | See above |
 | Loop | `{{#foreach ...}}...{{/foreach}}` | `{{#foreach Items}}...{{/foreach}}` |
 | Format | `{{Name:format}}` | `{{Price:currency}}` |
 | Loop Index | `{{@index}}` | `{{@index}}` |

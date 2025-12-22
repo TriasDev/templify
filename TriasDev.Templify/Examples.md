@@ -916,6 +916,63 @@ Your order will be shipped within 24 hours
 
 ---
 
+### Conditional with ElseIf Branches
+
+Use `{{#elseif condition}}` to create multi-branch conditionals for scenarios like grade calculations, status displays, or tiered pricing.
+
+```csharp
+using TriasDev.Templify;
+
+var data = new Dictionary<string, object>
+{
+    ["StudentName"] = "Alice Johnson",
+    ["Score"] = 75
+};
+
+var processor = new DocumentTemplateProcessor();
+
+using var templateStream = File.OpenRead("grade-report-template.docx");
+using var outputStream = File.Create("grade-report.docx");
+
+var result = processor.ProcessTemplate(templateStream, outputStream, data);
+```
+
+### Template:
+
+```
+GRADE REPORT
+
+Student: {{StudentName}}
+Score: {{Score}}
+
+{{#if Score >= 90}}
+Grade: A - Excellent!
+{{#elseif Score >= 80}}
+Grade: B - Good
+{{#elseif Score >= 70}}
+Grade: C - Satisfactory
+{{#elseif Score >= 60}}
+Grade: D - Needs Improvement
+{{else}}
+Grade: F - Please see instructor
+{{/if}}
+```
+
+### Output:
+
+```
+GRADE REPORT
+
+Student: Alice Johnson
+Score: 75
+
+Grade: C - Satisfactory
+```
+
+**Note:** The `{{else}}` branch must always be last. Placing `{{#elseif}}` after `{{else}}` will result in an error.
+
+---
+
 ### Conditional with Loops
 
 ```csharp

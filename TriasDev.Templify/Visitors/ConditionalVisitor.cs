@@ -13,8 +13,8 @@ using TriasDev.Templify.Placeholders;
 namespace TriasDev.Templify.Visitors;
 
 /// <summary>
-/// Visitor that processes conditional blocks ({{#if}}/{{else}}/{{/if}}).
-/// Evaluates conditions and removes false branches.
+/// Visitor that processes conditional blocks ({{#if}}/{{#elseif}}/{{else}}/{{/if}}).
+/// Evaluates conditions and removes non-matching branches.
 /// </summary>
 /// <remarks>
 /// This visitor wraps the logic from ConditionalProcessor into the visitor pattern.
@@ -28,25 +28,13 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
 {
     private readonly ConditionalEvaluator _evaluator;
 
-    private static readonly Regex _ifStartPattern = new Regex(
-        @"\{\{#if\s+(.+?)\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-    private static readonly Regex _elsePattern = new Regex(
-        @"\{\{else\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-    private static readonly Regex _ifEndPattern = new Regex(
-        @"\{\{/if\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
     public ConditionalVisitor()
     {
         _evaluator = new ConditionalEvaluator();
     }
 
     /// <summary>
-    /// Processes a conditional block by evaluating the condition and keeping the appropriate branch.
+    /// Processes a conditional block by evaluating branches in order and keeping the first matching one.
     /// </summary>
     /// <param name="conditional">The conditional block to process.</param>
     /// <param name="context">The evaluation context for resolving variables.</param>
@@ -64,20 +52,61 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
         }
         else
         {
-            // Evaluate the condition using the provided context
-            bool conditionResult = _evaluator.Evaluate(conditional.ConditionExpression, context);
+            // Find the first matching branch
+            ConditionalBranch? matchingBranch = FindMatchingBranch(conditional, context);
 
-            if (conditionResult)
+            // Process branches: keep matching branch content, remove everything else
+            ProcessBranches(conditional, matchingBranch);
+        }
+    }
+
+    /// <summary>
+    /// Finds the first branch whose condition evaluates to true, or the else branch.
+    /// </summary>
+    private ConditionalBranch? FindMatchingBranch(ConditionalBlock conditional, IEvaluationContext context)
+    {
+        foreach (ConditionalBranch branch in conditional.Branches)
+        {
+            if (branch.IsElseBranch)
             {
-                // Condition is TRUE: Keep IF branch, remove ELSE branch
-                ProcessTrueBranch(conditional);
+                // Else branch - always matches as fallback
+                return branch;
             }
-            else
+
+            if (_evaluator.Evaluate(branch.ConditionExpression!, context))
             {
-                // Condition is FALSE: Remove IF branch, keep ELSE branch
-                ProcessFalseBranch(conditional);
+                return branch;
             }
         }
+
+        // No branch matched (all conditions false and no else)
+        return null;
+    }
+
+    /// <summary>
+    /// Processes conditional branches: removes all markers and non-matching branch content.
+    /// </summary>
+    private void ProcessBranches(ConditionalBlock conditional, ConditionalBranch? matchingBranch)
+    {
+        // Remove all branch markers
+        foreach (ConditionalBranch branch in conditional.Branches)
+        {
+            TemplateElementHelper.SafeRemove(branch.Marker);
+        }
+
+        // Remove content of non-matching branches
+        foreach (ConditionalBranch branch in conditional.Branches)
+        {
+            if (branch != matchingBranch)
+            {
+                TemplateElementHelper.SafeRemoveRange(branch.ContentElements);
+            }
+        }
+
+        // Remove the end marker
+        TemplateElementHelper.SafeRemove(conditional.EndMarker);
+
+        // Matching branch content (if any) remains in the document
     }
 
     /// <summary>
@@ -105,63 +134,6 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
     {
         // ConditionalVisitor doesn't process regular paragraphs
         // This method is no-op to satisfy the interface
-    }
-
-    /// <summary>
-    /// Processes conditional when condition is TRUE.
-    /// Keeps IF content, removes ELSE content and all markers.
-    /// </summary>
-    /// <remarks>
-    /// This method is extracted from ConditionalProcessor.ProcessTrueBranch()
-    /// to eliminate duplication.
-    /// </remarks>
-    private void ProcessTrueBranch(ConditionalBlock conditional)
-    {
-        // Remove the start marker (if it still has a parent)
-        TemplateElementHelper.SafeRemove(conditional.StartMarker);
-
-        // Remove ELSE content elements (if any)
-        TemplateElementHelper.SafeRemoveRange(conditional.ElseContentElements);
-
-        // Remove the else marker (if any)
-        if (conditional.ElseMarker != null)
-        {
-            TemplateElementHelper.SafeRemove(conditional.ElseMarker);
-        }
-
-        // Remove the end marker
-        TemplateElementHelper.SafeRemove(conditional.EndMarker);
-
-        // IF content elements remain in the document
-    }
-
-    /// <summary>
-    /// Processes conditional when condition is FALSE.
-    /// Removes IF content, keeps ELSE content (if any), removes all markers.
-    /// </summary>
-    /// <remarks>
-    /// This method is extracted from ConditionalProcessor.ProcessFalseBranch()
-    /// to eliminate duplication.
-    /// </remarks>
-    private void ProcessFalseBranch(ConditionalBlock conditional)
-    {
-        // Remove the start marker
-        TemplateElementHelper.SafeRemove(conditional.StartMarker);
-
-        // Remove IF content elements
-        TemplateElementHelper.SafeRemoveRange(conditional.IfContentElements);
-
-        // Remove the else marker (if any)
-        if (conditional.ElseMarker != null)
-        {
-            TemplateElementHelper.SafeRemove(conditional.ElseMarker);
-        }
-
-        // Remove the end marker
-        TemplateElementHelper.SafeRemove(conditional.EndMarker);
-
-        // ELSE content elements (if any) remain in the document
-        // If there's no else branch, nothing remains (which is correct)
     }
 
     /// <summary>
@@ -205,12 +177,23 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
 
         foreach (InlineConditionalInfo info in conditionals)
         {
-            // Evaluate the condition
-            bool conditionResult = _evaluator.Evaluate(info.Condition, context);
+            // Find the first matching branch
+            string replacement = "";
+            foreach (var branch in info.Branches)
+            {
+                if (branch.Condition == null)
+                {
+                    // Else branch - always matches
+                    replacement = ProcessNestedInlineConditionals(branch.Content, context);
+                    break;
+                }
 
-            // Calculate the replacement - recursively process nested conditionals in content
-            string rawContent = conditionResult ? info.IfContent : (info.ElseContent ?? "");
-            string replacement = ProcessNestedInlineConditionals(rawContent, context);
+                if (_evaluator.Evaluate(branch.Condition, context))
+                {
+                    replacement = ProcessNestedInlineConditionals(branch.Content, context);
+                    break;
+                }
+            }
 
             // Replace in the result (right to left preserves positions)
             result.Remove(info.StartIndex, info.EndIndex - info.StartIndex);
@@ -244,11 +227,22 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
 
         foreach (InlineConditionalInfo info in conditionals)
         {
-            bool conditionResult = _evaluator.Evaluate(info.Condition, context);
+            // Find the first matching branch
+            string replacement = "";
+            foreach (var branch in info.Branches)
+            {
+                if (branch.Condition == null)
+                {
+                    replacement = ProcessNestedInlineConditionals(branch.Content, context);
+                    break;
+                }
 
-            // Recursively process nested conditionals in the chosen branch
-            string rawContent = conditionResult ? info.IfContent : (info.ElseContent ?? "");
-            string replacement = ProcessNestedInlineConditionals(rawContent, context);
+                if (_evaluator.Evaluate(branch.Condition, context))
+                {
+                    replacement = ProcessNestedInlineConditionals(branch.Content, context);
+                    break;
+                }
+            }
 
             result.Remove(info.StartIndex, info.EndIndex - info.StartIndex);
             result.Insert(info.StartIndex, replacement);
@@ -258,19 +252,24 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
     }
 
     /// <summary>
+    /// Represents a branch within an inline conditional.
+    /// </summary>
+    /// <param name="Condition">The condition expression, or null for else branch.</param>
+    /// <param name="Content">The content of the branch.</param>
+    private sealed record InlineBranch(string? Condition, string Content);
+
+    /// <summary>
     /// Information about an inline conditional found in text.
     /// </summary>
     private class InlineConditionalInfo
     {
         public int StartIndex { get; set; }
         public int EndIndex { get; set; }
-        public string Condition { get; set; } = "";
-        public string IfContent { get; set; } = "";
-        public string? ElseContent { get; set; }
+        public List<InlineBranch> Branches { get; set; } = new List<InlineBranch>();
     }
 
     /// <summary>
-    /// Finds all inline conditionals in text, properly handling nesting.
+    /// Finds all inline conditionals in text, properly handling nesting and elseif branches.
     /// </summary>
     private List<InlineConditionalInfo> FindAllInlineConditionals(string text)
     {
@@ -280,88 +279,120 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
         while (searchStart < text.Length)
         {
             // Find next {{#if
-            Match ifMatch = _ifStartPattern.Match(text, searchStart);
+            Match ifMatch = ConditionalPatterns.IfStart.Match(text, searchStart);
             if (!ifMatch.Success)
             {
                 break;
             }
 
-            // Find the matching {{/if}} considering nesting
+            // Find all branch markers and the matching {{/if}} considering nesting
             int depth = 1;
             int pos = ifMatch.Index + ifMatch.Length;
-            int elsePos = -1;
-            int elseLength = 0;
+
+            // Track branch markers at our level (depth 1)
+            List<(int Index, int Length, string? Condition)> branchMarkers = new List<(int, int, string?)>();
+            branchMarkers.Add((ifMatch.Index, ifMatch.Length, ifMatch.Groups[1].Value.Trim())); // if marker
+
+            int endMatchIndex = -1;
+            int endMatchLength = 0;
+            bool hasElseAtOurLevel = false;
 
             while (pos < text.Length && depth > 0)
             {
                 // Look for next marker
-                Match nextIfMatch = _ifStartPattern.Match(text, pos);
-                Match nextEndMatch = _ifEndPattern.Match(text, pos);
-                Match nextElseMatch = _elsePattern.Match(text, pos);
+                Match nextIfMatch = ConditionalPatterns.IfStart.Match(text, pos);
+                Match nextEndMatch = ConditionalPatterns.IfEnd.Match(text, pos);
+                Match nextElseIfMatch = ConditionalPatterns.ElseIf.Match(text, pos);
+                Match nextElseMatch = ConditionalPatterns.Else.Match(text, pos);
 
                 // Find which comes first
                 int nextIfPos = nextIfMatch.Success ? nextIfMatch.Index : int.MaxValue;
                 int nextEndPos = nextEndMatch.Success ? nextEndMatch.Index : int.MaxValue;
+                int nextElseIfPos = nextElseIfMatch.Success ? nextElseIfMatch.Index : int.MaxValue;
                 int nextElsePos = nextElseMatch.Success ? nextElseMatch.Index : int.MaxValue;
 
-                if (nextEndPos <= nextIfPos && nextEndPos <= nextElsePos && nextEndMatch.Success)
-                {
-                    depth--;
-                    if (depth == 0)
-                    {
-                        // Found the matching end
-                        int endIndex = nextEndMatch.Index + nextEndMatch.Length;
+                int minPos = Math.Min(Math.Min(nextIfPos, nextEndPos), Math.Min(nextElseIfPos, nextElsePos));
 
-                        // Extract content
-                        string condition = ifMatch.Groups[1].Value.Trim();
-                        string ifContent;
-                        string? elseContent = null;
-
-                        if (elsePos >= 0)
-                        {
-                            // Use stored elseLength instead of redundant Match operation
-                            ifContent = text.Substring(ifMatch.Index + ifMatch.Length, elsePos - (ifMatch.Index + ifMatch.Length));
-                            elseContent = text.Substring(elsePos + elseLength, nextEndMatch.Index - (elsePos + elseLength));
-                        }
-                        else
-                        {
-                            ifContent = text.Substring(ifMatch.Index + ifMatch.Length, nextEndMatch.Index - (ifMatch.Index + ifMatch.Length));
-                        }
-
-                        result.Add(new InlineConditionalInfo
-                        {
-                            StartIndex = ifMatch.Index,
-                            EndIndex = endIndex,
-                            Condition = condition,
-                            IfContent = ifContent,
-                            ElseContent = elseContent
-                        });
-
-                        searchStart = endIndex;
-                        break;
-                    }
-                    pos = nextEndMatch.Index + nextEndMatch.Length;
-                }
-                else if (nextIfPos <= nextEndPos && nextIfPos <= nextElsePos && nextIfMatch.Success)
-                {
-                    depth++;
-                    pos = nextIfMatch.Index + nextIfMatch.Length;
-                }
-                else if (nextElsePos <= nextIfPos && nextElsePos <= nextEndPos && nextElseMatch.Success && depth == 1)
-                {
-                    // Found else at our level - store position and length
-                    elsePos = nextElseMatch.Index;
-                    elseLength = nextElseMatch.Length;
-                    pos = nextElseMatch.Index + nextElseMatch.Length;
-                }
-                else
+                if (minPos == int.MaxValue)
                 {
                     // No more markers found
                     break;
                 }
+
+                if (minPos == nextEndPos)
+                {
+                    depth--;
+                    if (depth == 0)
+                    {
+                        endMatchIndex = nextEndMatch.Index;
+                        endMatchLength = nextEndMatch.Length;
+                        break;
+                    }
+                    pos = nextEndMatch.Index + nextEndMatch.Length;
+                }
+                else if (minPos == nextIfPos)
+                {
+                    depth++;
+                    pos = nextIfMatch.Index + nextIfMatch.Length;
+                }
+                else if (minPos == nextElseIfPos && depth == 1)
+                {
+                    // Validate: elseif cannot appear after else
+                    if (hasElseAtOurLevel)
+                    {
+                        throw new InvalidOperationException(
+                            "Invalid conditional structure: '{{#elseif}}' cannot appear after '{{else}}'. " +
+                            "The '{{else}}' branch must be the last branch before '{{/if}}'.");
+                    }
+
+                    // elseif at our level
+                    branchMarkers.Add((nextElseIfMatch.Index, nextElseIfMatch.Length, nextElseIfMatch.Groups[1].Value.Trim()));
+                    pos = nextElseIfMatch.Index + nextElseIfMatch.Length;
+                }
+                else if (minPos == nextElsePos && depth == 1)
+                {
+                    // else at our level
+                    hasElseAtOurLevel = true;
+                    branchMarkers.Add((nextElseMatch.Index, nextElseMatch.Length, null)); // null condition for else
+                    pos = nextElseMatch.Index + nextElseMatch.Length;
+                }
+                else
+                {
+                    // Marker at deeper level, just skip
+                    pos = minPos + 1;
+                }
             }
 
-            if (depth > 0)
+            if (endMatchIndex >= 0)
+            {
+                // Successfully found matching end
+                int endIndex = endMatchIndex + endMatchLength;
+
+                // Build branches from markers
+                InlineConditionalInfo info = new InlineConditionalInfo
+                {
+                    StartIndex = ifMatch.Index,
+                    EndIndex = endIndex,
+                    Branches = new List<InlineBranch>()
+                };
+
+                for (int m = 0; m < branchMarkers.Count; m++)
+                {
+                    var marker = branchMarkers[m];
+                    int contentStart = marker.Index + marker.Length;
+                    int contentEnd = (m + 1 < branchMarkers.Count)
+                        ? branchMarkers[m + 1].Index
+                        : endMatchIndex;
+
+                    string content = text.Substring(contentStart, contentEnd - contentStart);
+
+                    info.Branches.Add(new InlineBranch(marker.Condition, content));
+                }
+
+                result.Add(info);
+                searchStart = endIndex;
+            }
+            else
             {
                 // Unmatched conditional, skip it
                 searchStart = ifMatch.Index + ifMatch.Length;

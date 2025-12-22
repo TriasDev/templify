@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **ElseIf Support for Conditionals** - Multi-branch conditional logic with `{{#elseif condition}}` syntax
+  - Chain multiple conditions: `{{#if A}}...{{#elseif B}}...{{#elseif C}}...{{else}}...{{/if}}`
+  - Conditions evaluated in order - first matching branch wins
+  - Strict validation: `{{else}}` must be the last branch
+  - Full support for block-level, inline, and table row conditionals
+  - Works with all existing operators (`=`, `!=`, `>`, `<`, `>=`, `<=`, `and`, `or`, `not`)
+
+### Improved
+- Test coverage increased to 826 tests
+- Updated user documentation with elseif examples and troubleshooting
+
 ## [1.1.0] - 2025-12-02
 
 ### Added

@@ -21,7 +21,7 @@ Templify is a focused .NET library built on the OpenXML SDK that enables dynamic
 **Key Features:**
 - 📝 Simple placeholder syntax: `{{variableName}}`
 - ✨ Markdown formatting in variable values: `**bold**`, `*italic*`, `~~strikethrough~~`
-- 🔀 Conditional blocks: `{{#if condition}}...{{else}}...{{/if}}`
+- 🔀 Conditional blocks: `{{#if}}...{{#elseif}}...{{else}}...{{/if}}`
 - 🔁 Loops and iterations: `{{#foreach collection}}...{{/foreach}}`
 - 🌳 Nested data structures with dot notation and array indexing
 - 🎨 Automatic formatting preservation (bold, italic, fonts, colors)
