@@ -31,6 +31,13 @@ public sealed class PlaceholderReplacementOptions
     public BooleanFormatterRegistry? BooleanFormatterRegistry { get; init; }
 
     /// <summary>
+    /// Gets or initializes a value indicating whether newline characters (\n, \r\n, \r) in variable values
+    /// should be converted to line breaks in the Word document.
+    /// Default is true.
+    /// </summary>
+    public bool EnableNewlineSupport { get; init; } = true;
+
+    /// <summary>
     /// Creates a new instance of <see cref="PlaceholderReplacementOptions"/> with default settings.
     /// </summary>
     public PlaceholderReplacementOptions()
