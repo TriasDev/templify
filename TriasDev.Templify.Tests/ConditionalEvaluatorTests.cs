@@ -660,4 +660,38 @@ public class ConditionalEvaluatorTests
     }
 
     #endregion
+
+    #region Typographic Quotes
+
+    [Fact]
+    public void Evaluate_WithLeftRightCurlyQuotes_ReturnsTrue()
+    {
+        Dictionary<string, object> data = new() { ["Status"] = "In Progress" };
+
+        bool result = Evaluate("Status = \u201CIn Progress\u201D", data); // U+201C and U+201D
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void Evaluate_WithGermanQuotes_ReturnsTrue()
+    {
+        Dictionary<string, object> data = new() { ["Status"] = "Active" };
+
+        bool result = Evaluate("Status = \u201EActive\u201C", data); // U+201E and U+201C
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void Evaluate_WithMixedQuoteStyles_ReturnsTrue()
+    {
+        Dictionary<string, object> data = new() { ["Name"] = "Test" };
+
+        bool result = Evaluate("Name = \u201CTest\u201D", data); // Curly quotes
+
+        Assert.True(result);
+    }
+
+    #endregion
 }
