@@ -34,7 +34,7 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
     /// <summary>
     /// Newline separators for splitting text. Order matters: \r\n must come before \r and \n.
     /// </summary>
-    private static readonly string[] NewlineSeparators = { "\r\n", "\r", "\n" };
+    private static readonly string[] _newlineSeparators = { "\r\n", "\r", "\n" };
 
     private readonly PlaceholderReplacementOptions _options;
     private readonly HashSet<string> _missingVariables;
@@ -441,7 +441,7 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         }
 
         // Split on newlines and add Break elements between lines
-        string[] lines = textWithNewlines.Split(NewlineSeparators, StringSplitOptions.None);
+        string[] lines = textWithNewlines.Split(_newlineSeparators, StringSplitOptions.None);
         for (int i = 0; i < lines.Length; i++)
         {
             if (i > 0)
@@ -497,7 +497,7 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         }
 
         // Split by newlines, then parse markdown for each line
-        string[] lines = textWithMarkdownAndNewlines.Split(NewlineSeparators, StringSplitOptions.None);
+        string[] lines = textWithMarkdownAndNewlines.Split(_newlineSeparators, StringSplitOptions.None);
         for (int i = 0; i < lines.Length; i++)
         {
             if (i > 0)
@@ -667,7 +667,7 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
     /// </summary>
     private static void AddRunsWithBreaks(List<Run> runs, string textWithNewlines, RunProperties? baseProperties)
     {
-        string[] lines = textWithNewlines.Split(NewlineSeparators, StringSplitOptions.None);
+        string[] lines = textWithNewlines.Split(_newlineSeparators, StringSplitOptions.None);
         for (int i = 0; i < lines.Length; i++)
         {
             if (i > 0)
@@ -687,7 +687,7 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
     /// </summary>
     private static void AddRunsWithMarkdownAndBreaks(List<Run> runs, string textWithMarkdownAndNewlines, RunProperties? baseProperties)
     {
-        string[] lines = textWithMarkdownAndNewlines.Split(NewlineSeparators, StringSplitOptions.None);
+        string[] lines = textWithMarkdownAndNewlines.Split(_newlineSeparators, StringSplitOptions.None);
         for (int i = 0; i < lines.Length; i++)
         {
             if (i > 0)
