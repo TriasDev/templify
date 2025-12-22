@@ -104,6 +104,22 @@ public sealed class DocumentVerifier : IDisposable
     }
 
     /// <summary>
+    /// Gets all runs in a specific paragraph.
+    /// </summary>
+    public List<Run> GetAllRunsInParagraph(int paragraphIndex)
+    {
+        List<Paragraph> paragraphs = _body.Elements<Paragraph>().ToList();
+
+        if (paragraphIndex < 0 || paragraphIndex >= paragraphs.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(paragraphIndex),
+                $"Paragraph index {paragraphIndex} is out of range (0-{paragraphs.Count - 1})");
+        }
+
+        return paragraphs[paragraphIndex].Descendants<Run>().ToList();
+    }
+
+    /// <summary>
     /// Gets the number of tables in the document.
     /// </summary>
     public int GetTableCount()
@@ -240,13 +256,24 @@ public sealed class DocumentVerifier : IDisposable
     /// <summary>
     /// Verifies that RunProperties match the expected formatting.
     /// </summary>
+    /// <param name="properties">The RunProperties to verify.</param>
+    /// <param name="expectedBold">Expected bold state, or null to skip verification.</param>
+    /// <param name="expectedItalic">Expected italic state, or null to skip verification.</param>
+    /// <param name="expectedColor">Expected text color as hex string, or null to skip verification.</param>
+    /// <param name="expectedFontFamily">Expected font family, or null to skip verification.</param>
+    /// <param name="expectedFontSize">Expected font size in half-points, or null to skip verification.</param>
+    /// <param name="expectedHighlight">Expected highlight color, or null to skip verification.</param>
+    /// <param name="expectedShadingFill">Expected background shading fill color as hex string, or null to skip verification.</param>
+    /// <exception cref="InvalidOperationException">Thrown when actual formatting does not match expected.</exception>
     public static void VerifyFormatting(
         RunProperties? properties,
         bool? expectedBold = null,
         bool? expectedItalic = null,
         string? expectedColor = null,
         string? expectedFontFamily = null,
-        string? expectedFontSize = null)
+        string? expectedFontSize = null,
+        HighlightColorValues? expectedHighlight = null,
+        string? expectedShadingFill = null)
     {
         if (expectedBold.HasValue)
         {
@@ -295,6 +322,26 @@ public sealed class DocumentVerifier : IDisposable
             {
                 throw new InvalidOperationException(
                     $"Expected fontSize={expectedFontSize}, but was {actualSize ?? "null"}");
+            }
+        }
+
+        if (expectedHighlight.HasValue)
+        {
+            HighlightColorValues? actualHighlight = properties?.Elements<Highlight>().FirstOrDefault()?.Val?.Value;
+            if (actualHighlight != expectedHighlight.Value)
+            {
+                throw new InvalidOperationException(
+                    $"Expected highlight={expectedHighlight.Value}, but was {actualHighlight?.ToString() ?? "null"}");
+            }
+        }
+
+        if (expectedShadingFill != null)
+        {
+            string? actualFill = properties?.Elements<Shading>().FirstOrDefault()?.Fill?.Value;
+            if (actualFill != expectedShadingFill)
+            {
+                throw new InvalidOperationException(
+                    $"Expected shadingFill={expectedShadingFill}, but was {actualFill ?? "null"}");
             }
         }
     }
