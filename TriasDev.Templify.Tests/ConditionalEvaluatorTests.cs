@@ -693,5 +693,27 @@ public class ConditionalEvaluatorTests
         Assert.True(result);
     }
 
+    [Fact]
+    public void Evaluate_WithLeftSingleQuote_NormalizesToAscii()
+    {
+        Dictionary<string, object> data = new() { ["Name"] = "O'Connor" };
+
+        // U+2018 (left single quote) should be normalized to ASCII apostrophe
+        bool result = Evaluate("Name = \"O\u2018Connor\"", data);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void Evaluate_WithRightSingleQuote_NormalizesToAscii()
+    {
+        Dictionary<string, object> data = new() { ["Name"] = "O'Connor" };
+
+        // U+2019 (right single quote) should be normalized to ASCII apostrophe
+        bool result = Evaluate("Name = \"O\u2019Connor\"", data);
+
+        Assert.True(result);
+    }
+
     #endregion
 }

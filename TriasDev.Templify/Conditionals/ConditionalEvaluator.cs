@@ -461,6 +461,8 @@ internal sealed class ConditionalEvaluator
             .Replace('\u201C', '"')  // U+201C Left Double Quotation Mark
             .Replace('\u201D', '"')  // U+201D Right Double Quotation Mark
             .Replace('\u201E', '"')  // U+201E Double Low-9 Quotation Mark (German)
-            .Replace('\u201F', '"'); // U+201F Double High-Reversed-9 Quotation Mark
+            .Replace('\u201F', '"')  // U+201F Double High-Reversed-9 Quotation Mark
+            .Replace('\u2018', '\'') // U+2018 Left Single Quotation Mark
+            .Replace('\u2019', '\''); // U+2019 Right Single Quotation Mark
     }
 }
