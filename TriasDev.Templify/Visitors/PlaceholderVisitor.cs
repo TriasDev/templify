@@ -257,6 +257,56 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
     }
 
     /// <summary>
+    /// Prepares a paragraph for content replacement by extracting formatting and removing existing runs.
+    /// </summary>
+    /// <param name="runs">The original runs to extract formatting from and remove.</param>
+    /// <returns>The cloned run properties from the original runs.</returns>
+    private static RunProperties? PrepareForReplacement(List<Run> runs)
+    {
+        // Extract base formatting from the original runs
+        RunProperties? baseProperties = FormattingPreserver.ExtractAndCloneRunProperties(runs);
+
+        // Remove all existing runs
+        foreach (Run run in runs)
+        {
+            run.Remove();
+        }
+
+        return baseProperties;
+    }
+
+    /// <summary>
+    /// Adds text before and after the replacement content if they are not empty.
+    /// </summary>
+    /// <param name="paragraph">The paragraph to add runs to.</param>
+    /// <param name="textBefore">Text before the placeholder (added if not empty).</param>
+    /// <param name="textAfter">Text after the placeholder (added if not empty).</param>
+    /// <param name="baseProperties">The base formatting to apply.</param>
+    /// <param name="addContent">Action to add the main content between before/after text.</param>
+    private static void AddReplacementContent(
+        Paragraph paragraph,
+        string textBefore,
+        string textAfter,
+        RunProperties? baseProperties,
+        Action addContent)
+    {
+        // Add text before placeholder (if any)
+        if (!string.IsNullOrEmpty(textBefore))
+        {
+            AddTextRun(paragraph, textBefore, baseProperties);
+        }
+
+        // Add the main replacement content
+        addContent();
+
+        // Add text after placeholder (if any)
+        if (!string.IsNullOrEmpty(textAfter))
+        {
+            AddTextRun(paragraph, textAfter, baseProperties);
+        }
+    }
+
+    /// <summary>
     /// Updates the paragraph text with markdown-formatted segments.
     /// Creates multiple runs with appropriate formatting for each segment.
     /// </summary>
@@ -272,53 +322,17 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         List<MarkdownSegment> segments,
         string textAfter)
     {
-        // Extract base formatting from the original runs
-        RunProperties? baseProperties = FormattingPreserver.ExtractAndCloneRunProperties(runs);
+        RunProperties? baseProperties = PrepareForReplacement(runs);
 
-        // Remove all existing runs
-        foreach (Run run in runs)
+        AddReplacementContent(paragraph, textBefore, textAfter, baseProperties, () =>
         {
-            run.Remove();
-        }
-
-        // Add text before placeholder (if any)
-        if (!string.IsNullOrEmpty(textBefore))
-        {
-            Text text = new Text(textBefore);
-            text.Space = SpaceProcessingModeValues.Preserve;
-            Run beforeRun = new Run(text);
-            FormattingPreserver.ApplyRunProperties(beforeRun, FormattingPreserver.CloneRunProperties(baseProperties));
-            paragraph.AppendChild(beforeRun);
-        }
-
-        // Add markdown segments with appropriate formatting
-        // Note: Empty segments are filtered by the parser
-        foreach (MarkdownSegment segment in segments)
-        {
-            Text text = new Text(segment.Text);
-            text.Space = SpaceProcessingModeValues.Preserve;
-            Run segmentRun = new Run(text);
-
-            // Apply base formatting merged with markdown formatting
-            RunProperties? mergedProperties = FormattingPreserver.ApplyMarkdownFormatting(
-                FormattingPreserver.CloneRunProperties(baseProperties),
-                segment.IsBold,
-                segment.IsItalic,
-                segment.IsStrikethrough);
-
-            FormattingPreserver.ApplyRunProperties(segmentRun, mergedProperties);
-            paragraph.AppendChild(segmentRun);
-        }
-
-        // Add text after placeholder (if any)
-        if (!string.IsNullOrEmpty(textAfter))
-        {
-            Text text = new Text(textAfter);
-            text.Space = SpaceProcessingModeValues.Preserve;
-            Run afterRun = new Run(text);
-            FormattingPreserver.ApplyRunProperties(afterRun, FormattingPreserver.CloneRunProperties(baseProperties));
-            paragraph.AppendChild(afterRun);
-        }
+            // Add markdown segments with appropriate formatting
+            // Note: Empty segments are filtered by the parser
+            foreach (MarkdownSegment segment in segments)
+            {
+                AddMarkdownRun(paragraph, segment, baseProperties);
+            }
+        });
     }
 
     /// <summary>
@@ -337,23 +351,31 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         string textWithNewlines,
         string textAfter)
     {
-        // Extract base formatting from the original runs
-        RunProperties? baseProperties = FormattingPreserver.ExtractAndCloneRunProperties(runs);
+        RunProperties? baseProperties = PrepareForReplacement(runs);
 
-        // Remove all existing runs
-        foreach (Run run in runs)
+        AddReplacementContent(paragraph, textBefore, textAfter, baseProperties, () =>
         {
-            run.Remove();
-        }
+            // Split on newlines and add Break elements between lines
+            AddLinesWithBreaks(paragraph, textWithNewlines, line =>
+            {
+                AddTextRun(paragraph, line, baseProperties);
+            });
+        });
+    }
 
-        // Add text before placeholder (if any)
-        if (!string.IsNullOrEmpty(textBefore))
-        {
-            AddTextRun(paragraph, textBefore, baseProperties);
-        }
-
-        // Split on newlines and add Break elements between lines
-        string[] lines = textWithNewlines.Split(NewlineSeparators, StringSplitOptions.None);
+    /// <summary>
+    /// Splits text by newlines and invokes the action for each non-empty line,
+    /// inserting Break elements between lines.
+    /// </summary>
+    /// <param name="paragraph">The paragraph to add breaks to.</param>
+    /// <param name="text">The text to split by newlines.</param>
+    /// <param name="addLine">Action to invoke for each non-empty line.</param>
+    private static void AddLinesWithBreaks(
+        Paragraph paragraph,
+        string text,
+        Action<string> addLine)
+    {
+        string[] lines = text.Split(NewlineSeparators, StringSplitOptions.None);
         for (int i = 0; i < lines.Length; i++)
         {
             if (i > 0)
@@ -364,14 +386,8 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
 
             if (!string.IsNullOrEmpty(lines[i]))
             {
-                AddTextRun(paragraph, lines[i], baseProperties);
+                addLine(lines[i]);
             }
-        }
-
-        // Add text after placeholder (if any)
-        if (!string.IsNullOrEmpty(textAfter))
-        {
-            AddTextRun(paragraph, textAfter, baseProperties);
         }
     }
 
@@ -391,57 +407,28 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         string textWithMarkdownAndNewlines,
         string textAfter)
     {
-        // Extract base formatting from the original runs
-        RunProperties? baseProperties = FormattingPreserver.ExtractAndCloneRunProperties(runs);
+        RunProperties? baseProperties = PrepareForReplacement(runs);
 
-        // Remove all existing runs
-        foreach (Run run in runs)
+        AddReplacementContent(paragraph, textBefore, textAfter, baseProperties, () =>
         {
-            run.Remove();
-        }
-
-        // Add text before placeholder (if any)
-        if (!string.IsNullOrEmpty(textBefore))
-        {
-            AddTextRun(paragraph, textBefore, baseProperties);
-        }
-
-        // Split by newlines, then parse markdown for each line
-        string[] lines = textWithMarkdownAndNewlines.Split(NewlineSeparators, StringSplitOptions.None);
-        for (int i = 0; i < lines.Length; i++)
-        {
-            if (i > 0)
+            // Split by newlines, then parse markdown for each line
+            AddLinesWithBreaks(paragraph, textWithMarkdownAndNewlines, line =>
             {
-                // Insert Break element for line break
-                paragraph.AppendChild(new Run(new Break()));
-            }
-
-            string line = lines[i];
-            if (string.IsNullOrEmpty(line))
-            {
-                continue;
-            }
-
-            // Parse markdown for this line
-            if (MarkdownParser.ContainsMarkdown(line))
-            {
-                List<MarkdownSegment> segments = MarkdownParser.Parse(line);
-                foreach (MarkdownSegment segment in segments)
+                // Parse markdown for this line
+                if (MarkdownParser.ContainsMarkdown(line))
                 {
-                    AddMarkdownRun(paragraph, segment, baseProperties);
+                    List<MarkdownSegment> segments = MarkdownParser.Parse(line);
+                    foreach (MarkdownSegment segment in segments)
+                    {
+                        AddMarkdownRun(paragraph, segment, baseProperties);
+                    }
                 }
-            }
-            else
-            {
-                AddTextRun(paragraph, line, baseProperties);
-            }
-        }
-
-        // Add text after placeholder (if any)
-        if (!string.IsNullOrEmpty(textAfter))
-        {
-            AddTextRun(paragraph, textAfter, baseProperties);
-        }
+                else
+                {
+                    AddTextRun(paragraph, line, baseProperties);
+                }
+            });
+        });
     }
 
     /// <summary>
