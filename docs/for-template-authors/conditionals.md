@@ -74,6 +74,61 @@ Upgrade to Premium to unlock all features.
 Upgrade to Premium to unlock all features.
 ```
 
+### If-ElseIf-Else Statement
+
+Use `{{#elseif}}` to check multiple conditions in sequence:
+
+```
+{{#if Condition1}}
+  Content for condition 1
+{{#elseif Condition2}}
+  Content for condition 2
+{{#elseif Condition3}}
+  Content for condition 3
+{{else}}
+  Default content
+{{/if}}
+```
+
+**JSON:**
+```json
+{
+  "Score": 75
+}
+```
+
+**Template:**
+```
+{{#if Score >= 90}}
+Grade: A - Excellent!
+{{#elseif Score >= 80}}
+Grade: B - Good
+{{#elseif Score >= 70}}
+Grade: C - Satisfactory
+{{#elseif Score >= 60}}
+Grade: D - Needs Improvement
+{{else}}
+Grade: F - Please see instructor
+{{/if}}
+```
+
+**Output:**
+```
+Grade: C - Satisfactory
+```
+
+**How it works:**
+- Conditions are evaluated in order, from top to bottom
+- The first condition that is true wins - its content is shown
+- All other branches are removed
+- The `{{else}}` branch is optional and acts as a fallback
+- **Important:** `{{else}}` must always be the last branch
+
+**Benefits over nested conditionals:**
+- Cleaner, more readable templates
+- Easier to add/remove conditions
+- Less indentation and fewer closing tags
+
 ## Comparison Operators
 
 ### Equality (`=`)
@@ -385,6 +440,8 @@ Order Status:
 
 ### Tiered Messaging
 
+Use `{{#elseif}}` for cleaner tiered content:
+
 **JSON:**
 ```json
 {
@@ -398,20 +455,23 @@ Your Score: {{Score}}
 
 {{#if Score >= 90}}
 🏆 Outstanding! You achieved an A grade.
+{{#elseif Score >= 80}}
+👍 Great job! You achieved a B grade.
+{{#elseif Score >= 70}}
+✓ Good work! You achieved a C grade.
 {{else}}
-  {{#if Score >= 80}}
-  👍 Great job! You achieved a B grade.
-  {{else}}
-    {{#if Score >= 70}}
-    ✓ Good work! You achieved a C grade.
-    {{else}}
-    📚 Keep studying! You can improve.
-    {{/if}}
-  {{/if}}
+📚 Keep studying! You can improve.
 {{/if}}
 ```
 
-**Note:** Nested conditionals work, but try to keep them simple for readability.
+**Output:**
+```
+Your Score: 85
+
+👍 Great job! You achieved a B grade.
+```
+
+**Tip:** Use `{{#elseif}}` instead of nested `{{#if}}` blocks for cleaner, more maintainable templates.
 
 ### Access Control
 
@@ -786,7 +846,9 @@ Geschäftszeiten: 9:00 - 17:00 Uhr MEZ
 
 1. **Syntax errors:**
    - ✅ `{{#if Status = "Active"}}`
+   - ✅ `{{#elseif Status = "Pending"}}`
    - ❌ `{{if Status = "Active"}}` (missing `#`)
+   - ❌ `{{elseif Status = "Pending"}}` (missing `#`)
    - ❌ `{{#if Status = "Active"` (missing closing `}}`)
 
 2. **Missing closing tag:**
@@ -854,6 +916,41 @@ Make sure each `{{#if}}` has a matching `{{/if}}`:
 {{/if}}
 ```
 
+### ElseIf Not Working
+
+**Common mistakes:**
+
+1. **Wrong order - else before elseif:**
+   ```
+   ❌ Wrong:
+   {{#if A}}
+     Content A
+   {{else}}
+     Default
+   {{#elseif B}}     ← Error! elseif cannot come after else
+     Content B
+   {{/if}}
+
+   ✅ Correct:
+   {{#if A}}
+     Content A
+   {{#elseif B}}
+     Content B
+   {{else}}          ← else must be last
+     Default
+   {{/if}}
+   ```
+
+2. **Missing `#` in elseif:**
+   - ✅ `{{#elseif Condition}}`
+   - ❌ `{{elseif Condition}}` (missing `#`)
+
+3. **Wrong syntax variants:**
+   - ✅ `{{#elseif Condition}}`
+   - ❌ `{{else if Condition}}` (wrong - no space)
+   - ❌ `{{#else if Condition}}` (wrong syntax)
+   - ❌ `{{#elif Condition}}` (elif is not supported)
+
 ## Best Practices
 
 1. **Keep conditions simple** - Break complex logic into multiple simpler conditions
@@ -861,7 +958,9 @@ Make sure each `{{#if}}` has a matching `{{/if}}`:
 3. **Test edge cases** - What happens when values are null, zero, empty, etc.?
 4. **Add comments in Word** - Use Word comments to document complex conditional logic
 5. **Use else clauses** - Provide feedback for both true and false cases when appropriate
-6. **Limit nesting** - Deep nesting is hard to read; try to keep it to 2-3 levels maximum
+6. **Use elseif for multiple conditions** - Prefer `{{#elseif}}` over deeply nested `{{#if}}` blocks
+7. **Keep else last** - The `{{else}}` branch must always be the final branch before `{{/if}}`
+8. **Limit nesting** - Deep nesting is hard to read; with `{{#elseif}}`, you often don't need nesting at all
 
 ## Next Steps
 

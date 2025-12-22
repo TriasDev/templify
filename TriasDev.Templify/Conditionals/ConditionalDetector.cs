@@ -10,12 +10,16 @@ namespace TriasDev.Templify.Conditionals;
 
 /// <summary>
 /// Detects and parses conditional blocks in Word documents.
-/// Supports {{#if condition}}...{{else}}...{{/if}} syntax.
+/// Supports {{#if condition}}...{{#elseif condition}}...{{else}}...{{/if}} syntax.
 /// </summary>
 internal static class ConditionalDetector
 {
     private static readonly Regex _ifStartPattern = new Regex(
         @"\{\{#if\s+(.+?)\}\}",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    private static readonly Regex _elseIfPattern = new Regex(
+        @"\{\{#elseif\s+(.+?)\}\}",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     private static readonly Regex _elsePattern = new Regex(
@@ -25,6 +29,16 @@ internal static class ConditionalDetector
     private static readonly Regex _ifEndPattern = new Regex(
         @"\{\{/if\}\}",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    /// <summary>
+    /// Holds information about markers found in a conditional block.
+    /// </summary>
+    private readonly struct ConditionalMarkers
+    {
+        public List<(int Index, string Condition)> ElseIfMarkers { get; init; }
+        public int ElseIndex { get; init; }
+        public int EndIndex { get; init; }
+    }
 
     /// <summary>
     /// Detects all conditional blocks in the document body.
@@ -53,7 +67,7 @@ internal static class ConditionalDetector
 
     /// <summary>
     /// Detects conditional blocks in a collection of elements.
-    /// Handles nested conditionals properly by recursively detecting conditionals in IF and ELSE branches.
+    /// Handles nested conditionals properly by recursively detecting conditionals in all branches.
     /// </summary>
     /// <param name="elements">Elements to scan for conditional blocks.</param>
     /// <param name="nestingLevel">Current nesting level (0 for top-level, 1+ for nested).</param>
@@ -76,66 +90,79 @@ internal static class ConditionalDetector
                 {
                     string conditionExpression = ifMatch.Groups[1].Value.Trim();
 
-                    // Find the matching else (optional) and end markers
-                    (int elseIndex, int endIndex) = FindMatchingElseAndEnd(elements, i);
+                    // Find the matching elseif, else (optional) and end markers
+                    ConditionalMarkers markers = FindConditionalMarkers(elements, i);
 
-                    if (endIndex == -1)
+                    if (markers.EndIndex == -1)
                     {
                         throw new InvalidOperationException(
                             $"Conditional start marker '{{{{#if {conditionExpression}}}}}' has no matching '{{{{/if}}}}'.");
                     }
 
-                    // Get IF content elements (between start and else/end markers)
-                    List<OpenXmlElement> ifContentElements = new List<OpenXmlElement>();
-                    int ifEndIndex = elseIndex != -1 ? elseIndex : endIndex;
-                    for (int j = i + 1; j < ifEndIndex; j++)
+                    // Build branches
+                    List<ConditionalBranch> branches = new List<ConditionalBranch>();
+
+                    // Determine branch boundaries
+                    List<(int MarkerIndex, string? Condition)> allMarkers = new List<(int, string?)>();
+                    allMarkers.Add((i, conditionExpression)); // if marker
+
+                    foreach (var elseIfMarker in markers.ElseIfMarkers)
                     {
-                        ifContentElements.Add(elements[j]);
+                        allMarkers.Add((elseIfMarker.Index, elseIfMarker.Condition));
                     }
 
-                    // Get ELSE content elements (between else and end markers, if else exists)
-                    List<OpenXmlElement> elseContentElements = new List<OpenXmlElement>();
-                    if (elseIndex != -1)
+                    if (markers.ElseIndex != -1)
                     {
-                        for (int j = elseIndex + 1; j < endIndex; j++)
+                        allMarkers.Add((markers.ElseIndex, null)); // else marker (no condition)
+                    }
+
+                    // Create branches from marker boundaries
+                    for (int m = 0; m < allMarkers.Count; m++)
+                    {
+                        int markerIndex = allMarkers[m].MarkerIndex;
+                        string? condition = allMarkers[m].Condition;
+
+                        // Content extends from marker+1 to next marker or end
+                        int contentStart = markerIndex + 1;
+                        int contentEnd = (m + 1 < allMarkers.Count)
+                            ? allMarkers[m + 1].MarkerIndex
+                            : markers.EndIndex;
+
+                        List<OpenXmlElement> contentElements = new List<OpenXmlElement>();
+                        for (int j = contentStart; j < contentEnd; j++)
                         {
-                            elseContentElements.Add(elements[j]);
+                            contentElements.Add(elements[j]);
                         }
+
+                        branches.Add(new ConditionalBranch(
+                            condition,
+                            contentElements,
+                            elements[markerIndex]));
                     }
 
-                    // Create conditional block with current nesting level
+                    // Create conditional block with branches
                     ConditionalBlock conditionalBlock = new ConditionalBlock(
-                        conditionExpression,
-                        ifContentElements,
-                        elseContentElements,
-                        element,                    // Start marker
-                        elseIndex != -1 ? elements[elseIndex] : null,  // Else marker (optional)
-                        elements[endIndex],         // End marker
+                        branches,
+                        elements[markers.EndIndex],
                         isTableRowConditional: false,
                         nestingLevel: nestingLevel);
 
                     conditionals.Add(conditionalBlock);
 
-                    // Recursively detect nested conditionals in IF branch
-                    if (ifContentElements.Count > 0)
+                    // Recursively detect nested conditionals in all branches
+                    foreach (ConditionalBranch branch in branches)
                     {
-                        IReadOnlyList<ConditionalBlock> nestedInIf = DetectConditionalsInElements(
-                            ifContentElements,
-                            nestingLevel + 1);
-                        conditionals.AddRange(nestedInIf);
-                    }
-
-                    // Recursively detect nested conditionals in ELSE branch
-                    if (elseContentElements.Count > 0)
-                    {
-                        IReadOnlyList<ConditionalBlock> nestedInElse = DetectConditionalsInElements(
-                            elseContentElements,
-                            nestingLevel + 1);
-                        conditionals.AddRange(nestedInElse);
+                        if (branch.ContentElements.Count > 0)
+                        {
+                            IReadOnlyList<ConditionalBlock> nestedConditionals = DetectConditionalsInElements(
+                                branch.ContentElements.ToList(),
+                                nestingLevel + 1);
+                            conditionals.AddRange(nestedConditionals);
+                        }
                     }
 
                     // Skip past this conditional
-                    i = endIndex + 1;
+                    i = markers.EndIndex + 1;
                     continue;
                 }
             }
@@ -147,14 +174,16 @@ internal static class ConditionalDetector
     }
 
     /// <summary>
-    /// Finds the matching {{else}} (optional) and {{/if}} for a {{#if}} at the given index.
+    /// Finds all conditional markers (elseif, else, end) for a {{#if}} at the given index.
     /// Properly handles nested conditionals by tracking depth.
-    /// Returns (-1, endIndex) if no else is found, or (elseIndex, endIndex) if else is found.
+    /// Validates that {{else}} appears after all {{#elseif}} markers.
     /// </summary>
-    private static (int elseIndex, int endIndex) FindMatchingElseAndEnd(List<OpenXmlElement> elements, int startIndex)
+    private static ConditionalMarkers FindConditionalMarkers(List<OpenXmlElement> elements, int startIndex)
     {
         int depth = 1;
+        List<(int Index, string Condition)> elseIfMarkers = new List<(int, string)>();
         int elseIndex = -1;
+        int endIndex = -1;
 
         // First, check if the SAME element contains the closing tag (for same-line conditionals)
         string? startText = GetElementText(elements[startIndex]);
@@ -170,7 +199,12 @@ internal static class ConditionalDetector
             if (depth == 0)
             {
                 // The conditional is fully contained within the same element
-                return (elseIndex, startIndex);
+                return new ConditionalMarkers
+                {
+                    ElseIfMarkers = elseIfMarkers,
+                    ElseIndex = elseIndex,
+                    EndIndex = startIndex
+                };
             }
         }
 
@@ -193,18 +227,41 @@ internal static class ConditionalDetector
 
             if (depth == 0)
             {
-                return (elseIndex, i); // Found matching end
+                endIndex = i;
+                break;
             }
 
-            // Check for else at our depth level (before we decremented)
-            if (_elsePattern.IsMatch(text) && (depth + endMatches.Count) == 1 && elseIndex == -1)
+            // Only capture markers at our depth level (depth == 1 before any decrement)
+            int effectiveDepth = depth + endMatches.Count;
+
+            // Check for elseif at our depth level
+            Match elseIfMatch = _elseIfPattern.Match(text);
+            if (elseIfMatch.Success && effectiveDepth == 1)
             {
-                // Only capture the first else at our depth level
+                // Validate: elseif cannot appear after else
+                if (elseIndex != -1)
+                {
+                    throw new InvalidOperationException(
+                        "Invalid conditional structure: '{{#elseif}}' cannot appear after '{{else}}'. " +
+                        "The '{{else}}' branch must be the last branch before '{{/if}}'.");
+                }
+
+                elseIfMarkers.Add((i, elseIfMatch.Groups[1].Value.Trim()));
+            }
+
+            // Check for else at our depth level
+            if (_elsePattern.IsMatch(text) && effectiveDepth == 1 && elseIndex == -1)
+            {
                 elseIndex = i;
             }
         }
 
-        return (-1, -1); // No matching end found
+        return new ConditionalMarkers
+        {
+            ElseIfMarkers = elseIfMarkers,
+            ElseIndex = elseIndex,
+            EndIndex = endIndex
+        };
     }
 
     /// <summary>
@@ -241,12 +298,15 @@ internal static class ConditionalDetector
             return false;
         }
 
-        return _ifStartPattern.IsMatch(text) || _elsePattern.IsMatch(text) || _ifEndPattern.IsMatch(text);
+        return _ifStartPattern.IsMatch(text) ||
+               _elseIfPattern.IsMatch(text) ||
+               _elsePattern.IsMatch(text) ||
+               _ifEndPattern.IsMatch(text);
     }
 
     /// <summary>
     /// Detects table row conditionals within a table.
-    /// Table row conditionals have {{#if}}, {{else}}, and {{/if}} markers in separate rows.
+    /// Table row conditionals have {{#if}}, {{#elseif}}, {{else}}, and {{/if}} markers in separate rows.
     /// </summary>
     private static IReadOnlyList<ConditionalBlock> DetectTableRowConditionals(Table table)
     {
@@ -266,49 +326,66 @@ internal static class ConditionalDetector
                 {
                     string conditionExpression = ifMatch.Groups[1].Value.Trim();
 
-                    // Find the matching else (optional) and end marker rows
-                    (int elseIndex, int endIndex) = FindMatchingElseAndEndInRows(rows, i);
+                    // Find all markers
+                    var markers = FindConditionalMarkersInRows(rows, i);
 
-                    if (endIndex == -1)
+                    if (markers.EndIndex == -1)
                     {
                         throw new InvalidOperationException(
                             $"Table row conditional start marker '{{{{#if {conditionExpression}}}}}' has no matching '{{{{/if}}}}'.");
                     }
 
-                    // Get IF content rows (between start and else/end markers)
-                    List<OpenXmlElement> ifContentRows = new List<OpenXmlElement>();
-                    int ifEndIndex = elseIndex != -1 ? elseIndex : endIndex;
-                    for (int j = i + 1; j < ifEndIndex; j++)
+                    // Build branches
+                    List<ConditionalBranch> branches = new List<ConditionalBranch>();
+
+                    // Determine branch boundaries
+                    List<(int MarkerIndex, string? Condition)> allMarkers = new List<(int, string?)>();
+                    allMarkers.Add((i, conditionExpression)); // if marker
+
+                    foreach (var elseIfMarker in markers.ElseIfMarkers)
                     {
-                        ifContentRows.Add(rows[j]);
+                        allMarkers.Add((elseIfMarker.Index, elseIfMarker.Condition));
                     }
 
-                    // Get ELSE content rows (between else and end markers, if else exists)
-                    List<OpenXmlElement> elseContentRows = new List<OpenXmlElement>();
-                    if (elseIndex != -1)
+                    if (markers.ElseIndex != -1)
                     {
-                        for (int j = elseIndex + 1; j < endIndex; j++)
+                        allMarkers.Add((markers.ElseIndex, null)); // else marker
+                    }
+
+                    // Create branches from marker boundaries
+                    for (int m = 0; m < allMarkers.Count; m++)
+                    {
+                        int markerIndex = allMarkers[m].MarkerIndex;
+                        string? condition = allMarkers[m].Condition;
+
+                        int contentStart = markerIndex + 1;
+                        int contentEnd = (m + 1 < allMarkers.Count)
+                            ? allMarkers[m + 1].MarkerIndex
+                            : markers.EndIndex;
+
+                        List<OpenXmlElement> contentRows = new List<OpenXmlElement>();
+                        for (int j = contentStart; j < contentEnd; j++)
                         {
-                            elseContentRows.Add(rows[j]);
+                            contentRows.Add(rows[j]);
                         }
+
+                        branches.Add(new ConditionalBranch(
+                            condition,
+                            contentRows,
+                            rows[markerIndex]));
                     }
 
-                    // Create conditional block for table row conditional
-                    // Table row conditionals are typically top-level (nesting level 0)
+                    // Create conditional block
                     ConditionalBlock conditionalBlock = new ConditionalBlock(
-                        conditionExpression,
-                        ifContentRows,
-                        elseContentRows,
-                        rows[i],                    // Start marker row
-                        elseIndex != -1 ? rows[elseIndex] : null,  // Else marker row (optional)
-                        rows[endIndex],             // End marker row
+                        branches,
+                        rows[markers.EndIndex],
                         isTableRowConditional: true,
                         nestingLevel: 0);
 
                     conditionals.Add(conditionalBlock);
 
                     // Skip past this conditional
-                    i = endIndex + 1;
+                    i = markers.EndIndex + 1;
                     continue;
                 }
             }
@@ -320,13 +397,14 @@ internal static class ConditionalDetector
     }
 
     /// <summary>
-    /// Finds the matching {{else}} (optional) and {{/if}} row for a {{#if}} at the given row index.
-    /// Properly handles nested conditionals by tracking depth.
+    /// Finds all conditional markers in table rows.
     /// </summary>
-    private static (int elseIndex, int endIndex) FindMatchingElseAndEndInRows(List<TableRow> rows, int startIndex)
+    private static ConditionalMarkers FindConditionalMarkersInRows(List<TableRow> rows, int startIndex)
     {
         int depth = 1;
+        List<(int Index, string Condition)> elseIfMarkers = new List<(int, string)>();
         int elseIndex = -1;
+        int endIndex = -1;
 
         for (int i = startIndex + 1; i < rows.Count; i++)
         {
@@ -345,16 +423,38 @@ internal static class ConditionalDetector
                 depth--;
                 if (depth == 0)
                 {
-                    return (elseIndex, i); // Found matching end
+                    endIndex = i;
+                    break;
                 }
             }
-            else if (_elsePattern.IsMatch(text) && depth == 1 && elseIndex == -1)
+            else if (depth == 1)
             {
-                // Only capture the first else at our depth level
-                elseIndex = i;
+                // Check for elseif at our depth level
+                Match elseIfMatch = _elseIfPattern.Match(text);
+                if (elseIfMatch.Success)
+                {
+                    // Validate: elseif cannot appear after else
+                    if (elseIndex != -1)
+                    {
+                        throw new InvalidOperationException(
+                            "Invalid conditional structure: '{{#elseif}}' cannot appear after '{{else}}'. " +
+                            "The '{{else}}' branch must be the last branch before '{{/if}}'.");
+                    }
+
+                    elseIfMarkers.Add((i, elseIfMatch.Groups[1].Value.Trim()));
+                }
+                else if (_elsePattern.IsMatch(text) && elseIndex == -1)
+                {
+                    elseIndex = i;
+                }
             }
         }
 
-        return (-1, -1); // No matching end found
+        return new ConditionalMarkers
+        {
+            ElseIfMarkers = elseIfMarkers,
+            ElseIndex = elseIndex,
+            EndIndex = endIndex
+        };
     }
 }
