@@ -333,7 +333,10 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         // A null parent would indicate a detached/corrupted run, which should not occur
         // in normal document processing. We silently return as there's nothing to replace into.
         OpenXmlElement? parent = originalRun.Parent;
-        if (parent == null) return;
+        if (parent == null)
+        {
+            return;
+        }
 
         // Clone the original run's properties as base formatting
         RunProperties? baseProperties = FormattingPreserver.CloneRunProperties(originalRun.RunProperties);

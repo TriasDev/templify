@@ -476,7 +476,10 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
         // Create new runs
         foreach ((string text, RunProperties? props) in newSegments)
         {
-            if (string.IsNullOrEmpty(text)) continue;
+            if (string.IsNullOrEmpty(text))
+            {
+                continue;
+            }
 
             Run newRun = new Run();
             if (props != null)
@@ -535,7 +538,10 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
                     ? (RunProperties)run.RunProperties.CloneNode(true)
                     : null;
                 Run clonedTab = new Run();
-                if (props != null) clonedTab.RunProperties = props;
+                if (props != null)
+                {
+                    clonedTab.RunProperties = props;
+                }
                 clonedTab.Append(new TabChar());
                 tabRuns.Add((clonedTab, pos));
             }
@@ -565,7 +571,10 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
 
         foreach ((string text, RunProperties? props) in newSegments)
         {
-            if (string.IsNullOrEmpty(text)) continue;
+            if (string.IsNullOrEmpty(text))
+            {
+                continue;
+            }
 
             // Insert tabs that should come before this position
             while (tabIdx < newTabPositions.Count && newTabPositions[tabIdx].NewPos <= currentPos)
@@ -611,15 +620,27 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
             if (originalText.Substring(searchPos).StartsWith("{{#if"))
             {
                 int endMarker = originalText.IndexOf("}}", searchPos);
-                if (endMarker >= 0) searchPos = endMarker + 2;
-                else break;
+                if (endMarker >= 0)
+                {
+                    searchPos = endMarker + 2;
+                }
+                else
+                {
+                    break;
+                }
                 continue;
             }
             if (originalText.Substring(searchPos).StartsWith("{{/if"))
             {
                 int endMarker = originalText.IndexOf("}}", searchPos);
-                if (endMarker >= 0) searchPos = endMarker + 2;
-                else break;
+                if (endMarker >= 0)
+                {
+                    searchPos = endMarker + 2;
+                }
+                else
+                {
+                    break;
+                }
                 continue;
             }
             if (originalText.Substring(searchPos).StartsWith("{{else}}"))
@@ -831,8 +852,15 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
     /// </summary>
     private bool FormattingMatches(RunProperties? a, RunProperties? b)
     {
-        if (a == null && b == null) return true;
-        if (a == null || b == null) return false;
+        if (a == null && b == null)
+        {
+            return true;
+        }
+
+        if (a == null || b == null)
+        {
+            return false;
+        }
 
         // Compare key formatting elements
         var aShadeFill = a.Shading?.Fill?.Value;
