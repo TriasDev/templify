@@ -510,6 +510,51 @@ This is very important!
 
 The markdown syntax (`**bold**`, `*italic*`, `~~strikethrough~~`) is converted to actual formatting in the Word document.
 
+## Line Breaks in Data Values
+
+Newline characters in your data values are automatically converted to line breaks in Word:
+
+**JSON:**
+```json
+{
+  "Address": "123 Main Street\nApartment 4B\nNew York, NY 10001",
+  "Note": "First line.\r\nSecond line."
+}
+```
+
+**Template:**
+```
+Delivery Address:
+{{Address}}
+
+Note: {{Note}}
+```
+
+**Output:**
+```
+Delivery Address:
+123 Main Street
+Apartment 4B
+New York, NY 10001
+
+Note: First line.
+Second line.
+```
+
+All newline formats are supported: `\n` (Unix/Linux/macOS), `\r\n` (Windows), `\r` (legacy Mac).
+
+**Combining with Markdown:**
+
+You can use both markdown formatting and line breaks together:
+
+```json
+{
+  "Instructions": "**Step 1:** Open the file\n**Step 2:** Edit the content\n**Step 3:** Save and close"
+}
+```
+
+Each line will be formatted with bold text and separated by line breaks.
+
 ## Whitespace Handling
 
 ### Spaces Around Placeholders

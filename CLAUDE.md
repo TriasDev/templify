@@ -53,6 +53,18 @@ dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj --filter "Ful
 dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj --collect:"XPlat Code Coverage"
 ```
 
+### Pre-Push Checks
+
+**IMPORTANT:** Always run these checks before pushing to ensure code quality:
+
+```bash
+# Check code formatting (must pass with no warnings)
+dotnet format --verify-no-changes --no-restore
+
+# If formatting issues are found, fix them with:
+dotnet format --no-restore
+```
+
 ### Benchmarking
 ```bash
 # Run all benchmarks

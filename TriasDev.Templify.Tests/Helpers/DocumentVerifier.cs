@@ -54,6 +54,22 @@ public sealed class DocumentVerifier : IDisposable
     }
 
     /// <summary>
+    /// Gets the Paragraph element at the specified index.
+    /// </summary>
+    public Paragraph GetParagraph(int index)
+    {
+        IEnumerable<Paragraph> paragraphs = _body.Elements<Paragraph>();
+
+        if (index < 0 || index >= paragraphs.Count())
+        {
+            throw new ArgumentOutOfRangeException(nameof(index),
+                $"Paragraph index {index} is out of range (0-{paragraphs.Count() - 1})");
+        }
+
+        return paragraphs.ElementAt(index);
+    }
+
+    /// <summary>
     /// Gets all paragraph texts in the document body (excluding table paragraphs).
     /// </summary>
     public List<string> GetAllParagraphTexts()

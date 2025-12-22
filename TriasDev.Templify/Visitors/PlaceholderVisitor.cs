@@ -31,6 +31,11 @@ namespace TriasDev.Templify.Visitors;
 /// </remarks>
 internal sealed class PlaceholderVisitor : ITemplateElementVisitor
 {
+    /// <summary>
+    /// Newline separators for splitting text. Order matters: \r\n must come before \r and \n.
+    /// </summary>
+    private static readonly string[] _newlineSeparators = { "\r\n", "\r", "\n" };
+
     private readonly PlaceholderReplacementOptions _options;
     private readonly HashSet<string> _missingVariables;
     private int _replacementCount;
@@ -278,6 +283,12 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
     }
 
     /// <summary>
+    /// Checks if the text contains newline characters.
+    /// </summary>
+    private static bool ContainsNewlines(string text) =>
+        text.Contains('\n') || text.Contains('\r');
+
+    /// <summary>
     /// Replaces a placeholder within a single run, preserving that run's formatting.
     /// </summary>
     private void ReplacePlaceholderInSingleRun(
@@ -297,8 +308,21 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         string textBefore = runText.Substring(0, localStart);
         string textAfter = runText.Substring(localEnd);
 
-        // Check if replacement value contains markdown
-        if (MarkdownParser.ContainsMarkdown(replacementValue))
+        // Check for newlines and markdown in the replacement value
+        bool hasNewlines = _options.EnableNewlineSupport && ContainsNewlines(replacementValue);
+        bool hasMarkdown = MarkdownParser.ContainsMarkdown(replacementValue);
+
+        if (hasNewlines && hasMarkdown)
+        {
+            // Both markdown and newlines - process each line for markdown
+            ReplaceRunWithMarkdownAndBreaks(run, textBefore, replacementValue, textAfter);
+        }
+        else if (hasNewlines)
+        {
+            // Only newlines - split and add break elements
+            ReplaceRunWithBreaks(run, textBefore, replacementValue, textAfter);
+        }
+        else if (hasMarkdown)
         {
             // Parse markdown and replace this single run with multiple runs
             List<MarkdownSegment> segments = MarkdownParser.Parse(replacementValue);
@@ -354,11 +378,7 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         // Add text before placeholder (if any)
         if (!string.IsNullOrEmpty(textBefore))
         {
-            Text text = new Text(textBefore);
-            text.Space = SpaceProcessingModeValues.Preserve;
-            Run beforeRun = new Run(text);
-            FormattingPreserver.ApplyRunProperties(beforeRun, FormattingPreserver.CloneRunProperties(baseProperties));
-            newRuns.Add(beforeRun);
+            newRuns.Add(CreateRunWithText(textBefore, baseProperties));
         }
 
         // Add markdown segments with appropriate formatting
@@ -381,11 +401,145 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         // Add text after placeholder (if any)
         if (!string.IsNullOrEmpty(textAfter))
         {
-            Text text = new Text(textAfter);
-            text.Space = SpaceProcessingModeValues.Preserve;
-            Run afterRun = new Run(text);
-            FormattingPreserver.ApplyRunProperties(afterRun, FormattingPreserver.CloneRunProperties(baseProperties));
-            newRuns.Add(afterRun);
+            newRuns.Add(CreateRunWithText(textAfter, baseProperties));
+        }
+
+        // Insert new runs before the original run, then remove the original
+        foreach (Run newRun in newRuns)
+        {
+            parent.InsertBefore(newRun, originalRun);
+        }
+
+        originalRun.Remove();
+    }
+
+    /// <summary>
+    /// Replaces a single run with multiple runs containing line breaks.
+    /// Preserves the original run's formatting.
+    /// </summary>
+    private static void ReplaceRunWithBreaks(
+        Run originalRun,
+        string textBefore,
+        string textWithNewlines,
+        string textAfter)
+    {
+        OpenXmlElement? parent = originalRun.Parent;
+        if (parent == null)
+        {
+            return;
+        }
+
+        RunProperties? baseProperties = FormattingPreserver.CloneRunProperties(originalRun.RunProperties);
+        List<Run> newRuns = new List<Run>();
+
+        // Add text before placeholder (if any)
+        if (!string.IsNullOrEmpty(textBefore))
+        {
+            newRuns.Add(CreateRunWithText(textBefore, baseProperties));
+        }
+
+        // Split on newlines and add Break elements between lines
+        string[] lines = textWithNewlines.Split(_newlineSeparators, StringSplitOptions.None);
+        for (int i = 0; i < lines.Length; i++)
+        {
+            if (i > 0)
+            {
+                // Insert Break element for line break
+                newRuns.Add(new Run(new Break()));
+            }
+
+            if (!string.IsNullOrEmpty(lines[i]))
+            {
+                newRuns.Add(CreateRunWithText(lines[i], baseProperties));
+            }
+        }
+
+        // Add text after placeholder (if any)
+        if (!string.IsNullOrEmpty(textAfter))
+        {
+            newRuns.Add(CreateRunWithText(textAfter, baseProperties));
+        }
+
+        // Insert new runs before the original run, then remove the original
+        foreach (Run newRun in newRuns)
+        {
+            parent.InsertBefore(newRun, originalRun);
+        }
+
+        originalRun.Remove();
+    }
+
+    /// <summary>
+    /// Replaces a single run with multiple runs containing both markdown formatting and line breaks.
+    /// Splits by newlines first, then parses each line for markdown.
+    /// </summary>
+    private static void ReplaceRunWithMarkdownAndBreaks(
+        Run originalRun,
+        string textBefore,
+        string textWithMarkdownAndNewlines,
+        string textAfter)
+    {
+        OpenXmlElement? parent = originalRun.Parent;
+        if (parent == null)
+        {
+            return;
+        }
+
+        RunProperties? baseProperties = FormattingPreserver.CloneRunProperties(originalRun.RunProperties);
+        List<Run> newRuns = new List<Run>();
+
+        // Add text before placeholder (if any)
+        if (!string.IsNullOrEmpty(textBefore))
+        {
+            newRuns.Add(CreateRunWithText(textBefore, baseProperties));
+        }
+
+        // Split by newlines, then parse markdown for each line
+        string[] lines = textWithMarkdownAndNewlines.Split(_newlineSeparators, StringSplitOptions.None);
+        for (int i = 0; i < lines.Length; i++)
+        {
+            if (i > 0)
+            {
+                // Insert Break element for line break
+                newRuns.Add(new Run(new Break()));
+            }
+
+            string line = lines[i];
+            if (string.IsNullOrEmpty(line))
+            {
+                continue;
+            }
+
+            // Parse markdown for this line
+            if (MarkdownParser.ContainsMarkdown(line))
+            {
+                List<MarkdownSegment> segments = MarkdownParser.Parse(line);
+                foreach (MarkdownSegment segment in segments)
+                {
+                    Text text = new Text(segment.Text);
+                    text.Space = SpaceProcessingModeValues.Preserve;
+                    Run segmentRun = new Run(text);
+
+                    RunProperties? mergedProperties = FormattingPreserver.ApplyMarkdownFormatting(
+                        FormattingPreserver.CloneRunProperties(baseProperties),
+                        segment.IsBold,
+                        segment.IsItalic,
+                        segment.IsStrikethrough);
+
+                    FormattingPreserver.ApplyRunProperties(segmentRun, mergedProperties);
+                    newRuns.Add(segmentRun);
+                }
+            }
+            else
+            {
+                newRuns.Add(CreateRunWithText(line, baseProperties));
+            }
+        }
+
+        // Add text after placeholder (if any)
+        if (!string.IsNullOrEmpty(textAfter))
+        {
+            newRuns.Add(CreateRunWithText(textAfter, baseProperties));
         }
 
         // Insert new runs before the original run, then remove the original
@@ -450,9 +604,23 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
             newRuns.Add(CreateRunWithText(textBeforeInFirstRun, baseProperties));
         }
 
-        // Replacement value (with or without markdown)
-        if (MarkdownParser.ContainsMarkdown(replacementValue))
+        // Check for newlines and markdown in the replacement value
+        bool hasNewlines = _options.EnableNewlineSupport && ContainsNewlines(replacementValue);
+        bool hasMarkdown = MarkdownParser.ContainsMarkdown(replacementValue);
+
+        if (hasNewlines && hasMarkdown)
         {
+            // Both markdown and newlines
+            AddRunsWithMarkdownAndBreaks(newRuns, replacementValue, baseProperties);
+        }
+        else if (hasNewlines)
+        {
+            // Only newlines
+            AddRunsWithBreaks(newRuns, replacementValue, baseProperties);
+        }
+        else if (hasMarkdown)
+        {
+            // Only markdown
             List<MarkdownSegment> segments = MarkdownParser.Parse(replacementValue);
             foreach (MarkdownSegment segment in segments)
             {
@@ -466,6 +634,7 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         }
         else
         {
+            // Simple text
             newRuns.Add(CreateRunWithText(replacementValue, baseProperties));
         }
 
@@ -491,6 +660,65 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
     }
 
     /// <summary>
+    /// Adds runs with line breaks to the list.
+    /// </summary>
+    private static void AddRunsWithBreaks(List<Run> runs, string textWithNewlines, RunProperties? baseProperties)
+    {
+        string[] lines = textWithNewlines.Split(_newlineSeparators, StringSplitOptions.None);
+        for (int i = 0; i < lines.Length; i++)
+        {
+            if (i > 0)
+            {
+                runs.Add(new Run(new Break()));
+            }
+
+            if (!string.IsNullOrEmpty(lines[i]))
+            {
+                runs.Add(CreateRunWithText(lines[i], baseProperties));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Adds runs with both markdown formatting and line breaks to the list.
+    /// </summary>
+    private static void AddRunsWithMarkdownAndBreaks(List<Run> runs, string textWithMarkdownAndNewlines, RunProperties? baseProperties)
+    {
+        string[] lines = textWithMarkdownAndNewlines.Split(_newlineSeparators, StringSplitOptions.None);
+        for (int i = 0; i < lines.Length; i++)
+        {
+            if (i > 0)
+            {
+                runs.Add(new Run(new Break()));
+            }
+
+            string line = lines[i];
+            if (string.IsNullOrEmpty(line))
+            {
+                continue;
+            }
+
+            if (MarkdownParser.ContainsMarkdown(line))
+            {
+                List<MarkdownSegment> segments = MarkdownParser.Parse(line);
+                foreach (MarkdownSegment segment in segments)
+                {
+                    RunProperties? props = FormattingPreserver.ApplyMarkdownFormatting(
+                        FormattingPreserver.CloneRunProperties(baseProperties),
+                        segment.IsBold,
+                        segment.IsItalic,
+                        segment.IsStrikethrough);
+                    runs.Add(CreateRunWithText(segment.Text, props));
+                }
+            }
+            else
+            {
+                runs.Add(CreateRunWithText(line, baseProperties));
+            }
+        }
+    }
+
+    /// <summary>
     /// Creates a new Run element with the specified text and formatting properties.
     /// </summary>
     private static Run CreateRunWithText(string text, RunProperties? properties)
@@ -506,5 +734,4 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
 
         return run;
     }
-
 }

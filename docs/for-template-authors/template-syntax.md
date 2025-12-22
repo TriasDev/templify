@@ -11,6 +11,7 @@ This is a complete reference guide for Templify's template syntax. Use this as a
 - [Format Specifiers](#format-specifiers)
 - [Loop Variables](#loop-variables)
 - [Markdown Formatting](#markdown-formatting)
+- [Line Breaks in Data](#line-breaks-in-data)
 
 ---
 
@@ -577,6 +578,35 @@ Or use underscores:
 ### Combining with Template Formatting
 
 The markdown formatting is **merged** with the template's formatting. If your template has red text, and you add `**bold**` in the data, the output will be **red bold text**.
+
+---
+
+## Line Breaks in Data
+
+Newline characters in your JSON data are automatically converted to line breaks in Word:
+
+```json
+{
+  "Address": "123 Main Street\nApartment 4B\nNew York, NY 10001"
+}
+```
+
+**Supported formats:**
+- `\n` - Unix/Linux/macOS
+- `\r\n` - Windows
+- `\r` - Legacy Mac
+
+### Combining with Markdown
+
+Line breaks work together with markdown formatting:
+
+```json
+{
+  "Steps": "**Step 1:** Download\n**Step 2:** Install\n**Step 3:** Run"
+}
+```
+
+Output will have three lines, each with bold text for "Step X:".
 
 ---
 
