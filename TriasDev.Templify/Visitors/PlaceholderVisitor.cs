@@ -166,6 +166,7 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
     /// <summary>
     /// Replaces a single placeholder in the paragraph with the replacement value.
     /// Supports markdown formatting in replacement values.
+    /// Preserves per-run formatting when placeholder is contained within a single run.
     /// </summary>
     /// <param name="paragraph">The paragraph containing the placeholder.</param>
     /// <param name="placeholder">The placeholder to replace.</param>
@@ -183,26 +184,205 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
             return;
         }
 
-        // Concatenate all text from runs
-        string fullText = string.Concat(runs.Select(r => r.InnerText));
+        // Build run boundaries for mapping placeholder indices to runs
+        List<(Run Run, int StartIndex, int EndIndex)> runBoundaries = BuildRunBoundaries(runs);
 
-        // Calculate the text before and after the placeholder
-        string textBefore = fullText.Substring(0, placeholder.StartIndex);
-        string textAfter = fullText.Substring(placeholder.StartIndex + placeholder.Length);
+        // Find which runs the placeholder spans
+        int placeholderStart = placeholder.StartIndex;
+        int placeholderEnd = placeholder.StartIndex + placeholder.Length;
+
+        (int startRunIndex, int endRunIndex) = FindRunsForPlaceholder(runBoundaries, placeholderStart, placeholderEnd);
+
+        // Check if placeholder is contained within a single run
+        if (startRunIndex == endRunIndex && startRunIndex >= 0)
+        {
+            // Placeholder is within a single run - replace in place, preserving that run's formatting
+            ReplacePlaceholderInSingleRun(runBoundaries[startRunIndex], placeholderStart, placeholderEnd, replacementValue);
+        }
+        else
+        {
+            // Placeholder spans multiple runs - use existing behavior (merge and replace)
+            string fullText = string.Concat(runs.Select(r => r.InnerText));
+            string textBefore = fullText.Substring(0, placeholder.StartIndex);
+            string textAfter = fullText.Substring(placeholder.StartIndex + placeholder.Length);
+
+            if (MarkdownParser.ContainsMarkdown(replacementValue))
+            {
+                List<MarkdownSegment> segments = MarkdownParser.Parse(replacementValue);
+                UpdateParagraphTextWithMarkdown(paragraph, runs, textBefore, segments, textAfter);
+            }
+            else
+            {
+                string replacedText = textBefore + replacementValue + textAfter;
+                UpdateParagraphText(paragraph, runs, replacedText);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Builds a list of run boundaries (start and end character indices) for mapping.
+    /// </summary>
+    private static List<(Run Run, int StartIndex, int EndIndex)> BuildRunBoundaries(List<Run> runs)
+    {
+        List<(Run, int, int)> boundaries = new List<(Run, int, int)>();
+        int currentIndex = 0;
+
+        foreach (Run run in runs)
+        {
+            int runLength = run.InnerText.Length;
+            boundaries.Add((run, currentIndex, currentIndex + runLength));
+            currentIndex += runLength;
+        }
+
+        return boundaries;
+    }
+
+    /// <summary>
+    /// Finds the run indices that contain the placeholder's start and end positions.
+    /// </summary>
+    private static (int startRunIndex, int endRunIndex) FindRunsForPlaceholder(
+        List<(Run Run, int StartIndex, int EndIndex)> runBoundaries,
+        int placeholderStart,
+        int placeholderEnd)
+    {
+        int startRunIndex = -1;
+        int endRunIndex = -1;
+
+        for (int i = 0; i < runBoundaries.Count; i++)
+        {
+            (Run _, int runStart, int runEnd) = runBoundaries[i];
+
+            // Check if placeholder start is within this run
+            if (startRunIndex == -1 && placeholderStart >= runStart && placeholderStart < runEnd)
+            {
+                startRunIndex = i;
+            }
+
+            // Check if placeholder end is within this run
+            // Note: placeholderEnd is exclusive, so we check <= runEnd
+            if (placeholderEnd > runStart && placeholderEnd <= runEnd)
+            {
+                endRunIndex = i;
+                break;
+            }
+        }
+
+        return (startRunIndex, endRunIndex);
+    }
+
+    /// <summary>
+    /// Replaces a placeholder within a single run, preserving that run's formatting.
+    /// </summary>
+    private void ReplacePlaceholderInSingleRun(
+        (Run Run, int StartIndex, int EndIndex) runInfo,
+        int placeholderStart,
+        int placeholderEnd,
+        string replacementValue)
+    {
+        Run run = runInfo.Run;
+        string runText = run.InnerText;
+
+        // Calculate local indices within this run
+        int localStart = placeholderStart - runInfo.StartIndex;
+        int localEnd = placeholderEnd - runInfo.StartIndex;
+
+        // Build new text with replacement
+        string textBefore = runText.Substring(0, localStart);
+        string textAfter = runText.Substring(localEnd);
 
         // Check if replacement value contains markdown
         if (MarkdownParser.ContainsMarkdown(replacementValue))
         {
-            // Parse markdown and create multiple runs with formatting
+            // Parse markdown and replace this single run with multiple runs
             List<MarkdownSegment> segments = MarkdownParser.Parse(replacementValue);
-            UpdateParagraphTextWithMarkdown(paragraph, runs, textBefore, segments, textAfter);
+            ReplaceRunWithMarkdownSegments(run, textBefore, segments, textAfter);
         }
         else
         {
-            // No markdown - use simple text replacement
-            string replacedText = textBefore + replacementValue + textAfter;
-            UpdateParagraphText(paragraph, runs, replacedText);
+            // Simple replacement - update run text in place
+            string newText = textBefore + replacementValue + textAfter;
+            ReplaceRunText(run, newText);
         }
+    }
+
+    /// <summary>
+    /// Replaces the text content of a run while preserving its formatting.
+    /// </summary>
+    private static void ReplaceRunText(Run run, string newText)
+    {
+        // Remove all text elements from the run
+        run.RemoveAllChildren<Text>();
+
+        // Add new text element
+        Text text = new Text(newText);
+        text.Space = SpaceProcessingModeValues.Preserve;
+        run.AppendChild(text);
+    }
+
+    /// <summary>
+    /// Replaces a single run with multiple runs for markdown formatting.
+    /// Preserves the original run's formatting as the base.
+    /// </summary>
+    private static void ReplaceRunWithMarkdownSegments(
+        Run originalRun,
+        string textBefore,
+        List<MarkdownSegment> segments,
+        string textAfter)
+    {
+        // Get the parent and the position of the original run
+        OpenXmlElement? parent = originalRun.Parent;
+        if (parent == null) return;
+
+        // Clone the original run's properties as base formatting
+        RunProperties? baseProperties = FormattingPreserver.CloneRunProperties(originalRun.RunProperties);
+
+        // Create list of new runs to insert
+        List<Run> newRuns = new List<Run>();
+
+        // Add text before placeholder (if any)
+        if (!string.IsNullOrEmpty(textBefore))
+        {
+            Text text = new Text(textBefore);
+            text.Space = SpaceProcessingModeValues.Preserve;
+            Run beforeRun = new Run(text);
+            FormattingPreserver.ApplyRunProperties(beforeRun, FormattingPreserver.CloneRunProperties(baseProperties));
+            newRuns.Add(beforeRun);
+        }
+
+        // Add markdown segments with appropriate formatting
+        foreach (MarkdownSegment segment in segments)
+        {
+            Text text = new Text(segment.Text);
+            text.Space = SpaceProcessingModeValues.Preserve;
+            Run segmentRun = new Run(text);
+
+            RunProperties? mergedProperties = FormattingPreserver.ApplyMarkdownFormatting(
+                FormattingPreserver.CloneRunProperties(baseProperties),
+                segment.IsBold,
+                segment.IsItalic,
+                segment.IsStrikethrough);
+
+            FormattingPreserver.ApplyRunProperties(segmentRun, mergedProperties);
+            newRuns.Add(segmentRun);
+        }
+
+        // Add text after placeholder (if any)
+        if (!string.IsNullOrEmpty(textAfter))
+        {
+            Text text = new Text(textAfter);
+            text.Space = SpaceProcessingModeValues.Preserve;
+            Run afterRun = new Run(text);
+            FormattingPreserver.ApplyRunProperties(afterRun, FormattingPreserver.CloneRunProperties(baseProperties));
+            newRuns.Add(afterRun);
+        }
+
+        // Insert new runs before the original run, then remove the original
+        foreach (Run newRun in newRuns)
+        {
+            parent.InsertBefore(newRun, originalRun);
+        }
+
+        originalRun.Remove();
     }
 
     /// <summary>

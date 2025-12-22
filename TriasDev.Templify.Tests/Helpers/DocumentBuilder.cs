@@ -338,7 +338,9 @@ public sealed class DocumentBuilder
         bool italic = false,
         string? color = null,
         string? fontFamily = null,
-        string? fontSize = null)
+        string? fontSize = null,
+        HighlightColorValues? highlight = null,
+        string? shadingFill = null)
     {
         RunProperties properties = new RunProperties();
 
@@ -365,6 +367,16 @@ public sealed class DocumentBuilder
         if (fontSize != null)
         {
             properties.Append(new FontSize { Val = fontSize });
+        }
+
+        if (highlight != null)
+        {
+            properties.Append(new Highlight { Val = highlight.Value });
+        }
+
+        if (shadingFill != null)
+        {
+            properties.Append(new Shading { Val = ShadingPatternValues.Clear, Fill = shadingFill });
         }
 
         return properties;

@@ -1,6 +1,7 @@
 // Copyright (c) 2025 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using TriasDev.Templify.Core;
 using TriasDev.Templify.Conditionals;
@@ -356,5 +357,159 @@ public sealed class FormattingPreservationTests
         // Verify paragraph 3 is red
         RunProperties? props3 = verifier.GetRunProperties(2, 0);
         DocumentVerifier.VerifyFormatting(props3, expectedColor: "FF0000");
+    }
+
+    [Fact]
+    public void ProcessTemplate_HighlightedText_PreservesHighlight()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        RunProperties yellowHighlight = DocumentBuilder.CreateFormatting(highlight: HighlightColorValues.Yellow);
+        builder.AddParagraph("C{{Confidentiality}}", yellowHighlight);
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Confidentiality"] = "1"
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.ReplacementCount);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        string text = verifier.GetParagraphText(0);
+        Assert.Equal("C1", text);
+
+        RunProperties? runProps = verifier.GetRunProperties(0, 0);
+        DocumentVerifier.VerifyFormatting(runProps, expectedHighlight: HighlightColorValues.Yellow);
+    }
+
+    [Fact]
+    public void ProcessTemplate_ShadedText_PreservesShadingAndColor()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        RunProperties blackShading = DocumentBuilder.CreateFormatting(color: "FFFFFF", shadingFill: "000000");
+        builder.AddParagraph("I{{Integrity}}", blackShading);
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Integrity"] = "4"
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.ReplacementCount);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        string text = verifier.GetParagraphText(0);
+        Assert.Equal("I4", text);
+
+        RunProperties? runProps = verifier.GetRunProperties(0, 0);
+        DocumentVerifier.VerifyFormatting(runProps, expectedColor: "FFFFFF", expectedShadingFill: "000000");
+    }
+
+    [Fact]
+    public void ProcessTemplate_CyanHighlight_PreservesHighlight()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        RunProperties cyanHighlight = DocumentBuilder.CreateFormatting(highlight: HighlightColorValues.Cyan);
+        builder.AddParagraph("A{{Availability}}", cyanHighlight);
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Availability"] = "0"
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        string text = verifier.GetParagraphText(0);
+        Assert.Equal("A0", text);
+
+        RunProperties? runProps = verifier.GetRunProperties(0, 0);
+        DocumentVerifier.VerifyFormatting(runProps, expectedHighlight: HighlightColorValues.Cyan);
+    }
+
+    [Fact]
+    public void ProcessTemplate_CIABlocksWithTabs_PreservesEachBlockStyle()
+    {
+        // Arrange - Create template with styled blocks separated by tabs:
+        // C{{Confidentiality}} (yellow) TAB I{{Integrity}} (black bg, white text) TAB A{{Availability}} (cyan)
+        DocumentBuilder builder = new DocumentBuilder();
+
+        RunProperties yellowHighlight = DocumentBuilder.CreateFormatting(highlight: HighlightColorValues.Yellow);
+        RunProperties blackShading = DocumentBuilder.CreateFormatting(color: "FFFFFF", shadingFill: "000000");
+        RunProperties cyanHighlight = DocumentBuilder.CreateFormatting(highlight: HighlightColorValues.Cyan);
+
+        builder.AddParagraphWithRuns(
+            ("C{{Confidentiality}}", yellowHighlight),
+            ("\t", null),
+            ("I{{Integrity}}", blackShading),
+            ("\t", null),
+            ("A{{Availability}}", cyanHighlight)
+        );
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Confidentiality"] = "1",
+            ["Integrity"] = "4",
+            ["Availability"] = "0"
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(3, result.ReplacementCount);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        string text = verifier.GetParagraphText(0);
+        Assert.Equal("C1\tI4\tA0", text);
+
+        // Verify each block preserved its style
+        List<Run> runs = verifier.GetRuns(0);
+        Assert.True(runs.Count >= 3, $"Expected at least 3 runs, got {runs.Count}");
+
+        // Run 0: C1 with yellow highlight
+        DocumentVerifier.VerifyFormatting(runs[0].RunProperties, expectedHighlight: HighlightColorValues.Yellow);
+
+        // Run 2: I4 with black shading and white text
+        DocumentVerifier.VerifyFormatting(runs[2].RunProperties, expectedColor: "FFFFFF", expectedShadingFill: "000000");
+
+        // Run 4: A0 with cyan highlight
+        DocumentVerifier.VerifyFormatting(runs[4].RunProperties, expectedHighlight: HighlightColorValues.Cyan);
     }
 }

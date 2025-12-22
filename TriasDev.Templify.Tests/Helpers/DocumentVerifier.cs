@@ -246,7 +246,9 @@ public sealed class DocumentVerifier : IDisposable
         bool? expectedItalic = null,
         string? expectedColor = null,
         string? expectedFontFamily = null,
-        string? expectedFontSize = null)
+        string? expectedFontSize = null,
+        HighlightColorValues? expectedHighlight = null,
+        string? expectedShadingFill = null)
     {
         if (expectedBold.HasValue)
         {
@@ -295,6 +297,26 @@ public sealed class DocumentVerifier : IDisposable
             {
                 throw new InvalidOperationException(
                     $"Expected fontSize={expectedFontSize}, but was {actualSize ?? "null"}");
+            }
+        }
+
+        if (expectedHighlight.HasValue)
+        {
+            HighlightColorValues? actualHighlight = properties?.Elements<Highlight>().FirstOrDefault()?.Val?.Value;
+            if (actualHighlight != expectedHighlight.Value)
+            {
+                throw new InvalidOperationException(
+                    $"Expected highlight={expectedHighlight.Value}, but was {actualHighlight?.ToString() ?? "null"}");
+            }
+        }
+
+        if (expectedShadingFill != null)
+        {
+            string? actualFill = properties?.Elements<Shading>().FirstOrDefault()?.Fill?.Value;
+            if (actualFill != expectedShadingFill)
+            {
+                throw new InvalidOperationException(
+                    $"Expected shadingFill={expectedShadingFill}, but was {actualFill ?? "null"}");
             }
         }
     }
