@@ -512,4 +512,240 @@ public sealed class FormattingPreservationTests
         // Run 4: A0 with cyan highlight
         DocumentVerifier.VerifyFormatting(runs[4].RunProperties, expectedHighlight: HighlightColorValues.Cyan);
     }
+
+    #region Per-Run Replacement Edge Cases
+
+    /// <summary>
+    /// Tests that a placeholder at the exact start of a run is handled correctly.
+    /// Edge case: placeholder starts at index 0 within its run.
+    /// </summary>
+    [Fact]
+    public void ProcessTemplate_PlaceholderAtRunStart_PreservesFormatting()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        RunProperties redFormatting = DocumentBuilder.CreateFormatting(color: "FF0000");
+        builder.AddParagraph("{{Value}} is the answer", redFormatting);
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Value"] = "42"
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.ReplacementCount);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        string text = verifier.GetParagraphText(0);
+        Assert.Equal("42 is the answer", text);
+
+        RunProperties? runProps = verifier.GetRunProperties(0, 0);
+        DocumentVerifier.VerifyFormatting(runProps, expectedColor: "FF0000");
+    }
+
+    /// <summary>
+    /// Tests that a placeholder at the exact end of a run is handled correctly.
+    /// Edge case: placeholder ends at the last character of its run.
+    /// </summary>
+    [Fact]
+    public void ProcessTemplate_PlaceholderAtRunEnd_PreservesFormatting()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        RunProperties blueFormatting = DocumentBuilder.CreateFormatting(color: "0000FF");
+        builder.AddParagraph("The answer is {{Value}}", blueFormatting);
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Value"] = "42"
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.ReplacementCount);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        string text = verifier.GetParagraphText(0);
+        Assert.Equal("The answer is 42", text);
+
+        RunProperties? runProps = verifier.GetRunProperties(0, 0);
+        DocumentVerifier.VerifyFormatting(runProps, expectedColor: "0000FF");
+    }
+
+    /// <summary>
+    /// Tests that a placeholder spanning the entire run content is handled correctly.
+    /// Edge case: the run contains ONLY the placeholder text.
+    /// </summary>
+    [Fact]
+    public void ProcessTemplate_PlaceholderIsEntireRun_PreservesFormatting()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        RunProperties greenHighlight = DocumentBuilder.CreateFormatting(highlight: HighlightColorValues.Green);
+        builder.AddParagraph("{{Value}}", greenHighlight);
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Value"] = "Complete replacement"
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.ReplacementCount);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        string text = verifier.GetParagraphText(0);
+        Assert.Equal("Complete replacement", text);
+
+        RunProperties? runProps = verifier.GetRunProperties(0, 0);
+        DocumentVerifier.VerifyFormatting(runProps, expectedHighlight: HighlightColorValues.Green);
+    }
+
+    /// <summary>
+    /// Tests that a placeholder spanning multiple runs uses merge behavior (first run formatting).
+    /// Edge case: placeholder split across runs should fall back to multi-run processing.
+    /// </summary>
+    [Fact]
+    public void ProcessTemplate_PlaceholderSpansMultipleRuns_UsesMergeFormatting()
+    {
+        // Arrange - Create a paragraph where the placeholder is split across runs
+        // This simulates Word's behavior of splitting text into multiple runs
+        DocumentBuilder builder = new DocumentBuilder();
+        RunProperties boldFormatting = DocumentBuilder.CreateFormatting(bold: true);
+        RunProperties italicFormatting = DocumentBuilder.CreateFormatting(italic: true);
+
+        // Split "{{Name}}" into "{{Na" and "me}}"
+        builder.AddParagraphWithRuns(
+            ("Hello {{Na", boldFormatting),
+            ("me}}!", italicFormatting)
+        );
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Name"] = "World"
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.ReplacementCount);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        string text = verifier.GetParagraphText(0);
+        Assert.Equal("Hello World!", text);
+
+        // When spanning multiple runs, formatting comes from first run (bold)
+        RunProperties? runProps = verifier.GetRunProperties(0, 0);
+        DocumentVerifier.VerifyFormatting(runProps, expectedBold: true);
+    }
+
+    /// <summary>
+    /// Tests multiple placeholders in the same run, each preserving the run's formatting.
+    /// Edge case: ensures per-run replacement works with multiple placeholders in sequence.
+    /// </summary>
+    [Fact]
+    public void ProcessTemplate_MultiplePlaceholdersInSameRun_PreservesFormatting()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        RunProperties magentaHighlight = DocumentBuilder.CreateFormatting(highlight: HighlightColorValues.Magenta);
+        builder.AddParagraph("{{First}} and {{Second}}", magentaHighlight);
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["First"] = "Alpha",
+            ["Second"] = "Beta"
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2, result.ReplacementCount);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        string text = verifier.GetParagraphText(0);
+        Assert.Equal("Alpha and Beta", text);
+
+        // All content should preserve magenta highlight
+        RunProperties? runProps = verifier.GetRunProperties(0, 0);
+        DocumentVerifier.VerifyFormatting(runProps, expectedHighlight: HighlightColorValues.Magenta);
+    }
+
+    /// <summary>
+    /// Tests that empty replacement value preserves formatting.
+    /// Edge case: replacement with empty string should still maintain run formatting.
+    /// </summary>
+    [Fact]
+    public void ProcessTemplate_EmptyReplacementValue_PreservesFormatting()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        RunProperties yellowHighlight = DocumentBuilder.CreateFormatting(highlight: HighlightColorValues.Yellow);
+        builder.AddParagraph("Before{{Optional}}After", yellowHighlight);
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Optional"] = ""
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.ReplacementCount);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        string text = verifier.GetParagraphText(0);
+        Assert.Equal("BeforeAfter", text);
+
+        RunProperties? runProps = verifier.GetRunProperties(0, 0);
+        DocumentVerifier.VerifyFormatting(runProps, expectedHighlight: HighlightColorValues.Yellow);
+    }
+
+    #endregion
 }
