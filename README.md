@@ -21,6 +21,7 @@ Templify is a focused .NET library built on the OpenXML SDK that enables dynamic
 **Key Features:**
 - 📝 Simple placeholder syntax: `{{variableName}}`
 - ✨ Markdown formatting in variable values: `**bold**`, `*italic*`, `~~strikethrough~~`
+- ↩️ Line breaks in variable values: `"Line 1\nLine 2"` renders as separate lines
 - 🔀 Conditional blocks: `{{#if condition}}...{{else}}...{{/if}}`
 - 🔁 Loops and iterations: `{{#foreach collection}}...{{/foreach}}`
 - 🌳 Nested data structures with dot notation and array indexing
@@ -163,6 +164,26 @@ var data = new Dictionary<string, object>
 - `***text***` → Bold + Italic
 
 The markdown formatting is automatically merged with any existing template formatting (e.g., red text + markdown bold = red bold text).
+
+### Line Breaks in Variable Values
+
+Newline characters in variable values are automatically converted to line breaks in Word:
+
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["Address"] = "123 Main Street\nApartment 4B\nNew York, NY 10001"
+};
+```
+
+All newline formats are supported: `\n` (Unix), `\r\n` (Windows), `\r` (old Mac).
+
+Newlines work together with markdown: `"**Bold line**\n*Italic line*"` renders as two lines with proper formatting.
+
+To disable (for backward compatibility):
+```csharp
+var options = new PlaceholderReplacementOptions { EnableNewlineSupport = false };
+```
 
 ### Standalone Condition Evaluation
 
