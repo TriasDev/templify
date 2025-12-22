@@ -240,6 +240,15 @@ public sealed class DocumentVerifier : IDisposable
     /// <summary>
     /// Verifies that RunProperties match the expected formatting.
     /// </summary>
+    /// <param name="properties">The RunProperties to verify.</param>
+    /// <param name="expectedBold">Expected bold state, or null to skip verification.</param>
+    /// <param name="expectedItalic">Expected italic state, or null to skip verification.</param>
+    /// <param name="expectedColor">Expected text color as hex string, or null to skip verification.</param>
+    /// <param name="expectedFontFamily">Expected font family, or null to skip verification.</param>
+    /// <param name="expectedFontSize">Expected font size in half-points, or null to skip verification.</param>
+    /// <param name="expectedHighlight">Expected highlight color, or null to skip verification.</param>
+    /// <param name="expectedShadingFill">Expected background shading fill color as hex string, or null to skip verification.</param>
+    /// <exception cref="InvalidOperationException">Thrown when actual formatting does not match expected.</exception>
     public static void VerifyFormatting(
         RunProperties? properties,
         bool? expectedBold = null,

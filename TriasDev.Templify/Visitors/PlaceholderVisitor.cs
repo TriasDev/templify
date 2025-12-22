@@ -193,7 +193,9 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
 
         (int startRunIndex, int endRunIndex) = FindRunsForPlaceholder(runBoundaries, placeholderStart, placeholderEnd);
 
-        // Check if placeholder is contained within a single run
+        // Check if placeholder is contained within a single run.
+        // Single-run replacement preserves the run's complete formatting (highlight, shading, etc.)
+        // which would otherwise be lost when merging multiple runs into one.
         if (startRunIndex == endRunIndex && startRunIndex >= 0)
         {
             // Placeholder is within a single run - replace in place, preserving that run's formatting
@@ -329,7 +331,9 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         List<MarkdownSegment> segments,
         string textAfter)
     {
-        // Get the parent and the position of the original run
+        // Get the parent element (typically a Paragraph) to insert new runs.
+        // A null parent would indicate a detached/corrupted run, which should not occur
+        // in normal document processing. We silently return as there's nothing to replace into.
         OpenXmlElement? parent = originalRun.Parent;
         if (parent == null) return;
 

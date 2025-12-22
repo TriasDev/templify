@@ -333,6 +333,14 @@ public sealed class DocumentBuilder
     /// <summary>
     /// Creates RunProperties with the specified formatting options.
     /// </summary>
+    /// <param name="bold">Whether to apply bold formatting.</param>
+    /// <param name="italic">Whether to apply italic formatting.</param>
+    /// <param name="color">Text color as a hex string (e.g., "FF0000" for red).</param>
+    /// <param name="fontFamily">Font family name (e.g., "Arial").</param>
+    /// <param name="fontSize">Font size in half-points (e.g., "24" for 12pt).</param>
+    /// <param name="highlight">Highlight color from predefined Word highlight colors.</param>
+    /// <param name="shadingFill">Background shading fill color as a hex string (e.g., "000000" for black).</param>
+    /// <returns>A new RunProperties instance with the specified formatting.</returns>
     public static RunProperties CreateFormatting(
         bool bold = false,
         bool italic = false,
