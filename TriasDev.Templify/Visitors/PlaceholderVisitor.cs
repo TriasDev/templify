@@ -204,13 +204,12 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         if (startRunIndex == endRunIndex && startRunIndex >= 0)
         {
             // Placeholder is within a single run - replace in place, preserving that run's formatting
-            ReplacePlaceholderInSingleRun(paragraph, runBoundaries[startRunIndex], placeholderStart, placeholderEnd, replacementValue);
+            ReplacePlaceholderInSingleRun(runBoundaries[startRunIndex], placeholderStart, placeholderEnd, replacementValue);
         }
         else
         {
             // Placeholder spans multiple runs - replace only the affected runs, preserving others
             ReplacePlaceholderAcrossRuns(
-                paragraph,
                 runBoundaries,
                 startRunIndex,
                 endRunIndex,
@@ -293,7 +292,6 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
     /// Replaces a placeholder within a single run, preserving that run's formatting.
     /// </summary>
     private void ReplacePlaceholderInSingleRun(
-        Paragraph paragraph,
         (Run Run, int StartIndex, int EndIndex) runInfo,
         int placeholderStart,
         int placeholderEnd,
@@ -564,7 +562,6 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
     /// multiple differently-formatted sections (e.g., different background colors).
     /// </remarks>
     private void ReplacePlaceholderAcrossRuns(
-        Paragraph paragraph,
         List<(Run Run, int StartIndex, int EndIndex)> runBoundaries,
         int startRunIndex,
         int endRunIndex,

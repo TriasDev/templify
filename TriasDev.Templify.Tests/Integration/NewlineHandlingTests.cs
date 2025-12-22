@@ -273,12 +273,14 @@ public sealed class NewlineHandlingTests
         List<Run> runs = verifier.GetRuns(0);
 
         // All text runs (not break runs) should be bold
-        foreach (Run run in runs.Where(r => !string.IsNullOrEmpty(r.InnerText)))
-        {
-            RunProperties? props = run.RunProperties;
-            Assert.NotNull(props);
-            Assert.NotNull(props.GetFirstChild<Bold>());
-        }
+        Assert.All(
+            runs.Where(r => !string.IsNullOrEmpty(r.InnerText)),
+            run =>
+            {
+                RunProperties? props = run.RunProperties;
+                Assert.NotNull(props);
+                Assert.NotNull(props.GetFirstChild<Bold>());
+            });
     }
 
     [Fact]
