@@ -72,6 +72,8 @@ internal sealed class ConditionalEvaluator
     /// </summary>
     private List<string> ParseExpression(string expression)
     {
+        expression = NormalizeQuotes(expression);
+
         List<string> tokens = new List<string>();
         StringBuilder currentToken = new StringBuilder();
         bool inQuotes = false;
@@ -447,5 +449,22 @@ internal sealed class ConditionalEvaluator
         return lower == EqOperator || lower == NeOperator ||
                lower == GtOperator || lower == LtOperator ||
                lower == GteOperator || lower == LteOperator;
+    }
+
+    /// <summary>
+    /// Normalizes typographic/curly quotes to ASCII quotes.
+    /// Word auto-formats ASCII quotes to typographic quotes, which breaks string comparisons.
+    /// </summary>
+    private static string NormalizeQuotes(string expression)
+    {
+        return expression
+            .Replace('\u201C', '"')  // U+201C Left Double Quotation Mark
+            .Replace('\u201D', '"')  // U+201D Right Double Quotation Mark
+            .Replace('\u201E', '"')  // U+201E Double Low-9 Quotation Mark (German)
+            .Replace('\u201F', '"')  // U+201F Double High-Reversed-9 Quotation Mark
+            .Replace('\u2018', '\'') // U+2018 Left Single Quotation Mark
+            .Replace('\u2019', '\'') // U+2019 Right Single Quotation Mark
+            .Replace('\u201A', '\'') // U+201A Single Low-9 Quotation Mark
+            .Replace('\u201B', '\''); // U+201B Single High-Reversed-9 Quotation Mark
     }
 }

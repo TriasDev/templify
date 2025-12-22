@@ -808,4 +808,114 @@ public sealed class InlineConditionalTests
     }
 
     #endregion
+
+    #region Typographic Quotes
+
+    [Fact]
+    public void ProcessTemplate_InlineConditional_WithTypographicQuotes_ConditionTrue()
+    {
+        // Arrange: Inline conditional with curly quotes (as Word auto-formats)
+        // Using U+201C and U+201D (left/right double quotation marks)
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraphWithRuns(
+            ("Status: ", null),
+            ("{{#if Status = \u201CActive\u201D}}", null), // Curly quotes
+            ("Yes", null),
+            ("{{else}}", null),
+            ("No", null),
+            ("{{/if}}", null)
+        );
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Status"] = "Active"
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        Assert.Equal(1, verifier.GetParagraphCount());
+        Assert.Equal("Status: Yes", verifier.GetParagraphText(0));
+    }
+
+    [Fact]
+    public void ProcessTemplate_InlineConditional_WithTypographicQuotes_ConditionFalse()
+    {
+        // Arrange: Inline conditional with curly quotes, condition false
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraphWithRuns(
+            ("Status: ", null),
+            ("{{#if Status = \u201CActive\u201D}}", null), // Curly quotes
+            ("Yes", null),
+            ("{{else}}", null),
+            ("No", null),
+            ("{{/if}}", null)
+        );
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Status"] = "Inactive"
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        Assert.Equal(1, verifier.GetParagraphCount());
+        Assert.Equal("Status: No", verifier.GetParagraphText(0));
+    }
+
+    [Fact]
+    public void ProcessTemplate_InlineConditional_WithGermanQuotes_ConditionTrue()
+    {
+        // Arrange: Inline conditional with German-style quotes (U+201E and U+201C)
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraphWithRuns(
+            ("Result: ", null),
+            ("{{#if Type = \u201EPremium\u201C}}", null), // German quotes
+            ("Premium", null),
+            ("{{else}}", null),
+            ("Standard", null),
+            ("{{/if}}", null)
+        );
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Type"] = "Premium"
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        Assert.Equal(1, verifier.GetParagraphCount());
+        Assert.Equal("Result: Premium", verifier.GetParagraphText(0));
+    }
+
+    #endregion
 }

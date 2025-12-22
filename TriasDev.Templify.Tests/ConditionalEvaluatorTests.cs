@@ -660,4 +660,60 @@ public class ConditionalEvaluatorTests
     }
 
     #endregion
+
+    #region Typographic Quotes
+
+    [Fact]
+    public void Evaluate_WithLeftRightCurlyQuotes_ReturnsTrue()
+    {
+        Dictionary<string, object> data = new() { ["Status"] = "In Progress" };
+
+        bool result = Evaluate("Status = \u201CIn Progress\u201D", data); // U+201C and U+201D
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void Evaluate_WithGermanQuotes_ReturnsTrue()
+    {
+        Dictionary<string, object> data = new() { ["Status"] = "Active" };
+
+        bool result = Evaluate("Status = \u201EActive\u201C", data); // U+201E and U+201C
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void Evaluate_WithCurlyQuotes_ReturnsTrue()
+    {
+        Dictionary<string, object> data = new() { ["Name"] = "Test" };
+
+        bool result = Evaluate("Name = \u201CTest\u201D", data); // Curly quotes
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void Evaluate_WithLeftSingleQuote_NormalizesToAscii()
+    {
+        Dictionary<string, object> data = new() { ["Name"] = "O'Connor" };
+
+        // U+2018 (left single quote) should be normalized to ASCII apostrophe
+        bool result = Evaluate("Name = \"O\u2018Connor\"", data);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void Evaluate_WithRightSingleQuote_NormalizesToAscii()
+    {
+        Dictionary<string, object> data = new() { ["Name"] = "O'Connor" };
+
+        // U+2019 (right single quote) should be normalized to ASCII apostrophe
+        bool result = Evaluate("Name = \"O\u2019Connor\"", data);
+
+        Assert.True(result);
+    }
+
+    #endregion
 }
