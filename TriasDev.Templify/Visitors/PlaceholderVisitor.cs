@@ -31,6 +31,11 @@ namespace TriasDev.Templify.Visitors;
 /// </remarks>
 internal sealed class PlaceholderVisitor : ITemplateElementVisitor
 {
+    /// <summary>
+    /// Newline separators for splitting text. Order matters: \r\n must come before \r and \n.
+    /// </summary>
+    private static readonly string[] NewlineSeparators = { "\r\n", "\r", "\n" };
+
     private readonly PlaceholderReplacementOptions _options;
     private readonly HashSet<string> _missingVariables;
     private int _replacementCount;
@@ -348,7 +353,7 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         }
 
         // Split on newlines and add Break elements between lines
-        string[] lines = textWithNewlines.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+        string[] lines = textWithNewlines.Split(NewlineSeparators, StringSplitOptions.None);
         for (int i = 0; i < lines.Length; i++)
         {
             if (i > 0)
@@ -402,7 +407,7 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         }
 
         // Split by newlines, then parse markdown for each line
-        string[] lines = textWithMarkdownAndNewlines.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+        string[] lines = textWithMarkdownAndNewlines.Split(NewlineSeparators, StringSplitOptions.None);
         for (int i = 0; i < lines.Length; i++)
         {
             if (i > 0)
