@@ -28,22 +28,6 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
 {
     private readonly ConditionalEvaluator _evaluator;
 
-    private static readonly Regex _ifStartPattern = new Regex(
-        @"\{\{#if\s+(.+?)\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-    private static readonly Regex _elseIfPattern = new Regex(
-        @"\{\{#elseif\s+(.+?)\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-    private static readonly Regex _elsePattern = new Regex(
-        @"\{\{else\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-    private static readonly Regex _ifEndPattern = new Regex(
-        @"\{\{/if\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
     public ConditionalVisitor()
     {
         _evaluator = new ConditionalEvaluator();
@@ -270,11 +254,9 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
     /// <summary>
     /// Represents a branch within an inline conditional.
     /// </summary>
-    private class InlineBranch
-    {
-        public string? Condition { get; set; }  // null for else branch
-        public string Content { get; set; } = "";
-    }
+    /// <param name="Condition">The condition expression, or null for else branch.</param>
+    /// <param name="Content">The content of the branch.</param>
+    private sealed record InlineBranch(string? Condition, string Content);
 
     /// <summary>
     /// Information about an inline conditional found in text.
@@ -297,7 +279,7 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
         while (searchStart < text.Length)
         {
             // Find next {{#if
-            Match ifMatch = _ifStartPattern.Match(text, searchStart);
+            Match ifMatch = ConditionalPatterns.IfStart.Match(text, searchStart);
             if (!ifMatch.Success)
             {
                 break;
@@ -317,10 +299,10 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
             while (pos < text.Length && depth > 0)
             {
                 // Look for next marker
-                Match nextIfMatch = _ifStartPattern.Match(text, pos);
-                Match nextEndMatch = _ifEndPattern.Match(text, pos);
-                Match nextElseIfMatch = _elseIfPattern.Match(text, pos);
-                Match nextElseMatch = _elsePattern.Match(text, pos);
+                Match nextIfMatch = ConditionalPatterns.IfStart.Match(text, pos);
+                Match nextEndMatch = ConditionalPatterns.IfEnd.Match(text, pos);
+                Match nextElseIfMatch = ConditionalPatterns.ElseIf.Match(text, pos);
+                Match nextElseMatch = ConditionalPatterns.Else.Match(text, pos);
 
                 // Find which comes first
                 int nextIfPos = nextIfMatch.Success ? nextIfMatch.Index : int.MaxValue;
@@ -394,11 +376,7 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
 
                     string content = text.Substring(contentStart, contentEnd - contentStart);
 
-                    info.Branches.Add(new InlineBranch
-                    {
-                        Condition = marker.Condition,
-                        Content = content
-                    });
+                    info.Branches.Add(new InlineBranch(marker.Condition, content));
                 }
 
                 result.Add(info);

@@ -1,10 +1,10 @@
 // Copyright (c) 2025 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using System.Text.RegularExpressions;
 
 namespace TriasDev.Templify.Conditionals;
 
@@ -14,21 +14,6 @@ namespace TriasDev.Templify.Conditionals;
 /// </summary>
 internal static class ConditionalDetector
 {
-    private static readonly Regex _ifStartPattern = new Regex(
-        @"\{\{#if\s+(.+?)\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-    private static readonly Regex _elseIfPattern = new Regex(
-        @"\{\{#elseif\s+(.+?)\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-    private static readonly Regex _elsePattern = new Regex(
-        @"\{\{else\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-    private static readonly Regex _ifEndPattern = new Regex(
-        @"\{\{/if\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     /// <summary>
     /// Holds information about markers found in a conditional block.
@@ -85,7 +70,7 @@ internal static class ConditionalDetector
 
             if (text != null)
             {
-                Match ifMatch = _ifStartPattern.Match(text);
+                Match ifMatch = ConditionalPatterns.IfStart.Match(text);
                 if (ifMatch.Success)
                 {
                     string conditionExpression = ifMatch.Groups[1].Value.Trim();
@@ -190,8 +175,8 @@ internal static class ConditionalDetector
         if (startText != null)
         {
             // Count all {{#if and {{/if}} occurrences in the same element
-            MatchCollection ifMatches = _ifStartPattern.Matches(startText);
-            MatchCollection endMatches = _ifEndPattern.Matches(startText);
+            MatchCollection ifMatches = ConditionalPatterns.IfStart.Matches(startText);
+            MatchCollection endMatches = ConditionalPatterns.IfEnd.Matches(startText);
 
             // The depth after this element is: initial (1) + additional ifs - all ends
             depth = depth + (ifMatches.Count - 1) - endMatches.Count;
@@ -218,11 +203,11 @@ internal static class ConditionalDetector
             }
 
             // Count all {{#if occurrences in this element
-            MatchCollection ifMatches = _ifStartPattern.Matches(text);
+            MatchCollection ifMatches = ConditionalPatterns.IfStart.Matches(text);
             depth += ifMatches.Count;
 
             // Count all {{/if}} occurrences in this element
-            MatchCollection endMatches = _ifEndPattern.Matches(text);
+            MatchCollection endMatches = ConditionalPatterns.IfEnd.Matches(text);
             depth -= endMatches.Count;
 
             if (depth == 0)
@@ -235,7 +220,7 @@ internal static class ConditionalDetector
             int effectiveDepth = depth + endMatches.Count;
 
             // Check for elseif at our depth level
-            Match elseIfMatch = _elseIfPattern.Match(text);
+            Match elseIfMatch = ConditionalPatterns.ElseIf.Match(text);
             if (elseIfMatch.Success && effectiveDepth == 1)
             {
                 // Validate: elseif cannot appear after else
@@ -250,7 +235,7 @@ internal static class ConditionalDetector
             }
 
             // Check for else at our depth level
-            if (_elsePattern.IsMatch(text) && effectiveDepth == 1 && elseIndex == -1)
+            if (ConditionalPatterns.Else.IsMatch(text) && effectiveDepth == 1 && elseIndex == -1)
             {
                 elseIndex = i;
             }
@@ -298,10 +283,10 @@ internal static class ConditionalDetector
             return false;
         }
 
-        return _ifStartPattern.IsMatch(text) ||
-               _elseIfPattern.IsMatch(text) ||
-               _elsePattern.IsMatch(text) ||
-               _ifEndPattern.IsMatch(text);
+        return ConditionalPatterns.IfStart.IsMatch(text) ||
+               ConditionalPatterns.ElseIf.IsMatch(text) ||
+               ConditionalPatterns.Else.IsMatch(text) ||
+               ConditionalPatterns.IfEnd.IsMatch(text);
     }
 
     /// <summary>
@@ -321,7 +306,7 @@ internal static class ConditionalDetector
 
             if (text != null)
             {
-                Match ifMatch = _ifStartPattern.Match(text);
+                Match ifMatch = ConditionalPatterns.IfStart.Match(text);
                 if (ifMatch.Success)
                 {
                     string conditionExpression = ifMatch.Groups[1].Value.Trim();
@@ -414,11 +399,11 @@ internal static class ConditionalDetector
                 continue;
             }
 
-            if (_ifStartPattern.IsMatch(text))
+            if (ConditionalPatterns.IfStart.IsMatch(text))
             {
                 depth++;
             }
-            else if (_ifEndPattern.IsMatch(text))
+            else if (ConditionalPatterns.IfEnd.IsMatch(text))
             {
                 depth--;
                 if (depth == 0)
@@ -430,7 +415,7 @@ internal static class ConditionalDetector
             else if (depth == 1)
             {
                 // Check for elseif at our depth level
-                Match elseIfMatch = _elseIfPattern.Match(text);
+                Match elseIfMatch = ConditionalPatterns.ElseIf.Match(text);
                 if (elseIfMatch.Success)
                 {
                     // Validate: elseif cannot appear after else
@@ -443,7 +428,7 @@ internal static class ConditionalDetector
 
                     elseIfMarkers.Add((i, elseIfMatch.Groups[1].Value.Trim()));
                 }
-                else if (_elsePattern.IsMatch(text) && elseIndex == -1)
+                else if (ConditionalPatterns.Else.IsMatch(text) && elseIndex == -1)
                 {
                     elseIndex = i;
                 }
