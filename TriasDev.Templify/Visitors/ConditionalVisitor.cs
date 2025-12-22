@@ -849,6 +849,8 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
 
     /// <summary>
     /// Checks if two RunProperties are equivalent for the purpose of merging segments.
+    /// Compares all relevant formatting properties to ensure segments with different
+    /// formatting are not incorrectly merged.
     /// </summary>
     private bool FormattingMatches(RunProperties? a, RunProperties? b)
     {
@@ -862,13 +864,61 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
             return false;
         }
 
-        // Compare key formatting elements
+        // Shading fill
         var aShadeFill = a.Shading?.Fill?.Value;
         var bShadeFill = b.Shading?.Fill?.Value;
 
+        // Text color
         var aColor = a.Color?.Val?.Value;
         var bColor = b.Color?.Val?.Value;
 
-        return aShadeFill == bShadeFill && aColor == bColor;
+        // Highlight color
+        var aHighlight = a.Highlight?.Val?.Value;
+        var bHighlight = b.Highlight?.Val?.Value;
+
+        // Bold / Italic (OnOffValue semantics: treat null as false)
+        var aBold = a.Bold?.Val ?? false;
+        var bBold = b.Bold?.Val ?? false;
+
+        var aItalic = a.Italic?.Val ?? false;
+        var bItalic = b.Italic?.Val ?? false;
+
+        // Underline style
+        var aUnderline = a.Underline?.Val?.Value;
+        var bUnderline = b.Underline?.Val?.Value;
+
+        // Font family (RunFonts)
+        var aAsciiFont = a.RunFonts?.Ascii?.Value;
+        var bAsciiFont = b.RunFonts?.Ascii?.Value;
+
+        var aHighAnsiFont = a.RunFonts?.HighAnsi?.Value;
+        var bHighAnsiFont = b.RunFonts?.HighAnsi?.Value;
+
+        var aEastAsiaFont = a.RunFonts?.EastAsia?.Value;
+        var bEastAsiaFont = b.RunFonts?.EastAsia?.Value;
+
+        var aComplexFont = a.RunFonts?.ComplexScript?.Value;
+        var bComplexFont = b.RunFonts?.ComplexScript?.Value;
+
+        // Font size (half-points as string, e.g. "24")
+        var aFontSize = a.FontSize?.Val?.Value;
+        var bFontSize = b.FontSize?.Val?.Value;
+
+        var aFontSizeCs = a.FontSizeComplexScript?.Val?.Value;
+        var bFontSizeCs = b.FontSizeComplexScript?.Val?.Value;
+
+        return
+            aShadeFill == bShadeFill &&
+            aColor == bColor &&
+            aHighlight == bHighlight &&
+            aBold == bBold &&
+            aItalic == bItalic &&
+            aUnderline == bUnderline &&
+            aAsciiFont == bAsciiFont &&
+            aHighAnsiFont == bHighAnsiFont &&
+            aEastAsiaFont == bEastAsiaFont &&
+            aComplexFont == bComplexFont &&
+            aFontSize == bFontSize &&
+            aFontSizeCs == bFontSizeCs;
     }
 }

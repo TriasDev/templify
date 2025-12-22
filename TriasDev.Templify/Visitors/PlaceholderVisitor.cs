@@ -216,6 +216,8 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
 
     /// <summary>
     /// Builds a list of run boundaries (start and end character indices) for mapping.
+    /// Only includes runs with text content; empty runs (e.g., those containing only
+    /// tabs or breaks) are skipped since they don't contribute to text indices.
     /// </summary>
     private static List<(Run Run, int StartIndex, int EndIndex)> BuildRunBoundaries(List<Run> runs)
     {
@@ -225,7 +227,12 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         foreach (Run run in runs)
         {
             int runLength = run.InnerText.Length;
-            boundaries.Add((run, currentIndex, currentIndex + runLength));
+            // Skip empty runs - they don't contribute to text content and would have
+            // StartIndex == EndIndex, making them unmatchable in FindRunsForPlaceholder
+            if (runLength > 0)
+            {
+                boundaries.Add((run, currentIndex, currentIndex + runLength));
+            }
             currentIndex += runLength;
         }
 
