@@ -684,7 +684,7 @@ public class ConditionalEvaluatorTests
     }
 
     [Fact]
-    public void Evaluate_WithMixedQuoteStyles_ReturnsTrue()
+    public void Evaluate_WithCurlyQuotes_ReturnsTrue()
     {
         Dictionary<string, object> data = new() { ["Name"] = "Test" };
 
