@@ -37,7 +37,7 @@ public class PropertyPathResolverTests
     private bool TryResolvePath(object? root, string pathString, out object? value)
     {
         object path = _parseMethod.Invoke(null, new object[] { pathString })!;
-        object[] parameters = new object?[] { root, path, null };
+        object?[] parameters = new object?[] { root, path, null };
         bool result = (bool)_tryResolvePathMethod.Invoke(null, parameters)!;
         value = parameters[2];
         return result;
