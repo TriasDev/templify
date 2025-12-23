@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using TriasDev.Templify.Formatting;
+using TriasDev.Templify.Replacements;
 
 namespace TriasDev.Templify.Core;
 
@@ -44,6 +45,42 @@ public sealed class PlaceholderReplacementOptions
     /// Default is true.
     /// </summary>
     public bool WarnOnEmptyLoopCollections { get; init; } = true;
+
+    /// <summary>
+    /// Gets or initializes a dictionary of text replacements to apply to variable values before processing.
+    /// Use this to convert HTML entities, custom placeholders, or other text patterns.
+    /// Default is null (no replacements).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Replacements are applied after value conversion but before newline and markdown processing.
+    /// This allows HTML line breaks (e.g., &lt;br&gt;) to be converted to \n, which then gets
+    /// processed into Word line breaks.
+    /// </para>
+    /// <para>
+    /// Use the built-in <see cref="TextReplacements.HtmlEntities"/> preset for common HTML entities:
+    /// </para>
+    /// <code>
+    /// var options = new PlaceholderReplacementOptions
+    /// {
+    ///     TextReplacements = TextReplacements.HtmlEntities
+    /// };
+    /// </code>
+    /// <para>
+    /// Or define custom replacements:
+    /// </para>
+    /// <code>
+    /// var options = new PlaceholderReplacementOptions
+    /// {
+    ///     TextReplacements = new Dictionary&lt;string, string&gt;
+    ///     {
+    ///         ["&lt;br&gt;"] = "\n",
+    ///         ["COMPANY_NAME"] = "Acme Corp"
+    ///     }
+    /// };
+    /// </code>
+    /// </remarks>
+    public IReadOnlyDictionary<string, string>? TextReplacements { get; init; }
 
     /// <summary>
     /// Creates a new instance of <see cref="PlaceholderReplacementOptions"/> with default settings.

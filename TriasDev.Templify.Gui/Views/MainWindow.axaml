@@ -15,7 +15,7 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto">
+    <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,*,Auto">
 
         <!-- Title -->
         <TextBlock Grid.Row="0"
@@ -51,7 +51,7 @@
         </Grid>
 
         <!-- Output File Selection -->
-        <Grid Grid.Row="3" ColumnDefinitions="100,*,100" Margin="0,0,0,20">
+        <Grid Grid.Row="3" ColumnDefinitions="100,*,100" Margin="0,0,0,10">
             <TextBlock Grid.Column="0" Text="Output File:" VerticalAlignment="Center"/>
             <TextBox Grid.Column="1"
                      Text="{Binding OutputPath}"
@@ -63,8 +63,15 @@
                     Command="{Binding BrowseOutputCommand}"/>
         </Grid>
 
+        <!-- Options Section -->
+        <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,0,0,20">
+            <CheckBox Content="Enable HTML Entity Replacement"
+                      IsChecked="{Binding EnableHtmlEntityReplacement}"
+                      ToolTip.Tip="Convert HTML entities like &lt;br&gt;, &amp;nbsp;, &amp;lt;, etc. to Word equivalents"/>
+        </StackPanel>
+
         <!-- Action Buttons -->
-        <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="10" Margin="0,0,0,20">
+        <StackPanel Grid.Row="5" Orientation="Horizontal" Spacing="10" Margin="0,0,0,20">
             <Button Content="Validate Template"
                     Command="{Binding ValidateTemplateCommand}"
                     Width="150"/>
@@ -74,7 +81,7 @@
         </StackPanel>
 
         <!-- Status and Progress -->
-        <StackPanel Grid.Row="5" Margin="0,0,0,10">
+        <StackPanel Grid.Row="6" Margin="0,0,0,10">
             <TextBlock Text="{Binding StatusMessage}"
                        FontWeight="SemiBold"
                        Margin="0,0,0,5"/>
@@ -85,7 +92,7 @@
         </StackPanel>
 
         <!-- Results Display -->
-        <Border Grid.Row="6"
+        <Border Grid.Row="7"
                 BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                 BorderThickness="1"
                 Padding="10"
@@ -104,7 +111,7 @@
         </Border>
 
         <!-- Bottom Action Buttons -->
-        <StackPanel Grid.Row="7" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+        <StackPanel Grid.Row="8" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
             <Button Content="Open Output File"
                     Command="{Binding OpenOutputFileCommand}"
                     Width="130"/>

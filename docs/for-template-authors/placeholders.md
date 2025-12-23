@@ -543,6 +543,87 @@ Second line.
 
 All newline formats are supported: `\n` (Unix/Linux/macOS), `\r\n` (Windows), `\r` (legacy Mac).
 
+## HTML Entity Replacement
+
+If your data comes from web applications or APIs, it may contain HTML tags and entities. Templify can automatically convert these to their Word equivalents when enabled.
+
+### Enabling HTML Entity Replacement
+
+In the **Templify GUI**, check the **"Enable HTML Entity Replacement"** checkbox before processing.
+
+In code, use the `TextReplacements` option:
+
+```csharp
+var options = new PlaceholderReplacementOptions
+{
+    TextReplacements = TextReplacements.HtmlEntities
+};
+```
+
+### Supported HTML Tags and Entities
+
+| HTML | Converted To | Description |
+|------|--------------|-------------|
+| `<br>` | Line break | HTML line break |
+| `<br/>` | Line break | Self-closing line break |
+| `<br />` | Line break | Self-closing with space |
+| `&nbsp;` | Non-breaking space | Keeps words together |
+| `&lt;` | `<` | Less than |
+| `&gt;` | `>` | Greater than |
+| `&amp;` | `&` | Ampersand |
+| `&quot;` | `"` | Double quote |
+| `&apos;` | `'` | Single quote |
+| `&mdash;` | `—` | Em dash |
+| `&ndash;` | `–` | En dash |
+
+> **Note:** The `<br>` tag also supports uppercase variants (`<BR>`, `<BR/>`, `<BR />`). However, HTML entities like `&nbsp;` are case-sensitive per the HTML specification and only lowercase versions are supported.
+
+### Example
+
+**JSON (with HTML from a web form):**
+```json
+{
+  "Description": "Product features:<br>- Fast<br>- Reliable<br>- Easy to use",
+  "Price": "Starting at &lt;$100",
+  "Note": "Contact us at info@company.com&nbsp;&mdash;&nbsp;we're here to help!"
+}
+```
+
+**Template:**
+```
+{{Description}}
+
+Price: {{Price}}
+
+{{Note}}
+```
+
+**Output (with HTML Entity Replacement enabled):**
+```
+Product features:
+- Fast
+- Reliable
+- Easy to use
+
+Price: Starting at <$100
+
+Contact us at info@company.com — we're here to help!
+```
+
+### When to Use HTML Entity Replacement
+
+Enable this option when your data:
+- Comes from web forms or CMS systems
+- Contains HTML line breaks (`<br>`)
+- Includes HTML-encoded special characters (`&lt;`, `&gt;`, `&amp;`)
+- Was exported from web applications
+
+### Limitations
+
+- Only simple tags and entities are supported (see table above)
+- Paired tags like `<b>text</b>` are **not** converted — use markdown (`**text**`) instead
+- This is an opt-in feature (disabled by default) to avoid unexpected changes
+
 **Combining with Markdown:**
 
 You can use both markdown formatting and line breaks together:
