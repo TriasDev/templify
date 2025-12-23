@@ -204,6 +204,7 @@ public sealed class TemplateElementTests
 
         return new LoopBlock(
             collectionName: "Items",
+            iterationVariableName: null,
             contentElements: content,
             startMarker: startMarker,
             endMarker: endMarker,

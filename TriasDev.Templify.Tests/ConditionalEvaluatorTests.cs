@@ -866,7 +866,7 @@ public class ConditionalEvaluatorTests
 
         object loopContext = Activator.CreateInstance(
             loopContextType,
-            new object[] { firstItem, 0, 1, "data.assets.items", null! })!;
+            new object[] { firstItem, 0, 1, "data.assets.items", null!, null! })!;
 
         IEvaluationContext loopEvalContext = (IEvaluationContext)Activator.CreateInstance(
             loopEvalContextType,

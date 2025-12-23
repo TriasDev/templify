@@ -307,6 +307,7 @@ public class LoopEvaluationContextTests
             index,
             count,
             collectionName,
+            null,  // iterationVariableName
             parent)!;
     }
 

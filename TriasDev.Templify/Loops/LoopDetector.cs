@@ -10,12 +10,13 @@ namespace TriasDev.Templify.Loops;
 
 /// <summary>
 /// Detects and parses loop blocks in Word documents.
-/// Supports {{#foreach CollectionName}}...{{/foreach}} syntax.
+/// Supports {{#foreach CollectionName}}...{{/foreach}} syntax
+/// and {{#foreach item in CollectionName}}...{{/foreach}} for named iteration variables.
 /// </summary>
 internal static class LoopDetector
 {
     private static readonly Regex _foreachStartPattern = new Regex(
-        @"\{\{#foreach\s+([\w.]+)\}\}",
+        @"\{\{#foreach\s+(?:(\w+)\s+in\s+)?([\w.]+)\}\}",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     private static readonly Regex _foreachEndPattern = new Regex(
@@ -77,7 +78,12 @@ internal static class LoopDetector
                 Match foreachMatch = _foreachStartPattern.Match(text);
                 if (foreachMatch.Success)
                 {
-                    string collectionName = foreachMatch.Groups[1].Value;
+                    // Group 1: optional iteration variable (e.g., "item" from "item in Items")
+                    // Group 2: collection name (e.g., "Items")
+                    string? iterationVariableName = foreachMatch.Groups[1].Success && foreachMatch.Groups[1].Length > 0
+                        ? foreachMatch.Groups[1].Value
+                        : null;
+                    string collectionName = foreachMatch.Groups[2].Value;
 
                     // Find the matching end marker
                     int endIndex = FindMatchingEnd(elements, i);
@@ -97,6 +103,7 @@ internal static class LoopDetector
                     // Create loop block
                     LoopBlock loopBlock = new LoopBlock(
                         collectionName,
+                        iterationVariableName,
                         contentElements,
                         element,
                         elements[endIndex],
@@ -242,7 +249,12 @@ internal static class LoopDetector
                 Match foreachMatch = _foreachStartPattern.Match(text);
                 if (foreachMatch.Success)
                 {
-                    string collectionName = foreachMatch.Groups[1].Value;
+                    // Group 1: optional iteration variable (e.g., "item" from "item in Items")
+                    // Group 2: collection name (e.g., "Items")
+                    string? iterationVariableName = foreachMatch.Groups[1].Success && foreachMatch.Groups[1].Length > 0
+                        ? foreachMatch.Groups[1].Value
+                        : null;
+                    string collectionName = foreachMatch.Groups[2].Value;
 
                     // Check if this specific loop is contained in a single cell
                     // If so, skip it - it will be processed when the cell content is walked
@@ -270,6 +282,7 @@ internal static class LoopDetector
                     // Create loop block for table row loop
                     LoopBlock loopBlock = new LoopBlock(
                         collectionName,
+                        iterationVariableName,
                         contentRows,
                         rows[i],      // Start marker row
                         rows[endIndex], // End marker row

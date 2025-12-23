@@ -342,6 +342,7 @@ public sealed class ConditionalVisitorTests
 
         return new LoopBlock(
             collectionName: "Items",
+            iterationVariableName: null,
             contentElements: content,
             startMarker: startMarker,
             endMarker: endMarker,

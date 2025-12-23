@@ -7,7 +7,8 @@ namespace TriasDev.Templify.Loops;
 
 /// <summary>
 /// Represents a parsed loop block in the document template.
-/// Supports {{#foreach CollectionName}}...{{/foreach}} syntax.
+/// Supports {{#foreach CollectionName}}...{{/foreach}} syntax
+/// and {{#foreach item in CollectionName}}...{{/foreach}} for named iteration variables.
 /// </summary>
 internal sealed class LoopBlock
 {
@@ -15,6 +16,13 @@ internal sealed class LoopBlock
     /// Gets the name of the collection to iterate over.
     /// </summary>
     public string CollectionName { get; }
+
+    /// <summary>
+    /// Gets the name of the iteration variable, or null if using implicit syntax.
+    /// For {{#foreach item in Items}}, this is "item".
+    /// For {{#foreach Items}}, this is null (implicit).
+    /// </summary>
+    public string? IterationVariableName { get; }
 
     /// <summary>
     /// Gets the OpenXML elements that make up the loop content.
@@ -44,6 +52,7 @@ internal sealed class LoopBlock
 
     public LoopBlock(
         string collectionName,
+        string? iterationVariableName,
         IReadOnlyList<OpenXmlElement> contentElements,
         OpenXmlElement startMarker,
         OpenXmlElement endMarker,
@@ -51,6 +60,7 @@ internal sealed class LoopBlock
         LoopBlock? emptyBlock = null)
     {
         CollectionName = collectionName ?? throw new ArgumentNullException(nameof(collectionName));
+        IterationVariableName = iterationVariableName;
         ContentElements = contentElements ?? throw new ArgumentNullException(nameof(contentElements));
         StartMarker = startMarker ?? throw new ArgumentNullException(nameof(startMarker));
         EndMarker = endMarker ?? throw new ArgumentNullException(nameof(endMarker));

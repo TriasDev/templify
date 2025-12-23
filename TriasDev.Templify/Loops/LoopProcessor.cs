@@ -406,6 +406,7 @@ internal sealed class LoopProcessor
 
         return new LoopBlock(
             collectionName,
+            iterationVariableName: null,
             contentElements,
             elements[startIndex],
             elements[endIndex],
