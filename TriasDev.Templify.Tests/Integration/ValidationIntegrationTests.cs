@@ -610,4 +610,281 @@ public sealed class ValidationIntegrationTests
     }
 
     #endregion
+
+    #region Loop-Scoped Variable Validation
+
+    [Fact]
+    public void ValidateTemplate_VariablesInsideLoop_DoesNotFlagAsMissing()
+    {
+        // Arrange - This is the core test case from the customer feedback
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{#foreach Items}}");
+        builder.AddParagraph("Name: {{Name}}, Price: {{Price}}");
+        builder.AddParagraph("{{/foreach}}");
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Items"] = new[]
+            {
+                new Dictionary<string, object> { ["Name"] = "Item 1", ["Price"] = 100 },
+                new Dictionary<string, object> { ["Name"] = "Item 2", ["Price"] = 200 }
+            }
+        };
+
+        PlaceholderReplacementOptions options = new PlaceholderReplacementOptions
+        {
+            Culture = CultureInfo.InvariantCulture
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor(options);
+
+        // Act
+        ValidationResult result = processor.ValidateTemplate(templateStream, data);
+
+        // Assert - Name and Price should NOT be flagged as missing
+        Assert.True(result.IsValid);
+        Assert.Empty(result.MissingVariables);
+        Assert.Contains("Items", result.AllPlaceholders);
+        Assert.Contains("Name", result.AllPlaceholders);
+        Assert.Contains("Price", result.AllPlaceholders);
+    }
+
+    [Fact]
+    public void ValidateTemplate_MissingVariablesInsideLoop_FlagsCorrectly()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{#foreach Items}}");
+        builder.AddParagraph("Name: {{Name}}, Missing: {{NonExistent}}");
+        builder.AddParagraph("{{/foreach}}");
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Items"] = new[]
+            {
+                new Dictionary<string, object> { ["Name"] = "Item 1" },
+                new Dictionary<string, object> { ["Name"] = "Item 2" }
+            }
+        };
+
+        PlaceholderReplacementOptions options = new PlaceholderReplacementOptions
+        {
+            Culture = CultureInfo.InvariantCulture
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor(options);
+
+        // Act
+        ValidationResult result = processor.ValidateTemplate(templateStream, data);
+
+        // Assert - NonExistent should be flagged as missing, but Name should not
+        Assert.False(result.IsValid);
+        Assert.Single(result.MissingVariables);
+        Assert.Contains("NonExistent", result.MissingVariables);
+        Assert.DoesNotContain("Name", result.MissingVariables);
+    }
+
+    [Fact]
+    public void ValidateTemplate_NestedLoops_ResolvesCorrectly()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{#foreach Categories}}");
+        builder.AddParagraph("Category: {{CategoryName}}");
+        builder.AddParagraph("{{#foreach Products}}");
+        builder.AddParagraph("- {{ProductName}}: {{ProductPrice}}");
+        builder.AddParagraph("{{/foreach}}");
+        builder.AddParagraph("{{/foreach}}");
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Categories"] = new[]
+            {
+                new Dictionary<string, object>
+                {
+                    ["CategoryName"] = "Electronics",
+                    ["Products"] = new[]
+                    {
+                        new Dictionary<string, object> { ["ProductName"] = "Phone", ["ProductPrice"] = 999 },
+                        new Dictionary<string, object> { ["ProductName"] = "Laptop", ["ProductPrice"] = 1999 }
+                    }
+                }
+            }
+        };
+
+        PlaceholderReplacementOptions options = new PlaceholderReplacementOptions
+        {
+            Culture = CultureInfo.InvariantCulture
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor(options);
+
+        // Act
+        ValidationResult result = processor.ValidateTemplate(templateStream, data);
+
+        // Assert - All variables should be resolved correctly
+        Assert.True(result.IsValid);
+        Assert.Empty(result.MissingVariables);
+    }
+
+    [Fact]
+    public void ValidateTemplate_EmptyCollection_AddsWarning()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{#foreach Items}}");
+        builder.AddParagraph("Name: {{Name}}");
+        builder.AddParagraph("{{/foreach}}");
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Items"] = Array.Empty<Dictionary<string, object>>()
+        };
+
+        PlaceholderReplacementOptions options = new PlaceholderReplacementOptions
+        {
+            Culture = CultureInfo.InvariantCulture
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor(options);
+
+        // Act
+        ValidationResult result = processor.ValidateTemplate(templateStream, data);
+
+        // Assert - Should have a warning about empty collection
+        Assert.True(result.IsValid); // Still valid, just a warning
+        Assert.Single(result.Warnings);
+        Assert.Contains("Items", result.Warnings[0].Message);
+        Assert.Equal(ValidationWarningType.EmptyLoopCollection, result.Warnings[0].Type);
+    }
+
+    [Fact]
+    public void ValidateTemplate_GlobalVariableInsideLoop_ResolvesFromGlobal()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{#foreach Items}}");
+        builder.AddParagraph("Item: {{Name}}, Company: {{CompanyName}}");
+        builder.AddParagraph("{{/foreach}}");
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["CompanyName"] = "ACME Corp",
+            ["Items"] = new[]
+            {
+                new Dictionary<string, object> { ["Name"] = "Item 1" },
+                new Dictionary<string, object> { ["Name"] = "Item 2" }
+            }
+        };
+
+        PlaceholderReplacementOptions options = new PlaceholderReplacementOptions
+        {
+            Culture = CultureInfo.InvariantCulture
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor(options);
+
+        // Act
+        ValidationResult result = processor.ValidateTemplate(templateStream, data);
+
+        // Assert - CompanyName (global) and Name (loop-scoped) should both resolve
+        Assert.True(result.IsValid);
+        Assert.Empty(result.MissingVariables);
+    }
+
+    [Fact]
+    public void ValidateTemplate_HeterogeneousCollection_AggregatesAllProperties()
+    {
+        // Arrange - Different items have different dynamic properties
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{#foreach Items}}");
+        builder.AddParagraph("ID: {{id}}, Name: {{name}}, DynProp1: {{dynProperty1}}, DynProp2: {{dynProperty2}}");
+        builder.AddParagraph("{{/foreach}}");
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Items"] = new[]
+            {
+                new Dictionary<string, object>
+                {
+                    ["id"] = "item1",
+                    ["name"] = "Item One",
+                    ["dynProperty1"] = "Dynamic value for item one."
+                },
+                new Dictionary<string, object>
+                {
+                    ["id"] = "item2",
+                    ["name"] = "Item Two",
+                    ["dynProperty2"] = "Dynamic value for item two."
+                }
+            }
+        };
+
+        PlaceholderReplacementOptions options = new PlaceholderReplacementOptions
+        {
+            Culture = CultureInfo.InvariantCulture
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor(options);
+
+        // Act
+        ValidationResult result = processor.ValidateTemplate(templateStream, data);
+
+        // Assert - Both dynProperty1 and dynProperty2 should be recognized
+        // because we aggregate properties from ALL items
+        Assert.True(result.IsValid);
+        Assert.Empty(result.MissingVariables);
+    }
+
+    [Fact]
+    public void ValidateTemplate_NestedPropertyInsideLoop_ResolvesCorrectly()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{#foreach Customers}}");
+        builder.AddParagraph("Name: {{Name}}, City: {{Address.City}}");
+        builder.AddParagraph("{{/foreach}}");
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Customers"] = new[]
+            {
+                new Dictionary<string, object>
+                {
+                    ["Name"] = "John",
+                    ["Address"] = new Dictionary<string, object> { ["City"] = "New York" }
+                }
+            }
+        };
+
+        PlaceholderReplacementOptions options = new PlaceholderReplacementOptions
+        {
+            Culture = CultureInfo.InvariantCulture
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor(options);
+
+        // Act
+        ValidationResult result = processor.ValidateTemplate(templateStream, data);
+
+        // Assert - Address.City should resolve (Address is a property of loop item)
+        Assert.True(result.IsValid);
+        Assert.Empty(result.MissingVariables);
+    }
+
+    #endregion
 }

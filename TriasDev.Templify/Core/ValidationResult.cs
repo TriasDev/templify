@@ -19,6 +19,12 @@ public sealed class ValidationResult
     public IReadOnlyList<ValidationError> Errors { get; init; } = Array.Empty<ValidationError>();
 
     /// <summary>
+    /// Gets the list of validation warnings found in the template.
+    /// Warnings indicate potential issues that don't prevent processing.
+    /// </summary>
+    public IReadOnlyList<ValidationWarning> Warnings { get; init; } = Array.Empty<ValidationWarning>();
+
+    /// <summary>
     /// Gets all placeholders found in the template (simple, conditional, loop).
     /// </summary>
     public IReadOnlyList<string> AllPlaceholders { get; init; } = Array.Empty<string>();
@@ -34,14 +40,17 @@ public sealed class ValidationResult
     /// </summary>
     /// <param name="allPlaceholders">All placeholders found in the template.</param>
     /// <param name="missingVariables">Missing variables (if data was provided).</param>
+    /// <param name="warnings">Optional validation warnings.</param>
     /// <returns>A successful validation result.</returns>
     public static ValidationResult Success(
         IReadOnlyList<string> allPlaceholders,
-        IReadOnlyList<string>? missingVariables = null)
+        IReadOnlyList<string>? missingVariables = null,
+        IReadOnlyList<ValidationWarning>? warnings = null)
     {
         return new ValidationResult
         {
             Errors = Array.Empty<ValidationError>(),
+            Warnings = warnings ?? Array.Empty<ValidationWarning>(),
             AllPlaceholders = allPlaceholders,
             MissingVariables = missingVariables ?? Array.Empty<string>()
         };
@@ -53,15 +62,18 @@ public sealed class ValidationResult
     /// <param name="errors">The validation errors found.</param>
     /// <param name="allPlaceholders">All placeholders found in the template.</param>
     /// <param name="missingVariables">Missing variables (if data was provided).</param>
+    /// <param name="warnings">Optional validation warnings.</param>
     /// <returns>A failed validation result.</returns>
     public static ValidationResult Failure(
         IReadOnlyList<ValidationError> errors,
         IReadOnlyList<string> allPlaceholders,
-        IReadOnlyList<string>? missingVariables = null)
+        IReadOnlyList<string>? missingVariables = null,
+        IReadOnlyList<ValidationWarning>? warnings = null)
     {
         return new ValidationResult
         {
             Errors = errors,
+            Warnings = warnings ?? Array.Empty<ValidationWarning>(),
             AllPlaceholders = allPlaceholders,
             MissingVariables = missingVariables ?? Array.Empty<string>()
         };
@@ -148,4 +160,57 @@ public enum ValidationErrorType
     /// A conditional expression is invalid or cannot be evaluated.
     /// </summary>
     InvalidConditionalExpression
+}
+
+/// <summary>
+/// Represents a validation warning found in a template.
+/// Warnings indicate potential issues that don't prevent processing.
+/// </summary>
+public sealed class ValidationWarning
+{
+    /// <summary>
+    /// Gets the type of validation warning.
+    /// </summary>
+    public ValidationWarningType Type { get; init; }
+
+    /// <summary>
+    /// Gets the warning message describing the potential issue.
+    /// </summary>
+    public string Message { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Gets the approximate location in the template where the warning was found (optional).
+    /// </summary>
+    public string? Location { get; init; }
+
+    /// <summary>
+    /// Creates a new validation warning.
+    /// </summary>
+    /// <param name="type">The type of warning.</param>
+    /// <param name="message">The warning message.</param>
+    /// <param name="location">The location in the template (optional).</param>
+    /// <returns>A validation warning.</returns>
+    public static ValidationWarning Create(
+        ValidationWarningType type,
+        string message,
+        string? location = null)
+    {
+        return new ValidationWarning
+        {
+            Type = type,
+            Message = message,
+            Location = location
+        };
+    }
+}
+
+/// <summary>
+/// Defines the types of validation warnings that can occur in a template.
+/// </summary>
+public enum ValidationWarningType
+{
+    /// <summary>
+    /// A loop collection is empty, so variables inside the loop could not be validated.
+    /// </summary>
+    EmptyLoopCollection
 }
