@@ -576,6 +576,8 @@ var options = new PlaceholderReplacementOptions
 | `&mdash;` | `—` | Em dash |
 | `&ndash;` | `–` | En dash |
 
+> **Note:** The `<br>` tag also supports uppercase variants (`<BR>`, `<BR/>`, `<BR />`). However, HTML entities like `&nbsp;` are case-sensitive per the HTML specification and only lowercase versions are supported.
+
 ### Example
 
 **JSON (with HTML from a web form):**

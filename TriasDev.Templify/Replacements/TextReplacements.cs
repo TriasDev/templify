@@ -1,6 +1,8 @@
 // Copyright (c) 2025 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.ObjectModel;
+
 namespace TriasDev.Templify.Replacements;
 
 /// <summary>
@@ -54,39 +56,40 @@ public static class TextReplacements
     /// <item><description>&amp;ndash; → en dash (–)</description></item>
     /// </list>
     /// </remarks>
-    public static Dictionary<string, string> HtmlEntities { get; } = new Dictionary<string, string>
-    {
-        // Line break variations
-        ["<br>"] = "\n",
-        ["<br/>"] = "\n",
-        ["<br />"] = "\n",
-        ["<BR>"] = "\n",
-        ["<BR/>"] = "\n",
-        ["<BR />"] = "\n",
+    public static IReadOnlyDictionary<string, string> HtmlEntities { get; } = new ReadOnlyDictionary<string, string>(
+        new Dictionary<string, string>
+        {
+            // Line break variations (lowercase and uppercase)
+            ["<br>"] = "\n",
+            ["<br/>"] = "\n",
+            ["<br />"] = "\n",
+            ["<BR>"] = "\n",
+            ["<BR/>"] = "\n",
+            ["<BR />"] = "\n",
 
-        // Common HTML entities
-        ["&nbsp;"] = "\u00A0",  // Non-breaking space
-        ["&lt;"] = "<",
-        ["&gt;"] = ">",
-        ["&amp;"] = "&",
-        ["&quot;"] = "\"",
-        ["&apos;"] = "'",
-        ["&mdash;"] = "\u2014", // Em dash (—)
-        ["&ndash;"] = "\u2013", // En dash (–)
-    };
+            // Common HTML entities (lowercase only - per HTML spec, entities are case-sensitive)
+            ["&nbsp;"] = "\u00A0",  // Non-breaking space
+            ["&lt;"] = "<",
+            ["&gt;"] = ">",
+            ["&amp;"] = "&",
+            ["&quot;"] = "\"",
+            ["&apos;"] = "'",
+            ["&mdash;"] = "\u2014", // Em dash (—)
+            ["&ndash;"] = "\u2013", // En dash (–)
+        });
 
     /// <summary>
     /// Applies text replacements to the input string.
     /// </summary>
-    /// <param name="input">The input string to transform.</param>
+    /// <param name="input">The input string to transform. If null, returns null.</param>
     /// <param name="replacements">Dictionary of text replacements to apply. If null or empty, returns input unchanged.</param>
-    /// <returns>The transformed string with all replacements applied.</returns>
+    /// <returns>The transformed string with all replacements applied, or null if input was null.</returns>
     /// <remarks>
     /// Replacements are applied in dictionary enumeration order.
     /// For predictable behavior with overlapping patterns, consider using an ordered dictionary
     /// or applying replacements in a specific sequence.
     /// </remarks>
-    public static string Apply(string input, Dictionary<string, string>? replacements)
+    public static string? Apply(string? input, IReadOnlyDictionary<string, string>? replacements)
     {
         if (string.IsNullOrEmpty(input) || replacements == null || replacements.Count == 0)
         {

@@ -139,7 +139,8 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
                 _options.BooleanFormatterRegistry);
 
             // Apply text replacements (e.g., HTML entities to Word-compatible text)
-            replacementValue = TextReplacements.Apply(replacementValue, _options.TextReplacements);
+            // Note: Apply returns null only if input is null, which won't happen here
+            replacementValue = TextReplacements.Apply(replacementValue, _options.TextReplacements)!;
 
             ReplacePlaceholderInParagraph(paragraph, placeholder, replacementValue);
             _replacementCount++;

@@ -80,7 +80,7 @@ public sealed class PlaceholderReplacementOptions
     /// };
     /// </code>
     /// </remarks>
-    public Dictionary<string, string>? TextReplacements { get; init; }
+    public IReadOnlyDictionary<string, string>? TextReplacements { get; init; }
 
     /// <summary>
     /// Creates a new instance of <see cref="PlaceholderReplacementOptions"/> with default settings.

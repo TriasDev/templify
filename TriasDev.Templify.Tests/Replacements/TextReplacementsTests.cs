@@ -84,7 +84,7 @@ public class TextReplacementsTests
         var replacements = TextReplacements.HtmlEntities;
 
         // Act
-        string result = TextReplacements.Apply(input!, replacements);
+        string? result = TextReplacements.Apply(input!, replacements);
 
         // Assert
         Assert.Null(result);
@@ -98,7 +98,7 @@ public class TextReplacementsTests
         var replacements = TextReplacements.HtmlEntities;
 
         // Act
-        string result = TextReplacements.Apply(input, replacements);
+        string? result = TextReplacements.Apply(input, replacements);
 
         // Assert
         Assert.Equal("", result);
@@ -112,7 +112,7 @@ public class TextReplacementsTests
         Dictionary<string, string>? replacements = null;
 
         // Act
-        string result = TextReplacements.Apply(input, replacements);
+        string? result = TextReplacements.Apply(input, replacements);
 
         // Assert
         Assert.Equal("Hello<br>World", result);
@@ -126,7 +126,7 @@ public class TextReplacementsTests
         var replacements = new Dictionary<string, string>();
 
         // Act
-        string result = TextReplacements.Apply(input, replacements);
+        string? result = TextReplacements.Apply(input, replacements);
 
         // Assert
         Assert.Equal("Hello<br>World", result);
@@ -140,7 +140,7 @@ public class TextReplacementsTests
         var replacements = TextReplacements.HtmlEntities;
 
         // Act
-        string result = TextReplacements.Apply(input, replacements);
+        string? result = TextReplacements.Apply(input, replacements);
 
         // Assert
         Assert.Equal("Hello World", result);
@@ -154,7 +154,7 @@ public class TextReplacementsTests
         var replacements = TextReplacements.HtmlEntities;
 
         // Act
-        string result = TextReplacements.Apply(input, replacements);
+        string? result = TextReplacements.Apply(input, replacements);
 
         // Assert
         Assert.Equal("Hello\nWorld", result);
@@ -168,7 +168,7 @@ public class TextReplacementsTests
         var replacements = TextReplacements.HtmlEntities;
 
         // Act
-        string result = TextReplacements.Apply(input, replacements);
+        string? result = TextReplacements.Apply(input, replacements);
 
         // Assert
         Assert.Equal("Line1\nLine2\nLine3\nLine4", result);
@@ -182,7 +182,7 @@ public class TextReplacementsTests
         var replacements = TextReplacements.HtmlEntities;
 
         // Act
-        string result = TextReplacements.Apply(input, replacements);
+        string? result = TextReplacements.Apply(input, replacements);
 
         // Assert
         Assert.Equal("5 < 10 & 10 > 5", result);
@@ -196,7 +196,7 @@ public class TextReplacementsTests
         var replacements = TextReplacements.HtmlEntities;
 
         // Act
-        string result = TextReplacements.Apply(input, replacements);
+        string? result = TextReplacements.Apply(input, replacements);
 
         // Assert
         Assert.Equal("Hello\u00A0World\n<test>", result);
@@ -210,7 +210,7 @@ public class TextReplacementsTests
         var replacements = TextReplacements.HtmlEntities;
 
         // Act
-        string result = TextReplacements.Apply(input, replacements);
+        string? result = TextReplacements.Apply(input, replacements);
 
         // Assert
         Assert.Equal("He said \"Hello\" and 'Goodbye'", result);
@@ -224,7 +224,7 @@ public class TextReplacementsTests
         var replacements = TextReplacements.HtmlEntities;
 
         // Act
-        string result = TextReplacements.Apply(input, replacements);
+        string? result = TextReplacements.Apply(input, replacements);
 
         // Assert
         Assert.Equal("Contact us\u00A0\u2014\u00A0we're here to help!", result);
@@ -238,7 +238,7 @@ public class TextReplacementsTests
         var replacements = TextReplacements.HtmlEntities;
 
         // Act
-        string result = TextReplacements.Apply(input, replacements);
+        string? result = TextReplacements.Apply(input, replacements);
 
         // Assert
         Assert.Equal("Hello\nWorld\nTest\nEnd", result);
@@ -256,7 +256,7 @@ public class TextReplacementsTests
         };
 
         // Act
-        string result = TextReplacements.Apply(input, replacements);
+        string? result = TextReplacements.Apply(input, replacements);
 
         // Assert
         Assert.Equal("Hello Acme Corp, welcome to Templify!", result);
@@ -273,7 +273,7 @@ public class TextReplacementsTests
         };
 
         // Act
-        string result = TextReplacements.Apply(input, replacements);
+        string? result = TextReplacements.Apply(input, replacements);
 
         // Assert
         Assert.Equal("Hello\nAcme Corp", result);
@@ -290,7 +290,7 @@ public class TextReplacementsTests
         var replacements = TextReplacements.HtmlEntities;
 
         // Act
-        string result = TextReplacements.Apply(input, replacements);
+        string? result = TextReplacements.Apply(input, replacements);
 
         // Assert - With single-pass replacement:
         // - "&amp;" matches and gets replaced with "&", resulting in "&nbsp;"
@@ -307,7 +307,7 @@ public class TextReplacementsTests
         var replacements = TextReplacements.HtmlEntities;
 
         // Act
-        string result = TextReplacements.Apply(input, replacements);
+        string? result = TextReplacements.Apply(input, replacements);
 
         // Assert
         Assert.Equal("<>&", result);
@@ -321,7 +321,7 @@ public class TextReplacementsTests
         var replacements = TextReplacements.HtmlEntities;
 
         // Act
-        string result = TextReplacements.Apply(input, replacements);
+        string? result = TextReplacements.Apply(input, replacements);
 
         // Assert
         Assert.Equal("\u00A0", result);
