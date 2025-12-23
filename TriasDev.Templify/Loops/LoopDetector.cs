@@ -16,8 +16,17 @@ namespace TriasDev.Templify.Loops;
 internal static class LoopDetector
 {
     private static readonly Regex _foreachStartPattern = new Regex(
-        @"\{\{#foreach\s+(?:(\w+)\s+in\s+)?([\w.]+)\}\}",
+        @"\{\{#foreach\s+(?:(@?\w+)\s+in\s+)?([\w.]+)\}\}",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    /// <summary>
+    /// Reserved variable names that cannot be used as iteration variable names.
+    /// These conflict with loop metadata syntax.
+    /// </summary>
+    private static readonly HashSet<string> _reservedVariableNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "in" // Reserved keyword in loop syntax
+    };
 
     private static readonly Regex _foreachEndPattern = new Regex(
         @"\{\{/foreach\}\}",
@@ -30,6 +39,31 @@ internal static class LoopDetector
     private static readonly Regex _emptyEndPattern = new Regex(
         @"\{\{/empty\}\}",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    /// <summary>
+    /// Validates an iteration variable name and throws if invalid.
+    /// </summary>
+    /// <param name="variableName">The variable name to validate.</param>
+    /// <param name="collectionName">The collection name for error messages.</param>
+    /// <exception cref="InvalidOperationException">Thrown when the variable name is invalid.</exception>
+    private static void ValidateIterationVariableName(string variableName, string collectionName)
+    {
+        // Check for reserved names (like "in")
+        if (_reservedVariableNames.Contains(variableName))
+        {
+            throw new InvalidOperationException(
+                $"Invalid iteration variable name '{variableName}' in '{{{{#foreach {variableName} in {collectionName}}}}}'. " +
+                $"'{variableName}' is a reserved keyword.");
+        }
+
+        // Check for metadata prefix (@)
+        if (variableName.StartsWith("@", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Invalid iteration variable name '{variableName}' in '{{{{#foreach {variableName} in {collectionName}}}}}'. " +
+                $"Iteration variable names cannot start with '@' as this is reserved for loop metadata.");
+        }
+    }
 
     /// <summary>
     /// Detects all loop blocks in the document body.
@@ -84,6 +118,12 @@ internal static class LoopDetector
                         ? foreachMatch.Groups[1].Value
                         : null;
                     string collectionName = foreachMatch.Groups[2].Value;
+
+                    // Validate iteration variable name if provided
+                    if (iterationVariableName != null)
+                    {
+                        ValidateIterationVariableName(iterationVariableName, collectionName);
+                    }
 
                     // Find the matching end marker
                     int endIndex = FindMatchingEnd(elements, i);
@@ -255,6 +295,12 @@ internal static class LoopDetector
                         ? foreachMatch.Groups[1].Value
                         : null;
                     string collectionName = foreachMatch.Groups[2].Value;
+
+                    // Validate iteration variable name if provided
+                    if (iterationVariableName != null)
+                    {
+                        ValidateIterationVariableName(iterationVariableName, collectionName);
+                    }
 
                     // Check if this specific loop is contained in a single cell
                     // If so, skip it - it will be processed when the cell content is walked

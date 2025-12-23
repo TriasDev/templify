@@ -74,9 +74,9 @@ public sealed class NamedIterationVariableIntegrationTests
         Assert.Equal(3, paragraphs.Count);
         Assert.Equal("Products:", paragraphs[0]);
         Assert.Contains("Widget", paragraphs[1]);
-        Assert.True(paragraphs[1].Contains("19.99") || paragraphs[1].Contains("19,99")); // Handle locale differences
+        Assert.Matches(@"19[.,]99", paragraphs[1]); // Handle locale differences (period or comma)
         Assert.Contains("Gadget", paragraphs[2]);
-        Assert.True(paragraphs[2].Contains("29.99") || paragraphs[2].Contains("29,99")); // Handle locale differences
+        Assert.Matches(@"29[.,]99", paragraphs[2]); // Handle locale differences (period or comma)
     }
 
     [Fact]
@@ -374,5 +374,57 @@ public sealed class NamedIterationVariableIntegrationTests
         Assert.Equal("0: First", paragraphs[0]);
         Assert.Equal("1: Second", paragraphs[1]);
         Assert.Equal("2: Third (last)", paragraphs[2]);
+    }
+
+    [Fact]
+    public void ProcessTemplate_NamedVariable_ReservedKeyword_In_ThrowsException()
+    {
+        // Arrange: "in" is a reserved keyword and cannot be used as iteration variable name
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{#foreach in in Items}}");
+        builder.AddParagraph("{{in}}");
+        builder.AddParagraph("{{/foreach}}");
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Items"] = new List<string> { "A", "B" }
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act & Assert
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
+            () => processor.ProcessTemplate(templateStream, outputStream, data));
+
+        Assert.Contains("'in' is a reserved keyword", exception.Message);
+    }
+
+    [Fact]
+    public void ProcessTemplate_NamedVariable_MetadataPrefix_ThrowsException()
+    {
+        // Arrange: Variable names starting with @ are reserved for loop metadata
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{#foreach @item in Items}}");
+        builder.AddParagraph("{{@item}}");
+        builder.AddParagraph("{{/foreach}}");
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Items"] = new List<string> { "A", "B" }
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act & Assert
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
+            () => processor.ProcessTemplate(templateStream, outputStream, data));
+
+        Assert.Contains("reserved for loop metadata", exception.Message);
     }
 }
