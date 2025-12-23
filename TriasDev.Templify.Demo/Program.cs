@@ -253,10 +253,10 @@ internal class Program
         AddParagraph(body, "    ✅ Active Subscription");
         AddParagraph(body, "    {{#if SubscriptionTier eq Premium}}");
         AddParagraph(body, "      🏆 PREMIUM TIER - All benefits included");
-        AddParagraph(body, "    {{else}}");
+        AddParagraph(body, "    {{#else}}");
         AddParagraph(body, "      💼 STANDARD TIER");
         AddParagraph(body, "    {{/if}}");
-        AddParagraph(body, "  {{else}}");
+        AddParagraph(body, "  {{#else}}");
         AddParagraph(body, "    ⏳ Subscription expired - Contact sales");
         AddParagraph(body, "  {{/if}}");
         AddParagraph(body, "{{#else}}");

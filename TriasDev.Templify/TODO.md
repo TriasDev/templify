@@ -20,7 +20,7 @@
 
 #### High Priority
 
-- [x] **Add Conditional Blocks** - `{{#if condition}}...{{/if}}` with `{{else}}` - ✅ **IMPLEMENTED**
+- [x] **Add Conditional Blocks** - `{{#if condition}}...{{/if}}` with `{{#else}}` - ✅ **IMPLEMENTED**
 
   **Inspiration**: OpenXMLTemplates ConditionalUtils (see `/Utilities/OpenXMLTemplates/ControlReplacers/Utils/ConditionalUtils.cs`)
 
@@ -32,7 +32,7 @@
 
   {{#if VariableName}}
     Content when true
-  {{else}}
+  {{#else}}
     Content when false
   {{/if}}
   ```
@@ -83,8 +83,8 @@
      - Need to decide on precedence order
 
   4. **Content Removal Logic**:
-     - If condition is `false`, remove all content between `{{#if}}` and `{{else}}` (or `{{/if}}`)
-     - If condition is `true`, remove all content between `{{else}}` and `{{/if}}`
+     - If condition is `false`, remove all content between `{{#if}}` and `{{#else}}` (or `{{/if}}`)
+     - If condition is `true`, remove all content between `{{#else}}` and `{{/if}}`
      - Remove the conditional tags themselves after evaluation
 
   5. **Table Support**:
@@ -104,7 +104,7 @@
   **Implementation Status**: ✅ **FULLY COMPLETE!**
   - ✅ ConditionalEvaluator with all operators (51 unit tests passing)
   - ✅ ConditionalBlock data structure with nesting level tracking
-  - ✅ ConditionalDetector for finding {{#if}}/{{else}}/{{/if}} blocks (recursive detection)
+  - ✅ ConditionalDetector for finding {{#if}}/{{#else}}/{{/if}} blocks (recursive detection)
   - ✅ ConditionalProcessor for evaluating and removing branches (deepest-first processing)
   - ✅ Integration with DocumentTemplateProcessor
   - ✅ 20 integration tests covering end-to-end scenarios (including 7 nested conditional tests)
