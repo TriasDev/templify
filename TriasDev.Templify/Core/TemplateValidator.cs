@@ -65,7 +65,7 @@ internal sealed class TemplateValidator
                 List<OpenXmlElement> elements = body.Elements<OpenXmlElement>().ToList();
 
                 // 1. Validate conditionals and collect variables from conditions
-                IReadOnlyList<ConditionalBlock> conditionalBlocks = ValidateConditionals(elements, allPlaceholders, errors);
+                _ = ValidateConditionals(elements, allPlaceholders, errors);
 
                 // 2. Validate loops and collect collection names
                 ValidateLoops(elements, allPlaceholders, errors);
@@ -232,7 +232,7 @@ internal sealed class TemplateValidator
 
     private static readonly HashSet<string> _operatorKeywords = new HashSet<string>(StringComparer.Ordinal)
     {
-        "and", "or", "not", "eq", "ne", "lt", "gt", "lte", "gte"
+        "and", "or", "not"
     };
 
     /// <summary>
@@ -240,7 +240,10 @@ internal sealed class TemplateValidator
     /// </summary>
     private static void ExtractConditionVariables(string condition, HashSet<string> placeholders, bool excludeLiterals = false)
     {
-        IEnumerable<string> parts = condition
+        // Normalize curly/typographic quotes that Word may auto-convert
+        string normalizedCondition = NormalizeQuotes(condition);
+
+        IEnumerable<string> parts = normalizedCondition
             .Split(new[] { ' ', '(', ')', '!', '>', '<', '=', '&', '|' }, StringSplitOptions.RemoveEmptyEntries)
             .Select(p => p.Trim())
             .Where(p => !string.IsNullOrWhiteSpace(p) && !_operatorKeywords.Contains(p));
@@ -261,6 +264,23 @@ internal sealed class TemplateValidator
                 placeholders.Add(part);
             }
         }
+    }
+
+    /// <summary>
+    /// Normalizes typographic/curly quotes to ASCII quotes.
+    /// Word often auto-converts straight quotes to curly quotes.
+    /// </summary>
+    private static string NormalizeQuotes(string text)
+    {
+        return text
+            .Replace('\u201C', '"')  // U+201C Left Double Quotation Mark
+            .Replace('\u201D', '"')  // U+201D Right Double Quotation Mark
+            .Replace('\u201E', '"')  // U+201E Double Low-9 Quotation Mark (German)
+            .Replace('\u201F', '"')  // U+201F Double High-Reversed-9 Quotation Mark
+            .Replace('\u2018', '\'') // U+2018 Left Single Quotation Mark
+            .Replace('\u2019', '\'') // U+2019 Right Single Quotation Mark
+            .Replace('\u201A', '\'') // U+201A Single Low-9 Quotation Mark
+            .Replace('\u201B', '\''); // U+201B Single High-Reversed-9 Quotation Mark
     }
 
     /// <summary>
@@ -361,15 +381,25 @@ internal sealed class TemplateValidator
     {
         allPlaceholders.Add(loop.CollectionName);
 
-        // Resolve collection from current scope (check loop scopes first, then global)
-        object? collection = ResolveCollectionFromScope(loop.CollectionName, loopStack, data, resolver);
+        // Check if this is a loop-scoped property (nested collection from parent loop)
+        bool isLoopScopedProperty = IsLoopScopedProperty(loop.CollectionName, loopStack);
+
+        if (isLoopScopedProperty)
+        {
+            // The collection is a property of a loop item - we can't resolve it statically
+            return;
+        }
+
+        // Try to resolve from global data
+        object? collection = ResolveCollectionFromGlobalScope(loop.CollectionName, data, resolver);
 
         if (collection == null)
         {
-            // Collection not found in global scope or is a loop-scoped property (nested collection).
-            // For loop-scoped properties, we skip validation since we can't resolve them statically.
-            // For truly missing collections, they will be flagged when validating placeholders
-            // if they appear as {{CollectionName}} somewhere in the template.
+            // Collection is not found in global scope - flag as missing
+            missingVariables.Add(loop.CollectionName);
+            errors.Add(ValidationError.Create(
+                ValidationErrorType.MissingVariable,
+                $"Collection '{loop.CollectionName}' is referenced in a loop but not provided in the data."));
             return;
         }
 
@@ -396,26 +426,31 @@ internal sealed class TemplateValidator
     }
 
     /// <summary>
-    /// Resolves a collection from the current scope (loop scopes or global).
+    /// Checks if the given name is a property available in any parent loop scope.
     /// </summary>
-    private static object? ResolveCollectionFromScope(
-        string collectionName,
-        Stack<(string CollectionName, HashSet<string> Properties)> loopStack,
-        Dictionary<string, object> data,
-        ValueResolver resolver)
+    private static bool IsLoopScopedProperty(
+        string name,
+        Stack<(string CollectionName, HashSet<string> Properties)> loopStack)
     {
-        // First, check if the collection name is a property in any loop scope
         foreach ((string _, HashSet<string> properties) in loopStack)
         {
-            if (properties.Contains(collectionName))
+            if (properties.Contains(name))
             {
-                // The collection is a property of a loop item - we can't resolve the actual value
-                // during static validation, so we return null to skip validation
-                return null;
+                return true;
             }
         }
 
-        // Try to resolve from global data
+        return false;
+    }
+
+    /// <summary>
+    /// Resolves a collection from global data only.
+    /// </summary>
+    private static object? ResolveCollectionFromGlobalScope(
+        string collectionName,
+        Dictionary<string, object> data,
+        ValueResolver resolver)
+    {
         if (resolver.TryResolveValue(data, collectionName, out object? value))
         {
             return value;
