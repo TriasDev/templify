@@ -17,6 +17,17 @@ namespace TriasDev.Templify.Core;
 /// </summary>
 internal sealed class TemplateValidator
 {
+    private readonly PlaceholderReplacementOptions _options;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TemplateValidator"/> class.
+    /// </summary>
+    /// <param name="options">Configuration options for validation. If null, default options are used.</param>
+    public TemplateValidator(PlaceholderReplacementOptions? options = null)
+    {
+        _options = options ?? new PlaceholderReplacementOptions();
+    }
+
     /// <summary>
     /// Validates a Word document template for syntax errors and optionally checks for missing variables.
     /// </summary>
@@ -68,7 +79,7 @@ internal sealed class TemplateValidator
                 // 5. Check for missing variables if data is provided
                 if (data != null)
                 {
-                    ValidateMissingVariables(elements, conditionalBlocks, data, allPlaceholders, missingVariables, warnings, errors);
+                    ValidateMissingVariables(elements, conditionalBlocks, data, allPlaceholders, missingVariables, warnings, errors, _options.WarnOnEmptyLoopCollections);
                 }
             }
         }
@@ -202,7 +213,8 @@ internal sealed class TemplateValidator
         HashSet<string> allPlaceholders,
         HashSet<string> missingVariables,
         List<ValidationWarning> warnings,
-        List<ValidationError> errors)
+        List<ValidationError> errors,
+        bool warnOnEmptyLoopCollections)
     {
         ValueResolver resolver = new ValueResolver();
         Stack<(string CollectionName, HashSet<string> Properties)> loopStack =
@@ -218,7 +230,7 @@ internal sealed class TemplateValidator
         }
 
         // Validate placeholders with proper loop scoping
-        ValidatePlaceholdersInScope(elements, loopStack, data, allPlaceholders, missingVariables, warnings, errors, resolver);
+        ValidatePlaceholdersInScope(elements, loopStack, data, allPlaceholders, missingVariables, warnings, errors, resolver, warnOnEmptyLoopCollections);
     }
 
     /// <summary>
@@ -262,7 +274,8 @@ internal sealed class TemplateValidator
         HashSet<string> missingVariables,
         List<ValidationWarning> warnings,
         List<ValidationError> errors,
-        ValueResolver resolver)
+        ValueResolver resolver,
+        bool warnOnEmptyLoopCollections)
     {
         // 1. Detect loops in these elements
         IReadOnlyList<LoopBlock> loopBlocks;
@@ -295,16 +308,20 @@ internal sealed class TemplateValidator
 
             if (aggregatedProperties.Count == 0)
             {
-                // Empty collection - add warning, skip inner validation
-                warnings.Add(ValidationWarning.Create(
-                    ValidationWarningType.EmptyLoopCollection,
-                    $"Collection '{loop.CollectionName}' is empty. Variables inside this loop could not be validated."));
+                // Empty collection - optionally add warning, skip inner validation
+                if (warnOnEmptyLoopCollections)
+                {
+                    warnings.Add(ValidationWarning.Create(
+                        ValidationWarningType.EmptyLoopCollection,
+                        $"Collection '{loop.CollectionName}' is empty. Variables inside this loop could not be validated."));
+                }
+
                 continue;
             }
 
             // Recurse into loop content with aggregated properties as scope
             loopStack.Push((loop.CollectionName, aggregatedProperties));
-            ValidatePlaceholdersInScope(loop.ContentElements, loopStack, data, allPlaceholders, missingVariables, warnings, errors, resolver);
+            ValidatePlaceholdersInScope(loop.ContentElements, loopStack, data, allPlaceholders, missingVariables, warnings, errors, resolver, warnOnEmptyLoopCollections);
             loopStack.Pop();
         }
 
@@ -331,14 +348,18 @@ internal sealed class TemplateValidator
 
                         if (aggregatedProperties.Count == 0)
                         {
-                            warnings.Add(ValidationWarning.Create(
-                                ValidationWarningType.EmptyLoopCollection,
-                                $"Collection '{loop.CollectionName}' is empty. Variables inside this loop could not be validated."));
+                            if (warnOnEmptyLoopCollections)
+                            {
+                                warnings.Add(ValidationWarning.Create(
+                                    ValidationWarningType.EmptyLoopCollection,
+                                    $"Collection '{loop.CollectionName}' is empty. Variables inside this loop could not be validated."));
+                            }
+
                             continue;
                         }
 
                         loopStack.Push((loop.CollectionName, aggregatedProperties));
-                        ValidatePlaceholdersInScope(loop.ContentElements, loopStack, data, allPlaceholders, missingVariables, warnings, errors, resolver);
+                        ValidatePlaceholdersInScope(loop.ContentElements, loopStack, data, allPlaceholders, missingVariables, warnings, errors, resolver, warnOnEmptyLoopCollections);
                         loopStack.Pop();
                     }
                 }
@@ -467,6 +488,10 @@ internal sealed class TemplateValidator
             }
 
             // Nested property (e.g., "Address.City" - check if "Address" exists)
+            // Note: During static validation, we can only verify the root property exists in the loop scope.
+            // We cannot deeply validate the nested path (e.g., that Address actually has a City property)
+            // because we only have property names from the collection, not actual runtime values.
+            // This is an acceptable limitation - runtime processing will catch any invalid nested paths.
             string rootProperty = placeholder.Split('.')[0];
             if (rootProperty != placeholder && properties.Contains(rootProperty))
             {

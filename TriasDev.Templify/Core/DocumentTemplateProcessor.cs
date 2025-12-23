@@ -212,7 +212,7 @@ public sealed class DocumentTemplateProcessor
     /// <returns>A validation result with errors, placeholders, and missing variables.</returns>
     private ValidationResult ValidateTemplateInternal(Stream templateStream, Dictionary<string, object>? data)
     {
-        TemplateValidator validator = new TemplateValidator();
+        TemplateValidator validator = new TemplateValidator(_options);
         return validator.Validate(templateStream, data);
     }
 
