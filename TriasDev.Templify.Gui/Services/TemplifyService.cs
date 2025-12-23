@@ -8,6 +8,7 @@ using System.IO;
 using System.Threading.Tasks;
 using TriasDev.Templify.Core;
 using TriasDev.Templify.Gui.Models;
+using TriasDev.Templify.Replacements;
 using TriasDev.Templify.Utilities;
 
 namespace TriasDev.Templify.Gui.Services;
@@ -20,14 +21,18 @@ public class TemplifyService : ITemplifyService
     /// <summary>
     /// Validates a template file with optional JSON data.
     /// </summary>
-    public async Task<ValidationResult> ValidateTemplateAsync(string templatePath, string? jsonPath = null)
+    public async Task<ValidationResult> ValidateTemplateAsync(
+        string templatePath,
+        string? jsonPath = null,
+        bool enableHtmlEntityReplacement = false)
     {
         return await Task.Run(() =>
         {
             PlaceholderReplacementOptions options = new PlaceholderReplacementOptions
             {
                 MissingVariableBehavior = MissingVariableBehavior.LeaveUnchanged,
-                Culture = CultureInfo.InvariantCulture
+                Culture = CultureInfo.InvariantCulture,
+                TextReplacements = enableHtmlEntityReplacement ? TextReplacements.HtmlEntities : null
             };
 
             DocumentTemplateProcessor processor = new DocumentTemplateProcessor(options);
@@ -57,6 +62,7 @@ public class TemplifyService : ITemplifyService
         string templatePath,
         string jsonPath,
         string outputPath,
+        bool enableHtmlEntityReplacement = false,
         IProgress<double>? progress = null)
     {
         return await Task.Run(() =>
@@ -76,11 +82,12 @@ public class TemplifyService : ITemplifyService
 
                 progress?.Report(0.3);
 
-                // Validate template first
+                // Configure options with optional HTML entity replacement
                 PlaceholderReplacementOptions options = new PlaceholderReplacementOptions
                 {
                     MissingVariableBehavior = MissingVariableBehavior.LeaveUnchanged,
-                    Culture = CultureInfo.InvariantCulture
+                    Culture = CultureInfo.InvariantCulture,
+                    TextReplacements = enableHtmlEntityReplacement ? TextReplacements.HtmlEntities : null
                 };
 
                 DocumentTemplateProcessor processor = new DocumentTemplateProcessor(options);

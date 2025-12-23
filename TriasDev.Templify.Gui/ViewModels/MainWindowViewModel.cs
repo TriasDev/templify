@@ -48,6 +48,14 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private ObservableCollection<string> _results = new();
 
+    /// <summary>
+    /// Gets or sets whether HTML entity replacement is enabled.
+    /// When enabled, HTML entities like &lt;br&gt;, &amp;nbsp;, etc. are converted
+    /// to their Word equivalents before processing.
+    /// </summary>
+    [ObservableProperty]
+    private bool _enableHtmlEntityReplacement;
+
     public MainWindowViewModel(
         ITemplifyService templifyService,
         IFileDialogService fileDialogService)
@@ -103,7 +111,10 @@ public partial class MainWindowViewModel : ViewModelBase
 
         try
         {
-            ValidationResult validation = await _templifyService.ValidateTemplateAsync(TemplatePath, JsonPath);
+            ValidationResult validation = await _templifyService.ValidateTemplateAsync(
+                TemplatePath,
+                JsonPath,
+                EnableHtmlEntityReplacement);
 
             if (validation.IsValid)
             {
@@ -177,6 +188,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 TemplatePath,
                 JsonPath,
                 OutputPath,
+                EnableHtmlEntityReplacement,
                 progressReporter);
 
             if (result.Success)
