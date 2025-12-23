@@ -573,6 +573,8 @@ var options = new PlaceholderReplacementOptions
 | `&amp;` | `&` | Ampersand |
 | `&quot;` | `"` | Double quote |
 | `&apos;` | `'` | Single quote |
+| `&mdash;` | `—` | Em dash |
+| `&ndash;` | `–` | En dash |
 
 ### Example
 

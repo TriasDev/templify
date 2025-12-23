@@ -50,6 +50,8 @@ public static class TextReplacements
     /// <item><description>&amp;amp; → &amp;</description></item>
     /// <item><description>&amp;quot; → "</description></item>
     /// <item><description>&amp;apos; → '</description></item>
+    /// <item><description>&amp;mdash; → em dash (—)</description></item>
+    /// <item><description>&amp;ndash; → en dash (–)</description></item>
     /// </list>
     /// </remarks>
     public static Dictionary<string, string> HtmlEntities { get; } = new Dictionary<string, string>
@@ -69,6 +71,8 @@ public static class TextReplacements
         ["&amp;"] = "&",
         ["&quot;"] = "\"",
         ["&apos;"] = "'",
+        ["&mdash;"] = "\u2014", // Em dash (—)
+        ["&ndash;"] = "\u2013", // En dash (–)
     };
 
     /// <summary>

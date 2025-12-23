@@ -25,6 +25,8 @@ public class TextReplacementsTests
         Assert.Contains("&amp;", entities.Keys);
         Assert.Contains("&quot;", entities.Keys);
         Assert.Contains("&apos;", entities.Keys);
+        Assert.Contains("&mdash;", entities.Keys);
+        Assert.Contains("&ndash;", entities.Keys);
     }
 
     [Theory]
@@ -59,6 +61,8 @@ public class TextReplacementsTests
     [InlineData("&amp;", "&")]
     [InlineData("&quot;", "\"")]
     [InlineData("&apos;", "'")]
+    [InlineData("&mdash;", "\u2014")]
+    [InlineData("&ndash;", "\u2013")]
     public void HtmlEntities_CommonEntities_MapCorrectly(string input, string expected)
     {
         // Act
@@ -210,6 +214,20 @@ public class TextReplacementsTests
 
         // Assert
         Assert.Equal("He said \"Hello\" and 'Goodbye'", result);
+    }
+
+    [Fact]
+    public void Apply_Dashes_ReplacesCorrectly()
+    {
+        // Arrange
+        string input = "Contact us&nbsp;&mdash;&nbsp;we're here to help!";
+        var replacements = TextReplacements.HtmlEntities;
+
+        // Act
+        string result = TextReplacements.Apply(input, replacements);
+
+        // Assert
+        Assert.Equal("Contact us\u00A0\u2014\u00A0we're here to help!", result);
     }
 
     [Fact]
