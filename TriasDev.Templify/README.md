@@ -11,7 +11,7 @@ Templify is built on the Microsoft OpenXML SDK and provides a straightforward AP
 - **Simple placeholder syntax**: Use `{{variableName}}` in your Word templates
 - **Boolean format specifiers**: Display booleans as checkboxes (☑/☐), Yes/No, checkmarks (✓/✗), and more
 - **Boolean expressions**: Evaluate logic in placeholders with `and`, `or`, `not`, and comparison operators
-- **Conditional blocks**: Use `{{#if condition}}...{{else}}...{{/if}}` for dynamic content
+- **Conditional blocks**: Use `{{#if condition}}...{{#else}}...{{/if}}` for dynamic content
 - **Advanced conditions**: Support for `eq`, `ne`, `gt`, `lt`, `gte`, `lte`, `and`, `or`, `not` operators
 - **Loops and iterations**: Use `{{#foreach}}...{{/foreach}}` to repeat content for collections
 - **Loop metadata**: Access index, first/last flags, and count within loops
@@ -235,7 +235,7 @@ var data = new Dictionary<string, object>
 
 ## Conditional Blocks
 
-Templify supports conditional content using `{{#if condition}}...{{else}}...{{/if}}` syntax. Show or hide content based on data values and complex expressions.
+Templify supports conditional content using `{{#if condition}}...{{#else}}...{{/if}}` syntax. Show or hide content based on data values and complex expressions.
 
 ### Basic Conditional Syntax
 
@@ -246,7 +246,7 @@ Templify supports conditional content using `{{#if condition}}...{{else}}...{{/i
 
 {{#if VariableName}}
   Content when true
-{{else}}
+{{#else}}
   Content when false
 {{/if}}
 ```
@@ -290,7 +290,7 @@ Templify supports conditional content using `{{#if condition}}...{{else}}...{{/i
 
 {{#if Status = "Active" or Status = "Pending"}}
   In progress
-{{else}}
+{{#else}}
   Completed or cancelled
 {{/if}}
 ```
@@ -348,7 +348,7 @@ VIP Customer - Free expedited shipping included!
 
 {{#if Country = "Germany"}}
 Shipping: 5-7 business days within Germany
-{{else}}
+{{#else}}
 Shipping: International delivery 10-14 days
 {{/if}}
 ```
@@ -393,19 +393,19 @@ VIP Customer Benefits:
     - Priority Support (24/7)
     - Free Shipping on all orders
     - 20% discount on all purchases
-  {{else}}
+  {{#else}}
     - Standard Support
     - Free Shipping on orders over $100
     - 10% discount on all purchases
   {{/if}}
-{{else}}
+{{#else}}
   No active subscription. Consider upgrading!
 {{/if}}
 
 {{#if OrderTotal > 1000}}
   High-value order - Personal Account Manager assigned
 {{/if}}
-{{else}}
+{{#else}}
 Regular Customer
 - Standard shipping rates apply
 - 5% discount on orders over $200
@@ -429,7 +429,7 @@ VIP Customer Benefits:
 - Conditionals can be nested to any depth
 - Inner conditionals are evaluated first, then outer conditionals
 - Each `{{#if}}` must have a matching `{{/if}}`
-- `{{else}}` can also contain nested conditionals
+- `{{#else}}` can also contain nested conditionals
 
 ## Loops and Iterations
 

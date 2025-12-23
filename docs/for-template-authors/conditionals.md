@@ -48,7 +48,7 @@ Best regards
 ```
 {{#if Condition}}
   Content when true
-{{else}}
+{{#else}}
   Content when false
 {{/if}}
 ```
@@ -64,7 +64,7 @@ Best regards
 ```
 {{#if IsPremium}}
 Welcome, Premium Member! Enjoy unlimited access.
-{{else}}
+{{#else}}
 Upgrade to Premium to unlock all features.
 {{/if}}
 ```
@@ -85,7 +85,7 @@ Use `{{#elseif}}` to check multiple conditions in sequence:
   Content for condition 2
 {{#elseif Condition3}}
   Content for condition 3
-{{else}}
+{{#else}}
   Default content
 {{/if}}
 ```
@@ -107,7 +107,7 @@ Grade: B - Good
 Grade: C - Satisfactory
 {{#elseif Score >= 60}}
 Grade: D - Needs Improvement
-{{else}}
+{{#else}}
 Grade: F - Please see instructor
 {{/if}}
 ```
@@ -121,8 +121,8 @@ Grade: C - Satisfactory
 - Conditions are evaluated in order, from top to bottom
 - The first condition that is true wins - its content is shown
 - All other branches are removed
-- The `{{else}}` branch is optional and acts as a fallback
-- **Important:** `{{else}}` must always be the last branch
+- The `{{#else}}` branch is optional and acts as a fallback
+- **Important:** `{{#else}}` must always be the last branch
 
 **Benefits over nested conditionals:**
 - Cleaner, more readable templates
@@ -459,7 +459,7 @@ Your Score: {{Score}}
 👍 Great job! You achieved a B grade.
 {{#elseif Score >= 70}}
 ✓ Good work! You achieved a C grade.
-{{else}}
+{{#else}}
 📚 Keep studying! You can improve.
 {{/if}}
 ```
@@ -506,7 +506,7 @@ Welcome to the dashboard!
 - View Content Only
 {{/if}}
 
-{{else}}
+{{#else}}
 Please log in to access this page.
 {{/if}}
 ```
@@ -553,10 +553,10 @@ Mid-range product pricing.
 ```
 {{#if StockLevel = 0}}
 ❌ OUT OF STOCK
-{{else}}
+{{#else}}
   {{#if StockLevel < ReorderPoint}}
   ⚠️ LOW STOCK: {{StockLevel}} remaining
-  {{else}}
+  {{#else}}
   ✓ In Stock: {{StockLevel}} available
   {{/if}}
 {{/if}}
@@ -667,15 +667,15 @@ You can nest conditionals inside each other:
     {{#if HasActiveSubscription}}
       [Premium Content Unlocked]
       Access to all features!
-    {{else}}
+    {{#else}}
       [Subscription Expired]
       Please renew your subscription.
     {{/if}}
-  {{else}}
+  {{#else}}
     [Free Account]
     Upgrade to Premium for more features.
   {{/if}}
-{{else}}
+{{#else}}
   Please log in.
 {{/if}}
 ```
@@ -705,7 +705,7 @@ Product List:
 - {{Name}}: ${{Price}}
   {{#if InStock}}
   ✓ Available
-  {{else}}
+  {{#else}}
   ❌ Out of Stock
   {{/if}}
 {{/foreach}}
@@ -770,7 +770,7 @@ Dear {{CustomerName}},
 
 {{#if DaysSinceLastPurchase < 30}}
 Great to see you again so soon!
-{{else}}
+{{#else}}
 We've missed you! It's been a while since your last visit.
 {{/if}}
 
@@ -925,7 +925,7 @@ Make sure each `{{#if}}` has a matching `{{/if}}`:
    ❌ Wrong:
    {{#if A}}
      Content A
-   {{else}}
+   {{#else}}
      Default
    {{#elseif B}}     ← Error! elseif cannot come after else
      Content B
@@ -936,7 +936,7 @@ Make sure each `{{#if}}` has a matching `{{/if}}`:
      Content A
    {{#elseif B}}
      Content B
-   {{else}}          ← else must be last
+   {{#else}}          ← else must be last
      Default
    {{/if}}
    ```
@@ -959,7 +959,7 @@ Make sure each `{{#if}}` has a matching `{{/if}}`:
 4. **Add comments in Word** - Use Word comments to document complex conditional logic
 5. **Use else clauses** - Provide feedback for both true and false cases when appropriate
 6. **Use elseif for multiple conditions** - Prefer `{{#elseif}}` over deeply nested `{{#if}}` blocks
-7. **Keep else last** - The `{{else}}` branch must always be the final branch before `{{/if}}`
+7. **Keep else last** - The `{{#else}}` branch must always be the final branch before `{{/if}}`
 8. **Limit nesting** - Deep nesting is hard to read; with `{{#elseif}}`, you often don't need nesting at all
 
 ## Next Steps

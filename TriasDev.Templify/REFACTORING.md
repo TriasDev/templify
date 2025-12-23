@@ -72,7 +72,7 @@ This document outlines the comprehensive refactoring that was performed for Temp
 
 **Current Order** (hard-coded):
 ```
-1. ConditionalProcessor → Process {{#if}}/{{else}}/{{/if}} globally
+1. ConditionalProcessor → Process {{#if}}/{{#else}}/{{/if}} globally
 2. LoopDetector + LoopProcessor → Process {{#foreach}}/{{/foreach}}
 3. DocumentBodyReplacer → Replace simple placeholders in paragraphs
 4. TableReplacer → Replace placeholders in tables
@@ -113,7 +113,7 @@ Output Document (Stream)
   - Aggregates results and missing variables
 
 #### ConditionalProcessor + ConditionalDetector
-- **Purpose**: Handle `{{#if}}/{{else}}/{{/if}}` blocks
+- **Purpose**: Handle `{{#if}}/{{#else}}/{{/if}}` blocks
 - **Responsibilities**:
   - Detect conditional blocks (supports nesting)
   - Evaluate expressions using ConditionalEvaluator
@@ -188,7 +188,7 @@ Output Document (Stream)
   Order #{{OrderId}}
   {{#if Amount > 1000}}
     🔥 HIGH VALUE: {{Amount}} EUR
-  {{else}}
+  {{#else}}
     Standard: {{Amount}} EUR
   {{/if}}
 {{/foreach}}

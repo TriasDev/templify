@@ -52,7 +52,7 @@ Templify lets you create Word document templates with special placeholders that 
 
 ✨ **Simple Placeholders** - `{{VariableName}}` syntax
 🔁 **Loops** - Repeat sections with `{{#foreach}}...{{/foreach}}`
-⚡ **Conditionals** - Dynamic content with `{{#if}}...{{else}}...{{/if}}`
+⚡ **Conditionals** - Dynamic content with `{{#if}}...{{#else}}...{{/if}}`
 📊 **Table Support** - Loop through table rows
 🎨 **Formatting** - Preserves Word styling and supports markdown
 🚀 **No Word Required** - Uses Open XML SDK (template authors still use Word to create templates)

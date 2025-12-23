@@ -144,7 +144,7 @@ Thank you for being a Premium member!
 
 {{#if Status = "Active"}}
 Your account is active.
-{{else}}
+{{#else}}
 Your account needs activation.
 {{/if}}
 ```

@@ -306,7 +306,7 @@ public sealed class ListsInLoopsTests
         builder.AddParagraph("{{#foreach Products}}");
         builder.AddParagraph("{{#if IsAvailable}}");
         builder.AddBulletListItem("{{Name}} (Available)");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddBulletListItem("{{Name}} (Out of Stock)");
         builder.AddParagraph("{{/if}}");
         builder.AddParagraph("{{/foreach}}");
@@ -352,7 +352,7 @@ public sealed class ListsInLoopsTests
         builder.AddParagraph("{{#foreach Tasks}}");
         builder.AddParagraph("{{#if IsCompleted}}");
         builder.AddNumberedListItem("✓ {{Name}}");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddNumberedListItem("○ {{Name}}");
         builder.AddParagraph("{{/if}}");
         builder.AddParagraph("{{/foreach}}");
@@ -398,7 +398,7 @@ public sealed class ListsInLoopsTests
         builder.AddParagraph("{{#foreach Products}}");
         builder.AddParagraph("{{#if IsAvailable and Price < 100}}");
         builder.AddBulletListItem("{{Name}} - €{{Price}} (Great Deal!)");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddBulletListItem("{{Name}} - €{{Price}}");
         builder.AddParagraph("{{/if}}");
         builder.AddParagraph("{{/foreach}}");

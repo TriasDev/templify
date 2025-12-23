@@ -88,7 +88,7 @@ public sealed class ConditionalTests
         DocumentBuilder builder = new DocumentBuilder();
         builder.AddParagraph("{{#if IsActive}}");
         builder.AddParagraph("Status: Active");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Status: Inactive");
         builder.AddParagraph("{{/if}}");
 
@@ -120,7 +120,7 @@ public sealed class ConditionalTests
         DocumentBuilder builder = new DocumentBuilder();
         builder.AddParagraph("{{#if IsActive}}");
         builder.AddParagraph("Status: Active");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Status: Inactive");
         builder.AddParagraph("{{/if}}");
 
@@ -369,7 +369,7 @@ public sealed class ConditionalTests
         DocumentBuilder builder = new DocumentBuilder();
         builder.AddParagraph("{{#if IsActive}}");
         builder.AddParagraph("Name: {{Name}}");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Inactive user");
         builder.AddParagraph("{{/if}}");
 
@@ -513,10 +513,10 @@ public sealed class ConditionalTests
         builder.AddParagraph("VIP Customer");
         builder.AddParagraph("{{#if HasDiscount}}");
         builder.AddParagraph("Discount applied");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("No discount");
         builder.AddParagraph("{{/if}}");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Regular Customer");
         builder.AddParagraph("{{/if}}");
 
@@ -590,10 +590,10 @@ public sealed class ConditionalTests
         DocumentBuilder builder = new DocumentBuilder();
         builder.AddParagraph("{{#if IsActive}}");
         builder.AddParagraph("Active");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("{{#if IsArchived}}");
         builder.AddParagraph("Archived");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Inactive");
         builder.AddParagraph("{{/if}}");
         builder.AddParagraph("{{/if}}");

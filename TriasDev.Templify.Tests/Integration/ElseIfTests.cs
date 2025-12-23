@@ -8,7 +8,7 @@ namespace TriasDev.Templify.Tests.Integration;
 
 /// <summary>
 /// Integration tests for elseif conditional block functionality.
-/// Tests the {{#if}}...{{#elseif}}...{{else}}...{{/if}} syntax.
+/// Tests the {{#if}}...{{#elseif}}...{{#else}}...{{/if}} syntax.
 /// </summary>
 public sealed class ElseIfTests
 {
@@ -21,7 +21,7 @@ public sealed class ElseIfTests
         builder.AddParagraph("Status is Active");
         builder.AddParagraph("{{#elseif Status = Pending}}");
         builder.AddParagraph("Status is Pending");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Unknown status");
         builder.AddParagraph("{{/if}}");
 
@@ -55,7 +55,7 @@ public sealed class ElseIfTests
         builder.AddParagraph("Status is Active");
         builder.AddParagraph("{{#elseif Status = Pending}}");
         builder.AddParagraph("Status is Pending");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Unknown status");
         builder.AddParagraph("{{/if}}");
 
@@ -89,7 +89,7 @@ public sealed class ElseIfTests
         builder.AddParagraph("Status is Active");
         builder.AddParagraph("{{#elseif Status = Pending}}");
         builder.AddParagraph("Status is Pending");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Unknown status");
         builder.AddParagraph("{{/if}}");
 
@@ -162,7 +162,7 @@ public sealed class ElseIfTests
         builder.AddParagraph("Grade: C");
         builder.AddParagraph("{{#elseif Score >= 60}}");
         builder.AddParagraph("Grade: D");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Grade: F");
         builder.AddParagraph("{{/if}}");
 
@@ -198,7 +198,7 @@ public sealed class ElseIfTests
         builder.AddParagraph("Moderator user");
         builder.AddParagraph("{{#elseif IsVerified}}");
         builder.AddParagraph("Verified user");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Guest user");
         builder.AddParagraph("{{/if}}");
 
@@ -234,7 +234,7 @@ public sealed class ElseIfTests
         builder.AddParagraph("Welcome, Premium {{Name}}!");
         builder.AddParagraph("{{#elseif Type = Standard}}");
         builder.AddParagraph("Welcome, {{Name}}!");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Welcome, Guest!");
         builder.AddParagraph("{{/if}}");
 
@@ -270,10 +270,10 @@ public sealed class ElseIfTests
         builder.AddParagraph("Pro plan");
         builder.AddParagraph("{{#elseif Plan = Basic}}");
         builder.AddParagraph("Basic plan");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Unknown plan");
         builder.AddParagraph("{{/if}}");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("No subscription");
         builder.AddParagraph("{{/if}}");
 
@@ -309,7 +309,7 @@ public sealed class ElseIfTests
         builder.AddParagraph("{{Name}} - Active");
         builder.AddParagraph("{{#elseif Status = Pending}}");
         builder.AddParagraph("{{Name}} - Pending");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("{{Name}} - Inactive");
         builder.AddParagraph("{{/if}}");
         builder.AddParagraph("{{/foreach}}");
@@ -353,7 +353,7 @@ public sealed class ElseIfTests
         builder.AddParagraph("VIP without discount");
         builder.AddParagraph("{{#elseif HasDiscount}}");
         builder.AddParagraph("Regular with discount");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Regular customer");
         builder.AddParagraph("{{/if}}");
 
@@ -388,7 +388,7 @@ public sealed class ElseIfTests
         builder.AddParagraph("First");
         builder.AddParagraph("{{#ELSEIF Condition2}}");
         builder.AddParagraph("Second");
-        builder.AddParagraph("{{ELSE}}");
+        builder.AddParagraph("{{#ELSE}}");
         builder.AddParagraph("Default");
         builder.AddParagraph("{{/IF}}");
 
@@ -423,7 +423,7 @@ public sealed class ElseIfTests
         builder.AddParagraph("Home category");
         builder.AddParagraph("{{#elseif Category = \"Sports & Outdoors\"}}");
         builder.AddParagraph("Sports category");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Other category");
         builder.AddParagraph("{{/if}}");
 
@@ -455,7 +455,7 @@ public sealed class ElseIfTests
         DocumentBuilder builder = new DocumentBuilder();
         builder.AddParagraph("{{#if Condition1}}");
         builder.AddParagraph("First");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Default");
         builder.AddParagraph("{{#elseif Condition2}}");  // Invalid: elseif after else
         builder.AddParagraph("Second");
@@ -489,7 +489,7 @@ public sealed class ElseIfTests
         builder.AddParagraph("VIP Customer");
         builder.AddParagraph("{{#elseif Customer.Type = Premium}}");
         builder.AddParagraph("Premium Customer");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Standard Customer");
         builder.AddParagraph("{{/if}}");
 
@@ -525,7 +525,7 @@ public sealed class ElseIfTests
         builder.AddParagraph("{{#elseif Level = Medium}}");
         builder.AddParagraph("Medium priority:");
         builder.AddParagraph("Please review when possible");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Low priority:");
         builder.AddParagraph("No rush needed");
         builder.AddParagraph("{{/if}}");
@@ -565,7 +565,7 @@ public sealed class ElseIfTests
             ("Active", null),
             ("{{#elseif Status = Pending}}", null),
             ("Pending", null),
-            ("{{else}}", null),
+            ("{{#else}}", null),
             ("Inactive", null),
             ("{{/if}}", null)
         );
@@ -602,7 +602,7 @@ public sealed class ElseIfTests
             ("Active", null),
             ("{{#elseif Status = Pending}}", null),
             ("Pending", null),
-            ("{{else}}", null),
+            ("{{#else}}", null),
             ("Inactive", null),
             ("{{/if}}", null)
         );
@@ -639,7 +639,7 @@ public sealed class ElseIfTests
             ("Active", null),
             ("{{#elseif Status = Pending}}", null),
             ("Pending", null),
-            ("{{else}}", null),
+            ("{{#else}}", null),
             ("Inactive", null),
             ("{{/if}}", null)
         );
@@ -678,7 +678,7 @@ public sealed class ElseIfTests
             ("B", null),
             ("{{#elseif Score >= 70}}", null),
             ("C", null),
-            ("{{else}}", null),
+            ("{{#else}}", null),
             ("F", null),
             ("{{/if}}", null)
         );
@@ -716,7 +716,7 @@ public sealed class ElseIfTests
             ("A", null),
             ("{{#elseif Level2 = B}}", null),
             ("B", null),
-            ("{{else}}", null),
+            ("{{#else}}", null),
             ("C", null),
             ("{{/if}}", null),
             ("{{/if}}", null)
@@ -755,7 +755,7 @@ public sealed class ElseIfTests
             ("Administrator {{Name}}", null),
             ("{{#elseif Role = User}}", null),
             ("User {{Name}}", null),
-            ("{{else}}", null),
+            ("{{#else}}", null),
             ("Guest", null),
             ("{{/if}}", null),
             ("!", null)

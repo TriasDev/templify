@@ -33,7 +33,7 @@ public class ConditionalGenerator : BaseExampleGenerator
             AddParagraph(body, "{{#if IsPremiumCustomer}}");
             AddParagraph(body, "🌟 Thank you for being a Premium Member!");
             AddParagraph(body, "You enjoy free shipping and priority support.");
-            AddParagraph(body, "{{else}}");
+            AddParagraph(body, "{{#else}}");
             AddParagraph(body, "Upgrade to Premium for exclusive benefits!");
             AddParagraph(body, "{{/if}}");
             AddEmptyParagraph(body);
@@ -43,11 +43,11 @@ public class ConditionalGenerator : BaseExampleGenerator
             AddParagraph(body, "{{#if Status = \"Shipped\"}}");
             AddParagraph(body, "✓ Your order has been shipped!");
             AddParagraph(body, "Tracking Number: {{TrackingNumber}}");
-            AddParagraph(body, "{{else}}");
+            AddParagraph(body, "{{#else}}");
             AddParagraph(body, "{{#if Status = \"Processing\"}}");
             AddParagraph(body, "⏳ Your order is being processed.");
             AddParagraph(body, "Expected ship date: {{ExpectedShipDate}}");
-            AddParagraph(body, "{{else}}");
+            AddParagraph(body, "{{#else}}");
             AddParagraph(body, "📦 Order Status: {{Status}}");
             AddParagraph(body, "{{/if}}");
             AddParagraph(body, "{{/if}}");
@@ -57,7 +57,7 @@ public class ConditionalGenerator : BaseExampleGenerator
             AddParagraph(body, "Delivery:", isBold: true);
             AddParagraph(body, "{{#if ExpressDelivery}}");
             AddParagraph(body, "⚡ Express Delivery (1-2 business days)");
-            AddParagraph(body, "{{else}}");
+            AddParagraph(body, "{{#else}}");
             AddParagraph(body, "📮 Standard Delivery (3-5 business days)");
             AddParagraph(body, "{{/if}}");
             AddEmptyParagraph(body);
@@ -67,7 +67,7 @@ public class ConditionalGenerator : BaseExampleGenerator
             AddParagraph(body, "{{#if HasDiscount}}");
             AddParagraph(body, "Discount Applied: -{{DiscountAmount}} ({{DiscountCode}})");
             AddParagraph(body, "Final Total: {{FinalTotal}}", isBold: true);
-            AddParagraph(body, "{{else}}");
+            AddParagraph(body, "{{#else}}");
             AddParagraph(body, "No discounts applied.");
             AddParagraph(body, "{{/if}}");
             AddEmptyParagraph(body);
@@ -75,10 +75,10 @@ public class ConditionalGenerator : BaseExampleGenerator
             // Payment Method
             AddParagraph(body, "{{#if PaymentMethod = \"CreditCard\"}}");
             AddParagraph(body, "Paid via Credit Card ending in {{CardLastFour}}");
-            AddParagraph(body, "{{else}}");
+            AddParagraph(body, "{{#else}}");
             AddParagraph(body, "{{#if PaymentMethod = \"PayPal\"}}");
             AddParagraph(body, "Paid via PayPal ({{PayPalEmail}})");
-            AddParagraph(body, "{{else}}");
+            AddParagraph(body, "{{#else}}");
             AddParagraph(body, "Payment Method: {{PaymentMethod}}");
             AddParagraph(body, "{{/if}}");
             AddParagraph(body, "{{/if}}");
@@ -88,7 +88,7 @@ public class ConditionalGenerator : BaseExampleGenerator
             AddParagraph(body, "{{#if IsGift}}");
             AddParagraph(body, "🎁 This is a gift order!", isBold: true);
             AddParagraph(body, "Gift Message: {{GiftMessage}}");
-            AddParagraph(body, "Gift Wrap: {{#if GiftWrap}}Yes{{else}}No{{/if}}");
+            AddParagraph(body, "Gift Wrap: {{#if GiftWrap}}Yes{{#else}}No{{/if}}");
             AddParagraph(body, "{{/if}}");
 
             doc.Save();

@@ -74,7 +74,7 @@ Or in Visual Studio: `Install-Package TriasDev.Templify`
 - ✅ **Array indexing**: `{{Items[0].Name}}`
 - ✅ **Boolean format specifiers**: `{{IsActive:checkbox}}`, `{{IsVerified:yesno}}`
 - ✅ **Boolean expressions**: `{{(Age >= 18 and HasLicense):yesno}}`
-- ✅ **Conditionals**: `{{#if IsActive}}...{{else}}...{{/if}}`
+- ✅ **Conditionals**: `{{#if IsActive}}...{{#else}}...{{/if}}`
 - ✅ **Loops**: `{{#foreach Items}}...{{/foreach}}`
 - ✅ **Nested loops**: Loops inside loops (arbitrary depth)
 - ✅ **Table row loops**: Dynamic table generation
@@ -184,12 +184,12 @@ Location: {{Company.Address.City}}
 
 ### Q: How do conditionals work?
 
-**A:** Use `{{#if}}...{{else}}...{{/if}}`:
+**A:** Use `{{#if}}...{{#else}}...{{/if}}`:
 
 ```
 {{#if IsActive}}
 This customer is active.
-{{else}}
+{{#else}}
 This customer is inactive.
 {{/if}}
 ```

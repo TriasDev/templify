@@ -50,7 +50,7 @@ public sealed class VisitorPatternIntegrationTests
         DocumentBuilder builder = new DocumentBuilder();
         builder.AddParagraph("{{#if IsActive}}");
         builder.AddParagraph("Status: Active");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Status: Inactive");
         builder.AddParagraph("{{/if}}");
 
@@ -102,7 +102,7 @@ public sealed class VisitorPatternIntegrationTests
         builder.AddParagraph("{{#foreach Items}}");
         builder.AddParagraph("{{#if @first}}");
         builder.AddParagraph("First: {{.}}");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Other: {{.}}");
         builder.AddParagraph("{{/if}}");
         builder.AddParagraph("{{/foreach}}");
@@ -231,11 +231,11 @@ public sealed class VisitorPatternIntegrationTests
         builder.AddParagraph("{{#foreach Items}}");
         builder.AddParagraph("{{#if @first}}");
         builder.AddParagraph("First Item: {{Name}}");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Item: {{Name}}");
         builder.AddParagraph("{{/if}}");
         builder.AddParagraph("{{/foreach}}");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("No data available");
         builder.AddParagraph("{{/if}}");
 

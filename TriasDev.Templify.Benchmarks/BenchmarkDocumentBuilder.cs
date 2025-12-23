@@ -96,7 +96,7 @@ internal static class BenchmarkDocumentBuilder
                 // Else
                 Paragraph elsePara = body.AppendChild(new Paragraph());
                 Run elseRun = elsePara.AppendChild(new Run());
-                elseRun.AppendChild(new Text("{{else}}"));
+                elseRun.AppendChild(new Text("{{#else}}"));
 
                 // False branch
                 Paragraph falsePara = body.AppendChild(new Paragraph());
@@ -167,7 +167,7 @@ internal static class BenchmarkDocumentBuilder
                 AddParagraph(body, $"  {{{{#foreach Items{i}}}}}");
                 AddParagraph(body, $"    {{{{#if IsActive}}}}");
                 AddParagraph(body, $"      Active Item: {{{{Name}}}} - {{{{Value}}}}");
-                AddParagraph(body, $"    {{{{else}}}}");
+                AddParagraph(body, $"    {{{{#else}}}}");
                 AddParagraph(body, $"      Inactive: {{{{Name}}}}");
                 AddParagraph(body, $"    {{{{/if}}}}");
                 AddParagraph(body, $"  {{{{/foreach}}}}");

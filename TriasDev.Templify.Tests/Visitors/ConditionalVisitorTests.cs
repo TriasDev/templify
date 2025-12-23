@@ -25,7 +25,7 @@ public sealed class ConditionalVisitorTests
         Body body = new Body();
         Paragraph startMarker = new Paragraph(new Run(new Text("{{#if IsActive}}")));
         Paragraph ifContent = new Paragraph(new Run(new Text("Active")));
-        Paragraph elseMarker = new Paragraph(new Run(new Text("{{else}}")));
+        Paragraph elseMarker = new Paragraph(new Run(new Text("{{#else}}")));
         Paragraph elseContent = new Paragraph(new Run(new Text("Inactive")));
         Paragraph endMarker = new Paragraph(new Run(new Text("{{/if}}")));
 
@@ -67,7 +67,7 @@ public sealed class ConditionalVisitorTests
         Body body = new Body();
         Paragraph startMarker = new Paragraph(new Run(new Text("{{#if IsActive}}")));
         Paragraph ifContent = new Paragraph(new Run(new Text("Active")));
-        Paragraph elseMarker = new Paragraph(new Run(new Text("{{else}}")));
+        Paragraph elseMarker = new Paragraph(new Run(new Text("{{#else}}")));
         Paragraph elseContent = new Paragraph(new Run(new Text("Inactive")));
         Paragraph endMarker = new Paragraph(new Run(new Text("{{/if}}")));
 
@@ -175,7 +175,7 @@ public sealed class ConditionalVisitorTests
         Body body = new Body();
         Paragraph startMarker = new Paragraph(new Run(new Text("{{#if Count > 5}}")));
         Paragraph ifContent = new Paragraph(new Run(new Text("Many")));
-        Paragraph elseMarker = new Paragraph(new Run(new Text("{{else}}")));
+        Paragraph elseMarker = new Paragraph(new Run(new Text("{{#else}}")));
         Paragraph elseContent = new Paragraph(new Run(new Text("Few")));
         Paragraph endMarker = new Paragraph(new Run(new Text("{{/if}}")));
 
@@ -211,7 +211,7 @@ public sealed class ConditionalVisitorTests
         Body body = new Body();
         Paragraph startMarker = new Paragraph(new Run(new Text("{{#if @first}}")));
         Paragraph ifContent = new Paragraph(new Run(new Text("First Item")));
-        Paragraph elseMarker = new Paragraph(new Run(new Text("{{else}}")));
+        Paragraph elseMarker = new Paragraph(new Run(new Text("{{#else}}")));
         Paragraph elseContent = new Paragraph(new Run(new Text("Other Item")));
         Paragraph endMarker = new Paragraph(new Run(new Text("{{/if}}")));
 

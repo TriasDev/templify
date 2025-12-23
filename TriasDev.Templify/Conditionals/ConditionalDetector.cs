@@ -10,7 +10,7 @@ namespace TriasDev.Templify.Conditionals;
 
 /// <summary>
 /// Detects and parses conditional blocks in Word documents.
-/// Supports {{#if condition}}...{{#elseif condition}}...{{else}}...{{/if}} syntax.
+/// Supports {{#if condition}}...{{#elseif condition}}...{{#else}}...{{/if}} syntax.
 /// </summary>
 internal static class ConditionalDetector
 {
@@ -161,7 +161,7 @@ internal static class ConditionalDetector
     /// <summary>
     /// Finds all conditional markers (elseif, else, end) for a {{#if}} at the given index.
     /// Properly handles nested conditionals by tracking depth.
-    /// Validates that {{else}} appears after all {{#elseif}} markers.
+    /// Validates that {{#else}} appears after all {{#elseif}} markers.
     /// </summary>
     private static ConditionalMarkers FindConditionalMarkers(List<OpenXmlElement> elements, int startIndex)
     {
@@ -227,8 +227,8 @@ internal static class ConditionalDetector
                 if (elseIndex != -1)
                 {
                     throw new InvalidOperationException(
-                        "Invalid conditional structure: '{{#elseif}}' cannot appear after '{{else}}'. " +
-                        "The '{{else}}' branch must be the last branch before '{{/if}}'.");
+                        "Invalid conditional structure: '{{#elseif}}' cannot appear after '{{#else}}'. " +
+                        "The '{{#else}}' branch must be the last branch before '{{/if}}'.");
                 }
 
                 elseIfMarkers.Add((i, elseIfMatch.Groups[1].Value.Trim()));
@@ -291,7 +291,7 @@ internal static class ConditionalDetector
 
     /// <summary>
     /// Detects table row conditionals within a table.
-    /// Table row conditionals have {{#if}}, {{#elseif}}, {{else}}, and {{/if}} markers in separate rows.
+    /// Table row conditionals have {{#if}}, {{#elseif}}, {{#else}}, and {{/if}} markers in separate rows.
     /// </summary>
     private static IReadOnlyList<ConditionalBlock> DetectTableRowConditionals(Table table)
     {
@@ -422,8 +422,8 @@ internal static class ConditionalDetector
                     if (elseIndex != -1)
                     {
                         throw new InvalidOperationException(
-                            "Invalid conditional structure: '{{#elseif}}' cannot appear after '{{else}}'. " +
-                            "The '{{else}}' branch must be the last branch before '{{/if}}'.");
+                            "Invalid conditional structure: '{{#elseif}}' cannot appear after '{{#else}}'. " +
+                            "The '{{#else}}' branch must be the last branch before '{{/if}}'.");
                     }
 
                     elseIfMarkers.Add((i, elseIfMatch.Groups[1].Value.Trim()));

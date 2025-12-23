@@ -202,13 +202,13 @@ internal class Program
         AddHeading(body, "14. Simple Conditionals (If/Else)");
         AddParagraph(body, "{{#if IsApproved}}");
         AddParagraph(body, "  ✅ Status: APPROVED");
-        AddParagraph(body, "{{else}}");
+        AddParagraph(body, "{{#else}}");
         AddParagraph(body, "  ⏳ Status: PENDING");
         AddParagraph(body, "{{/if}}");
         AddParagraph(body, "");
         AddParagraph(body, "{{#if IsPaid}}");
         AddParagraph(body, "  💰 Payment: RECEIVED");
-        AddParagraph(body, "{{else}}");
+        AddParagraph(body, "{{#else}}");
         AddParagraph(body, "  ⚠️  Payment: OUTSTANDING");
         AddParagraph(body, "{{/if}}");
         AddParagraph(body, "");
@@ -225,7 +225,7 @@ internal class Program
         AddParagraph(body, "");
         AddParagraph(body, "{{#if Customer.Address.Country eq Germany}}");
         AddParagraph(body, "  🇩🇪 Domestic Shipping: 2-3 business days");
-        AddParagraph(body, "{{else}}");
+        AddParagraph(body, "{{#else}}");
         AddParagraph(body, "  ✈️ International Shipping: 5-7 business days");
         AddParagraph(body, "{{/if}}");
         AddParagraph(body, "");
@@ -259,7 +259,7 @@ internal class Program
         AddParagraph(body, "  {{else}}");
         AddParagraph(body, "    ⏳ Subscription expired - Contact sales");
         AddParagraph(body, "  {{/if}}");
-        AddParagraph(body, "{{else}}");
+        AddParagraph(body, "{{#else}}");
         AddParagraph(body, "  📋 STANDARD CUSTOMER");
         AddParagraph(body, "{{/if}}");
         AddParagraph(body, "");
@@ -603,13 +603,13 @@ internal class Program
         AddHeading(body, "Status");
         AddParagraph(body, "{{#if IsApproved}}");
         AddParagraph(body, "  ✅ Status: APPROVED");
-        AddParagraph(body, "{{else}}");
+        AddParagraph(body, "{{#else}}");
         AddParagraph(body, "  ⏳ Status: PENDING");
         AddParagraph(body, "{{/if}}");
         AddParagraph(body, "");
         AddParagraph(body, "{{#if IsPaid}}");
         AddParagraph(body, "  💰 Payment: RECEIVED");
-        AddParagraph(body, "{{else}}");
+        AddParagraph(body, "{{#else}}");
         AddParagraph(body, "  ⚠️  Payment: OUTSTANDING");
         AddParagraph(body, "{{/if}}");
 

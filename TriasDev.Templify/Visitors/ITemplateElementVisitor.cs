@@ -30,7 +30,7 @@ namespace TriasDev.Templify.Visitors;
 internal interface ITemplateElementVisitor
 {
     /// <summary>
-    /// Visits a conditional block ({{#if}}/{{else}}/{{/if}}).
+    /// Visits a conditional block ({{#if}}/{{#else}}/{{/if}}).
     /// </summary>
     /// <param name="conditional">The conditional block to process.</param>
     /// <param name="context">The evaluation context for resolving variables.</param>
@@ -80,7 +80,7 @@ internal interface ITemplateElementVisitor
     /// <param name="context">The evaluation context.</param>
     /// <remarks>
     /// This method is called for paragraphs that don't contain:
-    /// - Conditional markers ({{#if}}, {{else}}, {{/if}})
+    /// - Conditional markers ({{#if}}, {{#else}}, {{/if}})
     /// - Loop markers ({{#foreach}}, {{/foreach}})
     /// - Placeholders ({{VariableName}})
     ///

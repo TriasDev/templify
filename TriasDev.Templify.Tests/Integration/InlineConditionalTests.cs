@@ -217,13 +217,13 @@ public sealed class InlineConditionalTests
     public void ProcessTemplate_InlineConditional_WithElse_ConditionFalse_ShowsElseBranch()
     {
         // Arrange: Inline conditional with else branch
-        // Template: "Status: {{#if IsActive}}Active{{else}}Inactive{{/if}}"
+        // Template: "Status: {{#if IsActive}}Active{{#else}}Inactive{{/if}}"
         DocumentBuilder builder = new DocumentBuilder();
         builder.AddParagraphWithRuns(
             ("Status: ", null),
             ("{{#if IsActive}}", null),
             ("Active", null),
-            ("{{else}}", null),
+            ("{{#else}}", null),
             ("Inactive", null),
             ("{{/if}}", null)
         );
@@ -258,7 +258,7 @@ public sealed class InlineConditionalTests
             ("Status: ", null),
             ("{{#if IsActive}}", null),
             ("Active", null),
-            ("{{else}}", null),
+            ("{{#else}}", null),
             ("Inactive", null),
             ("{{/if}}", null)
         );
@@ -590,13 +590,13 @@ public sealed class InlineConditionalTests
         builder.AddParagraphWithRuns(
             ("{{#if IsFormal}}", null),
             ("Dear ", null),
-            ("{{else}}", null),
+            ("{{#else}}", null),
             ("Hi ", null),
             ("{{/if}}", null),
             ("{{Name}}", null),
             ("{{#if HasTitle}}", null),
             (" ({{Title}})", null),
-            ("{{else}}", null),
+            ("{{#else}}", null),
             (" (no title)", null),
             ("{{/if}}", null)
         );
@@ -821,7 +821,7 @@ public sealed class InlineConditionalTests
             ("Status: ", null),
             ("{{#if Status = \u201CActive\u201D}}", null), // Curly quotes
             ("Yes", null),
-            ("{{else}}", null),
+            ("{{#else}}", null),
             ("No", null),
             ("{{/if}}", null)
         );
@@ -856,7 +856,7 @@ public sealed class InlineConditionalTests
             ("Status: ", null),
             ("{{#if Status = \u201CActive\u201D}}", null), // Curly quotes
             ("Yes", null),
-            ("{{else}}", null),
+            ("{{#else}}", null),
             ("No", null),
             ("{{/if}}", null)
         );
@@ -891,7 +891,7 @@ public sealed class InlineConditionalTests
             ("Result: ", null),
             ("{{#if Type = \u201EPremium\u201C}}", null), // German quotes
             ("Premium", null),
-            ("{{else}}", null),
+            ("{{#else}}", null),
             ("Standard", null),
             ("{{/if}}", null)
         );

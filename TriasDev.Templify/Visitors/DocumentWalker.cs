@@ -23,7 +23,7 @@ namespace TriasDev.Templify.Visitors;
 /// - Handling element removal (skipping already-processed elements)
 ///
 /// The walker uses existing detectors for consistency:
-/// - ConditionalDetector for {{#if}}/{{else}}/{{/if}}
+/// - ConditionalDetector for {{#if}}/{{#else}}/{{/if}}
 /// - LoopDetector for {{#foreach}}/{{/foreach}}
 /// - PlaceholderFinder for {{VariableName}}
 /// </remarks>
@@ -256,7 +256,7 @@ internal sealed class DocumentWalker
     /// <returns>True if the paragraph contains a template marker, false otherwise.</returns>
     /// <remarks>
     /// Marker paragraphs include:
-    /// - {{#if ...}}, {{else}}, {{/if}}
+    /// - {{#if ...}}, {{#else}}, {{/if}}
     /// - {{#foreach ...}}, {{/foreach}}
     /// - {{#empty}}, {{/empty}}
     ///
@@ -268,7 +268,7 @@ internal sealed class DocumentWalker
         string text = paragraph.InnerText;
 
         // Check for conditional markers
-        if (text.Contains("{{#if") || text.Contains("{{else}}") || text.Contains("{{/if}}"))
+        if (text.Contains("{{#if") || text.Contains("{{#else}}") || text.Contains("{{/if}}"))
         {
             return true;
         }
