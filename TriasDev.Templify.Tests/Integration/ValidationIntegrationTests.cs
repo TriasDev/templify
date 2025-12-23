@@ -886,5 +886,42 @@ public sealed class ValidationIntegrationTests
         Assert.Empty(result.MissingVariables);
     }
 
+    [Fact]
+    public void ValidateTemplate_LoopVariableShadowsGlobal_ResolvesCorrectly()
+    {
+        // Arrange - Both global and loop item have "Name" property
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("Global: {{Name}}");
+        builder.AddParagraph("{{#foreach Items}}");
+        builder.AddParagraph("Item: {{Name}}");
+        builder.AddParagraph("{{/foreach}}");
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Name"] = "Global Name",
+            ["Items"] = new[]
+            {
+                new Dictionary<string, object> { ["Name"] = "Item 1" },
+                new Dictionary<string, object> { ["Name"] = "Item 2" }
+            }
+        };
+
+        PlaceholderReplacementOptions options = new PlaceholderReplacementOptions
+        {
+            Culture = CultureInfo.InvariantCulture
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor(options);
+
+        // Act
+        ValidationResult result = processor.ValidateTemplate(templateStream, data);
+
+        // Assert - Name should resolve in both contexts (global and loop-scoped)
+        Assert.True(result.IsValid);
+        Assert.Empty(result.MissingVariables);
+    }
+
     #endregion
 }
