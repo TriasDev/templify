@@ -794,21 +794,21 @@ Customer: {{CustomerName}}
 {{#if IsVIP}}
 ⭐ VIP CUSTOMER ⭐
 Special Benefits Applied
-{{else}}
+{{#else}}
 Standard Customer
 {{/if}}
 
 Account Status:
 {{#if Status = "Active"}}
 ✓ Account is active and in good standing
-{{else}}
+{{#else}}
 ⚠ Account requires attention
 {{/if}}
 
 {{#if HasActiveSubscription}}
 Subscription: Active
 Access Level: Full Platform Access
-{{else}}
+{{#else}}
 Subscription: Inactive
 Please contact sales to renew
 {{/if}}
@@ -885,7 +885,7 @@ Shipping Information:
 {{#if ShippingCountry = "Germany"}}
 Estimated Delivery: 2-3 business days
 Shipping Cost: FREE
-{{else}}
+{{#else}}
 Estimated Delivery: 5-7 business days
 Shipping Cost: Calculated at checkout
 {{/if}}
@@ -953,7 +953,7 @@ Grade: B - Good
 Grade: C - Satisfactory
 {{#elseif Score >= 60}}
 Grade: D - Needs Improvement
-{{else}}
+{{#else}}
 Grade: F - Please see instructor
 {{/if}}
 ```
@@ -969,7 +969,7 @@ Score: 75
 Grade: C - Satisfactory
 ```
 
-**Note:** The `{{else}}` branch must always be last. Placing `{{#elseif}}` after `{{else}}` will result in an error.
+**Note:** The `{{#else}}` branch must always be last. Placing `{{#elseif}}` after `{{#else}}` will result in an error.
 
 ---
 
@@ -1137,20 +1137,20 @@ Benefits:
   ✓ 20% Discount on All Orders
   ✓ Early Access to New Features
   ✓ Dedicated Account Manager
-{{else}}
+{{#else}}
   {{#if SubscriptionTier = "Professional"}}
   ✓ Business Hours Support
   ✓ Free Shipping (orders over €100)
   ✓ 15% Discount on All Orders
   ✓ Early Access to New Features
-  {{else}}
+  {{#else}}
   ✓ Standard Support
   ✓ Free Shipping (orders over €200)
   ✓ 10% Discount on All Orders
   {{/if}}
 {{/if}}
 
-{{else}}
+{{#else}}
 ⚠ VIP Subscription Expired
 Your VIP benefits are currently inactive.
 Contact sales to renew: sales@example.com
@@ -1162,13 +1162,13 @@ Current Order: {{OrderTotal}} EUR
 {{#if AccountBalance > OrderTotal}}
   ✓ Sufficient account balance
   Your order can be processed immediately
-{{else}}
+{{#else}}
   ⚠ Insufficient account balance
   Please add funds or choose alternative payment
 {{/if}}
 {{/if}}
 
-{{else}}
+{{#else}}
 ───────────────────────────────
       STANDARD CUSTOMER
 ───────────────────────────────
@@ -1181,7 +1181,7 @@ Reach €5000 total purchases to unlock VIP benefits.
 {{#if ShippingCountry = "Germany"}}
 Shipping: €5.90 (orders under €50)
 Free shipping on orders over €50
-{{else}}
+{{#else}}
 International Shipping: Calculated at checkout
 {{/if}}
 
@@ -1274,11 +1274,11 @@ Value: €{{ContractValue}}
     ☐ Board Approval Required
     ☐ CFO Approval Required
     ☐ Legal Review Required
-  {{else}}
+  {{#else}}
     {{#if ContractValue > 250000}}
       ☐ Executive Approval Required
       ☐ Legal Review Required
-    {{else}}
+    {{#else}}
       ☐ Department Head Approval Required
       {{#if RequiresLegalReview}}
       ☐ Legal Review Required
@@ -1291,16 +1291,16 @@ Value: €{{ContractValue}}
   Extended contract requires additional due diligence
   {{/if}}
 
-{{else}}
+{{#else}}
   Standard Enterprise Contract
   ☐ Manager Approval Required
 {{/if}}
 
-{{else}}
+{{#else}}
   {{#if ContractType = "Professional"}}
   Type: Professional Services Contract
   ☐ Team Lead Approval Required
-  {{else}}
+  {{#else}}
   Type: Standard Contract
   ☐ Automated Approval
   {{/if}}
@@ -1310,10 +1310,10 @@ Value: €{{ContractValue}}
 CONTRACT STATUS: Renewal
 {{#if HasCustomTerms}}
 ⚠ Terms Modified - Requires Re-review
-{{else}}
+{{#else}}
 ✓ Standard Renewal - Expedited Process
 {{/if}}
-{{else}}
+{{#else}}
 CONTRACT STATUS: New Contract
 Full approval workflow required
 {{/if}}
@@ -1321,10 +1321,10 @@ Full approval workflow required
 RISK ASSESSMENT:
 {{#if RiskLevel = "High"}}
 🔴 HIGH RISK - Enhanced due diligence required
-{{else}}
+{{#else}}
   {{#if RiskLevel = "Medium"}}
   🟡 MEDIUM RISK - Standard review process
-  {{else}}
+  {{#else}}
   🟢 LOW RISK - Fast-track approved
   {{/if}}
 {{/if}}

@@ -217,7 +217,7 @@ public sealed class CompositeVisitorTests
         Body body = new Body();
         Paragraph startMarker = new Paragraph(new Run(new Text("{{#if IsActive}}")));
         Paragraph ifContent = new Paragraph(new Run(new Text("Active")));
-        Paragraph elseMarker = new Paragraph(new Run(new Text("{{else}}")));
+        Paragraph elseMarker = new Paragraph(new Run(new Text("{{#else}}")));
         Paragraph elseContent = new Paragraph(new Run(new Text("Inactive")));
         Paragraph endMarker = new Paragraph(new Run(new Text("{{/if}}")));
 

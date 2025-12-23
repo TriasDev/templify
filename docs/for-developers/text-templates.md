@@ -55,7 +55,7 @@ Thank you for your order #{{OrderId}}.
 
 {{#if IsVip}}
 As a VIP customer, you'll receive free shipping!
-{{else}}
+{{#else}}
 Your order will arrive in 3-5 business days.
 {{/if}}
 
@@ -145,7 +145,7 @@ string template = @"
 Hi {{Name}},
 {{#if HasDiscount}}
 Good news! You have a {{DiscountPercent}}% discount available.
-{{else}}
+{{#else}}
 Shop now and get great deals!
 {{/if}}
 ";
@@ -234,7 +234,7 @@ Your orders:
   - {{Name}}: ${{Price}}
   {{/foreach}}
 {{/foreach}}
-{{else}}
+{{#else}}
 You have no orders yet.
 {{/if}}
 ";

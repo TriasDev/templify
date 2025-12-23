@@ -75,7 +75,7 @@ Tests performance of `{{#foreach}}` loops with different collection sizes and ne
 
 ### 3. Conditional Processing
 
-Tests performance of `{{#if}}/{{else}}/{{/if}}` conditional blocks.
+Tests performance of `{{#if}}/{{#else}}/{{/if}}` conditional blocks.
 
 | Scenario | Mean Time | Memory Allocated | Notes |
 |----------|-----------|------------------|-------|

@@ -141,7 +141,7 @@ public sealed class TextTemplateProcessor
 
             string condition = text.Substring(conditionStart, conditionEnd - conditionStart);
 
-            // Find the {{else}} if it exists
+            // Find the {{#else}} if it exists
             int elseTagStart = -1;
             int searchStart = conditionEnd + "}}".Length;
             int depth = 1;
@@ -162,7 +162,7 @@ public sealed class TextTemplateProcessor
                     }
                     i += "{{/if}}".Length - 1;
                 }
-                else if (depth == 1 && text.Substring(i).StartsWith("{{else}}", StringComparison.Ordinal))
+                else if (depth == 1 && text.Substring(i).StartsWith("{{#else}}", StringComparison.Ordinal))
                 {
                     elseTagStart = i;
                     break;
@@ -186,7 +186,7 @@ public sealed class TextTemplateProcessor
                 // Keep the "else" branch (if it exists)
                 if (elseTagStart != -1)
                 {
-                    int contentStart = elseTagStart + "{{else}}".Length;
+                    int contentStart = elseTagStart + "{{#else}}".Length;
                     contentToKeep = text.Substring(contentStart, ifEnd - contentStart);
                 }
                 else

@@ -26,10 +26,10 @@ internal static class ConditionalPatterns
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     /// <summary>
-    /// Pattern to match {{else}} markers.
+    /// Pattern to match {{#else}} markers.
     /// </summary>
     public static readonly Regex Else = new(
-        @"\{\{else\}\}",
+        @"\{\{#else\}\}",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     /// <summary>

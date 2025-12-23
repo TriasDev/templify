@@ -133,7 +133,7 @@ Thank you for being a VIP member!
 ```
 {{#if Condition}}
   Content when true
-{{else}}
+{{#else}}
   Content when false
 {{/if}}
 ```
@@ -149,7 +149,7 @@ Thank you for being a VIP member!
 ```
 {{#if Status = "Active"}}
 Your account is active.
-{{else}}
+{{#else}}
 Your account is inactive.
 {{/if}}
 ```
@@ -165,7 +165,7 @@ Use `{{#elseif}}` for multiple conditions:
   Content for condition 2
 {{#elseif Condition3}}
   Content for condition 3
-{{else}}
+{{#else}}
   Default content
 {{/if}}
 ```
@@ -185,7 +185,7 @@ Grade: A
 Grade: B
 {{#elseif Score >= 70}}
 Grade: C
-{{else}}
+{{#else}}
 Grade: F
 {{/if}}
 ```
@@ -195,7 +195,7 @@ Grade: F
 Grade: C
 ```
 
-**Note:** The `{{else}}` branch must always be last.
+**Note:** The `{{#else}}` branch must always be last.
 
 ### Conditional with Comparisons
 
@@ -213,7 +213,7 @@ You are an adult.
 
 {{#if Score > 90}}
 Excellent!
-{{else}}
+{{#else}}
 Keep trying!
 {{/if}}
 ```
@@ -638,7 +638,7 @@ Will output with the indentation preserved.
 | Nested | `{{Parent.Child}}` | `{{Customer.Address.City}}` |
 | Array | `{{Array[0]}}` | `{{Colors[0]}}` |
 | If | `{{#if ...}}...{{/if}}` | `{{#if IsActive}}...{{/if}}` |
-| If/Else | `{{#if ...}}...{{else}}...{{/if}}` | See above |
+| If/Else | `{{#if ...}}...{{#else}}...{{/if}}` | See above |
 | If/ElseIf | `{{#if ...}}...{{#elseif ...}}...{{/if}}` | See above |
 | Loop | `{{#foreach ...}}...{{/foreach}}` | `{{#foreach Items}}...{{/foreach}}` |
 | Format | `{{Name:format}}` | `{{Price:currency}}` |
@@ -679,10 +679,10 @@ Eligible to drive
 {{#if IsLoggedIn}}
   {{#if IsPremium}}
     Premium content
-  {{else}}
+  {{#else}}
     Regular content
   {{/if}}
-{{else}}
+{{#else}}
   Please log in
 {{/if}}
 ```
@@ -693,7 +693,7 @@ Eligible to drive
 | Product | Price | Status |
 |---------|-------|--------|
 {{#foreach Products}}
-| {{Name}} | {{Price}} | {{#if InStock}}Available{{else}}Out of Stock{{/if}} |
+| {{Name}} | {{Price}} | {{#if InStock}}Available{{#else}}Out of Stock{{/if}} |
 {{/foreach}}
 ```
 

@@ -13,7 +13,7 @@ using TriasDev.Templify.Placeholders;
 namespace TriasDev.Templify.Visitors;
 
 /// <summary>
-/// Visitor that processes conditional blocks ({{#if}}/{{#elseif}}/{{else}}/{{/if}}).
+/// Visitor that processes conditional blocks ({{#if}}/{{#elseif}}/{{#else}}/{{/if}}).
 /// Evaluates conditions and removes non-matching branches.
 /// </summary>
 /// <remarks>
@@ -341,8 +341,8 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
                     if (hasElseAtOurLevel)
                     {
                         throw new InvalidOperationException(
-                            "Invalid conditional structure: '{{#elseif}}' cannot appear after '{{else}}'. " +
-                            "The '{{else}}' branch must be the last branch before '{{/if}}'.");
+                            "Invalid conditional structure: '{{#elseif}}' cannot appear after '{{#else}}'. " +
+                            "The '{{#else}}' branch must be the last branch before '{{/if}}'.");
                     }
 
                     // elseif at our level
@@ -422,7 +422,7 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
             string text = run.InnerText;
             bool hasConditional = text.Contains("{{#if") || text.Contains("{{/if") ||
                                   text.Contains("{{#") || text.Contains("{{/") ||
-                                  text.Contains("{{else}}");
+                                  text.Contains("{{#else}}");
             runInfo.Add((run, text, hasConditional, i));
         }
 
@@ -545,7 +545,7 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
             if (!string.IsNullOrEmpty(text) &&
                 !text.Contains("{{#if") && !text.Contains("{{/if") &&
                 !text.Contains("{{#") && !text.Contains("{{/") &&
-                !text.Contains("{{else}}"))
+                !text.Contains("{{#else}}"))
             {
                 RunProperties? props = run.RunProperties != null
                     ? (RunProperties)run.RunProperties.CloneNode(true)
@@ -674,9 +674,9 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
                 }
                 continue;
             }
-            if (originalText.Substring(searchPos).StartsWith("{{else}}"))
+            if (originalText.Substring(searchPos).StartsWith("{{#else}}"))
             {
-                searchPos += 8;
+                searchPos += 9;
                 continue;
             }
 
@@ -870,7 +870,7 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
             if (!string.IsNullOrEmpty(text) &&
                 !text.StartsWith("{{#") && !text.StartsWith("{{/") &&
                 !text.Contains("{{#if") && !text.Contains("{{/if") &&
-                !text.Contains("{{else}}"))
+                !text.Contains("{{#else}}"))
             {
                 return props;
             }

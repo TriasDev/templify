@@ -12,7 +12,7 @@ internal sealed class ConditionalBranch
 {
     /// <summary>
     /// Gets the condition expression to evaluate.
-    /// Null for {{else}} branches which have no condition.
+    /// Null for {{#else}} branches which have no condition.
     /// </summary>
     public string? ConditionExpression { get; }
 
@@ -22,7 +22,7 @@ internal sealed class ConditionalBranch
     public IReadOnlyList<OpenXmlElement> ContentElements { get; }
 
     /// <summary>
-    /// Gets the marker element (contains {{#if}}, {{#elseif}}, or {{else}}).
+    /// Gets the marker element (contains {{#if}}, {{#elseif}}, or {{#else}}).
     /// </summary>
     public OpenXmlElement Marker { get; }
 

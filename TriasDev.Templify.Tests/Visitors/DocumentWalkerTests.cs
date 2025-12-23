@@ -171,7 +171,7 @@ public sealed class DocumentWalkerTests
         DocumentBuilder builder = new DocumentBuilder();
         builder.AddParagraph("{{#if IsActive}}");
         builder.AddParagraph("Content");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Other content");
         builder.AddParagraph("{{/if}}");
 
@@ -190,7 +190,7 @@ public sealed class DocumentWalkerTests
 
         // Marker paragraphs should NOT be visited as regular paragraphs
         Assert.DoesNotContain(visitor.VisitedParagraphs, p => p.InnerText.Contains("{{#if"));
-        Assert.DoesNotContain(visitor.VisitedParagraphs, p => p.InnerText.Contains("{{else}}"));
+        Assert.DoesNotContain(visitor.VisitedParagraphs, p => p.InnerText.Contains("{{#else}}"));
         Assert.DoesNotContain(visitor.VisitedParagraphs, p => p.InnerText.Contains("{{/if}}"));
 
         document.Dispose();

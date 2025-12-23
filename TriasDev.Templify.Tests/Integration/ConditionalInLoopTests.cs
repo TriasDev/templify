@@ -20,7 +20,7 @@ public sealed class ConditionalInLoopTests
         builder.AddParagraph("{{#foreach Orders}}");
         builder.AddParagraph("{{#if Amount > 1000}}");
         builder.AddParagraph("High Value");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Standard");
         builder.AddParagraph("{{/if}}");
         builder.AddParagraph("{{/foreach}}");
@@ -61,7 +61,7 @@ public sealed class ConditionalInLoopTests
         builder.AddParagraph("{{#foreach Items}}");
         builder.AddParagraph("{{#if @first}}");
         builder.AddParagraph("First: {{.}}");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Item: {{.}}");
         builder.AddParagraph("{{/if}}");
         builder.AddParagraph("{{/foreach}}");
@@ -97,7 +97,7 @@ public sealed class ConditionalInLoopTests
         builder.AddParagraph("{{#foreach Items}}");
         builder.AddParagraph("{{#if @last}}");
         builder.AddParagraph("Last: {{.}}");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Item: {{.}}");
         builder.AddParagraph("{{/if}}");
         builder.AddParagraph("{{/foreach}}");
@@ -133,7 +133,7 @@ public sealed class ConditionalInLoopTests
         builder.AddParagraph("{{#foreach Items}}");
         builder.AddParagraph("{{#if @index = 1}}");
         builder.AddParagraph("→ {{.}}");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("{{.}}");
         builder.AddParagraph("{{/if}}");
         builder.AddParagraph("{{/foreach}}");
@@ -171,7 +171,7 @@ public sealed class ConditionalInLoopTests
         builder.AddParagraph("{{#foreach Products}}");
         builder.AddParagraph("{{#if Price < 50}}");
         builder.AddParagraph("• {{Name}} (Budget)");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("• {{Name}}");
         builder.AddParagraph("{{/if}}");
         builder.AddParagraph("{{/foreach}}");
@@ -239,7 +239,7 @@ public sealed class ConditionalInLoopTests
         builder.AddParagraph("{{#foreach Products}}");
         builder.AddParagraph("{{#if IsAvailable and Price < 100}}");
         builder.AddParagraph("{{Name}} - In Stock & Affordable");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("{{Name}}");
         builder.AddParagraph("{{/if}}");
         builder.AddParagraph("{{/foreach}}");
@@ -281,7 +281,7 @@ public sealed class ConditionalInLoopTests
         builder.AddParagraph("{{#foreach Items}}");
         builder.AddParagraph("{{#if @first}}");
         builder.AddParagraph("First Item");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Other Item");
         builder.AddParagraph("{{/if}}");
         builder.AddParagraph("{{/foreach}}");
@@ -317,7 +317,7 @@ public sealed class ConditionalInLoopTests
         builder.AddParagraph("{{#foreach Items}}");
         builder.AddParagraph("{{#if @first and @last}}");
         builder.AddParagraph("Only: {{.}}");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("Item: {{.}}");
         builder.AddParagraph("{{/if}}");
         builder.AddParagraph("{{/foreach}}");
@@ -363,7 +363,7 @@ public sealed class ConditionalInLoopTests
         builder.AddParagraph("{{#foreach process.itAssets.items}}");
         builder.AddParagraph("{{#if interview.settings.isEnabled}}");
         builder.AddParagraph("YES");
-        builder.AddParagraph("{{else}}");
+        builder.AddParagraph("{{#else}}");
         builder.AddParagraph("NO");
         builder.AddParagraph("{{/if}}");
         builder.AddParagraph("{{/foreach}}");
@@ -442,7 +442,7 @@ public sealed class ConditionalInLoopTests
         // Arrange: Same scenario but with inline conditional (same paragraph)
         DocumentBuilder builder = new DocumentBuilder();
         builder.AddParagraph("{{#foreach items}}");
-        builder.AddParagraph("{{#if data.active}}Active{{else}}Inactive{{/if}} - {{name}}");
+        builder.AddParagraph("{{#if data.active}}Active{{#else}}Inactive{{/if}} - {{name}}");
         builder.AddParagraph("{{/foreach}}");
 
         MemoryStream templateStream = builder.ToStream();
@@ -505,7 +505,7 @@ public sealed class ConditionalInLoopTests
         builder.AddParagraph("Category: {{name}}");
         builder.AddParagraph("{{#foreach items}}");
         // Conditional checks OUTER loop's "isPremium" property, not inner item's
-        builder.AddParagraph("{{#if isPremium}}★ {{title}}{{else}}{{title}}{{/if}}");
+        builder.AddParagraph("{{#if isPremium}}★ {{title}}{{#else}}{{title}}{{/if}}");
         builder.AddParagraph("{{/foreach}}");
         builder.AddParagraph("{{/foreach}}");
 
@@ -572,7 +572,7 @@ public sealed class ConditionalInLoopTests
         builder.AddParagraph("Order: {{id}}");
         builder.AddParagraph("{{#foreach items}}");
         // Conditional checks GLOBAL "showPrices" setting
-        builder.AddParagraph("{{#if showPrices}}{{name}}: ${{price}}{{else}}{{name}}{{/if}}");
+        builder.AddParagraph("{{#if showPrices}}{{name}}: ${{price}}{{#else}}{{name}}{{/if}}");
         builder.AddParagraph("{{/foreach}}");
         builder.AddParagraph("{{/foreach}}");
 
@@ -621,7 +621,7 @@ public sealed class ConditionalInLoopTests
         // Arrange: Mimics customer's interview.availableItemsByKey.items.someKey.answers... structure
         DocumentBuilder builder = new DocumentBuilder();
         builder.AddParagraph("{{#foreach assets}}");
-        builder.AddParagraph("{{#if interview.availableItemsByKey.items.question1.answers.yes.selected}}Ja{{else}}Nein{{/if}}");
+        builder.AddParagraph("{{#if interview.availableItemsByKey.items.question1.answers.yes.selected}}Ja{{#else}}Nein{{/if}}");
         builder.AddParagraph("{{/foreach}}");
 
         MemoryStream templateStream = builder.ToStream();

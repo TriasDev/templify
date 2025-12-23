@@ -197,7 +197,7 @@ Active user
         var processor = new TextTemplateProcessor();
         string template = @"{{#if IsVip}}
 VIP customer
-{{else}}
+{{#else}}
 Regular customer
 {{/if}}";
         var data = new Dictionary<string, object>
@@ -468,7 +468,7 @@ Thank you for your order #{{OrderId}}.
 
 {{#if IsVip}}
 As a VIP customer, you'll receive free shipping!
-{{else}}
+{{#else}}
 Your order will arrive in 3-5 business days.
 {{/if}}
 

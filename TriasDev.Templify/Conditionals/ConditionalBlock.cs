@@ -7,7 +7,7 @@ namespace TriasDev.Templify.Conditionals;
 
 /// <summary>
 /// Represents a parsed conditional block in the document template.
-/// Supports {{#if condition}}...{{#elseif condition}}...{{else}}...{{/if}} syntax.
+/// Supports {{#if condition}}...{{#elseif condition}}...{{#else}}...{{/if}} syntax.
 /// </summary>
 internal sealed class ConditionalBlock
 {
@@ -15,7 +15,7 @@ internal sealed class ConditionalBlock
     /// Gets all branches in this conditional block.
     /// The first branch is always the {{#if}} branch.
     /// Subsequent branches are {{#elseif}} branches.
-    /// The last branch may be an {{else}} branch (with no condition).
+    /// The last branch may be an {{#else}} branch (with no condition).
     /// </summary>
     public IReadOnlyList<ConditionalBranch> Branches { get; }
 
@@ -68,7 +68,7 @@ internal sealed class ConditionalBlock
     public OpenXmlElement StartMarker => Branches[0].Marker;
 
     /// <summary>
-    /// Gets the optional else marker element (contains {{else}}).
+    /// Gets the optional else marker element (contains {{#else}}).
     /// </summary>
     public OpenXmlElement? ElseMarker => HasElseBranch ? Branches[^1].Marker : null;
 

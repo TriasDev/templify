@@ -15,7 +15,7 @@ namespace TriasDev.Templify.Visitors;
 public enum TemplateElementType
 {
     /// <summary>
-    /// A conditional block ({{#if}}/{{else}}/{{/if}}).
+    /// A conditional block ({{#if}}/{{#else}}/{{/if}}).
     /// </summary>
     Conditional,
 

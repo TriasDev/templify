@@ -463,7 +463,7 @@ Product List:
 {{Name}} - ${{Price}}
 {{#if InStock}}
   ✓ Available now
-{{else}}
+{{#else}}
   ❌ Out of stock
 {{/if}}
 
@@ -662,7 +662,7 @@ Order: {{OrderId}}
 {{#foreach Items}}
   {{#if ShowPrices}}
     {{ProductName}}: {{Price}} {{Currency}}
-  {{else}}
+  {{#else}}
     {{ProductName}}: Contact for pricing
   {{/if}}
 {{/foreach}}
@@ -768,7 +768,7 @@ Items:
 {{#foreach Items}}
 - {{Name}}
 {{/foreach}}
-{{else}}
+{{#else}}
 No items available.
 {{/if}}
 ```

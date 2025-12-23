@@ -296,14 +296,14 @@ The library uses a **visitor pattern** for processing Word documents, enabling:
 ### Conditional Syntax
 ```
 {{#if VariableName}}...{{/if}}
-{{#if Status = "Active"}}...{{else}}...{{/if}}
+{{#if Status = "Active"}}...{{#else}}...{{/if}}
 {{#if Count > 0 and IsEnabled}}...{{/if}}
-{{#if Status = "Active"}}...{{#elseif Status = "Pending"}}...{{else}}...{{/if}}
+{{#if Status = "Active"}}...{{#elseif Status = "Pending"}}...{{#else}}...{{/if}}
 ```
 
 **Operators:** `=`, `!=`, `>`, `<`, `>=`, `<=`, `and`, `or`, `not`
 
-**Elseif chains:** Multiple conditions can be chained using `{{#elseif condition}}`. The `{{else}}` branch must be last.
+**Elseif chains:** Multiple conditions can be chained using `{{#elseif condition}}`. The `{{#else}}` branch must be last.
 
 ### Loop Syntax
 ```
