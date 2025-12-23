@@ -45,6 +45,12 @@ internal sealed class LoopContext
     public LoopContext? Parent { get; }
 
     /// <summary>
+    /// Cached prefix for iteration variable property access (e.g., "item.").
+    /// Null if using implicit syntax.
+    /// </summary>
+    private readonly string? _iterationVariablePrefix;
+
+    /// <summary>
     /// Gets whether this is the first item in the collection.
     /// </summary>
     public bool IsFirst => Index == 0;
@@ -67,6 +73,7 @@ internal sealed class LoopContext
         Count = count;
         CollectionName = collectionName ?? throw new ArgumentNullException(nameof(collectionName));
         IterationVariableName = iterationVariableName;
+        _iterationVariablePrefix = iterationVariableName != null ? iterationVariableName + "." : null;
         Parent = parent;
     }
 
@@ -138,9 +145,9 @@ internal sealed class LoopContext
             }
 
             // Property access via iteration variable (e.g., {{item.Name}})
-            if (variableName.StartsWith(IterationVariableName + ".", StringComparison.Ordinal))
+            if (variableName.StartsWith(_iterationVariablePrefix!, StringComparison.Ordinal))
             {
-                string propertyPath = variableName.Substring(IterationVariableName.Length + 1);
+                string propertyPath = variableName.Substring(_iterationVariablePrefix!.Length);
                 return TryResolveFromCurrentItem(propertyPath, out value);
             }
         }

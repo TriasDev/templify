@@ -15,6 +15,8 @@ namespace TriasDev.Templify.Loops;
 /// </summary>
 internal static class LoopDetector
 {
+    // Note: The @? in the regex allows capturing invalid variable names starting with @
+    // so we can provide a helpful validation error message instead of silently not matching.
     private static readonly Regex _foreachStartPattern = new Regex(
         @"\{\{#foreach\s+(?:(@?\w+)\s+in\s+)?([\w.]+)\}\}",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);

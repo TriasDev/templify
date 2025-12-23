@@ -538,9 +538,11 @@ internal sealed class TemplateValidator
                 }
 
                 // Property access via iteration variable (e.g., {{item.Name}})
-                if (placeholder.StartsWith(iterationVariableName + ".", StringComparison.Ordinal))
+                // Cache prefix to avoid repeated string concatenation
+                string iterationVariablePrefix = iterationVariableName + ".";
+                if (placeholder.StartsWith(iterationVariablePrefix, StringComparison.Ordinal))
                 {
-                    string propertyPath = placeholder.Substring(iterationVariableName.Length + 1);
+                    string propertyPath = placeholder.Substring(iterationVariablePrefix.Length);
                     // Extract root property from the path
                     int nextDotIndex = propertyPath.IndexOf('.');
                     string rootProperty = nextDotIndex > 0 ? propertyPath.Substring(0, nextDotIndex) : propertyPath;
