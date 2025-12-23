@@ -38,6 +38,14 @@ public sealed class PlaceholderReplacementOptions
     public bool EnableNewlineSupport { get; init; } = true;
 
     /// <summary>
+    /// Gets or initializes a value indicating whether validation should warn about empty loop collections.
+    /// When true, empty collections produce a warning indicating that variables inside the loop could not be validated.
+    /// When false, empty collections are silently accepted without warnings.
+    /// Default is true.
+    /// </summary>
+    public bool WarnOnEmptyLoopCollections { get; init; } = true;
+
+    /// <summary>
     /// Creates a new instance of <see cref="PlaceholderReplacementOptions"/> with default settings.
     /// </summary>
     public PlaceholderReplacementOptions()

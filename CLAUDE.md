@@ -21,6 +21,17 @@ This is a multi-project solution with 6 projects:
 - **TriasDev.Templify.Gui** - Avalonia-based GUI application
 - **TriasDev.Templify.Demo** - Demo console application
 
+## Development Workflow
+
+Standard flow for changes:
+
+1. **Issue** - Create or reference a GitHub issue
+2. **Branch** - Create a feature/fix branch from main
+3. **Fix** - Implement the change with tests
+4. **Docu** (optional) - Update documentation if needed
+5. **Review** - Self-review and run pre-push checks
+6. **PR** - Create pull request for review
+
 ## Common Development Commands
 
 ### Building
