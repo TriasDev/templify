@@ -923,5 +923,45 @@ public sealed class ValidationIntegrationTests
         Assert.Empty(result.MissingVariables);
     }
 
+    [Fact]
+    public void ValidateTemplate_LoopMetadataPlaceholders_DoesNotFlagAsMissing()
+    {
+        // Arrange - Test that @index, @first, @last, @count are recognized as valid
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{#foreach Items}}");
+        builder.AddParagraph("Index: {{@index}}, First: {{@first}}, Last: {{@last}}, Count: {{@count}}");
+        builder.AddParagraph("Name: {{Name}}");
+        builder.AddParagraph("{{/foreach}}");
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Items"] = new[]
+            {
+                new Dictionary<string, object> { ["Name"] = "Item 1" },
+                new Dictionary<string, object> { ["Name"] = "Item 2" }
+            }
+        };
+
+        PlaceholderReplacementOptions options = new PlaceholderReplacementOptions
+        {
+            Culture = CultureInfo.InvariantCulture
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor(options);
+
+        // Act
+        ValidationResult result = processor.ValidateTemplate(templateStream, data);
+
+        // Assert - Loop metadata placeholders should not be flagged as missing
+        Assert.True(result.IsValid);
+        Assert.Empty(result.MissingVariables);
+        Assert.Contains("@index", result.AllPlaceholders);
+        Assert.Contains("@first", result.AllPlaceholders);
+        Assert.Contains("@last", result.AllPlaceholders);
+        Assert.Contains("@count", result.AllPlaceholders);
+    }
+
     #endregion
 }
