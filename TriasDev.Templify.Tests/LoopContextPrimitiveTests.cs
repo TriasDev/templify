@@ -28,7 +28,7 @@ public class LoopContextPrimitiveTests
     {
         // Arrange
         List<string> items = new List<string> { "Item One", "Item Two", "Item Three" };
-        object result = _createContextsMethod.Invoke(null, new object[] { items, "Items", null! })!;
+        object result = _createContextsMethod.Invoke(null, new object[] { items, "Items", null!, null! })!;
         IList contexts = (IList)result;
         object firstContext = contexts[0]!;
 
@@ -53,7 +53,7 @@ public class LoopContextPrimitiveTests
     {
         // Arrange
         List<int> items = new List<int> { 10, 20, 30 };
-        object result = _createContextsMethod.Invoke(null, new object[] { items, "Numbers", null! })!;
+        object result = _createContextsMethod.Invoke(null, new object[] { items, "Numbers", null!, null! })!;
         IList contexts = (IList)result;
         object firstContext = contexts[0]!;
 
@@ -71,7 +71,7 @@ public class LoopContextPrimitiveTests
     {
         // Arrange
         List<decimal> items = new List<decimal> { 99.99m, 149.99m, 249.99m };
-        object result = _createContextsMethod.Invoke(null, new object[] { items, "Prices", null! })!;
+        object result = _createContextsMethod.Invoke(null, new object[] { items, "Prices", null!, null! })!;
         IList contexts = (IList)result;
         object lastContext = contexts[2]!;
 

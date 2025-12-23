@@ -286,6 +286,7 @@ public sealed class CompositeVisitorTests
 
         return new LoopBlock(
             collectionName: "Items",
+            iterationVariableName: null,
             contentElements: content,
             startMarker: startMarker,
             endMarker: endMarker,

@@ -354,6 +354,7 @@ public sealed class PlaceholderVisitorTests
 
         return new LoopBlock(
             collectionName: "Items",
+            iterationVariableName: null,
             contentElements: content,
             startMarker: startMarker,
             endMarker: endMarker,

@@ -77,6 +77,7 @@ internal sealed class LoopVisitor : ITemplateElementVisitor
         IReadOnlyList<LoopContext> contexts = LoopContext.CreateContexts(
             collection,
             loop.CollectionName,
+            loop.IterationVariableName,
             parent: null);
 
         // Handle empty collection

@@ -312,6 +312,19 @@ The library uses a **visitor pattern** for processing Word documents, enabling:
 {{/foreach}}
 ```
 
+**Named iteration variable syntax** (for accessing parent scope in nested loops):
+```
+{{#foreach item in CollectionName}}
+  {{item.PropertyName}}
+{{/foreach}}
+
+{{#foreach category in Categories}}
+  {{#foreach product in category.Products}}
+    {{category.Name}}: {{product.Name}}  ← Access parent loop variable
+  {{/foreach}}
+{{/foreach}}
+```
+
 **Loop metadata:** `{{@index}}`, `{{@first}}`, `{{@last}}`, `{{@count}}`
 
 ### Markdown Syntax

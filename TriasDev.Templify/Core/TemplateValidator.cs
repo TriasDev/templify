@@ -220,8 +220,8 @@ internal sealed class TemplateValidator
         bool warnOnEmptyLoopCollections)
     {
         ValueResolver resolver = new ValueResolver();
-        Stack<(string CollectionName, HashSet<string> Properties)> loopStack =
-            new Stack<(string CollectionName, HashSet<string> Properties)>();
+        Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)> loopStack =
+            new Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)>();
 
         // Note: We reuse allPlaceholders from steps 1-4 (conditionals, loops, table loops, regular placeholders).
         // ValidatePlaceholdersInScope will add any additional placeholders found during recursive processing.
@@ -288,7 +288,7 @@ internal sealed class TemplateValidator
     /// </summary>
     private static void ValidatePlaceholdersInScope(
         IReadOnlyList<OpenXmlElement> elements,
-        Stack<(string CollectionName, HashSet<string> Properties)> loopStack,
+        Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)> loopStack,
         Dictionary<string, object> data,
         HashSet<string> allPlaceholders,
         HashSet<string> missingVariables,
@@ -370,7 +370,7 @@ internal sealed class TemplateValidator
     /// </summary>
     private static void ProcessLoopForValidation(
         LoopBlock loop,
-        Stack<(string CollectionName, HashSet<string> Properties)> loopStack,
+        Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)> loopStack,
         Dictionary<string, object> data,
         HashSet<string> allPlaceholders,
         HashSet<string> missingVariables,
@@ -420,7 +420,7 @@ internal sealed class TemplateValidator
         }
 
         // Recurse into loop content with aggregated properties as scope
-        loopStack.Push((loop.CollectionName, aggregatedProperties));
+        loopStack.Push((loop.CollectionName, loop.IterationVariableName, aggregatedProperties));
         ValidatePlaceholdersInScope(loop.ContentElements, loopStack, data, allPlaceholders, missingVariables, warnings, errors, resolver, warnOnEmptyLoopCollections);
         loopStack.Pop();
     }
@@ -430,9 +430,9 @@ internal sealed class TemplateValidator
     /// </summary>
     private static bool IsLoopScopedProperty(
         string name,
-        Stack<(string CollectionName, HashSet<string> Properties)> loopStack)
+        Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)> loopStack)
     {
-        foreach ((string _, HashSet<string> properties) in loopStack)
+        foreach ((string _, string? _, HashSet<string> properties) in loopStack)
         {
             if (properties.Contains(name))
             {
@@ -521,14 +521,39 @@ internal sealed class TemplateValidator
     /// </summary>
     private static bool CanResolveInScope(
         string placeholder,
-        Stack<(string CollectionName, HashSet<string> Properties)> loopStack,
+        Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)> loopStack,
         Dictionary<string, object> data,
         ValueResolver resolver)
     {
         // Try loop scopes (innermost first - stack iteration goes from top to bottom)
-        foreach ((string _, HashSet<string> properties) in loopStack)
+        foreach ((string _, string? iterationVariableName, HashSet<string> properties) in loopStack)
         {
-            // Direct property match
+            // Check if accessing via named iteration variable (e.g., "item" or "item.Name")
+            if (iterationVariableName != null)
+            {
+                // Direct reference to iteration variable (e.g., {{item}})
+                if (placeholder == iterationVariableName)
+                {
+                    return true;
+                }
+
+                // Property access via iteration variable (e.g., {{item.Name}})
+                // Cache prefix to avoid repeated string concatenation
+                string iterationVariablePrefix = iterationVariableName + ".";
+                if (placeholder.StartsWith(iterationVariablePrefix, StringComparison.Ordinal))
+                {
+                    string propertyPath = placeholder.Substring(iterationVariablePrefix.Length);
+                    // Extract root property from the path
+                    int nextDotIndex = propertyPath.IndexOf('.');
+                    string rootProperty = nextDotIndex > 0 ? propertyPath.Substring(0, nextDotIndex) : propertyPath;
+                    if (properties.Contains(rootProperty))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            // Direct property match (implicit syntax)
             if (properties.Contains(placeholder))
             {
                 return true;

@@ -4,6 +4,8 @@ Loops let you repeat content for each item in a list. They're essential for crea
 
 ## Basic Loop Syntax
 
+### Implicit Syntax (Simple)
+
 ```
 {{#foreach ArrayName}}
   Content to repeat for each item
@@ -11,6 +13,16 @@ Loops let you repeat content for each item in a list. They're essential for crea
 ```
 
 The content between `{{#foreach}}` and `{{/foreach}}` will be repeated once for each item in the array.
+
+### Named Iteration Variable Syntax (Explicit)
+
+```
+{{#foreach item in ArrayName}}
+  {{item.Property}}
+{{/foreach}}
+```
+
+This syntax gives the current item an explicit name (`item`), which you can use to access its properties. This is especially useful in [nested loops](#named-iteration-variables) where you need to access parent loop variables.
 
 ## Simple Lists
 
@@ -590,7 +602,7 @@ Category: Electronics
   Item: Mouse
 ```
 
-⚠️ **Important:** Inside the inner loop, there is **no way** to access the outer `Name` because it's shadowed by the inner `Name`.
+⚠️ **Important:** Inside the inner loop, there is **no way** to access the outer `Name` using implicit syntax because it's shadowed by the inner `Name`. However, you can use [named iteration variables](#named-iteration-variables) to solve this problem.
 
 ### Best Practice: Use Unique Property Names
 
@@ -631,6 +643,69 @@ Category: {{CategoryName}}
 {{#foreach Items}}
   Item: {{ItemName}}
   Category: {{CategoryName}}    ← Now accessible!
+{{/foreach}}
+{{/foreach}}
+```
+
+### Named Iteration Variables
+
+An alternative to renaming properties is to use **named iteration variables**. This syntax lets you give each loop item an explicit name, making it possible to access parent loop variables even when property names conflict.
+
+**Syntax:**
+```
+{{#foreach variableName in CollectionName}}
+  {{variableName.Property}}
+{{/foreach}}
+```
+
+**Example with shadowed names:**
+
+**JSON:**
+```json
+{
+  "Categories": [
+    {
+      "Name": "Electronics",
+      "Items": [
+        { "Name": "Laptop" },
+        { "Name": "Mouse" }
+      ]
+    }
+  ]
+}
+```
+
+**Template using named iteration variables:**
+```
+{{#foreach category in Categories}}
+Category: {{category.Name}}
+{{#foreach item in category.Items}}
+  Item: {{item.Name}}
+  Category: {{category.Name}}    ← Parent accessible via named variable!
+{{/foreach}}
+{{/foreach}}
+```
+
+**Output:**
+```
+Category: Electronics
+  Item: Laptop
+  Category: Electronics
+  Item: Mouse
+  Category: Electronics
+```
+
+**Key benefits:**
+- Access parent loop variables even when names conflict
+- More explicit and readable templates
+- Both `{{item.Name}}` (explicit) and `{{Name}}` (implicit) work within the loop
+
+**Mixed syntax example:**
+```
+{{#foreach category in Categories}}
+{{category.Name}}:                    ← Named variable
+{{#foreach Items}}                    ← Implicit syntax for inner loop
+  - {{Name}} ({{category.Name}})      ← Implicit + parent named variable
 {{/foreach}}
 {{/foreach}}
 ```
@@ -729,7 +804,7 @@ The `{{#if IsPremium}}` condition checks the parent category's property from wit
 | Property only on parent item | ✅ Found after checking current |
 | Property only in global context | ✅ Found after checking all loop levels |
 | Same property name at multiple levels | ⚠️ Innermost wins (shadowing) |
-| Need to access shadowed property | ❌ Not possible - use unique names |
+| Need to access shadowed property | ✅ Use [named iteration variables](#named-iteration-variables) or unique property names |
 
 ## Empty Arrays
 

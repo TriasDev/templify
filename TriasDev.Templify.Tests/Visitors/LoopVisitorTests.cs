@@ -31,6 +31,7 @@ public sealed class LoopVisitorTests
 
         LoopBlock loop = new LoopBlock(
             collectionName: "Items",
+            iterationVariableName: null,
             contentElements: new List<OpenXmlElement> { content },
             startMarker: startMarker,
             endMarker: endMarker,
@@ -67,6 +68,7 @@ public sealed class LoopVisitorTests
 
         LoopBlock loop = new LoopBlock(
             collectionName: "Items",
+            iterationVariableName: null,
             contentElements: new List<OpenXmlElement> { content },
             startMarker: startMarker,
             endMarker: endMarker,
@@ -100,6 +102,7 @@ public sealed class LoopVisitorTests
 
         LoopBlock loop = new LoopBlock(
             collectionName: "Items",
+            iterationVariableName: null,
             contentElements: new List<OpenXmlElement> { content },
             startMarker: startMarker,
             endMarker: endMarker,
@@ -137,6 +140,7 @@ public sealed class LoopVisitorTests
 
         LoopBlock loop = new LoopBlock(
             collectionName: "Items",
+            iterationVariableName: null,
             contentElements: new List<OpenXmlElement> { content },
             startMarker: startMarker,
             endMarker: endMarker,
@@ -176,6 +180,7 @@ public sealed class LoopVisitorTests
 
         LoopBlock loop = new LoopBlock(
             collectionName: "Items",
+            iterationVariableName: null,
             contentElements: new List<OpenXmlElement> { content1, content2 },
             startMarker: startMarker,
             endMarker: endMarker,
@@ -221,6 +226,7 @@ public sealed class LoopVisitorTests
 
         LoopBlock loop = new LoopBlock(
             collectionName: "Items",
+            iterationVariableName: null,
             contentElements: new List<OpenXmlElement> { content },
             startMarker: startMarker,
             endMarker: endMarker,
@@ -258,6 +264,7 @@ public sealed class LoopVisitorTests
 
         LoopBlock loop = new LoopBlock(
             collectionName: "Items",
+            iterationVariableName: null,
             contentElements: new List<OpenXmlElement> { content },
             startMarker: startMarker,
             endMarker: endMarker,
@@ -297,6 +304,7 @@ public sealed class LoopVisitorTests
 
         LoopBlock loop = new LoopBlock(
             collectionName: "Items",
+            iterationVariableName: null,
             contentElements: new List<OpenXmlElement> { content },
             startMarker: startMarker,
             endMarker: endMarker,
