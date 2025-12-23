@@ -104,6 +104,21 @@ internal sealed class LoopContext
     /// Supports direct property access ({{Name}}), named iteration variable access ({{item.Name}}),
     /// and metadata ({{@index}}).
     /// </summary>
+    /// <remarks>
+    /// <para>Variable resolution follows this precedence order (first match wins):</para>
+    /// <list type="number">
+    /// <item><description>Loop metadata (@index, @first, @last, @count)</description></item>
+    /// <item><description>Named iteration variable direct reference (e.g., {{item}} when using "item in Items")</description></item>
+    /// <item><description>Named iteration variable property access (e.g., {{item.Name}})</description></item>
+    /// <item><description>Current item property (implicit syntax, e.g., {{Name}})</description></item>
+    /// <item><description>Parent loop context (recursive, for nested loop variable access)</description></item>
+    /// </list>
+    /// <para>
+    /// This means local scope always takes precedence over parent scope. If the current item
+    /// has a property with the same name as a parent loop's iteration variable, the current
+    /// item's property will be resolved first.
+    /// </para>
+    /// </remarks>
     public bool TryResolveVariable(string variableName, out object? value)
     {
         // Check for loop metadata variables

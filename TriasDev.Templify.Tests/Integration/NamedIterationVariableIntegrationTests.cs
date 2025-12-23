@@ -377,6 +377,47 @@ public sealed class NamedIterationVariableIntegrationTests
     }
 
     [Fact]
+    public void ProcessTemplate_NamedVariable_SameNameInNestedLoops_InnerShadowsOuter()
+    {
+        // Arrange: Using the same variable name in nested loops - inner shadows outer
+        // This test documents that local scope takes precedence over parent scope
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{#foreach item in Outer}}");
+        builder.AddParagraph("Outer: {{item}}");
+        builder.AddParagraph("{{#foreach item in Inner}}");
+        builder.AddParagraph("Inner: {{item}}");
+        builder.AddParagraph("{{/foreach}}");
+        builder.AddParagraph("{{/foreach}}");
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Outer"] = new List<string> { "A" },
+            ["Inner"] = new List<string> { "X", "Y" }
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        List<string> paragraphs = verifier.GetAllParagraphTexts();
+
+        // Inner loop shadows outer - {{item}} in inner loop resolves to inner value
+        Assert.Contains(paragraphs, p => p == "Outer: A");
+        Assert.Contains(paragraphs, p => p == "Inner: X");
+        Assert.Contains(paragraphs, p => p == "Inner: Y");
+        // Verify outer value is NOT leaked into inner loop
+        Assert.DoesNotContain(paragraphs, p => p == "Inner: A");
+    }
+
+    [Fact]
     public void ProcessTemplate_NamedVariable_ReservedKeyword_In_ThrowsException()
     {
         // Arrange: "in" is a reserved keyword and cannot be used as iteration variable name
