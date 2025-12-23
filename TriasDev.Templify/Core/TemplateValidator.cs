@@ -79,7 +79,7 @@ internal sealed class TemplateValidator
                 // 5. Check for missing variables if data is provided
                 if (data != null)
                 {
-                    ValidateMissingVariables(elements, conditionalBlocks, data, allPlaceholders, missingVariables, warnings, errors, _options.WarnOnEmptyLoopCollections);
+                    ValidateMissingVariables(elements, data, allPlaceholders, missingVariables, warnings, errors, _options.WarnOnEmptyLoopCollections);
                 }
             }
         }
@@ -113,10 +113,10 @@ internal sealed class TemplateValidator
         {
             conditionalBlocks = ConditionalDetector.DetectConditionalsInElements(elements);
 
-            // Extract variables from conditional expressions
+            // Extract variables from conditional expressions (exclude string literals)
             foreach (ConditionalBlock block in conditionalBlocks)
             {
-                ExtractConditionVariables(block.ConditionExpression, allPlaceholders);
+                ExtractConditionVariables(block.ConditionExpression, allPlaceholders, excludeLiterals: true);
             }
         }
         catch (InvalidOperationException ex)
@@ -206,9 +206,12 @@ internal sealed class TemplateValidator
     /// <summary>
     /// Validates missing variables using recursive loop scope analysis.
     /// </summary>
+    /// <remarks>
+    /// This method reuses the allPlaceholders set already populated by steps 1-4.
+    /// It may add additional placeholders found during recursive loop validation.
+    /// </remarks>
     private static void ValidateMissingVariables(
         List<OpenXmlElement> elements,
-        IReadOnlyList<ConditionalBlock> conditionalBlocks,
         Dictionary<string, object> data,
         HashSet<string> allPlaceholders,
         HashSet<string> missingVariables,
@@ -220,45 +223,42 @@ internal sealed class TemplateValidator
         Stack<(string CollectionName, HashSet<string> Properties)> loopStack =
             new Stack<(string CollectionName, HashSet<string> Properties)>();
 
-        // Clear and re-populate placeholders with proper scoping
-        allPlaceholders.Clear();
-
-        // Re-add conditional variables (they were already extracted in step 1)
-        foreach (ConditionalBlock block in conditionalBlocks)
-        {
-            ExtractConditionVariables(block.ConditionExpression, allPlaceholders, excludeLiterals: true);
-        }
+        // Note: We reuse allPlaceholders from steps 1-4 (conditionals, loops, table loops, regular placeholders).
+        // ValidatePlaceholdersInScope will add any additional placeholders found during recursive processing.
 
         // Validate placeholders with proper loop scoping
         ValidatePlaceholdersInScope(elements, loopStack, data, allPlaceholders, missingVariables, warnings, errors, resolver, warnOnEmptyLoopCollections);
     }
+
+    private static readonly HashSet<string> _operatorKeywords = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "and", "or", "not", "eq", "ne", "lt", "gt", "lte", "gte"
+    };
 
     /// <summary>
     /// Extracts variable names from a conditional expression.
     /// </summary>
     private static void ExtractConditionVariables(string condition, HashSet<string> placeholders, bool excludeLiterals = false)
     {
-        string[] parts = condition.Split(new[] { ' ', '(', ')', '!', '>', '<', '=', '&', '|' }, StringSplitOptions.RemoveEmptyEntries);
+        IEnumerable<string> parts = condition
+            .Split(new[] { ' ', '(', ')', '!', '>', '<', '=', '&', '|' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(p => p.Trim())
+            .Where(p => !string.IsNullOrWhiteSpace(p) && !_operatorKeywords.Contains(p));
+
         foreach (string part in parts)
         {
-            // Filter out operator keywords
-            if (part != "and" && part != "or" && part != "not" &&
-                part != "eq" && part != "ne" && part != "lt" && part != "gt" &&
-                part != "lte" && part != "gte" && !string.IsNullOrWhiteSpace(part))
+            if (excludeLiterals)
             {
-                if (excludeLiterals)
+                // Only add if it's not a string literal (enclosed in quotes)
+                string trimmed = part.Trim('"', '\'');
+                if (trimmed == part)
                 {
-                    // Only add if it's not a string literal (enclosed in quotes)
-                    string trimmed = part.Trim().Trim('"', '\'');
-                    if (trimmed == part.Trim())
-                    {
-                        placeholders.Add(trimmed);
-                    }
+                    placeholders.Add(trimmed);
                 }
-                else
-                {
-                    placeholders.Add(part.Trim());
-                }
+            }
+            else
+            {
+                placeholders.Add(part);
             }
         }
     }
@@ -289,91 +289,42 @@ internal sealed class TemplateValidator
             loopBlocks = Array.Empty<LoopBlock>();
         }
 
-        // 2. Process each loop recursively
+        // 2. Collect all loops (both regular and table row loops) for exclusion
+        List<LoopBlock> allLoops = new List<LoopBlock>(loopBlocks);
+
+        // Detect table row loops
+        List<LoopBlock> tableRowLoops = new List<LoopBlock>();
+        foreach (Table table in elements.OfType<Table>())
+        {
+            try
+            {
+                IReadOnlyList<LoopBlock> tableLoops = LoopDetector.DetectTableRowLoops(table);
+                tableRowLoops.AddRange(tableLoops);
+            }
+            catch (InvalidOperationException)
+            {
+                // Table loop detection errors are captured elsewhere
+            }
+        }
+
+        allLoops.AddRange(tableRowLoops);
+
+        // 3. Process each regular loop recursively
         foreach (LoopBlock loop in loopBlocks)
         {
-            allPlaceholders.Add(loop.CollectionName);
-
-            // Resolve collection from current scope (check loop scopes first, then global)
-            object? collection = ResolveCollectionFromScope(loop.CollectionName, loopStack, data, resolver);
-
-            if (collection == null)
-            {
-                // Collection not found - it will be flagged as missing in the placeholder check
-                continue;
-            }
-
-            // Aggregate properties from ALL items in collection
-            HashSet<string> aggregatedProperties = AggregatePropertiesFromCollection(collection);
-
-            if (aggregatedProperties.Count == 0)
-            {
-                // Empty collection - optionally add warning, skip inner validation
-                if (warnOnEmptyLoopCollections)
-                {
-                    warnings.Add(ValidationWarning.Create(
-                        ValidationWarningType.EmptyLoopCollection,
-                        $"Collection '{loop.CollectionName}' is empty. Variables inside this loop could not be validated."));
-                }
-
-                continue;
-            }
-
-            // Recurse into loop content with aggregated properties as scope
-            loopStack.Push((loop.CollectionName, aggregatedProperties));
-            ValidatePlaceholdersInScope(loop.ContentElements, loopStack, data, allPlaceholders, missingVariables, warnings, errors, resolver, warnOnEmptyLoopCollections);
-            loopStack.Pop();
+            ProcessLoopForValidation(loop, loopStack, data, allPlaceholders, missingVariables, warnings, errors, resolver, warnOnEmptyLoopCollections);
         }
 
-        // 3. Also handle table row loops within table elements
-        foreach (OpenXmlElement element in elements)
+        // 4. Process table row loops recursively
+        foreach (LoopBlock loop in tableRowLoops)
         {
-            if (element is Table table)
-            {
-                try
-                {
-                    IReadOnlyList<LoopBlock> tableLoops = LoopDetector.DetectTableRowLoops(table);
-                    foreach (LoopBlock loop in tableLoops)
-                    {
-                        allPlaceholders.Add(loop.CollectionName);
-
-                        object? collection = ResolveCollectionFromScope(loop.CollectionName, loopStack, data, resolver);
-
-                        if (collection == null)
-                        {
-                            continue;
-                        }
-
-                        HashSet<string> aggregatedProperties = AggregatePropertiesFromCollection(collection);
-
-                        if (aggregatedProperties.Count == 0)
-                        {
-                            if (warnOnEmptyLoopCollections)
-                            {
-                                warnings.Add(ValidationWarning.Create(
-                                    ValidationWarningType.EmptyLoopCollection,
-                                    $"Collection '{loop.CollectionName}' is empty. Variables inside this loop could not be validated."));
-                            }
-
-                            continue;
-                        }
-
-                        loopStack.Push((loop.CollectionName, aggregatedProperties));
-                        ValidatePlaceholdersInScope(loop.ContentElements, loopStack, data, allPlaceholders, missingVariables, warnings, errors, resolver, warnOnEmptyLoopCollections);
-                        loopStack.Pop();
-                    }
-                }
-                catch (InvalidOperationException)
-                {
-                    // Table loop detection errors are captured elsewhere
-                }
-            }
+            ProcessLoopForValidation(loop, loopStack, data, allPlaceholders, missingVariables, warnings, errors, resolver, warnOnEmptyLoopCollections);
         }
 
-        // 4. Find placeholders in current scope (exclude nested loop content)
-        HashSet<string> placeholders = FindPlaceholdersInElements(elements, loopBlocks);
+        // 5. Find placeholders in current scope (exclude all nested loop content)
+        HashSet<string> placeholders = FindPlaceholdersInElements(elements, allLoops);
 
-        // 5. Validate each placeholder against current scope
+        // 6. Validate each placeholder against current scope
         foreach (string placeholder in placeholders)
         {
             allPlaceholders.Add(placeholder);
@@ -392,6 +343,56 @@ internal sealed class TemplateValidator
                     $"Variable '{placeholder}' is referenced in the template but not provided in the data."));
             }
         }
+    }
+
+    /// <summary>
+    /// Processes a loop block for validation, recursing into its content.
+    /// </summary>
+    private static void ProcessLoopForValidation(
+        LoopBlock loop,
+        Stack<(string CollectionName, HashSet<string> Properties)> loopStack,
+        Dictionary<string, object> data,
+        HashSet<string> allPlaceholders,
+        HashSet<string> missingVariables,
+        List<ValidationWarning> warnings,
+        List<ValidationError> errors,
+        ValueResolver resolver,
+        bool warnOnEmptyLoopCollections)
+    {
+        allPlaceholders.Add(loop.CollectionName);
+
+        // Resolve collection from current scope (check loop scopes first, then global)
+        object? collection = ResolveCollectionFromScope(loop.CollectionName, loopStack, data, resolver);
+
+        if (collection == null)
+        {
+            // Collection not found in global scope or is a loop-scoped property (nested collection).
+            // For loop-scoped properties, we skip validation since we can't resolve them statically.
+            // For truly missing collections, they will be flagged when validating placeholders
+            // if they appear as {{CollectionName}} somewhere in the template.
+            return;
+        }
+
+        // Aggregate properties from ALL items in collection
+        HashSet<string> aggregatedProperties = AggregatePropertiesFromCollection(collection);
+
+        if (aggregatedProperties.Count == 0)
+        {
+            // Empty collection - optionally add warning, skip inner validation
+            if (warnOnEmptyLoopCollections)
+            {
+                warnings.Add(ValidationWarning.Create(
+                    ValidationWarningType.EmptyLoopCollection,
+                    $"Collection '{loop.CollectionName}' is empty. Variables inside this loop could not be validated."));
+            }
+
+            return;
+        }
+
+        // Recurse into loop content with aggregated properties as scope
+        loopStack.Push((loop.CollectionName, aggregatedProperties));
+        ValidatePlaceholdersInScope(loop.ContentElements, loopStack, data, allPlaceholders, missingVariables, warnings, errors, resolver, warnOnEmptyLoopCollections);
+        loopStack.Pop();
     }
 
     /// <summary>
@@ -430,10 +431,14 @@ internal sealed class TemplateValidator
     {
         HashSet<string> properties = new HashSet<string>();
 
-        if (collection is not IEnumerable enumerable)
+        // Strings implement IEnumerable<char>, so exclude them explicitly
+        if (collection is string || collection is not IEnumerable enumerable)
         {
             return properties;
         }
+
+        // Cache property info by type to avoid repeated reflection
+        Dictionary<Type, System.Reflection.PropertyInfo[]> typePropertyCache = new Dictionary<Type, System.Reflection.PropertyInfo[]>();
 
         foreach (object? item in enumerable)
         {
@@ -458,8 +463,15 @@ internal sealed class TemplateValidator
             }
             else
             {
-                // POCO - get public properties
-                foreach (System.Reflection.PropertyInfo prop in item.GetType().GetProperties())
+                // POCO - get public properties (with caching by type)
+                Type itemType = item.GetType();
+                if (!typePropertyCache.TryGetValue(itemType, out System.Reflection.PropertyInfo[]? cachedProperties))
+                {
+                    cachedProperties = itemType.GetProperties();
+                    typePropertyCache[itemType] = cachedProperties;
+                }
+
+                foreach (System.Reflection.PropertyInfo prop in cachedProperties)
                 {
                     properties.Add(prop.Name);
                 }
@@ -492,10 +504,14 @@ internal sealed class TemplateValidator
             // We cannot deeply validate the nested path (e.g., that Address actually has a City property)
             // because we only have property names from the collection, not actual runtime values.
             // This is an acceptable limitation - runtime processing will catch any invalid nested paths.
-            string rootProperty = placeholder.Split('.')[0];
-            if (rootProperty != placeholder && properties.Contains(rootProperty))
+            int dotIndex = placeholder.IndexOf('.');
+            if (dotIndex > 0)
             {
-                return true;
+                string rootProperty = placeholder.Substring(0, dotIndex);
+                if (properties.Contains(rootProperty))
+                {
+                    return true;
+                }
             }
         }
 
