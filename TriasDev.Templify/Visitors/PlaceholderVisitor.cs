@@ -9,6 +9,7 @@ using TriasDev.Templify.Expressions;
 using TriasDev.Templify.Loops;
 using TriasDev.Templify.Markdown;
 using TriasDev.Templify.Placeholders;
+using TriasDev.Templify.Replacements;
 using TriasDev.Templify.Utilities;
 
 namespace TriasDev.Templify.Visitors;
@@ -136,6 +137,10 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
                 _options.Culture,
                 placeholder.Format,
                 _options.BooleanFormatterRegistry);
+
+            // Apply text replacements (e.g., HTML entities to Word-compatible text)
+            replacementValue = TextReplacements.Apply(replacementValue, _options.TextReplacements);
+
             ReplacePlaceholderInParagraph(paragraph, placeholder, replacementValue);
             _replacementCount++;
         }
