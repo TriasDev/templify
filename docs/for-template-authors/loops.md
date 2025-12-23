@@ -503,9 +503,23 @@ Order 001: $100
 Order 003: $200
 ```
 
-## Accessing Parent Context
+## Variable Resolution in Nested Loops
 
-When inside a nested loop, you can still access variables from the parent context:
+When you use a variable inside a loop, Templify searches for it in a specific order. Understanding this resolution order is important for working with nested loops.
+
+### Resolution Order
+
+Variables are resolved from **innermost scope to outermost scope** (first match wins):
+
+```
+1. Current loop item (innermost)
+2. Parent loop item
+3. Grandparent loop item
+4. ... (any additional parent loops)
+5. Global context (outermost)
+```
+
+### Basic Example
 
 **JSON:**
 ```json
@@ -513,10 +527,10 @@ When inside a nested loop, you can still access variables from the parent contex
   "CompanyName": "Acme Corp",
   "Departments": [
     {
-      "Name": "Engineering",
+      "DepartmentName": "Engineering",
       "Employees": [
-        { "Name": "Alice" },
-        { "Name": "Bob" }
+        { "EmployeeName": "Alice" },
+        { "EmployeeName": "Bob" }
       ]
     }
   ]
@@ -526,15 +540,196 @@ When inside a nested loop, you can still access variables from the parent contex
 **Template:**
 ```
 {{#foreach Departments}}
-{{CompanyName}} - {{Name}} Department
+{{CompanyName}} - {{DepartmentName}}
 {{#foreach Employees}}
-  Employee: {{Name}}
+  Employee: {{EmployeeName}}
+  Department: {{DepartmentName}}
   Company: {{CompanyName}}
 {{/foreach}}
 {{/foreach}}
 ```
 
-**Note:** `{{CompanyName}}` is accessible inside nested loops because it's in the parent context.
+**How resolution works inside the inner loop:**
+- `{{EmployeeName}}` → Found on current loop item (Employee)
+- `{{DepartmentName}}` → Not on Employee → Found on parent loop item (Department)
+- `{{CompanyName}}` → Not on Employee → Not on Department → Found in global context
+
+### Variable Shadowing
+
+When both inner and outer contexts have a property with the **same name**, the inner one always wins. This is called "shadowing".
+
+**JSON:**
+```json
+{
+  "Categories": [
+    {
+      "Name": "Electronics",
+      "Items": [
+        { "Name": "Laptop" },
+        { "Name": "Mouse" }
+      ]
+    }
+  ]
+}
+```
+
+**Template:**
+```
+{{#foreach Categories}}
+Category: {{Name}}           ← Shows "Electronics"
+{{#foreach Items}}
+  Item: {{Name}}             ← Shows "Laptop" / "Mouse" (inner shadows outer)
+{{/foreach}}
+{{/foreach}}
+```
+
+**Output:**
+```
+Category: Electronics
+  Item: Laptop
+  Item: Mouse
+```
+
+⚠️ **Important:** Inside the inner loop, there is **no way** to access the outer `Name` because it's shadowed by the inner `Name`.
+
+### Best Practice: Use Unique Property Names
+
+To avoid shadowing issues, use **unique property names** at each level:
+
+**❌ Problematic (same name at multiple levels):**
+```json
+{
+  "Categories": [
+    {
+      "Name": "Electronics",
+      "Items": [
+        { "Name": "Laptop" }
+      ]
+    }
+  ]
+}
+```
+
+**✅ Better (unique names):**
+```json
+{
+  "Categories": [
+    {
+      "CategoryName": "Electronics",
+      "Items": [
+        { "ItemName": "Laptop" }
+      ]
+    }
+  ]
+}
+```
+
+**Template:**
+```
+{{#foreach Categories}}
+Category: {{CategoryName}}
+{{#foreach Items}}
+  Item: {{ItemName}}
+  Category: {{CategoryName}}    ← Now accessible!
+{{/foreach}}
+{{/foreach}}
+```
+
+### Accessing Global Variables in Nested Loops
+
+Global variables remain accessible at any nesting depth (unless shadowed):
+
+**JSON:**
+```json
+{
+  "ShowPrices": true,
+  "Currency": "USD",
+  "Orders": [
+    {
+      "OrderId": "ORD-001",
+      "Items": [
+        { "ProductName": "Widget", "Price": 10 }
+      ]
+    }
+  ]
+}
+```
+
+**Template:**
+```
+{{#foreach Orders}}
+Order: {{OrderId}}
+{{#foreach Items}}
+  {{#if ShowPrices}}
+    {{ProductName}}: {{Price}} {{Currency}}
+  {{else}}
+    {{ProductName}}: Contact for pricing
+  {{/if}}
+{{/foreach}}
+{{/foreach}}
+```
+
+Here, `{{ShowPrices}}` and `{{Currency}}` are resolved from the global context because they're not defined on the loop items.
+
+### Using Conditionals with Parent Data
+
+You can use conditionals that reference parent loop properties:
+
+**JSON:**
+```json
+{
+  "Categories": [
+    {
+      "CategoryName": "Premium",
+      "IsPremium": true,
+      "Products": [
+        { "ProductName": "Gold Widget" },
+        { "ProductName": "Gold Gadget" }
+      ]
+    },
+    {
+      "CategoryName": "Standard",
+      "IsPremium": false,
+      "Products": [
+        { "ProductName": "Basic Widget" }
+      ]
+    }
+  ]
+}
+```
+
+**Template:**
+```
+{{#foreach Categories}}
+{{CategoryName}} Products:
+{{#foreach Products}}
+  {{#if IsPremium}}★ {{/if}}{{ProductName}}
+{{/foreach}}
+
+{{/foreach}}
+```
+
+**Output:**
+```
+Premium Products:
+  ★ Gold Widget
+  ★ Gold Gadget
+
+Standard Products:
+  Basic Widget
+```
+
+The `{{#if IsPremium}}` condition checks the parent category's property from within the inner Products loop.
+
+### Summary Table
+
+| Scenario | Resolution |
+|----------|------------|
+| Property only on current item | ✅ Found immediately |
+| Property only on parent item | ✅ Found after checking current |
+| Property only in global context | ✅ Found after checking all loop levels |
+| Same property name at multiple levels | ⚠️ Innermost wins (shadowing) |
+| Need to access shadowed property | ❌ Not possible - use unique names |
 
 ## Empty Arrays
 
@@ -878,11 +1073,12 @@ Make sure closing tags are in the right order:
 
 1. **Structure JSON to match template needs** - Organize data how you'll display it
 2. **Use meaningful property names** - `ProductName` not `N1`
-3. **Keep nesting reasonable** - 2-3 levels maximum for readability
-4. **Test with edge cases** - Empty arrays, single items, many items
-5. **Use loop variables** - `{{@first}}`, `{{@last}}` for special formatting
-6. **Combine with conditionals** - Filter or format items based on properties
-7. **Add separators carefully** - Use `{{#if not @last}}` to avoid trailing separators
+3. **Use unique property names in nested structures** - Avoid `Name` at multiple levels; use `CategoryName`, `ItemName` instead (see [Variable Shadowing](#variable-shadowing))
+4. **Keep nesting reasonable** - 2-3 levels maximum for readability
+5. **Test with edge cases** - Empty arrays, single items, many items
+6. **Use loop variables** - `{{@first}}`, `{{@last}}` for special formatting
+7. **Combine with conditionals** - Filter or format items based on properties
+8. **Add separators carefully** - Use `{{#if not @last}}` to avoid trailing separators
 
 ## Next Steps
 

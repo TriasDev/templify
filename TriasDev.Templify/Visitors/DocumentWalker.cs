@@ -73,6 +73,10 @@ internal sealed class DocumentWalker
     ///
     /// Conditionals and loops are processed from deepest to shallowest nesting
     /// to ensure inner constructs are handled before outer ones.
+    ///
+    /// IMPORTANT: Conditionals that are inside loop blocks must NOT be processed
+    /// at the outer level. They will be processed when the loop is expanded with
+    /// the correct evaluation context (LoopEvaluationContext).
     /// </remarks>
     public void WalkElements(
         List<OpenXmlElement> elements,
@@ -83,9 +87,15 @@ internal sealed class DocumentWalker
         // This affects whether we skip removed elements
         bool isDocumentWalk = elements.Any(e => e.Parent != null);
 
+        // Pre-detect loops to know which elements are inside loop blocks
+        // This is needed to filter out conditionals that are inside loops
+        IReadOnlyList<LoopBlock> loops = LoopDetector.DetectLoopsInElements(elements);
+        HashSet<OpenXmlElement> elementsInsideLoops = GetElementsInsideLoops(loops);
+
         // Step 1: Detect and visit conditionals
         // Conditionals are processed first because they can contain loops
-        // Process from deepest to shallowest (same as ConditionalProcessor)
+        // BUT: conditionals inside loops must be skipped - they will be processed
+        // when the loop is expanded with LoopEvaluationContext
         IReadOnlyList<ConditionalBlock> conditionals = ConditionalDetector.DetectConditionalsInElements(elements);
         foreach (ConditionalBlock conditional in conditionals.OrderByDescending(c => c.NestingLevel))
         {
@@ -96,13 +106,19 @@ internal sealed class DocumentWalker
                 continue;
             }
 
+            // Skip conditionals that are inside loop blocks
+            // They will be processed when the loop expands with the correct context
+            if (elementsInsideLoops.Contains(conditional.StartMarker))
+            {
+                continue;
+            }
+
             visitor.VisitConditional(conditional, context);
         }
 
         // Step 2: Detect and visit loops
         // Note: After conditionals are processed, some elements may have been removed
         // Loops are processed after conditionals because conditionals can affect loop content
-        IReadOnlyList<LoopBlock> loops = LoopDetector.DetectLoopsInElements(elements);
         foreach (LoopBlock loop in loops)
         {
             // Skip if already removed by conditional processing or nested loop processing
@@ -265,5 +281,31 @@ internal sealed class DocumentWalker
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Gets all elements that are inside loop content blocks.
+    /// </summary>
+    /// <param name="loops">The detected loop blocks.</param>
+    /// <returns>A set of elements that are inside loop blocks.</returns>
+    /// <remarks>
+    /// This is used to filter out conditionals that are inside loops.
+    /// Such conditionals should not be processed at the outer level because
+    /// they need to be evaluated with the loop's evaluation context.
+    /// </remarks>
+    private static HashSet<OpenXmlElement> GetElementsInsideLoops(IReadOnlyList<LoopBlock> loops)
+    {
+        HashSet<OpenXmlElement> elementsInsideLoops = new HashSet<OpenXmlElement>();
+
+        foreach (LoopBlock loop in loops)
+        {
+            // Add all content elements of the loop
+            foreach (OpenXmlElement element in loop.ContentElements)
+            {
+                elementsInsideLoops.Add(element);
+            }
+        }
+
+        return elementsInsideLoops;
     }
 }

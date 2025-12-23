@@ -716,4 +716,168 @@ public class ConditionalEvaluatorTests
     }
 
     #endregion
+
+    #region Deep Nested Dictionary Path Resolution
+
+    [Fact]
+    public void Evaluate_DeepNestedDictionaryPath_WithBoolTrue_ReturnsTrue()
+    {
+        // Test deeply nested dictionary paths with boolean values
+        Dictionary<string, object> data = new()
+        {
+            ["config"] = new Dictionary<string, object>
+            {
+                ["options"] = new Dictionary<string, object>
+                {
+                    ["items"] = new Dictionary<string, object>
+                    {
+                        ["feature1"] = new Dictionary<string, object>
+                        {
+                            ["responses"] = new Dictionary<string, object>
+                            {
+                                ["options"] = new Dictionary<string, object>
+                                {
+                                    ["items"] = new Dictionary<string, object>
+                                    {
+                                        ["optionA"] = new Dictionary<string, object>
+                                        {
+                                            ["enabled"] = true
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        string path = "config.options.items.feature1.responses.options.items.optionA.enabled";
+
+        bool result = Evaluate(path, data);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void Evaluate_DeepNestedDictionaryPath_FromJsonParsedData_ReturnsTrue()
+    {
+        // Test with JSON-parsed data structure (Dictionary<string, object> at all levels)
+        string json = @"{
+            ""config"": {
+                ""options"": {
+                    ""items"": {
+                        ""feature1"": {
+                            ""responses"": {
+                                ""options"": {
+                                    ""items"": {
+                                        ""optionA"": {
+                                            ""enabled"": true
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }";
+
+        Dictionary<string, object> data = JsonDataParser.ParseJsonToDataDictionary(json);
+
+        string path = "config.options.items.feature1.responses.options.items.optionA.enabled";
+
+        bool result = Evaluate(path, data);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void Evaluate_DeepNestedPath_InLoopContext_WhenItemHasSamePath_ReturnsTrue()
+    {
+        // This test simulates the scenario where:
+        // 1. Root data has a deeply nested config path
+        // 2. We're iterating over data.assets.items
+        // 3. Each loop item ALSO has the same nested config structure
+        // 4. The conditional should resolve correctly from the loop item context
+
+        string json = @"{
+            ""config"": {
+                ""options"": {
+                    ""items"": {
+                        ""feature1"": {
+                            ""responses"": {
+                                ""options"": {
+                                    ""items"": {
+                                        ""optionA"": {
+                                            ""enabled"": true
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            ""data"": {
+                ""assets"": {
+                    ""items"": [
+                        {
+                            ""name"": ""TestAsset"",
+                            ""config"": {
+                                ""options"": {
+                                    ""items"": {
+                                        ""feature1"": {
+                                            ""responses"": {
+                                                ""options"": {
+                                                    ""items"": {
+                                                        ""optionA"": {
+                                                            ""enabled"": true
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        }";
+
+        Dictionary<string, object> data = JsonDataParser.ParseJsonToDataDictionary(json);
+
+        // Get the first asset item
+        var dataObj = (Dictionary<string, object>)data["data"];
+        var assets = (Dictionary<string, object>)dataObj["assets"];
+        var items = (List<object>)assets["items"];
+        var firstItem = (Dictionary<string, object>)items[0];
+
+        // Create the evaluation context chain (simulating loop context)
+        GlobalEvaluationContext globalContext = new GlobalEvaluationContext(data);
+
+        // Create LoopContext and LoopEvaluationContext using reflection
+        Type loopContextType = typeof(DocumentTemplateProcessor).Assembly
+            .GetType("TriasDev.Templify.Loops.LoopContext")!;
+        Type loopEvalContextType = typeof(DocumentTemplateProcessor).Assembly
+            .GetType("TriasDev.Templify.Loops.LoopEvaluationContext")!;
+
+        object loopContext = Activator.CreateInstance(
+            loopContextType,
+            new object[] { firstItem, 0, 1, "data.assets.items", null! })!;
+
+        IEvaluationContext loopEvalContext = (IEvaluationContext)Activator.CreateInstance(
+            loopEvalContextType,
+            new object[] { loopContext, globalContext })!;
+
+        // Now evaluate the condition using LoopEvaluationContext
+        string path = "config.options.items.feature1.responses.options.items.optionA.enabled";
+        bool result = (bool)_evaluateMethod.Invoke(_evaluator, new object[] { path, loopEvalContext })!;
+
+        Assert.True(result);
+    }
+
+    #endregion
 }
