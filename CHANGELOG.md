@@ -7,17 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-01-05
+
 ### Added
+- **Text Replacement Lookup Tables** - Pre-process text before template processing
+  - `TextReplacementLookup` for custom character/string replacements
+  - `HtmlEntityPreset` for common HTML entities (`&amp;`, `&lt;`, `&gt;`, `&nbsp;`, `&mdash;`, `&ndash;`, etc.)
+  - GUI support for HTML entity replacement option
+- **Named Iteration Variable Syntax** - Access parent loop variables in nested loops
+  - New syntax: `{{#foreach item in CollectionName}}...{{item.Property}}...{{/foreach}}`
+  - Access parent scope: `{{category.Name}}` inside `{{#foreach product in category.Products}}`
 - **ElseIf Support for Conditionals** - Multi-branch conditional logic with `{{#elseif condition}}` syntax
   - Chain multiple conditions: `{{#if A}}...{{#elseif B}}...{{#elseif C}}...{{#else}}...{{/if}}`
   - Conditions evaluated in order - first matching branch wins
   - Strict validation: `{{#else}}` must be the last branch
   - Full support for block-level, inline, and table row conditionals
-  - Works with all existing operators (`=`, `!=`, `>`, `<`, `>=`, `<=`, `and`, `or`, `not`)
+- **Newline Character Support** - Variable values can now contain `\n` for line breaks
+- **Inline Conditionals** - Conditionals within a single paragraph
+- **Highlight and Shading Preservation** - Per-run placeholder replacement now preserves highlight and shading formatting
+- **Typographic Quote Support** - Conditional expressions now accept curly/smart quotes (`""` `''`)
+- **.NET 10 Support** - Added `net10.0` target framework
+
+### Changed
+- **BREAKING:** `{{else}}` syntax changed to `{{#else}}` for consistency with other control tags
+
+### Fixed
+- Conditionals inside loops now evaluate with correct context
+- Loop-scoped variables are now correctly validated in template validation
+- Null values are now treated as valid in template validation
+- Nested paragraphs no longer generated in RepeatingConverter
 
 ### Improved
-- Test coverage increased to 826 tests
-- Updated user documentation with elseif examples and troubleshooting
+- Test coverage increased to 929 tests
+- Updated NuGet dependencies
+
+## [1.2.0] - 2025-12-15
+
+### Added
+- **TextTemplateProcessor** - Process email and plain text templates using the same syntax as Word documents
 
 ## [1.1.0] - 2025-12-02
 
@@ -99,6 +126,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cross-platform: Windows, Linux, macOS
 - No Microsoft Word installation required
 
-[Unreleased]: https://github.com/TriasDev/templify/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/TriasDev/templify/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/TriasDev/templify/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/TriasDev/templify/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/TriasDev/templify/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/TriasDev/templify/releases/tag/v1.0.0
