@@ -391,6 +391,125 @@ public sealed class DocumentBuilder
     }
 
     /// <summary>
+    /// Adds a simple Table of Contents field to the document.
+    /// This creates a TOC field that Word can update but Templify cannot.
+    /// The TOC will contain entries pointing to page numbers that become stale after processing.
+    /// </summary>
+    /// <param name="tocEntries">List of entries to show in the TOC, each with (text, pageNumber)</param>
+    public DocumentBuilder AddTableOfContents(params (string text, int pageNumber)[] tocEntries)
+    {
+        // Add TOC title
+        Paragraph titlePara = new Paragraph();
+        Run titleRun = new Run();
+        titleRun.RunProperties = new RunProperties(new Bold());
+        titleRun.Append(new Text("Table of Contents"));
+        titlePara.Append(titleRun);
+        _body.Append(titlePara);
+
+        // Add TOC field begin
+        Paragraph tocPara = new Paragraph();
+
+        // Field begin character
+        Run beginRun = new Run();
+        beginRun.Append(new FieldChar { FieldCharType = FieldCharValues.Begin });
+        tocPara.Append(beginRun);
+
+        // Field instruction (TOC command)
+        Run instrRun = new Run();
+        instrRun.Append(new FieldCode(" TOC \\o \"1-3\" \\h \\z \\u ") { Space = SpaceProcessingModeValues.Preserve });
+        tocPara.Append(instrRun);
+
+        // Field separator
+        Run sepRun = new Run();
+        sepRun.Append(new FieldChar { FieldCharType = FieldCharValues.Separate });
+        tocPara.Append(sepRun);
+
+        _body.Append(tocPara);
+
+        // Add TOC entries (these are the cached/displayed values)
+        foreach ((string text, int pageNumber) in tocEntries)
+        {
+            Paragraph entryPara = new Paragraph();
+
+            // Hyperlink-like entry text
+            Run textRun = new Run();
+            textRun.Append(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
+            entryPara.Append(textRun);
+
+            // Tab character to separate text from page number
+            Run tabRun = new Run();
+            tabRun.Append(new TabChar());
+            entryPara.Append(tabRun);
+
+            // Page number (this is the cached value that becomes stale)
+            Run pageRun = new Run();
+            pageRun.Append(new Text(pageNumber.ToString()));
+            entryPara.Append(pageRun);
+
+            _body.Append(entryPara);
+        }
+
+        // Field end character
+        Paragraph endPara = new Paragraph();
+        Run endRun = new Run();
+        endRun.Append(new FieldChar { FieldCharType = FieldCharValues.End });
+        endPara.Append(endRun);
+        _body.Append(endPara);
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a heading paragraph with the specified style level (1-3).
+    /// These are typically what TOC entries reference.
+    /// </summary>
+    public DocumentBuilder AddHeading(string text, int level = 1)
+    {
+        Paragraph paragraph = new Paragraph();
+
+        // Add paragraph properties with heading style
+        ParagraphProperties paraProps = new ParagraphProperties();
+        paraProps.Append(new ParagraphStyleId { Val = $"Heading{level}" });
+        paragraph.Append(paraProps);
+
+        Run run = new Run();
+        RunProperties runProps = new RunProperties(new Bold());
+        if (level == 1)
+        {
+            runProps.Append(new FontSize { Val = "32" }); // 16pt
+        }
+        else if (level == 2)
+        {
+            runProps.Append(new FontSize { Val = "28" }); // 14pt
+        }
+        else
+        {
+            runProps.Append(new FontSize { Val = "24" }); // 12pt
+        }
+        run.RunProperties = runProps;
+        run.Append(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
+
+        paragraph.Append(run);
+        _body.Append(paragraph);
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a page break to simulate multi-page documents.
+    /// </summary>
+    public DocumentBuilder AddPageBreak()
+    {
+        Paragraph paragraph = new Paragraph();
+        Run run = new Run();
+        run.Append(new Break { Type = BreakValues.Page });
+        paragraph.Append(run);
+        _body.Append(paragraph);
+
+        return this;
+    }
+
+    /// <summary>
     /// Returns the document as a MemoryStream for processing.
     /// </summary>
     public MemoryStream ToStream()

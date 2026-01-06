@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 using TriasDev.Templify.Placeholders;
 using TriasDev.Templify.Utilities;
 using TriasDev.Templify.Visitors;
@@ -102,6 +103,12 @@ public sealed class DocumentTemplateProcessor
 
                 // Walk the document with the composite visitor
                 walker.Walk(document, composite, globalContext);
+
+                // Apply UpdateFieldsOnOpen setting if enabled
+                if (_options.UpdateFieldsOnOpen)
+                {
+                    ApplyUpdateFieldsOnOpen(document);
+                }
 
                 // Save changes
                 document.MainDocumentPart.Document.Save();
@@ -238,5 +245,42 @@ public sealed class DocumentTemplateProcessor
         }
 
         source.CopyTo(destination);
+    }
+
+    /// <summary>
+    /// Configures the document to update all fields (including TOC) when opened in Word.
+    /// </summary>
+    /// <param name="document">The Word document to configure.</param>
+    private static void ApplyUpdateFieldsOnOpen(WordprocessingDocument document)
+    {
+        if (document.MainDocumentPart == null)
+        {
+            return;
+        }
+
+        // Get or create the document settings part
+        DocumentSettingsPart? settingsPart = document.MainDocumentPart.DocumentSettingsPart;
+        if (settingsPart == null)
+        {
+            settingsPart = document.MainDocumentPart.AddNewPart<DocumentSettingsPart>();
+            settingsPart.Settings = new Settings();
+        }
+
+        Settings settings = settingsPart.Settings;
+
+        // Check if UpdateFieldsOnOpen already exists
+        UpdateFieldsOnOpen? existingElement = settings.GetFirstChild<UpdateFieldsOnOpen>();
+        if (existingElement != null)
+        {
+            // Update the existing element
+            existingElement.Val = true;
+        }
+        else
+        {
+            // Add new UpdateFieldsOnOpen element
+            settings.PrependChild(new UpdateFieldsOnOpen { Val = true });
+        }
+
+        settingsPart.Settings.Save();
     }
 }

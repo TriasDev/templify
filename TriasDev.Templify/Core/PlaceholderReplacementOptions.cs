@@ -83,6 +83,24 @@ public sealed class PlaceholderReplacementOptions
     public IReadOnlyDictionary<string, string>? TextReplacements { get; init; }
 
     /// <summary>
+    /// Gets or initializes a value indicating whether Word should update all fields (including Table of Contents)
+    /// when the document is first opened after processing.
+    /// Default is false.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// When template processing removes or adds content (via conditionals or loops), fields like
+    /// Table of Contents (TOC) contain stale page numbers. Setting this to true ensures Word
+    /// prompts the user to update fields when opening the document.
+    /// </para>
+    /// <para>
+    /// Note: When this option is enabled, Word will display a prompt asking the user to confirm
+    /// field updates. This is a security measure built into Word.
+    /// </para>
+    /// </remarks>
+    public bool UpdateFieldsOnOpen { get; init; } = false;
+
+    /// <summary>
     /// Creates a new instance of <see cref="PlaceholderReplacementOptions"/> with default settings.
     /// </summary>
     public PlaceholderReplacementOptions()
