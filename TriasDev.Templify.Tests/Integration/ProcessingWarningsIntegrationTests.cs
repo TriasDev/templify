@@ -254,6 +254,58 @@ public sealed class ProcessingWarningsIntegrationTests
         Assert.Equal("Customer.Name", result.Warnings[0].VariableName);
     }
 
+    [Fact]
+    public void ProcessTemplate_InvalidExpressionSyntax_CollectsWarning()
+    {
+        // Arrange - expression with invalid syntax (= instead of ==)
+        // This causes parse failure which generates ExpressionFailed warning
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{(Status = \"Active\")}}");
+
+        Dictionary<string, object> data = new Dictionary<string, object>();
+
+        using MemoryStream templateStream = builder.ToStream();
+        using MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.True(result.HasWarnings);
+
+        // Should have ExpressionFailed warning for parse failure
+        // Note: Also generates MissingVariable warning because resolved=false
+        Assert.Contains(result.Warnings, w => w.Type == ProcessingWarningType.ExpressionFailed);
+        ProcessingWarning exprWarning = result.Warnings.First(w => w.Type == ProcessingWarningType.ExpressionFailed);
+        Assert.Equal("(Status = \"Active\")", exprWarning.VariableName);
+        Assert.Contains("expression", exprWarning.Context);
+    }
+
+    [Fact]
+    public void ProcessTemplate_ValidExpression_NoExpressionFailedWarning()
+    {
+        // Arrange - valid expression that evaluates successfully (even with missing variable)
+        // Note: Missing variables in expressions just return null/false, no exception
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{(Price > 100)}}");
+
+        Dictionary<string, object> data = new Dictionary<string, object>();
+
+        using MemoryStream templateStream = builder.ToStream();
+        using MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert - valid expression evaluates to false (null > 100), no warning
+        Assert.True(result.IsSuccess);
+        Assert.False(result.HasWarnings);
+        Assert.DoesNotContain(result.Warnings, w => w.Type == ProcessingWarningType.ExpressionFailed);
+    }
+
     #region Warning Report Tests
 
     [Fact]

@@ -212,7 +212,8 @@ public partial class MainWindowViewModel : ViewModelBase
                     Results.Add($"⚠ {result.Processing.Warnings.Count} processing warnings:");
                     foreach (ProcessingWarning warning in result.Processing.Warnings.Take(5))
                     {
-                        Results.Add($"  - {warning.Type}: {warning.VariableName}");
+                        string truncatedMessage = TruncateMessage(warning.Message, 60);
+                        Results.Add($"  - {warning.Type}: {warning.VariableName} - {truncatedMessage}");
                     }
                     if (result.Processing.Warnings.Count > 5)
                     {
@@ -354,5 +355,15 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         return "output.docx";
+    }
+
+    private static string TruncateMessage(string message, int maxLength)
+    {
+        if (string.IsNullOrEmpty(message) || message.Length <= maxLength)
+        {
+            return message;
+        }
+
+        return message[..(maxLength - 3)] + "...";
     }
 }
