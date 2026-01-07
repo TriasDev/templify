@@ -85,24 +85,28 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
                     value = result;
                     resolved = true;
                 }
-                catch (ArgumentException)
+                catch (ArgumentException ex)
                 {
+                    _warningCollector.AddWarning(ProcessingWarning.ExpressionFailed(placeholder.VariableName, ex.Message));
                     resolved = false;
                     value = null;
                 }
-                catch (InvalidOperationException)
+                catch (InvalidOperationException ex)
                 {
+                    _warningCollector.AddWarning(ProcessingWarning.ExpressionFailed(placeholder.VariableName, ex.Message));
                     resolved = false;
                     value = null;
                 }
-                catch (InvalidCastException)
+                catch (InvalidCastException ex)
                 {
+                    _warningCollector.AddWarning(ProcessingWarning.ExpressionFailed(placeholder.VariableName, ex.Message));
                     resolved = false;
                     value = null;
                 }
             }
             else
             {
+                _warningCollector.AddWarning(ProcessingWarning.ExpressionFailed(placeholder.VariableName, "Failed to parse expression"));
                 resolved = false;
                 value = null;
             }
