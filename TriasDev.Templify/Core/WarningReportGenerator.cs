@@ -68,6 +68,7 @@ internal static class WarningReportGenerator
         List<Dictionary<string, object>> missingVariables = new();
         List<Dictionary<string, object>> missingCollections = new();
         List<Dictionary<string, object>> nullCollections = new();
+        List<Dictionary<string, object>> failedExpressions = new();
 
         foreach (ProcessingWarning warning in warnings)
         {
@@ -89,6 +90,9 @@ internal static class WarningReportGenerator
                 case ProcessingWarningType.NullLoopCollection:
                     nullCollections.Add(warningData);
                     break;
+                case ProcessingWarningType.ExpressionFailed:
+                    failedExpressions.Add(warningData);
+                    break;
             }
         }
 
@@ -99,12 +103,15 @@ internal static class WarningReportGenerator
             ["MissingVariableCount"] = missingVariables.Count,
             ["MissingCollectionCount"] = missingCollections.Count,
             ["NullCollectionCount"] = nullCollections.Count,
+            ["FailedExpressionCount"] = failedExpressions.Count,
             ["HasMissingVariables"] = missingVariables.Count > 0,
             ["HasMissingCollections"] = missingCollections.Count > 0,
             ["HasNullCollections"] = nullCollections.Count > 0,
+            ["HasFailedExpressions"] = failedExpressions.Count > 0,
             ["MissingVariables"] = missingVariables,
             ["MissingCollections"] = missingCollections,
-            ["NullCollections"] = nullCollections
+            ["NullCollections"] = nullCollections,
+            ["FailedExpressions"] = failedExpressions
         };
     }
 }

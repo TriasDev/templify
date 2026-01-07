@@ -39,6 +39,7 @@ public class WarningReportTemplateGenerator : BaseExampleGenerator
             AddTableRow(summaryTable, "Missing Variables", "{{MissingVariableCount}}");
             AddTableRow(summaryTable, "Missing Collections", "{{MissingCollectionCount}}");
             AddTableRow(summaryTable, "Null Collections", "{{NullCollectionCount}}");
+            AddTableRow(summaryTable, "Failed Expressions", "{{FailedExpressionCount}}");
             body.AppendChild(summaryTable);
             AddEmptyParagraph(body);
 
@@ -87,6 +88,21 @@ public class WarningReportTemplateGenerator : BaseExampleGenerator
             AddEmptyParagraph(body);
             AddParagraph(body, "{{/if}}");
 
+            // Failed Expressions section (conditional)
+            AddParagraph(body, "{{#if HasFailedExpressions}}");
+            AddParagraph(body, "Failed Expressions", isBold: true);
+            AddParagraph(body, "The following expressions could not be evaluated:");
+            AddEmptyParagraph(body);
+
+            var failedExprTable = CreateTable(2);
+            AddTableHeaderRow(failedExprTable, "Expression", "Error");
+            AddTableRow(failedExprTable, "{{#foreach FailedExpressions}}", "");
+            AddTableRow(failedExprTable, "{{VariableName}}", "{{Message}}");
+            AddTableRow(failedExprTable, "{{/foreach}}", "");
+            body.AppendChild(failedExprTable);
+            AddEmptyParagraph(body);
+            AddParagraph(body, "{{/if}}");
+
             // Footer
             AddEmptyParagraph(body);
             AddParagraph(body, "End of Warning Report");
@@ -103,13 +119,15 @@ public class WarningReportTemplateGenerator : BaseExampleGenerator
         return new Dictionary<string, object>
         {
             ["GeneratedAt"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-            ["TotalWarnings"] = 5,
+            ["TotalWarnings"] = 7,
             ["MissingVariableCount"] = 2,
             ["MissingCollectionCount"] = 2,
             ["NullCollectionCount"] = 1,
+            ["FailedExpressionCount"] = 2,
             ["HasMissingVariables"] = true,
             ["HasMissingCollections"] = true,
             ["HasNullCollections"] = true,
+            ["HasFailedExpressions"] = true,
             ["MissingVariables"] = new List<Dictionary<string, object>>
             {
                 new() { ["VariableName"] = "CustomerName", ["Context"] = "placeholder" },
@@ -123,6 +141,11 @@ public class WarningReportTemplateGenerator : BaseExampleGenerator
             ["NullCollections"] = new List<Dictionary<string, object>>
             {
                 new() { ["VariableName"] = "Products", ["Context"] = "loop: Products" }
+            },
+            ["FailedExpressions"] = new List<Dictionary<string, object>>
+            {
+                new() { ["VariableName"] = "Price > 100", ["Message"] = "Variable 'Price' was not found in the data." },
+                new() { ["VariableName"] = "Status = \"Active\"", ["Message"] = "Variable 'Status' was not found in the data." }
             }
         };
     }
