@@ -268,7 +268,7 @@ public sealed class DocumentTemplateProcessor
 
         // Look for FieldCode elements that contain dynamic field types
         // These are fields that may need updating when document content changes
-        string[] dynamicFields = ["TOC", "PAGE", "NUMPAGES", "PAGEREF", "DATE", "TIME", "FILENAME"];
+        string[] dynamicFields = { "TOC", "PAGE", "NUMPAGES", "PAGEREF", "DATE", "TIME", "FILENAME" };
 
         return document.MainDocumentPart.Document.Body
             .Descendants<FieldCode>()
