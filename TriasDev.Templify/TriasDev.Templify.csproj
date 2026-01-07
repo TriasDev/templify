@@ -11,7 +11,7 @@
 
     <!-- NuGet Package Metadata -->
     <PackageId>TriasDev.Templify</PackageId>
-    <Version>1.4.0</Version>
+    <Version>1.4.1</Version>
     <Authors>TriasDev GmbH &amp; Co. KG</Authors>
     <Company>TriasDev GmbH &amp; Co. KG</Company>
     <Description>High-performance templating engine for .NET. Process Word documents (.docx) and plain text templates with the same powerful syntax. Replace placeholders, evaluate conditionals, and process loops without Microsoft Word. Built on OpenXML SDK with 100% test coverage.</Description>
@@ -22,7 +22,7 @@
     <RepositoryType>git</RepositoryType>
     <PackageTags>word;docx;template;openxml;document-generation;templating;word-documents;office;dotnet;email;text-templates</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>v1.4.0: UpdateFieldsOnOpen option for automatic TOC/field refresh when documents are opened in Word. Auto mode detects TOC, PAGE, NUMPAGES, and other dynamic fields.</PackageReleaseNotes>
+    <PackageReleaseNotes>v1.4.1: Processing warnings system - collect non-fatal warnings (missing variables, null collections, failed expressions) during template processing. Generate Word document warning reports.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

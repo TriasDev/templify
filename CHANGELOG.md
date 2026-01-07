@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-01-07
+
+### Added
+- **Processing Warnings System** - Collect non-fatal warnings during template processing
+  - `ProcessingWarning` class with warning type, variable name, context, and message
+  - Warning types: `MissingVariable`, `MissingLoopCollection`, `NullLoopCollection`, `ExpressionFailed`
+  - Access warnings via `ProcessingResult.Warnings` and `ProcessingResult.HasWarnings`
+  - Generate Word document warning reports with `GetWarningReport()` and `GetWarningReportBytes()`
+- GUI: "Generate Warning Report" button and warning summary display
+
+### Improved
+- Test coverage increased to 953 tests
+
 ## [1.4.0] - 2026-01-07
 
 ### Added
@@ -141,7 +154,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cross-platform: Windows, Linux, macOS
 - No Microsoft Word installation required
 
-[Unreleased]: https://github.com/TriasDev/templify/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/TriasDev/templify/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/TriasDev/templify/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/TriasDev/templify/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/TriasDev/templify/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/TriasDev/templify/compare/v1.1.0...v1.2.0
