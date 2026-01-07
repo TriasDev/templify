@@ -104,8 +104,15 @@ public sealed class DocumentTemplateProcessor
                 // Walk the document with the composite visitor
                 walker.Walk(document, composite, globalContext);
 
-                // Apply UpdateFieldsOnOpen setting if enabled
-                if (_options.UpdateFieldsOnOpen)
+                // Apply UpdateFieldsOnOpen setting based on mode
+                bool shouldUpdateFields = _options.UpdateFieldsOnOpen switch
+                {
+                    UpdateFieldsOnOpenMode.Always => true,
+                    UpdateFieldsOnOpenMode.Auto => HasFields(document),
+                    _ => false
+                };
+
+                if (shouldUpdateFields)
                 {
                     ApplyUpdateFieldsOnOpen(document);
                 }
@@ -245,6 +252,29 @@ public sealed class DocumentTemplateProcessor
         }
 
         source.CopyTo(destination);
+    }
+
+    /// <summary>
+    /// Checks if the document contains any fields that would benefit from updating on open.
+    /// </summary>
+    /// <param name="document">The Word document to check.</param>
+    /// <returns>True if the document contains fields like TOC, PAGE, NUMPAGES, etc.</returns>
+    private static bool HasFields(WordprocessingDocument document)
+    {
+        if (document.MainDocumentPart?.Document?.Body == null)
+        {
+            return false;
+        }
+
+        // Look for FieldCode elements that contain dynamic field types
+        // These are fields that may need updating when document content changes
+        string[] dynamicFields = ["TOC", "PAGE", "NUMPAGES", "PAGEREF", "DATE", "TIME", "FILENAME"];
+
+        return document.MainDocumentPart.Document.Body
+            .Descendants<FieldCode>()
+            .Any(fc => fc.Text != null &&
+                       dynamicFields.Any(field =>
+                           fc.Text.Contains(field, StringComparison.OrdinalIgnoreCase)));
     }
 
     /// <summary>

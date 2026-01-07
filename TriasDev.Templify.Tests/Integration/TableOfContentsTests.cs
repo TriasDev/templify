@@ -206,7 +206,7 @@ public sealed class TableOfContentsTests
         PlaceholderReplacementOptions options = new PlaceholderReplacementOptions
         {
             Culture = CultureInfo.InvariantCulture,
-            UpdateFieldsOnOpen = true  // THE FIX: Word will prompt to update TOC
+            UpdateFieldsOnOpen = UpdateFieldsOnOpenMode.Always  // THE FIX: Word will prompt to update TOC
         };
 
         DocumentTemplateProcessor processor = new DocumentTemplateProcessor(options);
@@ -305,7 +305,7 @@ public sealed class TableOfContentsTests
         PlaceholderReplacementOptions options = new PlaceholderReplacementOptions
         {
             Culture = CultureInfo.InvariantCulture,
-            UpdateFieldsOnOpen = true  // Enable auto-update
+            UpdateFieldsOnOpen = UpdateFieldsOnOpenMode.Always  // Enable auto-update
         };
 
         DocumentTemplateProcessor processor = new DocumentTemplateProcessor(options);
@@ -341,7 +341,7 @@ public sealed class TableOfContentsTests
 
         Dictionary<string, object> data = new Dictionary<string, object>();
 
-        // Default options (UpdateFieldsOnOpen = false)
+        // Default options (UpdateFieldsOnOpen = Never)
         DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
         MemoryStream outputStream = new MemoryStream();
 
@@ -397,7 +397,7 @@ public sealed class TableOfContentsTests
         // THE SOLUTION: Enable UpdateFieldsOnOpen
         PlaceholderReplacementOptions options = new PlaceholderReplacementOptions
         {
-            UpdateFieldsOnOpen = true
+            UpdateFieldsOnOpen = UpdateFieldsOnOpenMode.Always
         };
 
         DocumentTemplateProcessor processor = new DocumentTemplateProcessor(options);
@@ -421,5 +421,144 @@ public sealed class TableOfContentsTests
         // Note: The TOC entries still contain stale data in the file,
         // but Word will refresh them when the user opens the document
         // and confirms the update prompt.
+    }
+
+    /// <summary>
+    /// Tests that Auto mode sets UpdateFieldsOnOpen when document contains a TOC.
+    /// </summary>
+    [Fact]
+    public void ProcessTemplate_WithAutoMode_AndTOC_SetsUpdateFieldsOnOpen()
+    {
+        // Arrange: Document with TOC
+        DocumentBuilder builder = new DocumentBuilder();
+
+        builder.AddTableOfContents(
+            ("Chapter 1", 1),
+            ("Chapter 2", 2)
+        );
+
+        builder.AddHeading("Chapter 1");
+        builder.AddParagraph("Content for {{Title}}");
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Title"] = "Test"
+        };
+
+        // Auto mode - should detect TOC and set the flag
+        PlaceholderReplacementOptions options = new PlaceholderReplacementOptions
+        {
+            UpdateFieldsOnOpen = UpdateFieldsOnOpenMode.Auto
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor(options);
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+
+        // Auto mode should have detected the TOC and set UpdateFieldsOnOpen
+        Assert.True(verifier.HasUpdateFieldsOnOpen(),
+            "Auto mode should set UpdateFieldsOnOpen when document contains TOC");
+    }
+
+    /// <summary>
+    /// Tests that Auto mode does NOT set UpdateFieldsOnOpen when document has no fields.
+    /// </summary>
+    [Fact]
+    public void ProcessTemplate_WithAutoMode_WithoutFields_DoesNotSetUpdateFieldsOnOpen()
+    {
+        // Arrange: Document without any fields (no TOC, no PAGE, etc.)
+        DocumentBuilder builder = new DocumentBuilder();
+
+        builder.AddParagraph("Hello {{Name}}!");
+        builder.AddParagraph("This document has no fields.");
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Name"] = "World"
+        };
+
+        // Auto mode - should NOT set flag because there are no fields
+        PlaceholderReplacementOptions options = new PlaceholderReplacementOptions
+        {
+            UpdateFieldsOnOpen = UpdateFieldsOnOpenMode.Auto
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor(options);
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+
+        // Auto mode should NOT have set UpdateFieldsOnOpen (no fields detected)
+        Assert.False(verifier.HasUpdateFieldsOnOpen(),
+            "Auto mode should NOT set UpdateFieldsOnOpen when document has no fields");
+    }
+
+    /// <summary>
+    /// Documents the recommended usage: Auto mode for applications processing various templates.
+    /// Users who upload templates with TOC will get the update prompt; others won't.
+    /// </summary>
+    [Fact]
+    public void ProcessTemplate_AutoMode_RecommendedForMixedTemplates()
+    {
+        // This test documents the recommended approach for applications
+        // that process templates uploaded by users (like the user's scenario).
+
+        // Template WITH TOC
+        DocumentBuilder builderWithToc = new DocumentBuilder();
+        builderWithToc.AddTableOfContents(("Section", 1));
+        builderWithToc.AddParagraph("Content");
+        MemoryStream templateWithToc = builderWithToc.ToStream();
+
+        // Template WITHOUT TOC
+        DocumentBuilder builderWithoutToc = new DocumentBuilder();
+        builderWithoutToc.AddParagraph("Simple {{Placeholder}}");
+        MemoryStream templateWithoutToc = builderWithoutToc.ToStream();
+
+        // Same options for both - Auto mode handles detection
+        PlaceholderReplacementOptions options = new PlaceholderReplacementOptions
+        {
+            UpdateFieldsOnOpen = UpdateFieldsOnOpenMode.Auto
+        };
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Placeholder"] = "content"
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor(options);
+
+        // Process template WITH TOC
+        MemoryStream outputWithToc = new MemoryStream();
+        processor.ProcessTemplate(templateWithToc, outputWithToc, data);
+
+        // Process template WITHOUT TOC
+        MemoryStream outputWithoutToc = new MemoryStream();
+        processor.ProcessTemplate(templateWithoutToc, outputWithoutToc, data);
+
+        // Assert: Only the TOC document should have UpdateFieldsOnOpen set
+        using DocumentVerifier verifierWithToc = new DocumentVerifier(outputWithToc);
+        using DocumentVerifier verifierWithoutToc = new DocumentVerifier(outputWithoutToc);
+
+        Assert.True(verifierWithToc.HasUpdateFieldsOnOpen(),
+            "Document WITH TOC should have UpdateFieldsOnOpen");
+        Assert.False(verifierWithoutToc.HasUpdateFieldsOnOpen(),
+            "Document WITHOUT TOC should NOT have UpdateFieldsOnOpen");
     }
 }
