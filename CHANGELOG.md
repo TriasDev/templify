@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-01-07
+
+### Added
+- **UpdateFieldsOnOpen Option** - Automatically prompt Word to refresh TOC and dynamic fields when documents are opened
+  - `UpdateFieldsOnOpenMode.Never` - Never prompt (default, backward compatible)
+  - `UpdateFieldsOnOpenMode.Always` - Always prompt to update fields
+  - `UpdateFieldsOnOpenMode.Auto` - Only prompt if document contains dynamic fields (recommended)
+  - Auto mode detects: TOC, PAGE, NUMPAGES, PAGEREF, DATE, TIME, FILENAME, REF, NOTEREF, SECTIONPAGES
+  - Solves stale page numbers when content changes via conditionals/loops
+
+### Improved
+- Test coverage increased to 939 tests
+- New test helpers: DocumentBuilder and DocumentVerifier for cleaner TOC testing
+- Updated DocumentFormat.OpenXml to 3.4.1 (performance improvements)
+
 ## [1.3.0] - 2026-01-05
 
 ### Added
@@ -126,7 +141,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cross-platform: Windows, Linux, macOS
 - No Microsoft Word installation required
 
-[Unreleased]: https://github.com/TriasDev/templify/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/TriasDev/templify/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/TriasDev/templify/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/TriasDev/templify/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/TriasDev/templify/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/TriasDev/templify/compare/v1.0.0...v1.1.0
