@@ -31,7 +31,7 @@ public sealed class PlaceholderVisitorTests
 
         PlaceholderReplacementOptions options = new PlaceholderReplacementOptions();
         HashSet<string> missingVariables = new HashSet<string>();
-        PlaceholderVisitor visitor = new PlaceholderVisitor(options, missingVariables);
+        PlaceholderVisitor visitor = new PlaceholderVisitor(options, missingVariables, new WarningCollector());
 
         Dictionary<string, object> data = new Dictionary<string, object>
         {
@@ -65,7 +65,7 @@ public sealed class PlaceholderVisitorTests
             MissingVariableBehavior = MissingVariableBehavior.LeaveUnchanged
         };
         HashSet<string> missingVariables = new HashSet<string>();
-        PlaceholderVisitor visitor = new PlaceholderVisitor(options, missingVariables);
+        PlaceholderVisitor visitor = new PlaceholderVisitor(options, missingVariables, new WarningCollector());
 
         Dictionary<string, object> data = new Dictionary<string, object>();
         GlobalEvaluationContext context = new GlobalEvaluationContext(data);
@@ -96,7 +96,7 @@ public sealed class PlaceholderVisitorTests
             MissingVariableBehavior = MissingVariableBehavior.ReplaceWithEmpty
         };
         HashSet<string> missingVariables = new HashSet<string>();
-        PlaceholderVisitor visitor = new PlaceholderVisitor(options, missingVariables);
+        PlaceholderVisitor visitor = new PlaceholderVisitor(options, missingVariables, new WarningCollector());
 
         Dictionary<string, object> data = new Dictionary<string, object>();
         GlobalEvaluationContext context = new GlobalEvaluationContext(data);
@@ -127,7 +127,7 @@ public sealed class PlaceholderVisitorTests
             MissingVariableBehavior = MissingVariableBehavior.ThrowException
         };
         HashSet<string> missingVariables = new HashSet<string>();
-        PlaceholderVisitor visitor = new PlaceholderVisitor(options, missingVariables);
+        PlaceholderVisitor visitor = new PlaceholderVisitor(options, missingVariables, new WarningCollector());
 
         Dictionary<string, object> data = new Dictionary<string, object>();
         GlobalEvaluationContext context = new GlobalEvaluationContext(data);
@@ -155,7 +155,7 @@ public sealed class PlaceholderVisitorTests
 
         PlaceholderReplacementOptions options = new PlaceholderReplacementOptions();
         HashSet<string> missingVariables = new HashSet<string>();
-        PlaceholderVisitor visitor = new PlaceholderVisitor(options, missingVariables);
+        PlaceholderVisitor visitor = new PlaceholderVisitor(options, missingVariables, new WarningCollector());
 
         Dictionary<string, object> data = new Dictionary<string, object>
         {
@@ -185,7 +185,7 @@ public sealed class PlaceholderVisitorTests
 
         PlaceholderReplacementOptions options = new PlaceholderReplacementOptions();
         HashSet<string> missingVariables = new HashSet<string>();
-        PlaceholderVisitor visitor = new PlaceholderVisitor(options, missingVariables);
+        PlaceholderVisitor visitor = new PlaceholderVisitor(options, missingVariables, new WarningCollector());
 
         DateTime testDate = new DateTime(2025, 11, 9);
         Dictionary<string, object> data = new Dictionary<string, object>
@@ -222,7 +222,7 @@ public sealed class PlaceholderVisitorTests
 
         PlaceholderReplacementOptions options = new PlaceholderReplacementOptions();
         HashSet<string> missingVariables = new HashSet<string>();
-        PlaceholderVisitor visitor = new PlaceholderVisitor(options, missingVariables);
+        PlaceholderVisitor visitor = new PlaceholderVisitor(options, missingVariables, new WarningCollector());
 
         // Create loop context
         LoopContext loopContext = new LoopContext("TestItem", 0, 1, "Items");
@@ -252,7 +252,7 @@ public sealed class PlaceholderVisitorTests
 
         PlaceholderReplacementOptions options = new PlaceholderReplacementOptions();
         HashSet<string> missingVariables = new HashSet<string>();
-        PlaceholderVisitor visitor = new PlaceholderVisitor(options, missingVariables);
+        PlaceholderVisitor visitor = new PlaceholderVisitor(options, missingVariables, new WarningCollector());
 
         // Create loop context (index 2 of 5)
         LoopContext loopContext = new LoopContext("Item", 2, 5, "Items");
@@ -273,7 +273,7 @@ public sealed class PlaceholderVisitorTests
         // Arrange
         PlaceholderReplacementOptions options = new PlaceholderReplacementOptions();
         HashSet<string> missingVariables = new HashSet<string>();
-        PlaceholderVisitor visitor = new PlaceholderVisitor(options, missingVariables);
+        PlaceholderVisitor visitor = new PlaceholderVisitor(options, missingVariables, new WarningCollector());
 
         ConditionalBlock conditional = CreateTestConditionalBlock();
         GlobalEvaluationContext context = new GlobalEvaluationContext(new Dictionary<string, object>());
@@ -291,7 +291,7 @@ public sealed class PlaceholderVisitorTests
         // Arrange
         PlaceholderReplacementOptions options = new PlaceholderReplacementOptions();
         HashSet<string> missingVariables = new HashSet<string>();
-        PlaceholderVisitor visitor = new PlaceholderVisitor(options, missingVariables);
+        PlaceholderVisitor visitor = new PlaceholderVisitor(options, missingVariables, new WarningCollector());
 
         LoopBlock loop = CreateTestLoopBlock();
         GlobalEvaluationContext context = new GlobalEvaluationContext(new Dictionary<string, object>());
@@ -309,7 +309,7 @@ public sealed class PlaceholderVisitorTests
         // Arrange
         PlaceholderReplacementOptions options = new PlaceholderReplacementOptions();
         HashSet<string> missingVariables = new HashSet<string>();
-        PlaceholderVisitor visitor = new PlaceholderVisitor(options, missingVariables);
+        PlaceholderVisitor visitor = new PlaceholderVisitor(options, missingVariables, new WarningCollector());
 
         Paragraph paragraph = new Paragraph(new Run(new Text("Regular text")));
         GlobalEvaluationContext context = new GlobalEvaluationContext(new Dictionary<string, object>());

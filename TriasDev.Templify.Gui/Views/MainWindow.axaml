@@ -112,6 +112,10 @@
 
         <!-- Bottom Action Buttons -->
         <StackPanel Grid.Row="8" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+            <Button Content="Generate Warning Report"
+                    Command="{Binding GenerateWarningReportCommand}"
+                    ToolTip.Tip="Generate a Word document containing all processing warnings"
+                    Width="170"/>
             <Button Content="Open Output File"
                     Command="{Binding OpenOutputFileCommand}"
                     Width="130"/>

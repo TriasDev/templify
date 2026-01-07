@@ -39,6 +39,7 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
 
     private readonly PlaceholderReplacementOptions _options;
     private readonly HashSet<string> _missingVariables;
+    private readonly IWarningCollector _warningCollector;
     private int _replacementCount;
 
     /// <summary>
@@ -46,10 +47,14 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
     /// </summary>
     public int ReplacementCount => _replacementCount;
 
-    public PlaceholderVisitor(PlaceholderReplacementOptions options, HashSet<string> missingVariables)
+    public PlaceholderVisitor(
+        PlaceholderReplacementOptions options,
+        HashSet<string> missingVariables,
+        IWarningCollector warningCollector)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _missingVariables = missingVariables ?? throw new ArgumentNullException(nameof(missingVariables));
+        _warningCollector = warningCollector ?? throw new ArgumentNullException(nameof(warningCollector));
         _replacementCount = 0;
     }
 
@@ -112,6 +117,7 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         {
             // Variable/expression not found - handle based on options
             _missingVariables.Add(placeholder.VariableName);
+            _warningCollector.AddWarning(ProcessingWarning.MissingVariable(placeholder.VariableName));
 
             switch (_options.MissingVariableBehavior)
             {

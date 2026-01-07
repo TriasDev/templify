@@ -233,7 +233,7 @@ public sealed class CompositeVisitorTests
             isTableRowConditional: false,
             nestingLevel: 0);
 
-        ConditionalVisitor conditionalVisitor = new ConditionalVisitor();
+        ConditionalVisitor conditionalVisitor = new ConditionalVisitor(new WarningCollector());
         MockVisitor mockVisitor = new MockVisitor();
 
         CompositeVisitor composite = new CompositeVisitor(conditionalVisitor, mockVisitor);

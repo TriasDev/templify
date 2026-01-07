@@ -78,11 +78,12 @@ public sealed class DocumentTemplateProcessor
             CopyStream(templateStream, outputStream);
             outputStream.Position = 0;
 
-            // Track missing variables
+            // Track missing variables and warnings
             HashSet<string> missingVariables = new HashSet<string>();
+            WarningCollector warningCollector = new WarningCollector();
 
             // Create placeholder visitor to track replacements
-            PlaceholderVisitor placeholderVisitor = new PlaceholderVisitor(_options, missingVariables);
+            PlaceholderVisitor placeholderVisitor = new PlaceholderVisitor(_options, missingVariables, warningCollector);
 
             // Open document for editing
             using (WordprocessingDocument document = WordprocessingDocument.Open(outputStream, isEditable: true))
@@ -97,7 +98,7 @@ public sealed class DocumentTemplateProcessor
 
                 // Create visitor instances
                 DocumentWalker walker = new DocumentWalker();
-                ConditionalVisitor conditionalVisitor = new ConditionalVisitor();
+                ConditionalVisitor conditionalVisitor = new ConditionalVisitor(warningCollector);
 
                 // Create a temporary composite for initial loop visitor creation
                 CompositeVisitor tempComposite = new CompositeVisitor(
@@ -106,7 +107,7 @@ public sealed class DocumentTemplateProcessor
                 );
 
                 // Create loop visitor with temporary composite
-                LoopVisitor loopVisitor = new LoopVisitor(walker, tempComposite);
+                LoopVisitor loopVisitor = new LoopVisitor(walker, tempComposite, warningCollector);
 
                 // Create the final composite that includes all visitors (including loop)
                 CompositeVisitor composite = new CompositeVisitor(
@@ -139,10 +140,11 @@ public sealed class DocumentTemplateProcessor
                 document.MainDocumentPart.Document.Save();
             }
 
-            // Return success with replacement count from placeholder visitor
+            // Return success with replacement count and warnings
             return ProcessingResult.Success(
                 replacementCount: placeholderVisitor.ReplacementCount,
-                missingVariables: missingVariables.OrderBy(v => v).ToList());
+                missingVariables: missingVariables.OrderBy(v => v).ToList(),
+                warnings: warningCollector.GetWarnings());
         }
         catch (InvalidOperationException)
         {

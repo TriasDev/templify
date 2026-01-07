@@ -40,7 +40,7 @@ public sealed class LoopVisitorTests
 
         DocumentWalker walker = new DocumentWalker();
         MockVisitor nestedVisitor = new MockVisitor();
-        LoopVisitor visitor = new LoopVisitor(walker, nestedVisitor);
+        LoopVisitor visitor = new LoopVisitor(walker, nestedVisitor, new WarningCollector());
 
         Dictionary<string, object> data = new Dictionary<string, object>
         {
@@ -77,7 +77,7 @@ public sealed class LoopVisitorTests
 
         DocumentWalker walker = new DocumentWalker();
         MockVisitor nestedVisitor = new MockVisitor();
-        LoopVisitor visitor = new LoopVisitor(walker, nestedVisitor);
+        LoopVisitor visitor = new LoopVisitor(walker, nestedVisitor, new WarningCollector());
 
         Dictionary<string, object> data = new Dictionary<string, object>();
         GlobalEvaluationContext context = new GlobalEvaluationContext(data);
@@ -86,6 +86,43 @@ public sealed class LoopVisitorTests
         visitor.VisitLoop(loop, context);
 
         // Assert - all content removed
+        Assert.Empty(body.Elements<Paragraph>());
+    }
+
+    [Fact]
+    public void VisitLoop_NullCollection_RemovesLoopBlock()
+    {
+        // Arrange
+        Body body = new Body();
+        Paragraph startMarker = new Paragraph(new Run(new Text("{{#foreach Items}}")));
+        Paragraph content = new Paragraph(new Run(new Text("Item: {{.}}")));
+        Paragraph endMarker = new Paragraph(new Run(new Text("{{/foreach}}")));
+
+        body.Append(startMarker, content, endMarker);
+
+        LoopBlock loop = new LoopBlock(
+            collectionName: "Items",
+            iterationVariableName: null,
+            contentElements: new List<OpenXmlElement> { content },
+            startMarker: startMarker,
+            endMarker: endMarker,
+            isTableRowLoop: false,
+            emptyBlock: null);
+
+        DocumentWalker walker = new DocumentWalker();
+        MockVisitor nestedVisitor = new MockVisitor();
+        LoopVisitor visitor = new LoopVisitor(walker, nestedVisitor, new WarningCollector());
+
+        Dictionary<string, object?> data = new Dictionary<string, object?>
+        {
+            ["Items"] = null // Null collection - should be treated same as missing
+        };
+        GlobalEvaluationContext context = new GlobalEvaluationContext(data!);
+
+        // Act
+        visitor.VisitLoop(loop, context);
+
+        // Assert - all content removed (same behavior as missing collection)
         Assert.Empty(body.Elements<Paragraph>());
     }
 
@@ -111,7 +148,7 @@ public sealed class LoopVisitorTests
 
         DocumentWalker walker = new DocumentWalker();
         MockVisitor nestedVisitor = new MockVisitor();
-        LoopVisitor visitor = new LoopVisitor(walker, nestedVisitor);
+        LoopVisitor visitor = new LoopVisitor(walker, nestedVisitor, new WarningCollector());
 
         Dictionary<string, object> data = new Dictionary<string, object>
         {
@@ -149,7 +186,7 @@ public sealed class LoopVisitorTests
 
         DocumentWalker walker = new DocumentWalker();
         MockVisitor nestedVisitor = new MockVisitor();
-        LoopVisitor visitor = new LoopVisitor(walker, nestedVisitor);
+        LoopVisitor visitor = new LoopVisitor(walker, nestedVisitor, new WarningCollector());
 
         Dictionary<string, object> data = new Dictionary<string, object>
         {
@@ -189,7 +226,7 @@ public sealed class LoopVisitorTests
 
         DocumentWalker walker = new DocumentWalker();
         MockVisitor nestedVisitor = new MockVisitor();
-        LoopVisitor visitor = new LoopVisitor(walker, nestedVisitor);
+        LoopVisitor visitor = new LoopVisitor(walker, nestedVisitor, new WarningCollector());
 
         Dictionary<string, object> data = new Dictionary<string, object>
         {
@@ -235,7 +272,7 @@ public sealed class LoopVisitorTests
 
         DocumentWalker walker = new DocumentWalker();
         ContextCapturingVisitor nestedVisitor = new ContextCapturingVisitor();
-        LoopVisitor visitor = new LoopVisitor(walker, nestedVisitor);
+        LoopVisitor visitor = new LoopVisitor(walker, nestedVisitor, new WarningCollector());
 
         Dictionary<string, object> data = new Dictionary<string, object>
         {
@@ -273,7 +310,7 @@ public sealed class LoopVisitorTests
 
         DocumentWalker walker = new DocumentWalker();
         MockVisitor nestedVisitor = new MockVisitor();
-        LoopVisitor visitor = new LoopVisitor(walker, nestedVisitor);
+        LoopVisitor visitor = new LoopVisitor(walker, nestedVisitor, new WarningCollector());
 
         Dictionary<string, object> data = new Dictionary<string, object>
         {
@@ -313,7 +350,7 @@ public sealed class LoopVisitorTests
 
         DocumentWalker walker = new DocumentWalker();
         MockVisitor nestedVisitor = new MockVisitor();
-        LoopVisitor visitor = new LoopVisitor(walker, nestedVisitor);
+        LoopVisitor visitor = new LoopVisitor(walker, nestedVisitor, new WarningCollector());
 
         Dictionary<string, object> data = new Dictionary<string, object>
         {
@@ -334,7 +371,7 @@ public sealed class LoopVisitorTests
     public void VisitConditional_DoesNothing()
     {
         // Arrange
-        LoopVisitor visitor = new LoopVisitor(new DocumentWalker(), new MockVisitor());
+        LoopVisitor visitor = new LoopVisitor(new DocumentWalker(), new MockVisitor(), new WarningCollector());
         ConditionalBlock conditional = CreateTestConditionalBlock();
         GlobalEvaluationContext context = new GlobalEvaluationContext(new Dictionary<string, object>());
 
@@ -349,7 +386,7 @@ public sealed class LoopVisitorTests
     public void VisitPlaceholder_DoesNothing()
     {
         // Arrange
-        LoopVisitor visitor = new LoopVisitor(new DocumentWalker(), new MockVisitor());
+        LoopVisitor visitor = new LoopVisitor(new DocumentWalker(), new MockVisitor(), new WarningCollector());
         PlaceholderMatch placeholder = new PlaceholderMatch
         {
             VariableName = "Name",
@@ -371,7 +408,7 @@ public sealed class LoopVisitorTests
     public void VisitParagraph_DoesNothing()
     {
         // Arrange
-        LoopVisitor visitor = new LoopVisitor(new DocumentWalker(), new MockVisitor());
+        LoopVisitor visitor = new LoopVisitor(new DocumentWalker(), new MockVisitor(), new WarningCollector());
         Paragraph paragraph = new Paragraph(new Run(new Text("Regular text")));
         GlobalEvaluationContext context = new GlobalEvaluationContext(new Dictionary<string, object>());
 

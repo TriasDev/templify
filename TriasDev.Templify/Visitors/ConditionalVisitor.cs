@@ -27,10 +27,12 @@ namespace TriasDev.Templify.Visitors;
 internal sealed class ConditionalVisitor : ITemplateElementVisitor
 {
     private readonly ConditionalEvaluator _evaluator;
+    private readonly IWarningCollector _warningCollector;
 
-    public ConditionalVisitor()
+    public ConditionalVisitor(IWarningCollector warningCollector)
     {
         _evaluator = new ConditionalEvaluator();
+        _warningCollector = warningCollector ?? throw new ArgumentNullException(nameof(warningCollector));
     }
 
     /// <summary>

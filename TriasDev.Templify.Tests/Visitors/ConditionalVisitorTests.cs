@@ -41,7 +41,7 @@ public sealed class ConditionalVisitorTests
             isTableRowConditional: false,
             nestingLevel: 0);
 
-        ConditionalVisitor visitor = new ConditionalVisitor();
+        ConditionalVisitor visitor = new ConditionalVisitor(new WarningCollector());
         Dictionary<string, object> data = new Dictionary<string, object> { ["IsActive"] = true };
         GlobalEvaluationContext context = new GlobalEvaluationContext(data);
 
@@ -83,7 +83,7 @@ public sealed class ConditionalVisitorTests
             isTableRowConditional: false,
             nestingLevel: 0);
 
-        ConditionalVisitor visitor = new ConditionalVisitor();
+        ConditionalVisitor visitor = new ConditionalVisitor(new WarningCollector());
         Dictionary<string, object> data = new Dictionary<string, object> { ["IsActive"] = false };
         GlobalEvaluationContext context = new GlobalEvaluationContext(data);
 
@@ -123,7 +123,7 @@ public sealed class ConditionalVisitorTests
             isTableRowConditional: false,
             nestingLevel: 0);
 
-        ConditionalVisitor visitor = new ConditionalVisitor();
+        ConditionalVisitor visitor = new ConditionalVisitor(new WarningCollector());
         Dictionary<string, object> data = new Dictionary<string, object> { ["IsActive"] = true };
         GlobalEvaluationContext context = new GlobalEvaluationContext(data);
 
@@ -157,7 +157,7 @@ public sealed class ConditionalVisitorTests
             isTableRowConditional: false,
             nestingLevel: 0);
 
-        ConditionalVisitor visitor = new ConditionalVisitor();
+        ConditionalVisitor visitor = new ConditionalVisitor(new WarningCollector());
         Dictionary<string, object> data = new Dictionary<string, object> { ["IsActive"] = false };
         GlobalEvaluationContext context = new GlobalEvaluationContext(data);
 
@@ -191,7 +191,7 @@ public sealed class ConditionalVisitorTests
             isTableRowConditional: false,
             nestingLevel: 0);
 
-        ConditionalVisitor visitor = new ConditionalVisitor();
+        ConditionalVisitor visitor = new ConditionalVisitor(new WarningCollector());
         Dictionary<string, object> data = new Dictionary<string, object> { ["Count"] = 10 };
         GlobalEvaluationContext context = new GlobalEvaluationContext(data);
 
@@ -227,7 +227,7 @@ public sealed class ConditionalVisitorTests
             isTableRowConditional: false,
             nestingLevel: 0);
 
-        ConditionalVisitor visitor = new ConditionalVisitor();
+        ConditionalVisitor visitor = new ConditionalVisitor(new WarningCollector());
 
         // Create loop context (simulating first item in loop)
         LoopContext loopContext = new LoopContext("Item1", 0, 3, "Items");
@@ -267,7 +267,7 @@ public sealed class ConditionalVisitorTests
             isTableRowConditional: false,
             nestingLevel: 0);
 
-        ConditionalVisitor visitor = new ConditionalVisitor();
+        ConditionalVisitor visitor = new ConditionalVisitor(new WarningCollector());
         Dictionary<string, object> data = new Dictionary<string, object> { ["False"] = false };
         GlobalEvaluationContext context = new GlobalEvaluationContext(data);
 
@@ -282,7 +282,7 @@ public sealed class ConditionalVisitorTests
     public void VisitLoop_DoesNothing()
     {
         // Arrange
-        ConditionalVisitor visitor = new ConditionalVisitor();
+        ConditionalVisitor visitor = new ConditionalVisitor(new WarningCollector());
         LoopBlock loop = CreateTestLoopBlock();
         GlobalEvaluationContext context = new GlobalEvaluationContext(new Dictionary<string, object>());
 
@@ -297,7 +297,7 @@ public sealed class ConditionalVisitorTests
     public void VisitPlaceholder_DoesNothing()
     {
         // Arrange
-        ConditionalVisitor visitor = new ConditionalVisitor();
+        ConditionalVisitor visitor = new ConditionalVisitor(new WarningCollector());
         PlaceholderMatch placeholder = new PlaceholderMatch
         {
             VariableName = "Name",
@@ -319,7 +319,7 @@ public sealed class ConditionalVisitorTests
     public void VisitParagraph_DoesNothing()
     {
         // Arrange
-        ConditionalVisitor visitor = new ConditionalVisitor();
+        ConditionalVisitor visitor = new ConditionalVisitor(new WarningCollector());
         Paragraph paragraph = new Paragraph(new Run(new Text("Regular text")));
         GlobalEvaluationContext context = new GlobalEvaluationContext(new Dictionary<string, object>());
 

@@ -34,13 +34,13 @@ internal sealed class LoopVisitor : ITemplateElementVisitor
 {
     private readonly DocumentWalker _walker;
     private ITemplateElementVisitor _nestedVisitor;
-    private readonly ValueResolver _valueResolver;
+    private readonly IWarningCollector _warningCollector;
 
-    public LoopVisitor(DocumentWalker walker, ITemplateElementVisitor nestedVisitor)
+    public LoopVisitor(DocumentWalker walker, ITemplateElementVisitor nestedVisitor, IWarningCollector warningCollector)
     {
         _walker = walker ?? throw new ArgumentNullException(nameof(walker));
         _nestedVisitor = nestedVisitor ?? throw new ArgumentNullException(nameof(nestedVisitor));
-        _valueResolver = new ValueResolver();
+        _warningCollector = warningCollector ?? throw new ArgumentNullException(nameof(warningCollector));
     }
 
     /// <summary>
@@ -61,7 +61,16 @@ internal sealed class LoopVisitor : ITemplateElementVisitor
         // Resolve the collection from context
         if (!context.TryResolveVariable(loop.CollectionName, out object? collectionObj))
         {
-            // Collection not found - remove loop block
+            // Collection not found - remove loop block and report warning
+            _warningCollector.AddWarning(ProcessingWarning.MissingLoopCollection(loop.CollectionName));
+            RemoveLoopBlock(loop);
+            return;
+        }
+
+        // Handle null collection - treat same as missing (silent removal) and report warning
+        if (collectionObj == null)
+        {
+            _warningCollector.AddWarning(ProcessingWarning.NullLoopCollection(loop.CollectionName));
             RemoveLoopBlock(loop);
             return;
         }
