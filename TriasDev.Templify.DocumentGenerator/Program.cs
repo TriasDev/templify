@@ -42,6 +42,7 @@ var generators = new List<IExampleGenerator>
     new HelloWorldGenerator(),
     new InvoiceGenerator(),
     new ConditionalGenerator(),
+    new WarningReportTemplateGenerator(),
 };
 
 // Parse command line arguments

@@ -56,6 +56,13 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private bool _enableHtmlEntityReplacement;
 
+    /// <summary>
+    /// Stores the last processing result to enable warning report generation.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(GenerateWarningReportCommand))]
+    private UiProcessingResult? _lastProcessingResult;
+
     public MainWindowViewModel(
         ITemplifyService templifyService,
         IFileDialogService fileDialogService)
@@ -191,23 +198,28 @@ public partial class MainWindowViewModel : ViewModelBase
                 EnableHtmlEntityReplacement,
                 progressReporter);
 
+            // Store for warning report generation
+            LastProcessingResult = result;
+
             if (result.Success)
             {
                 Results.Add("✓ Template processed successfully!");
                 Results.Add($"✓ Made {result.Processing.ReplacementCount} replacements");
                 Results.Add($"✓ Output saved to: {result.OutputPath}");
 
-                if (result.Validation.MissingVariables.Count > 0)
+                if (result.Processing.HasWarnings)
                 {
-                    Results.Add($"⚠ {result.Validation.MissingVariables.Count} missing variables:");
-                    foreach (string missing in result.Validation.MissingVariables.Take(5))
+                    Results.Add($"⚠ {result.Processing.Warnings.Count} processing warnings:");
+                    foreach (ProcessingWarning warning in result.Processing.Warnings.Take(5))
                     {
-                        Results.Add($"  - {missing}");
+                        string truncatedMessage = TruncateMessage(warning.Message, 60);
+                        Results.Add($"  - {warning.Type}: {warning.VariableName} - {truncatedMessage}");
                     }
-                    if (result.Validation.MissingVariables.Count > 5)
+                    if (result.Processing.Warnings.Count > 5)
                     {
-                        Results.Add($"  ... and {result.Validation.MissingVariables.Count - 5} more");
+                        Results.Add($"  ... and {result.Processing.Warnings.Count - 5} more");
                     }
+                    Results.Add("  (Use 'Generate Warning Report' for full details)");
                 }
 
                 StatusMessage = "Processing complete";
@@ -269,7 +281,58 @@ public partial class MainWindowViewModel : ViewModelBase
         Results.Clear();
         StatusMessage = "Ready";
         Progress = 0;
+        LastProcessingResult = null;
     }
+
+    [RelayCommand(CanExecute = nameof(CanGenerateWarningReport))]
+    private async Task GenerateWarningReportAsync()
+    {
+        if (LastProcessingResult == null || !LastProcessingResult.Processing.HasWarnings)
+        {
+            return;
+        }
+
+        try
+        {
+            // Generate default filename based on template name
+            string defaultName = "warning-report.docx";
+            if (!string.IsNullOrEmpty(TemplatePath))
+            {
+                string templateName = Path.GetFileNameWithoutExtension(TemplatePath);
+                defaultName = $"{templateName}-warnings.docx";
+            }
+
+            // Ask user where to save
+            string? savePath = await _fileDialogService.SaveOutputFileAsync(defaultName);
+            if (string.IsNullOrEmpty(savePath))
+            {
+                return; // User cancelled
+            }
+
+            // Generate and save the report
+            byte[] reportBytes = LastProcessingResult.Processing.GetWarningReportBytes();
+            await File.WriteAllBytesAsync(savePath, reportBytes);
+
+            Results.Add($"✓ Warning report saved to: {savePath}");
+            StatusMessage = "Warning report generated";
+
+            // Offer to open the report
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = savePath,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            Results.Add($"✗ Failed to generate warning report: {ex.Message}");
+        }
+    }
+
+    private bool CanGenerateWarningReport() =>
+        LastProcessingResult != null &&
+        LastProcessingResult.Success &&
+        LastProcessingResult.Processing.HasWarnings;
 
     private void UpdateOutputPath()
     {
@@ -292,5 +355,15 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         return "output.docx";
+    }
+
+    private static string TruncateMessage(string message, int maxLength)
+    {
+        if (string.IsNullOrEmpty(message) || message.Length <= maxLength)
+        {
+            return message;
+        }
+
+        return message[..(maxLength - 3)] + "...";
     }
 }
