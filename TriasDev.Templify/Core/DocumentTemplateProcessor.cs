@@ -15,6 +15,24 @@ namespace TriasDev.Templify.Core;
 /// </summary>
 public sealed class DocumentTemplateProcessor
 {
+    /// <summary>
+    /// Field types that may need updating when document content changes.
+    /// Used by Auto mode to detect if UpdateFieldsOnOpen should be set.
+    /// </summary>
+    private static readonly string[] _dynamicFieldTypes = new[]
+    {
+        "TOC",       // Table of Contents
+        "PAGE",      // Current page number
+        "NUMPAGES",  // Total page count
+        "PAGEREF",   // Page references (cross-references to bookmarks)
+        "DATE",      // Current date
+        "TIME",      // Current time
+        "FILENAME",  // Document filename
+        "REF",       // Cross-references
+        "NOTEREF",   // Footnote/endnote references
+        "SECTIONPAGES" // Pages in current section
+    };
+
     private readonly PlaceholderReplacementOptions _options;
 
     /// <summary>
@@ -266,14 +284,10 @@ public sealed class DocumentTemplateProcessor
             return false;
         }
 
-        // Look for FieldCode elements that contain dynamic field types
-        // These are fields that may need updating when document content changes
-        string[] dynamicFields = { "TOC", "PAGE", "NUMPAGES", "PAGEREF", "DATE", "TIME", "FILENAME" };
-
         return document.MainDocumentPart.Document.Body
             .Descendants<FieldCode>()
             .Any(fc => fc.Text != null &&
-                       dynamicFields.Any(field =>
+                       _dynamicFieldTypes.Any(field =>
                            fc.Text.Contains(field, StringComparison.OrdinalIgnoreCase)));
     }
 
