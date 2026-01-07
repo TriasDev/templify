@@ -61,7 +61,7 @@ var processor = new DocumentTemplateProcessor(options);
 
 When templates contain Table of Contents (TOC) or other dynamic fields, and content changes during processing (via conditionals or loops), page numbers become stale.
 
-**Why this happens:** OpenXML SDK cannot calculate page numbers—only Word's layout engine can determine actual pagination.
+**Why this happens:** The OpenXML SDK cannot calculate page numbers—only Word's layout engine can determine actual pagination.
 
 ### UpdateFieldsOnOpenMode Options
 

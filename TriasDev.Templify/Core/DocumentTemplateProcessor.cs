@@ -286,9 +286,32 @@ public sealed class DocumentTemplateProcessor
 
         return document.MainDocumentPart.Document.Body
             .Descendants<FieldCode>()
-            .Any(fc => fc.Text != null &&
-                       _dynamicFieldTypes.Any(field =>
-                           fc.Text.Contains(field, StringComparison.OrdinalIgnoreCase)));
+            .Any(fc =>
+            {
+                if (string.IsNullOrWhiteSpace(fc.Text))
+                {
+                    return false;
+                }
+
+                // Field codes typically start with the field type, followed by
+                // spaces, switches (starting with '\'), and parameters.
+                // Example: " TOC \o \"1-3\" \h \z \u "
+                string text = fc.Text.TrimStart();
+
+                // Get the first token (up to whitespace or a backslash for switches)
+                int endIndex = text.IndexOfAny(new[] { ' ', '\t', '\r', '\n', '\\' });
+                string fieldTypeInDoc = endIndex >= 0 ? text[..endIndex] : text;
+
+                foreach (string field in _dynamicFieldTypes)
+                {
+                    if (fieldTypeInDoc.Equals(field, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            });
     }
 
     /// <summary>
@@ -307,6 +330,11 @@ public sealed class DocumentTemplateProcessor
         if (settingsPart == null)
         {
             settingsPart = document.MainDocumentPart.AddNewPart<DocumentSettingsPart>();
+            settingsPart.Settings = new Settings();
+        }
+
+        if (settingsPart.Settings == null)
+        {
             settingsPart.Settings = new Settings();
         }
 

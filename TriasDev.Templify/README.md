@@ -794,7 +794,7 @@ var processor = new DocumentTemplateProcessor(options);
 
 **Why can't Templify update TOC page numbers directly?**
 
-Page numbers are calculated by Word's layout engine at render time. OpenXML (and Templify) can only store the document structure, not the rendered output. Only Word can calculate actual page numbers based on fonts, margins, page breaks, etc.
+Page numbers are calculated by Word's layout engine at render time. The OpenXML SDK (and Templify) can only store the document structure, not the rendered output. Only Word can calculate actual page numbers based on fonts, margins, page breaks, etc.
 
 ### Culture and Formatting
 
