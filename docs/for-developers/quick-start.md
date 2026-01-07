@@ -101,6 +101,9 @@ var options = new PlaceholderReplacementOptions
 - `DATE` - Current date
 - `TIME` - Current time
 - `FILENAME` - Document filename
+- `REF` - Cross-references
+- `NOTEREF` - Footnote/endnote references
+- `SECTIONPAGES` - Pages in current section
 
 > **Note:** When enabled, Word displays a prompt asking the user to confirm field updates. This is a security measure built into Word.
 

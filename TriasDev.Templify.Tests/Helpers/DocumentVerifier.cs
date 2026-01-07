@@ -510,20 +510,12 @@ public sealed class DocumentVerifier : IDisposable
     /// </summary>
     public List<int> GetTableOfContentsPageNumbers()
     {
-        List<int> pageNumbers = new List<int>();
-        List<string> entries = GetTableOfContentsEntries();
-
-        foreach (string entry in entries)
-        {
-            // TOC entries typically end with a page number
-            string[] parts = entry.Split('\t', ' ');
-            if (parts.Length > 0 && int.TryParse(parts[^1], out int pageNum))
-            {
-                pageNumbers.Add(pageNum);
-            }
-        }
-
-        return pageNumbers;
+        // TOC entries typically end with a page number
+        return GetTableOfContentsEntries()
+            .Select(entry => entry.Split('\t', ' '))
+            .Where(parts => parts.Length > 0 && int.TryParse(parts[^1], out _))
+            .Select(parts => int.Parse(parts[^1]))
+            .ToList();
     }
 
     /// <summary>
