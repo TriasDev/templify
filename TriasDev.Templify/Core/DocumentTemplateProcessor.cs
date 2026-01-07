@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 using TriasDev.Templify.Placeholders;
 using TriasDev.Templify.Utilities;
 using TriasDev.Templify.Visitors;
@@ -14,6 +15,24 @@ namespace TriasDev.Templify.Core;
 /// </summary>
 public sealed class DocumentTemplateProcessor
 {
+    /// <summary>
+    /// Field types that may need updating when document content changes.
+    /// Used by Auto mode to detect if UpdateFieldsOnOpen should be set.
+    /// </summary>
+    private static readonly string[] _dynamicFieldTypes = new[]
+    {
+        "TOC",       // Table of Contents
+        "PAGE",      // Current page number
+        "NUMPAGES",  // Total page count
+        "PAGEREF",   // Page references (cross-references to bookmarks)
+        "DATE",      // Current date
+        "TIME",      // Current time
+        "FILENAME",  // Document filename
+        "REF",       // Cross-references
+        "NOTEREF",   // Footnote/endnote references
+        "SECTIONPAGES" // Pages in current section
+    };
+
     private readonly PlaceholderReplacementOptions _options;
 
     /// <summary>
@@ -102,6 +121,19 @@ public sealed class DocumentTemplateProcessor
 
                 // Walk the document with the composite visitor
                 walker.Walk(document, composite, globalContext);
+
+                // Apply UpdateFieldsOnOpen setting based on mode
+                bool shouldUpdateFields = _options.UpdateFieldsOnOpen switch
+                {
+                    UpdateFieldsOnOpenMode.Always => true,
+                    UpdateFieldsOnOpenMode.Auto => HasFields(document),
+                    _ => false
+                };
+
+                if (shouldUpdateFields)
+                {
+                    ApplyUpdateFieldsOnOpen(document);
+                }
 
                 // Save changes
                 document.MainDocumentPart.Document.Save();
@@ -238,5 +270,89 @@ public sealed class DocumentTemplateProcessor
         }
 
         source.CopyTo(destination);
+    }
+
+    /// <summary>
+    /// Checks if the document contains any fields that would benefit from updating on open.
+    /// </summary>
+    /// <param name="document">The Word document to check.</param>
+    /// <returns>True if the document contains fields like TOC, PAGE, NUMPAGES, etc.</returns>
+    private static bool HasFields(WordprocessingDocument document)
+    {
+        if (document.MainDocumentPart?.Document?.Body == null)
+        {
+            return false;
+        }
+
+        return document.MainDocumentPart.Document.Body
+            .Descendants<FieldCode>()
+            .Any(fc =>
+            {
+                if (string.IsNullOrWhiteSpace(fc.Text))
+                {
+                    return false;
+                }
+
+                // Field codes typically start with the field type, followed by
+                // spaces, switches (starting with '\'), and parameters.
+                // Example: " TOC \o \"1-3\" \h \z \u "
+                string text = fc.Text.TrimStart();
+
+                // Get the first token (up to whitespace or a backslash for switches)
+                int endIndex = text.IndexOfAny(new[] { ' ', '\t', '\r', '\n', '\\' });
+                string fieldTypeInDoc = endIndex >= 0 ? text[..endIndex] : text;
+
+                foreach (string field in _dynamicFieldTypes)
+                {
+                    if (fieldTypeInDoc.Equals(field, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            });
+    }
+
+    /// <summary>
+    /// Configures the document to update all fields (including TOC) when opened in Word.
+    /// </summary>
+    /// <param name="document">The Word document to configure.</param>
+    private static void ApplyUpdateFieldsOnOpen(WordprocessingDocument document)
+    {
+        if (document.MainDocumentPart == null)
+        {
+            return;
+        }
+
+        // Get or create the document settings part
+        DocumentSettingsPart? settingsPart = document.MainDocumentPart.DocumentSettingsPart;
+        if (settingsPart == null)
+        {
+            settingsPart = document.MainDocumentPart.AddNewPart<DocumentSettingsPart>();
+            settingsPart.Settings = new Settings();
+        }
+
+        if (settingsPart.Settings == null)
+        {
+            settingsPart.Settings = new Settings();
+        }
+
+        Settings settings = settingsPart.Settings;
+
+        // Check if UpdateFieldsOnOpen already exists
+        UpdateFieldsOnOpen? existingElement = settings.GetFirstChild<UpdateFieldsOnOpen>();
+        if (existingElement != null)
+        {
+            // Update the existing element
+            existingElement.Val = true;
+        }
+        else
+        {
+            // Add new UpdateFieldsOnOpen element
+            settings.PrependChild(new UpdateFieldsOnOpen { Val = true });
+        }
+
+        settingsPart.Settings.Save();
     }
 }

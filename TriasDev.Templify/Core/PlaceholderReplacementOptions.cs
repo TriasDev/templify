@@ -83,6 +83,31 @@ public sealed class PlaceholderReplacementOptions
     public IReadOnlyDictionary<string, string>? TextReplacements { get; init; }
 
     /// <summary>
+    /// Gets or initializes when Word should update all fields (including Table of Contents)
+    /// when the document is first opened after processing.
+    /// Default is <see cref="UpdateFieldsOnOpenMode.Never"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// When template processing removes or adds content (via conditionals or loops), fields like
+    /// Table of Contents (TOC) contain stale page numbers.
+    /// </para>
+    /// <para>
+    /// Available modes:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><description><see cref="UpdateFieldsOnOpenMode.Never"/> - Never prompt to update fields (default)</description></item>
+    /// <item><description><see cref="UpdateFieldsOnOpenMode.Always"/> - Always prompt to update fields</description></item>
+    /// <item><description><see cref="UpdateFieldsOnOpenMode.Auto"/> - Only prompt if document contains fields (TOC, PAGE, etc.). Recommended for applications processing various templates.</description></item>
+    /// </list>
+    /// <para>
+    /// Note: When enabled, Word will display a prompt asking the user to confirm
+    /// field updates. This is a security measure built into Word.
+    /// </para>
+    /// </remarks>
+    public UpdateFieldsOnOpenMode UpdateFieldsOnOpen { get; init; } = UpdateFieldsOnOpenMode.Never;
+
+    /// <summary>
     /// Creates a new instance of <see cref="PlaceholderReplacementOptions"/> with default settings.
     /// </summary>
     public PlaceholderReplacementOptions()

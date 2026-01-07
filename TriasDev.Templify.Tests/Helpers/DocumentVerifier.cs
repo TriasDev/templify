@@ -448,6 +448,92 @@ public sealed class DocumentVerifier : IDisposable
         return numProps != null && numProps.NumberingId != null;
     }
 
+    /// <summary>
+    /// Checks if the document contains a TOC field.
+    /// </summary>
+    public bool HasTableOfContents()
+    {
+        return _body.Descendants<FieldCode>()
+            .Any(fc => fc.Text?.Contains("TOC", StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    /// <summary>
+    /// Gets all TOC entry texts from the document.
+    /// Note: This extracts the cached/displayed TOC entries, not the actual headings.
+    /// </summary>
+    public List<string> GetTableOfContentsEntries()
+    {
+        List<string> entries = new List<string>();
+        bool inTocField = false;
+        bool afterSeparator = false;
+
+        foreach (Paragraph para in _body.Descendants<Paragraph>())
+        {
+            foreach (Run run in para.Descendants<Run>())
+            {
+                FieldChar? fieldChar = run.GetFirstChild<FieldChar>();
+                if (fieldChar != null)
+                {
+                    if (fieldChar.FieldCharType?.Value == FieldCharValues.Begin)
+                    {
+                        inTocField = true;
+                        afterSeparator = false;
+                    }
+                    else if (fieldChar.FieldCharType?.Value == FieldCharValues.Separate)
+                    {
+                        afterSeparator = true;
+                    }
+                    else if (fieldChar.FieldCharType?.Value == FieldCharValues.End)
+                    {
+                        inTocField = false;
+                        afterSeparator = false;
+                    }
+                }
+            }
+
+            // Collect text from paragraphs after the separator (the TOC entries)
+            if (inTocField && afterSeparator)
+            {
+                string text = para.InnerText.Trim();
+                if (!string.IsNullOrEmpty(text))
+                {
+                    entries.Add(text);
+                }
+            }
+        }
+
+        return entries;
+    }
+
+    /// <summary>
+    /// Gets all page numbers displayed in TOC entries.
+    /// </summary>
+    public List<int> GetTableOfContentsPageNumbers()
+    {
+        // TOC entries typically end with a page number
+        return GetTableOfContentsEntries()
+            .Select(entry => entry.Split('\t', ' '))
+            .Where(parts => parts.Length > 0 && int.TryParse(parts[^1], out _))
+            .Select(parts => int.Parse(parts[^1]))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Checks if the document has the UpdateFieldsOnOpen setting enabled.
+    /// When enabled, Word will prompt to update fields (including TOC) when the document is opened.
+    /// </summary>
+    public bool HasUpdateFieldsOnOpen()
+    {
+        DocumentSettingsPart? settingsPart = _document.MainDocumentPart?.DocumentSettingsPart;
+        if (settingsPart?.Settings == null)
+        {
+            return false;
+        }
+
+        UpdateFieldsOnOpen? updateFields = settingsPart.Settings.GetFirstChild<UpdateFieldsOnOpen>();
+        return updateFields?.Val?.Value == true;
+    }
+
     public void Dispose()
     {
         _document?.Dispose();

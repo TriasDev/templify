@@ -755,6 +755,47 @@ var options = new PlaceholderReplacementOptions
 var processor = new DocumentTemplateProcessor(options);
 ```
 
+### Update Fields on Open (TOC Support)
+
+When your templates contain dynamic fields like Table of Contents (TOC), page numbers, or dates, these fields may become stale after processing if content is added or removed (e.g., via conditionals or loops). Templify can instruct Word to prompt users to update these fields when the document is opened.
+
+```csharp
+// Option 1: Auto-detect fields (recommended for applications processing various templates)
+var options = new PlaceholderReplacementOptions
+{
+    UpdateFieldsOnOpen = UpdateFieldsOnOpenMode.Auto
+};
+// Only prompts if document contains TOC, PAGE, NUMPAGES, PAGEREF, DATE, TIME, or FILENAME fields
+
+// Option 2: Always prompt to update fields
+var options = new PlaceholderReplacementOptions
+{
+    UpdateFieldsOnOpen = UpdateFieldsOnOpenMode.Always
+};
+// Every processed document will prompt to update fields when opened
+
+// Option 3: Never prompt (default)
+var options = new PlaceholderReplacementOptions
+{
+    UpdateFieldsOnOpen = UpdateFieldsOnOpenMode.Never
+};
+// No prompt, fields remain as-is (may show stale page numbers)
+
+var processor = new DocumentTemplateProcessor(options);
+```
+
+**When to use each mode:**
+
+| Mode | Use Case |
+|------|----------|
+| `Auto` | Applications where users upload various templates (some with TOC, some without). Only documents with fields will prompt. |
+| `Always` | When you know all templates have TOC or other fields that need updating. |
+| `Never` | When you don't want any prompts, or templates don't have dynamic fields. |
+
+**Why can't Templify update TOC page numbers directly?**
+
+Page numbers are calculated by Word's layout engine at render time. The OpenXML SDK (and Templify) can only store the document structure, not the rendered output. Only Word can calculate actual page numbers based on fonts, margins, page breaks, etc.
+
 ### Culture and Formatting
 
 Templify allows you to control how numbers, dates, and other culture-sensitive values are formatted in your documents. This is particularly important for international documents or when you need consistent formatting across different systems.
@@ -1091,6 +1132,11 @@ Configuration options for template processing.
 
 **Properties:**
 - `MissingVariableBehavior`: How to handle missing variables (default: `LeaveUnchanged`)
+- `Culture`: Culture for formatting numbers and dates (default: `CurrentCulture`)
+- `UpdateFieldsOnOpen`: When to prompt Word to update fields like TOC (default: `Never`)
+- `BooleanFormatterRegistry`: Custom formatters for boolean display
+- `EnableNewlineSupport`: Convert \n to line breaks in Word (default: `true`)
+- `TextReplacements`: Dictionary of text replacements (e.g., HTML entities)
 
 ### ProcessingResult
 
