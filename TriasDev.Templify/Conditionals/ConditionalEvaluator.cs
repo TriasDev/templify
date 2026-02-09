@@ -404,7 +404,7 @@ internal sealed class ConditionalEvaluator
             return false;
         }
 
-        return left.ToString() == right.ToString();
+        return string.Equals(left.ToString(), right.ToString(), StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
