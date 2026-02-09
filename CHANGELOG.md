@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.2] - 2026-02-09
+
+### Fixed
+- **Case-insensitive boolean comparison** in ConditionalEvaluator - boolean values like `True`/`False`/`TRUE`/`FALSE` are now correctly compared regardless of case, while preserving case-sensitive string comparisons (#72)
+
+### Improved
+- Test coverage increased to 965 tests
+
 ## [1.4.1] - 2026-01-07
 
 ### Added
@@ -154,7 +162,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cross-platform: Windows, Linux, macOS
 - No Microsoft Word installation required
 
-[Unreleased]: https://github.com/TriasDev/templify/compare/v1.4.1...HEAD
+[Unreleased]: https://github.com/TriasDev/templify/compare/v1.4.2...HEAD
+[1.4.2]: https://github.com/TriasDev/templify/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/TriasDev/templify/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/TriasDev/templify/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/TriasDev/templify/compare/v1.2.0...v1.3.0
