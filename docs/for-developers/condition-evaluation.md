@@ -122,8 +122,16 @@ Use `IConditionContext` when:
 ### Simple Variables
 
 ```csharp
-evaluator.Evaluate("IsActive", data);     // Boolean check
+evaluator.Evaluate("IsActive", data);     // Boolean check (truthy)
 evaluator.Evaluate("Count", data);        // Truthy check (non-zero, non-null)
+```
+
+### Boolean Comparisons
+
+```csharp
+evaluator.Evaluate("IsActive = true", data);     // Explicit boolean comparison
+evaluator.Evaluate("IsActive = false", data);     // Check if explicitly false
+evaluator.Evaluate("Config.Debug = true", data);  // Works with nested paths too
 ```
 
 ### Comparisons

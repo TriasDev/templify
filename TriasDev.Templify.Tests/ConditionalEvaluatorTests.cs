@@ -80,6 +80,121 @@ public class ConditionalEvaluatorTests
 
     #endregion
 
+    #region Explicit Boolean Comparison
+
+    [Fact]
+    public void Evaluate_ExplicitBooleanEqualsTrue_WithTrueValue_ReturnsTrue()
+    {
+        Dictionary<string, object> data = new() { ["IsActive"] = true };
+
+        bool result = Evaluate("IsActive = true", data);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void Evaluate_ExplicitBooleanEqualsFalse_WithFalseValue_ReturnsTrue()
+    {
+        Dictionary<string, object> data = new() { ["IsActive"] = false };
+
+        bool result = Evaluate("IsActive = false", data);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void Evaluate_ExplicitBooleanEqualsTrue_WithFalseValue_ReturnsFalse()
+    {
+        Dictionary<string, object> data = new() { ["IsActive"] = false };
+
+        bool result = Evaluate("IsActive = true", data);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void Evaluate_ExplicitBooleanEqualsFalse_WithTrueValue_ReturnsFalse()
+    {
+        Dictionary<string, object> data = new() { ["IsActive"] = true };
+
+        bool result = Evaluate("IsActive = false", data);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void Evaluate_ExplicitBooleanEqualsTrue_WithNestedPath_ReturnsTrue()
+    {
+        Dictionary<string, object> data = new()
+        {
+            ["Config"] = new Dictionary<string, object>
+            {
+                ["Debug"] = true
+            }
+        };
+
+        bool result = Evaluate("Config.Debug = true", data);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void Evaluate_ExplicitBooleanEqualsFalse_WithNestedPath_ReturnsTrue()
+    {
+        Dictionary<string, object> data = new()
+        {
+            ["Config"] = new Dictionary<string, object>
+            {
+                ["Debug"] = false
+            }
+        };
+
+        bool result = Evaluate("Config.Debug = false", data);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void Evaluate_StringComparison_RemainsCaseSensitive()
+    {
+        Dictionary<string, object> data = new() { ["Status"] = "Active" };
+
+        Assert.True(Evaluate("Status = Active", data));
+        Assert.False(Evaluate("Status = active", data));
+    }
+
+    [Fact]
+    public void Evaluate_ExplicitBooleanNotEqualsTrue_WithFalseValue_ReturnsTrue()
+    {
+        Dictionary<string, object> data = new() { ["IsActive"] = false };
+
+        bool result = Evaluate("IsActive != true", data);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void Evaluate_ExplicitBooleanNotEqualsFalse_WithTrueValue_ReturnsTrue()
+    {
+        Dictionary<string, object> data = new() { ["IsActive"] = true };
+
+        bool result = Evaluate("IsActive != false", data);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void Evaluate_StringValueTrue_ComparedToTrue_MatchesCaseInsensitively()
+    {
+        Dictionary<string, object> data = new() { ["Flag"] = "true" };
+
+        Assert.True(Evaluate("Flag = True", data));
+        Assert.True(Evaluate("Flag = true", data));
+        Assert.False(Evaluate("Flag = false", data));
+    }
+
+    #endregion
+
     #region String Evaluation
 
     [Fact]

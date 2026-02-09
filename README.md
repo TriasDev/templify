@@ -206,8 +206,9 @@ bool result = evaluator.Evaluate("IsActive and Count > 0", data);
 // Batch evaluation (more efficient for multiple conditions)
 var context = evaluator.CreateConditionContext(data);
 bool r1 = context.Evaluate("IsActive");
-bool r2 = context.Evaluate("Count > 3");
-bool r3 = context.Evaluate("Status = \"Active\"");
+bool r2 = context.Evaluate("IsActive = true");
+bool r3 = context.Evaluate("Count > 3");
+bool r4 = context.Evaluate("Status = \"Active\"");
 ```
 
 **Supported operators:** `=`, `!=`, `>`, `<`, `>=`, `<=`, `and`, `or`, `not`
