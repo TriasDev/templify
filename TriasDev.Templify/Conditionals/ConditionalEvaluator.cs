@@ -404,7 +404,22 @@ internal sealed class ConditionalEvaluator
             return false;
         }
 
-        return string.Equals(left.ToString(), right.ToString(), StringComparison.OrdinalIgnoreCase);
+        // Use case-insensitive comparison for booleans because C#'s
+        // bool.ToString() returns "True"/"False" while template literals
+        // are lowercase "true"/"false".
+        if (left is bool || right is bool || IsBooleanLiteral(left) || IsBooleanLiteral(right))
+        {
+            return string.Equals(left.ToString(), right.ToString(), StringComparison.OrdinalIgnoreCase);
+        }
+
+        return left.ToString() == right.ToString();
+    }
+
+    private static bool IsBooleanLiteral(object? value)
+    {
+        string? str = value as string;
+        return str != null && (str.Equals("true", StringComparison.OrdinalIgnoreCase)
+            || str.Equals("false", StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>

@@ -154,6 +154,15 @@ public class ConditionalEvaluatorTests
         Assert.True(result);
     }
 
+    [Fact]
+    public void Evaluate_StringComparison_RemainsCaseSensitive()
+    {
+        Dictionary<string, object> data = new() { ["Status"] = "Active" };
+
+        Assert.True(Evaluate("Status = Active", data));
+        Assert.False(Evaluate("Status = active", data));
+    }
+
     #endregion
 
     #region String Evaluation
