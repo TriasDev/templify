@@ -163,6 +163,26 @@ public class ConditionalEvaluatorTests
         Assert.False(Evaluate("Status = active", data));
     }
 
+    [Fact]
+    public void Evaluate_ExplicitBooleanNotEqualsTrue_WithFalseValue_ReturnsTrue()
+    {
+        Dictionary<string, object> data = new() { ["IsActive"] = false };
+
+        bool result = Evaluate("IsActive != true", data);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void Evaluate_ExplicitBooleanNotEqualsFalse_WithTrueValue_ReturnsTrue()
+    {
+        Dictionary<string, object> data = new() { ["IsActive"] = true };
+
+        bool result = Evaluate("IsActive != false", data);
+
+        Assert.True(result);
+    }
+
     #endregion
 
     #region String Evaluation
