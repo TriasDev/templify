@@ -183,6 +183,16 @@ public class ConditionalEvaluatorTests
         Assert.True(result);
     }
 
+    [Fact]
+    public void Evaluate_StringValueTrue_ComparedToTrue_MatchesCaseInsensitively()
+    {
+        Dictionary<string, object> data = new() { ["Flag"] = "true" };
+
+        Assert.True(Evaluate("Flag = True", data));
+        Assert.True(Evaluate("Flag = true", data));
+        Assert.False(Evaluate("Flag = false", data));
+    }
+
     #endregion
 
     #region String Evaluation
