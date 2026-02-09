@@ -34,6 +34,8 @@ theme:
     - search.share
     - content.code.copy
     - content.code.annotate
+  logo: assets/images/icon-64.png
+  favicon: assets/images/favicon.png
   icon:
     repo: fontawesome/brands/github
 

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/icon-128.png" alt="Templify" width="128" />
+</p>
+
 # Templify
 
 [![NuGet](https://img.shields.io/nuget/v/TriasDev.Templify.svg)](https://www.nuget.org/packages/TriasDev.Templify/)
