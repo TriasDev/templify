@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon-128.png" alt="Templify" width="128" />
+  <img src="https://raw.githubusercontent.com/TriasDev/templify/main/assets/icon-128.png" alt="Templify" width="128" />
 </p>
 
 # Templify
