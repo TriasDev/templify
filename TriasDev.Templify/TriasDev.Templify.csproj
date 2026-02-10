@@ -22,6 +22,7 @@
     <RepositoryType>git</RepositoryType>
     <PackageTags>word;docx;template;openxml;document-generation;templating;word-documents;office;dotnet;email;text-templates</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>v1.4.2: Fix case-insensitive boolean comparison in ConditionalEvaluator - boolean values like True/False/TRUE/FALSE are now correctly compared regardless of case, while preserving case-sensitive string comparisons.</PackageReleaseNotes>
   </PropertyGroup>
 
@@ -35,6 +36,7 @@
 
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="..\assets\icon-128.png" Pack="true" PackagePath="icon.png" />
   </ItemGroup>
 
   <ItemGroup>

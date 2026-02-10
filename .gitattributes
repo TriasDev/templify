@@ -14,6 +14,7 @@
 *.sh text eol=lf
 *.axaml text eol=lf
 *.axaml.cs text eol=lf
+*.svg text eol=lf
 
 # Denote binary files
 *.dll binary
