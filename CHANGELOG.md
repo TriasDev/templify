@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-02-13
+
+### Added
+- **DocumentProperties Option** - Set document metadata properties on the output document (#77)
+  - `Author`, `Title`, `Subject`, `Description`, `Keywords`, `Category`, `LastModifiedBy`
+  - Null properties preserve original template values; non-null values overwrite
+  - Configure via `PlaceholderReplacementOptions.DocumentProperties`
+- **Custom Templify Icon and Branding** - New icon for the library, GUI, and documentation (#76)
+
+### Improved
+- Test coverage increased to 972 tests
+
 ## [1.4.2] - 2026-02-09
 
 ### Fixed
