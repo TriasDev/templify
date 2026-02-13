@@ -534,6 +534,41 @@ public sealed class DocumentVerifier : IDisposable
         return updateFields?.Val?.Value == true;
     }
 
+    /// <summary>
+    /// Gets the document Author (Creator) property.
+    /// </summary>
+    public string? GetDocumentAuthor() => _document.PackageProperties.Creator;
+
+    /// <summary>
+    /// Gets the document Title property.
+    /// </summary>
+    public string? GetDocumentTitle() => _document.PackageProperties.Title;
+
+    /// <summary>
+    /// Gets the document Subject property.
+    /// </summary>
+    public string? GetDocumentSubject() => _document.PackageProperties.Subject;
+
+    /// <summary>
+    /// Gets the document Description (Comments) property.
+    /// </summary>
+    public string? GetDocumentDescription() => _document.PackageProperties.Description;
+
+    /// <summary>
+    /// Gets the document Keywords property.
+    /// </summary>
+    public string? GetDocumentKeywords() => _document.PackageProperties.Keywords;
+
+    /// <summary>
+    /// Gets the document Category property.
+    /// </summary>
+    public string? GetDocumentCategory() => _document.PackageProperties.Category;
+
+    /// <summary>
+    /// Gets the document LastModifiedBy property.
+    /// </summary>
+    public string? GetDocumentLastModifiedBy() => _document.PackageProperties.LastModifiedBy;
+
     public void Dispose()
     {
         _document?.Dispose();

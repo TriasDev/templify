@@ -136,6 +136,12 @@ public sealed class DocumentTemplateProcessor
                     ApplyUpdateFieldsOnOpen(document);
                 }
 
+                // Apply document properties if configured
+                if (_options.DocumentProperties != null)
+                {
+                    ApplyDocumentProperties(document);
+                }
+
                 // Save changes
                 document.MainDocumentPart.Document.Save();
             }
@@ -356,5 +362,51 @@ public sealed class DocumentTemplateProcessor
         }
 
         settingsPart.Settings.Save();
+    }
+
+    /// <summary>
+    /// Applies configured document metadata properties to the output document.
+    /// Only non-null property values are applied; null values preserve the original template value.
+    /// </summary>
+    /// <param name="document">The Word document to update.</param>
+    private void ApplyDocumentProperties(WordprocessingDocument document)
+    {
+        DocumentProperties props = _options.DocumentProperties!;
+        var packageProps = document.PackageProperties;
+
+        if (props.Author != null)
+        {
+            packageProps.Creator = props.Author;
+        }
+
+        if (props.Title != null)
+        {
+            packageProps.Title = props.Title;
+        }
+
+        if (props.Subject != null)
+        {
+            packageProps.Subject = props.Subject;
+        }
+
+        if (props.Description != null)
+        {
+            packageProps.Description = props.Description;
+        }
+
+        if (props.Keywords != null)
+        {
+            packageProps.Keywords = props.Keywords;
+        }
+
+        if (props.Category != null)
+        {
+            packageProps.Category = props.Category;
+        }
+
+        if (props.LastModifiedBy != null)
+        {
+            packageProps.LastModifiedBy = props.LastModifiedBy;
+        }
     }
 }
