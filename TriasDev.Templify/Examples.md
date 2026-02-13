@@ -1776,6 +1776,10 @@ var result = processor.ProcessTemplate(templateStream, outputStream, data);
 ### Combining with Other Options
 
 ```csharp
+using System.Globalization;
+
+var invoiceNumber = "INV-2025-042";
+
 var options = new PlaceholderReplacementOptions
 {
     Culture = new CultureInfo("de-DE"),

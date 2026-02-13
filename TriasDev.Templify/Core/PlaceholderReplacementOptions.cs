@@ -110,7 +110,7 @@ public sealed class PlaceholderReplacementOptions
     /// <summary>
     /// Gets or initializes the document metadata properties to set on the output document.
     /// When null (default), the original template properties are preserved unchanged.
-    /// Only non-null property values within <see cref="Core.DocumentProperties"/> are applied;
+    /// Only non-null property values within <see cref="DocumentProperties"/> are applied;
     /// properties left as null preserve the original template value.
     /// </summary>
     public DocumentProperties? DocumentProperties { get; init; }
