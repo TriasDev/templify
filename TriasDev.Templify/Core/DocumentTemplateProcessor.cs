@@ -139,7 +139,7 @@ public sealed class DocumentTemplateProcessor
                 // Apply document properties if configured
                 if (_options.DocumentProperties != null)
                 {
-                    ApplyDocumentProperties(document);
+                    ApplyDocumentProperties(document, _options.DocumentProperties);
                 }
 
                 // Save changes
@@ -369,9 +369,9 @@ public sealed class DocumentTemplateProcessor
     /// Only non-null property values are applied; null values preserve the original template value.
     /// </summary>
     /// <param name="document">The Word document to update.</param>
-    private void ApplyDocumentProperties(WordprocessingDocument document)
+    /// <param name="props">The document properties to apply.</param>
+    private static void ApplyDocumentProperties(WordprocessingDocument document, DocumentProperties props)
     {
-        DocumentProperties props = _options.DocumentProperties!;
         var packageProps = document.PackageProperties;
 
         if (props.Author != null)
