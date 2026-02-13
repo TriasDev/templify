@@ -510,6 +510,33 @@ public sealed class DocumentBuilder
     }
 
     /// <summary>
+    /// Sets a document metadata property on the template.
+    /// </summary>
+    public DocumentBuilder SetAuthor(string author)
+    {
+        _document.PackageProperties.Creator = author;
+        return this;
+    }
+
+    /// <summary>
+    /// Sets the document title metadata property.
+    /// </summary>
+    public DocumentBuilder SetTitle(string title)
+    {
+        _document.PackageProperties.Title = title;
+        return this;
+    }
+
+    /// <summary>
+    /// Sets the document subject metadata property.
+    /// </summary>
+    public DocumentBuilder SetSubject(string subject)
+    {
+        _document.PackageProperties.Subject = subject;
+        return this;
+    }
+
+    /// <summary>
     /// Returns the document as a MemoryStream for processing.
     /// </summary>
     public MemoryStream ToStream()

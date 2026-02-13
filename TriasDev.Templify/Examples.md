@@ -19,6 +19,7 @@ This document provides practical examples for common use cases.
 13. [Processing Multiple Templates](#processing-multiple-templates)
 14. [Web Application Integration](#web-application-integration)
 15. [Report Generation](#report-generation)
+16. [Document Properties](#document-properties)
 
 ---
 
@@ -1732,6 +1733,64 @@ public class SalesData
     public string Department { get; set; }
     public decimal Amount { get; set; }
 }
+```
+
+---
+
+## Document Properties
+
+### Setting Document Metadata
+
+Set metadata properties on the output document to brand generated documents or track their origin.
+
+```csharp
+using TriasDev.Templify;
+
+var data = new Dictionary<string, object>
+{
+    ["InvoiceNumber"] = "INV-2025-001",
+    ["CustomerName"] = "Acme Corporation",
+    ["Total"] = 4153.10m
+};
+
+var options = new PlaceholderReplacementOptions
+{
+    DocumentProperties = new DocumentProperties
+    {
+        Author = "Billing System v2.0",
+        Title = "Invoice INV-2025-001",
+        Category = "Invoices"
+    }
+};
+
+var processor = new DocumentTemplateProcessor(options);
+
+using var templateStream = File.OpenRead("invoice-template.docx");
+using var outputStream = File.Create("invoice-output.docx");
+
+var result = processor.ProcessTemplate(templateStream, outputStream, data);
+// Output document has Author="Billing System v2.0", Title="Invoice INV-2025-001", Category="Invoices"
+// All other metadata properties (Subject, Keywords, etc.) are preserved from the template
+```
+
+### Combining with Other Options
+
+```csharp
+using System.Globalization;
+
+var invoiceNumber = "INV-2025-042";
+
+var options = new PlaceholderReplacementOptions
+{
+    Culture = new CultureInfo("de-DE"),
+    UpdateFieldsOnOpen = UpdateFieldsOnOpenMode.Auto,
+    DocumentProperties = new DocumentProperties
+    {
+        Author = "Rechnungssystem",
+        Title = $"Rechnung {invoiceNumber}",
+        LastModifiedBy = "Templify"
+    }
+};
 ```
 
 ---

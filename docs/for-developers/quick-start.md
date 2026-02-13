@@ -56,6 +56,7 @@ var processor = new DocumentTemplateProcessor(options);
 | `EnableNewlineSupport` | `bool` | `true` | Convert `\n` to Word line breaks |
 | `UpdateFieldsOnOpen` | enum | `Never` | When to prompt Word to update fields |
 | `TextReplacements` | dictionary | `null` | Text replacement lookup table |
+| `DocumentProperties` | `DocumentProperties?` | `null` | Metadata properties to set on output document |
 
 ## Update Fields on Open (TOC Support)
 
@@ -106,6 +107,35 @@ var options = new PlaceholderReplacementOptions
 - `SECTIONPAGES` - Pages in current section
 
 > **Note:** When enabled, Word displays a prompt asking the user to confirm field updates. This is a security measure built into Word.
+
+## Document Properties
+
+Set metadata on the output document (Author, Title, Subject, etc.). Properties left as `null` preserve the original template value.
+
+```csharp
+var options = new PlaceholderReplacementOptions
+{
+    DocumentProperties = new DocumentProperties
+    {
+        Author = "My Application",
+        Title = "Generated Report"
+    }
+};
+```
+
+### Available Properties
+
+| Property | Maps to in Word |
+|----------|----------------|
+| `Author` | Author (Creator) |
+| `Title` | Title |
+| `Subject` | Subject |
+| `Description` | Comments |
+| `Keywords` | Keywords |
+| `Category` | Category |
+| `LastModifiedBy` | Last Modified By |
+
+> **Note:** When `DocumentProperties` is `null` (default), all original template metadata is preserved. When set, only non-null properties are applied.
 
 ## Need Help?
 
