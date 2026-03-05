@@ -617,7 +617,7 @@ public sealed class DocumentBuilder
 
         // Remove existing header reference of the same type to avoid duplicates
         HeaderReference? existing = sectionProps.Elements<HeaderReference>()
-            .FirstOrDefault(r => r.Type?.Value == type);
+            .FirstOrDefault(r => r.Type?.Value == type || (type == HeaderFooterValues.Default && r.Type == null));
         existing?.Remove();
 
         sectionProps.Append(new HeaderReference { Type = type, Id = partId });
@@ -637,7 +637,7 @@ public sealed class DocumentBuilder
 
         // Remove existing footer reference of the same type to avoid duplicates
         FooterReference? existingFooter = sectionProps.Elements<FooterReference>()
-            .FirstOrDefault(r => r.Type?.Value == type);
+            .FirstOrDefault(r => r.Type?.Value == type || (type == HeaderFooterValues.Default && r.Type == null));
         existingFooter?.Remove();
 
         sectionProps.Append(new FooterReference { Type = type, Id = partId });
