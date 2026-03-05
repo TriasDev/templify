@@ -537,6 +537,167 @@ public sealed class DocumentBuilder
     }
 
     /// <summary>
+    /// Adds a default header with the specified text.
+    /// </summary>
+    public DocumentBuilder AddHeader(string text) => AddHeader(text, HeaderFooterValues.Default);
+
+    /// <summary>
+    /// Adds a header with the specified text.
+    /// </summary>
+    public DocumentBuilder AddHeader(string text, HeaderFooterValues type)
+    {
+        MainDocumentPart mainPart = _document.MainDocumentPart!;
+
+        HeaderPart headerPart = mainPart.AddNewPart<HeaderPart>();
+        Header header = new Header();
+        Paragraph paragraph = new Paragraph();
+        Run run = new Run();
+        Text textElement = new Text(text) { Space = SpaceProcessingModeValues.Preserve };
+        run.Append(textElement);
+        paragraph.Append(run);
+        header.Append(paragraph);
+        headerPart.Header = header;
+        headerPart.Header.Save();
+
+        string headerPartId = mainPart.GetIdOfPart(headerPart);
+        EnsureSectionProperties().Append(new HeaderReference { Type = type, Id = headerPartId });
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a header with multiple paragraphs.
+    /// </summary>
+    public DocumentBuilder AddHeaderWithParagraphs(HeaderFooterValues type, params string[] texts)
+    {
+        MainDocumentPart mainPart = _document.MainDocumentPart!;
+
+        HeaderPart headerPart = mainPart.AddNewPart<HeaderPart>();
+        Header header = new Header();
+
+        foreach (string text in texts)
+        {
+            Paragraph paragraph = new Paragraph();
+            Run run = new Run();
+            Text textElement = new Text(text) { Space = SpaceProcessingModeValues.Preserve };
+            run.Append(textElement);
+            paragraph.Append(run);
+            header.Append(paragraph);
+        }
+
+        headerPart.Header = header;
+        headerPart.Header.Save();
+
+        string headerPartId = mainPart.GetIdOfPart(headerPart);
+        EnsureSectionProperties().Append(new HeaderReference { Type = type, Id = headerPartId });
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a default footer with the specified text.
+    /// </summary>
+    public DocumentBuilder AddFooter(string text) => AddFooter(text, HeaderFooterValues.Default);
+
+    /// <summary>
+    /// Adds a footer with the specified text.
+    /// </summary>
+    public DocumentBuilder AddFooter(string text, HeaderFooterValues type)
+    {
+        MainDocumentPart mainPart = _document.MainDocumentPart!;
+
+        FooterPart footerPart = mainPart.AddNewPart<FooterPart>();
+        Footer footer = new Footer();
+        Paragraph paragraph = new Paragraph();
+        Run run = new Run();
+        Text textElement = new Text(text) { Space = SpaceProcessingModeValues.Preserve };
+        run.Append(textElement);
+        paragraph.Append(run);
+        footer.Append(paragraph);
+        footerPart.Footer = footer;
+        footerPart.Footer.Save();
+
+        string footerPartId = mainPart.GetIdOfPart(footerPart);
+        EnsureSectionProperties().Append(new FooterReference { Type = type, Id = footerPartId });
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a footer with multiple paragraphs.
+    /// </summary>
+    public DocumentBuilder AddFooterWithParagraphs(HeaderFooterValues type, params string[] texts)
+    {
+        MainDocumentPart mainPart = _document.MainDocumentPart!;
+
+        FooterPart footerPart = mainPart.AddNewPart<FooterPart>();
+        Footer footer = new Footer();
+
+        foreach (string text in texts)
+        {
+            Paragraph paragraph = new Paragraph();
+            Run run = new Run();
+            Text textElement = new Text(text) { Space = SpaceProcessingModeValues.Preserve };
+            run.Append(textElement);
+            paragraph.Append(run);
+            footer.Append(paragraph);
+        }
+
+        footerPart.Footer = footer;
+        footerPart.Footer.Save();
+
+        string footerPartId = mainPart.GetIdOfPart(footerPart);
+        EnsureSectionProperties().Append(new FooterReference { Type = type, Id = footerPartId });
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a default header with the specified text and formatting.
+    /// </summary>
+    public DocumentBuilder AddHeader(string text, RunProperties formatting) => AddHeader(text, formatting, HeaderFooterValues.Default);
+
+    /// <summary>
+    /// Adds a header with the specified text and formatting.
+    /// </summary>
+    public DocumentBuilder AddHeader(string text, RunProperties formatting, HeaderFooterValues type)
+    {
+        MainDocumentPart mainPart = _document.MainDocumentPart!;
+
+        HeaderPart headerPart = mainPart.AddNewPart<HeaderPart>();
+        Header header = new Header();
+        Paragraph paragraph = new Paragraph();
+        Run run = new Run();
+        Text textElement = new Text(text) { Space = SpaceProcessingModeValues.Preserve };
+        run.Append(textElement);
+        run.RunProperties = (RunProperties)formatting.CloneNode(true);
+        paragraph.Append(run);
+        header.Append(paragraph);
+        headerPart.Header = header;
+        headerPart.Header.Save();
+
+        string headerPartId = mainPart.GetIdOfPart(headerPart);
+        EnsureSectionProperties().Append(new HeaderReference { Type = type, Id = headerPartId });
+
+        return this;
+    }
+
+    /// <summary>
+    /// Ensures the body has SectionProperties and returns it.
+    /// </summary>
+    private SectionProperties EnsureSectionProperties()
+    {
+        SectionProperties? sectionProps = _body.Elements<SectionProperties>().FirstOrDefault();
+        if (sectionProps == null)
+        {
+            sectionProps = new SectionProperties();
+            _body.Append(sectionProps);
+        }
+
+        return sectionProps;
+    }
+
+    /// <summary>
     /// Returns the document as a MemoryStream for processing.
     /// </summary>
     public MemoryStream ToStream()

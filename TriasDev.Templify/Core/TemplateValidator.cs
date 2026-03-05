@@ -76,10 +76,16 @@ internal sealed class TemplateValidator
                 // 4. Find all regular placeholders in the document
                 FindAllPlaceholders(body, allPlaceholders);
 
-                // 5. Check for missing variables if data is provided
+                // 5. Validate headers and footers
+                ValidateHeadersAndFooters(document, allPlaceholders, errors);
+
+                // 6. Check for missing variables if data is provided
                 if (data != null)
                 {
                     ValidateMissingVariables(elements, data, allPlaceholders, missingVariables, warnings, errors, _options.WarnOnEmptyLoopCollections);
+
+                    // Also validate missing variables in headers and footers
+                    ValidateHeaderFooterMissingVariables(document, data, allPlaceholders, missingVariables, warnings, errors, _options.WarnOnEmptyLoopCollections);
                 }
             }
         }
@@ -577,6 +583,101 @@ internal sealed class TemplateValidator
 
         // Try global scope
         return resolver.TryResolveValue(data, placeholder, out _);
+    }
+
+    /// <summary>
+    /// Validates template elements in all headers and footers.
+    /// </summary>
+    private static void ValidateHeadersAndFooters(
+        WordprocessingDocument document,
+        HashSet<string> allPlaceholders,
+        List<ValidationError> errors)
+    {
+        if (document.MainDocumentPart == null)
+        {
+            return;
+        }
+
+        foreach (HeaderPart headerPart in document.MainDocumentPart.HeaderParts)
+        {
+            if (headerPart.Header != null)
+            {
+                List<OpenXmlElement> headerElements = headerPart.Header.Elements<OpenXmlElement>().ToList();
+                _ = ValidateConditionals(headerElements, allPlaceholders, errors);
+                ValidateLoops(headerElements, allPlaceholders, errors);
+                FindAllPlaceholdersInElements(headerElements, allPlaceholders);
+            }
+        }
+
+        foreach (FooterPart footerPart in document.MainDocumentPart.FooterParts)
+        {
+            if (footerPart.Footer != null)
+            {
+                List<OpenXmlElement> footerElements = footerPart.Footer.Elements<OpenXmlElement>().ToList();
+                _ = ValidateConditionals(footerElements, allPlaceholders, errors);
+                ValidateLoops(footerElements, allPlaceholders, errors);
+                FindAllPlaceholdersInElements(footerElements, allPlaceholders);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Validates missing variables in headers and footers.
+    /// </summary>
+    private static void ValidateHeaderFooterMissingVariables(
+        WordprocessingDocument document,
+        Dictionary<string, object> data,
+        HashSet<string> allPlaceholders,
+        HashSet<string> missingVariables,
+        List<ValidationWarning> warnings,
+        List<ValidationError> errors,
+        bool warnOnEmptyLoopCollections)
+    {
+        if (document.MainDocumentPart == null)
+        {
+            return;
+        }
+
+        ValueResolver resolver = new ValueResolver();
+
+        foreach (HeaderPart headerPart in document.MainDocumentPart.HeaderParts)
+        {
+            if (headerPart.Header != null)
+            {
+                List<OpenXmlElement> elements = headerPart.Header.Elements<OpenXmlElement>().ToList();
+                Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)> loopStack =
+                    new Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)>();
+                ValidatePlaceholdersInScope(elements, loopStack, data, allPlaceholders, missingVariables, warnings, errors, resolver, warnOnEmptyLoopCollections);
+            }
+        }
+
+        foreach (FooterPart footerPart in document.MainDocumentPart.FooterParts)
+        {
+            if (footerPart.Footer != null)
+            {
+                List<OpenXmlElement> elements = footerPart.Footer.Elements<OpenXmlElement>().ToList();
+                Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)> loopStack =
+                    new Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)>();
+                ValidatePlaceholdersInScope(elements, loopStack, data, allPlaceholders, missingVariables, warnings, errors, resolver, warnOnEmptyLoopCollections);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Finds all regular placeholders in a list of elements.
+    /// </summary>
+    private static void FindAllPlaceholdersInElements(List<OpenXmlElement> elements, HashSet<string> allPlaceholders)
+    {
+        PlaceholderFinder placeholderFinder = new PlaceholderFinder();
+        foreach (OpenXmlElement element in elements)
+        {
+            string text = element.InnerText;
+            IEnumerable<string> foundPlaceholders = placeholderFinder.GetUniqueVariableNames(text);
+            foreach (string placeholder in foundPlaceholders)
+            {
+                allPlaceholders.Add(placeholder);
+            }
+        }
     }
 
     /// <summary>

@@ -59,6 +59,41 @@ internal sealed class DocumentWalker
     }
 
     /// <summary>
+    /// Walks through all headers and footers in the document and visits template elements.
+    /// </summary>
+    /// <param name="document">The Word document to walk.</param>
+    /// <param name="visitor">The visitor that will process detected elements.</param>
+    /// <param name="context">The evaluation context for variable resolution.</param>
+    public void WalkHeadersAndFooters(
+        WordprocessingDocument document,
+        ITemplateElementVisitor visitor,
+        IEvaluationContext context)
+    {
+        if (document?.MainDocumentPart == null)
+        {
+            return;
+        }
+
+        foreach (HeaderPart headerPart in document.MainDocumentPart.HeaderParts)
+        {
+            if (headerPart.Header != null)
+            {
+                List<OpenXmlElement> elements = headerPart.Header.Elements<OpenXmlElement>().ToList();
+                WalkElements(elements, visitor, context);
+            }
+        }
+
+        foreach (FooterPart footerPart in document.MainDocumentPart.FooterParts)
+        {
+            if (footerPart.Footer != null)
+            {
+                List<OpenXmlElement> elements = footerPart.Footer.Elements<OpenXmlElement>().ToList();
+                WalkElements(elements, visitor, context);
+            }
+        }
+    }
+
+    /// <summary>
     /// Walks through a list of elements and visits template constructs.
     /// </summary>
     /// <param name="elements">The elements to walk.</param>

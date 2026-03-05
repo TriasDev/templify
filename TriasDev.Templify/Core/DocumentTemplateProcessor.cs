@@ -123,6 +123,9 @@ public sealed class DocumentTemplateProcessor
                 // Walk the document with the composite visitor
                 walker.Walk(document, composite, globalContext);
 
+                // Walk headers and footers with the same visitor pipeline
+                walker.WalkHeadersAndFooters(document, composite, globalContext);
+
                 // Apply UpdateFieldsOnOpen setting based on mode
                 bool shouldUpdateFields = _options.UpdateFieldsOnOpen switch
                 {
@@ -292,9 +295,27 @@ public sealed class DocumentTemplateProcessor
             return false;
         }
 
-        return document.MainDocumentPart.Document.Body
-            .Descendants<FieldCode>()
-            .Any(fc =>
+        // Collect field codes from body, headers, and footers
+        IEnumerable<FieldCode> fieldCodes = document.MainDocumentPart.Document.Body
+            .Descendants<FieldCode>();
+
+        foreach (HeaderPart headerPart in document.MainDocumentPart.HeaderParts)
+        {
+            if (headerPart.Header != null)
+            {
+                fieldCodes = fieldCodes.Concat(headerPart.Header.Descendants<FieldCode>());
+            }
+        }
+
+        foreach (FooterPart footerPart in document.MainDocumentPart.FooterParts)
+        {
+            if (footerPart.Footer != null)
+            {
+                fieldCodes = fieldCodes.Concat(footerPart.Footer.Descendants<FieldCode>());
+            }
+        }
+
+        return fieldCodes.Any(fc =>
             {
                 if (string.IsNullOrWhiteSpace(fc.Text))
                 {
