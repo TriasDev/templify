@@ -546,23 +546,7 @@ public sealed class DocumentBuilder
     /// </summary>
     public DocumentBuilder AddHeader(string text, HeaderFooterValues type)
     {
-        MainDocumentPart mainPart = _document.MainDocumentPart!;
-
-        HeaderPart headerPart = mainPart.AddNewPart<HeaderPart>();
-        Header header = new Header();
-        Paragraph paragraph = new Paragraph();
-        Run run = new Run();
-        Text textElement = new Text(text) { Space = SpaceProcessingModeValues.Preserve };
-        run.Append(textElement);
-        paragraph.Append(run);
-        header.Append(paragraph);
-        headerPart.Header = header;
-        headerPart.Header.Save();
-
-        string headerPartId = mainPart.GetIdOfPart(headerPart);
-        EnsureSectionProperties().Append(new HeaderReference { Type = type, Id = headerPartId });
-
-        return this;
+        return AddHeaderPart(type, null, text);
     }
 
     /// <summary>
@@ -570,28 +554,7 @@ public sealed class DocumentBuilder
     /// </summary>
     public DocumentBuilder AddHeaderWithParagraphs(HeaderFooterValues type, params string[] texts)
     {
-        MainDocumentPart mainPart = _document.MainDocumentPart!;
-
-        HeaderPart headerPart = mainPart.AddNewPart<HeaderPart>();
-        Header header = new Header();
-
-        foreach (string text in texts)
-        {
-            Paragraph paragraph = new Paragraph();
-            Run run = new Run();
-            Text textElement = new Text(text) { Space = SpaceProcessingModeValues.Preserve };
-            run.Append(textElement);
-            paragraph.Append(run);
-            header.Append(paragraph);
-        }
-
-        headerPart.Header = header;
-        headerPart.Header.Save();
-
-        string headerPartId = mainPart.GetIdOfPart(headerPart);
-        EnsureSectionProperties().Append(new HeaderReference { Type = type, Id = headerPartId });
-
-        return this;
+        return AddHeaderPart(type, null, texts);
     }
 
     /// <summary>
@@ -604,23 +567,7 @@ public sealed class DocumentBuilder
     /// </summary>
     public DocumentBuilder AddFooter(string text, HeaderFooterValues type)
     {
-        MainDocumentPart mainPart = _document.MainDocumentPart!;
-
-        FooterPart footerPart = mainPart.AddNewPart<FooterPart>();
-        Footer footer = new Footer();
-        Paragraph paragraph = new Paragraph();
-        Run run = new Run();
-        Text textElement = new Text(text) { Space = SpaceProcessingModeValues.Preserve };
-        run.Append(textElement);
-        paragraph.Append(run);
-        footer.Append(paragraph);
-        footerPart.Footer = footer;
-        footerPart.Footer.Save();
-
-        string footerPartId = mainPart.GetIdOfPart(footerPart);
-        EnsureSectionProperties().Append(new FooterReference { Type = type, Id = footerPartId });
-
-        return this;
+        return AddFooterPart(type, null, text);
     }
 
     /// <summary>
@@ -628,28 +575,7 @@ public sealed class DocumentBuilder
     /// </summary>
     public DocumentBuilder AddFooterWithParagraphs(HeaderFooterValues type, params string[] texts)
     {
-        MainDocumentPart mainPart = _document.MainDocumentPart!;
-
-        FooterPart footerPart = mainPart.AddNewPart<FooterPart>();
-        Footer footer = new Footer();
-
-        foreach (string text in texts)
-        {
-            Paragraph paragraph = new Paragraph();
-            Run run = new Run();
-            Text textElement = new Text(text) { Space = SpaceProcessingModeValues.Preserve };
-            run.Append(textElement);
-            paragraph.Append(run);
-            footer.Append(paragraph);
-        }
-
-        footerPart.Footer = footer;
-        footerPart.Footer.Save();
-
-        string footerPartId = mainPart.GetIdOfPart(footerPart);
-        EnsureSectionProperties().Append(new FooterReference { Type = type, Id = footerPartId });
-
-        return this;
+        return AddFooterPart(type, null, texts);
     }
 
     /// <summary>
@@ -662,24 +588,7 @@ public sealed class DocumentBuilder
     /// </summary>
     public DocumentBuilder AddHeader(string text, RunProperties formatting, HeaderFooterValues type)
     {
-        MainDocumentPart mainPart = _document.MainDocumentPart!;
-
-        HeaderPart headerPart = mainPart.AddNewPart<HeaderPart>();
-        Header header = new Header();
-        Paragraph paragraph = new Paragraph();
-        Run run = new Run();
-        Text textElement = new Text(text) { Space = SpaceProcessingModeValues.Preserve };
-        run.Append(textElement);
-        run.RunProperties = (RunProperties)formatting.CloneNode(true);
-        paragraph.Append(run);
-        header.Append(paragraph);
-        headerPart.Header = header;
-        headerPart.Header.Save();
-
-        string headerPartId = mainPart.GetIdOfPart(headerPart);
-        EnsureSectionProperties().Append(new HeaderReference { Type = type, Id = headerPartId });
-
-        return this;
+        return AddHeaderPart(type, formatting, text);
     }
 
     /// <summary>
@@ -692,24 +601,51 @@ public sealed class DocumentBuilder
     /// </summary>
     public DocumentBuilder AddFooter(string text, RunProperties formatting, HeaderFooterValues type)
     {
-        MainDocumentPart mainPart = _document.MainDocumentPart!;
+        return AddFooterPart(type, formatting, text);
+    }
 
+    private DocumentBuilder AddHeaderPart(HeaderFooterValues type, RunProperties? formatting, params string[] texts)
+    {
+        MainDocumentPart mainPart = _document.MainDocumentPart!;
+        HeaderPart headerPart = mainPart.AddNewPart<HeaderPart>();
+        headerPart.Header = new Header();
+        AppendParagraphs(headerPart.Header, formatting, texts);
+        headerPart.Header.Save();
+
+        string partId = mainPart.GetIdOfPart(headerPart);
+        EnsureSectionProperties().Append(new HeaderReference { Type = type, Id = partId });
+        return this;
+    }
+
+    private DocumentBuilder AddFooterPart(HeaderFooterValues type, RunProperties? formatting, params string[] texts)
+    {
+        MainDocumentPart mainPart = _document.MainDocumentPart!;
         FooterPart footerPart = mainPart.AddNewPart<FooterPart>();
-        Footer footer = new Footer();
-        Paragraph paragraph = new Paragraph();
-        Run run = new Run();
-        Text textElement = new Text(text) { Space = SpaceProcessingModeValues.Preserve };
-        run.Append(textElement);
-        run.RunProperties = (RunProperties)formatting.CloneNode(true);
-        paragraph.Append(run);
-        footer.Append(paragraph);
-        footerPart.Footer = footer;
+        footerPart.Footer = new Footer();
+        AppendParagraphs(footerPart.Footer, formatting, texts);
         footerPart.Footer.Save();
 
-        string footerPartId = mainPart.GetIdOfPart(footerPart);
-        EnsureSectionProperties().Append(new FooterReference { Type = type, Id = footerPartId });
-
+        string partId = mainPart.GetIdOfPart(footerPart);
+        EnsureSectionProperties().Append(new FooterReference { Type = type, Id = partId });
         return this;
+    }
+
+    private static void AppendParagraphs(OpenXmlCompositeElement container, RunProperties? formatting, string[] texts)
+    {
+        foreach (string text in texts)
+        {
+            Paragraph paragraph = new Paragraph();
+            Run run = new Run();
+            Text textElement = new Text(text) { Space = SpaceProcessingModeValues.Preserve };
+            run.Append(textElement);
+            if (formatting != null)
+            {
+                run.RunProperties = (RunProperties)formatting.CloneNode(true);
+            }
+
+            paragraph.Append(run);
+            container.Append(paragraph);
+        }
     }
 
     /// <summary>

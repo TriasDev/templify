@@ -649,25 +649,16 @@ public sealed class DocumentVerifier : IDisposable
 
     private HeaderPart GetHeaderPart(HeaderFooterValues type)
     {
-        MainDocumentPart mainPart = _document.MainDocumentPart
-            ?? throw new InvalidOperationException("MainDocumentPart not found");
-
-        SectionProperties sectionProps = (mainPart.Document?.Body)
-            ?.Elements<SectionProperties>().FirstOrDefault()
-            ?? throw new InvalidOperationException("SectionProperties not found");
-
-        HeaderReference? headerRef = sectionProps.Elements<HeaderReference>()
-            .FirstOrDefault(hr => hr.Type?.Value == type);
-
-        if (headerRef?.Id?.Value == null)
-        {
-            throw new InvalidOperationException($"Header reference of type {type} not found");
-        }
-
-        return (HeaderPart)mainPart.GetPartById(headerRef.Id.Value);
+        return (HeaderPart)GetHeaderFooterPart<HeaderReference>(type, "Header");
     }
 
     private FooterPart GetFooterPart(HeaderFooterValues type)
+    {
+        return (FooterPart)GetHeaderFooterPart<FooterReference>(type, "Footer");
+    }
+
+    private OpenXmlPart GetHeaderFooterPart<TReference>(HeaderFooterValues type, string partName)
+        where TReference : HeaderFooterReferenceType
     {
         MainDocumentPart mainPart = _document.MainDocumentPart
             ?? throw new InvalidOperationException("MainDocumentPart not found");
@@ -676,15 +667,15 @@ public sealed class DocumentVerifier : IDisposable
             ?.Elements<SectionProperties>().FirstOrDefault()
             ?? throw new InvalidOperationException("SectionProperties not found");
 
-        FooterReference? footerRef = sectionProps.Elements<FooterReference>()
-            .FirstOrDefault(fr => fr.Type?.Value == type);
+        TReference? reference = sectionProps.Elements<TReference>()
+            .FirstOrDefault(r => r.Type?.Value == type);
 
-        if (footerRef?.Id?.Value == null)
+        if (reference?.Id?.Value == null)
         {
-            throw new InvalidOperationException($"Footer reference of type {type} not found");
+            throw new InvalidOperationException($"{partName} reference of type {type} not found");
         }
 
-        return (FooterPart)mainPart.GetPartById(footerRef.Id.Value);
+        return mainPart.GetPartById(reference.Id.Value);
     }
 
     public void Dispose()

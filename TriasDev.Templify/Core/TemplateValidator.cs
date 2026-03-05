@@ -199,14 +199,7 @@ internal sealed class TemplateValidator
     /// </summary>
     private static void FindAllPlaceholders(Body body, HashSet<string> allPlaceholders)
     {
-        PlaceholderFinder placeholderFinder = new PlaceholderFinder();
-        string bodyText = body.InnerText;
-        IEnumerable<string> foundPlaceholders = placeholderFinder.GetUniqueVariableNames(bodyText);
-
-        foreach (string placeholder in foundPlaceholders)
-        {
-            allPlaceholders.Add(placeholder);
-        }
+        FindAllPlaceholdersInElements(body.Elements<OpenXmlElement>().ToList(), allPlaceholders);
     }
 
     /// <summary>
