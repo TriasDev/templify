@@ -195,6 +195,33 @@ internal sealed class TemplateValidator
     }
 
     /// <summary>
+    /// Validates table row loops in a list of elements (used for headers/footers).
+    /// </summary>
+    private static void ValidateTableRowLoopsInElements(
+        List<OpenXmlElement> elements,
+        HashSet<string> allPlaceholders,
+        List<ValidationError> errors)
+    {
+        foreach (Table table in elements.OfType<Table>())
+        {
+            try
+            {
+                IReadOnlyList<LoopBlock> tableLoops = LoopDetector.DetectTableRowLoops(table);
+                foreach (LoopBlock block in tableLoops)
+                {
+                    allPlaceholders.Add(block.CollectionName);
+                }
+            }
+            catch (InvalidOperationException ex)
+            {
+                errors.Add(ValidationError.Create(
+                    ValidationErrorType.UnmatchedLoopStart,
+                    ex.Message));
+            }
+        }
+    }
+
+    /// <summary>
     /// Finds all regular placeholders in the document body.
     /// </summary>
     private static void FindAllPlaceholders(Body body, HashSet<string> allPlaceholders)
@@ -617,6 +644,7 @@ internal sealed class TemplateValidator
         {
             _ = ValidateConditionals(elements, allPlaceholders, errors);
             ValidateLoops(elements, allPlaceholders, errors);
+            ValidateTableRowLoopsInElements(elements, allPlaceholders, errors);
             FindAllPlaceholdersInElements(elements, allPlaceholders);
         }
     }

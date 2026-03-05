@@ -668,7 +668,7 @@ public sealed class DocumentVerifier : IDisposable
             ?? throw new InvalidOperationException("SectionProperties not found");
 
         TReference? reference = sectionProps.Elements<TReference>()
-            .FirstOrDefault(r => r.Type?.Value == type);
+            .FirstOrDefault(r => r.Type?.Value == type || (type == HeaderFooterValues.Default && r.Type == null));
 
         if (reference?.Id?.Value == null)
         {

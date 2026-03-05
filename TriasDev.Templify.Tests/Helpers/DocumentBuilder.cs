@@ -613,7 +613,14 @@ public sealed class DocumentBuilder
         headerPart.Header.Save();
 
         string partId = mainPart.GetIdOfPart(headerPart);
-        EnsureSectionProperties().Append(new HeaderReference { Type = type, Id = partId });
+        SectionProperties sectionProps = EnsureSectionProperties();
+
+        // Remove existing header reference of the same type to avoid duplicates
+        HeaderReference? existing = sectionProps.Elements<HeaderReference>()
+            .FirstOrDefault(r => r.Type?.Value == type);
+        existing?.Remove();
+
+        sectionProps.Append(new HeaderReference { Type = type, Id = partId });
         return this;
     }
 
@@ -626,7 +633,14 @@ public sealed class DocumentBuilder
         footerPart.Footer.Save();
 
         string partId = mainPart.GetIdOfPart(footerPart);
-        EnsureSectionProperties().Append(new FooterReference { Type = type, Id = partId });
+        SectionProperties sectionProps = EnsureSectionProperties();
+
+        // Remove existing footer reference of the same type to avoid duplicates
+        FooterReference? existingFooter = sectionProps.Elements<FooterReference>()
+            .FirstOrDefault(r => r.Type?.Value == type);
+        existingFooter?.Remove();
+
+        sectionProps.Append(new FooterReference { Type = type, Id = partId });
         return this;
     }
 
@@ -668,6 +682,14 @@ public sealed class DocumentBuilder
     /// </summary>
     public MemoryStream ToStream()
     {
+        // Ensure SectionProperties is the last child of Body (OpenXML schema requirement)
+        SectionProperties? sectPr = _body.Elements<SectionProperties>().FirstOrDefault();
+        if (sectPr != null)
+        {
+            sectPr.Remove();
+            _body.Append(sectPr);
+        }
+
         // Save and close the document
         _document.MainDocumentPart!.Document.Save();
         _document.Dispose();
