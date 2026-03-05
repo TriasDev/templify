@@ -586,26 +586,20 @@ internal sealed class TemplateValidator
     }
 
     /// <summary>
-    /// Validates template elements in all headers and footers.
+    /// Gets all element lists from header and footer parts in the document.
     /// </summary>
-    private static void ValidateHeadersAndFooters(
-        WordprocessingDocument document,
-        HashSet<string> allPlaceholders,
-        List<ValidationError> errors)
+    private static IEnumerable<List<OpenXmlElement>> GetHeaderFooterElements(WordprocessingDocument document)
     {
         if (document.MainDocumentPart == null)
         {
-            return;
+            yield break;
         }
 
         foreach (HeaderPart headerPart in document.MainDocumentPart.HeaderParts)
         {
             if (headerPart.Header != null)
             {
-                List<OpenXmlElement> headerElements = headerPart.Header.Elements<OpenXmlElement>().ToList();
-                _ = ValidateConditionals(headerElements, allPlaceholders, errors);
-                ValidateLoops(headerElements, allPlaceholders, errors);
-                FindAllPlaceholdersInElements(headerElements, allPlaceholders);
+                yield return headerPart.Header.Elements<OpenXmlElement>().ToList();
             }
         }
 
@@ -613,11 +607,24 @@ internal sealed class TemplateValidator
         {
             if (footerPart.Footer != null)
             {
-                List<OpenXmlElement> footerElements = footerPart.Footer.Elements<OpenXmlElement>().ToList();
-                _ = ValidateConditionals(footerElements, allPlaceholders, errors);
-                ValidateLoops(footerElements, allPlaceholders, errors);
-                FindAllPlaceholdersInElements(footerElements, allPlaceholders);
+                yield return footerPart.Footer.Elements<OpenXmlElement>().ToList();
             }
+        }
+    }
+
+    /// <summary>
+    /// Validates template elements in all headers and footers.
+    /// </summary>
+    private static void ValidateHeadersAndFooters(
+        WordprocessingDocument document,
+        HashSet<string> allPlaceholders,
+        List<ValidationError> errors)
+    {
+        foreach (List<OpenXmlElement> elements in GetHeaderFooterElements(document))
+        {
+            _ = ValidateConditionals(elements, allPlaceholders, errors);
+            ValidateLoops(elements, allPlaceholders, errors);
+            FindAllPlaceholdersInElements(elements, allPlaceholders);
         }
     }
 
@@ -633,33 +640,13 @@ internal sealed class TemplateValidator
         List<ValidationError> errors,
         bool warnOnEmptyLoopCollections)
     {
-        if (document.MainDocumentPart == null)
-        {
-            return;
-        }
-
         ValueResolver resolver = new ValueResolver();
 
-        foreach (HeaderPart headerPart in document.MainDocumentPart.HeaderParts)
+        foreach (List<OpenXmlElement> elements in GetHeaderFooterElements(document))
         {
-            if (headerPart.Header != null)
-            {
-                List<OpenXmlElement> elements = headerPart.Header.Elements<OpenXmlElement>().ToList();
-                Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)> loopStack =
-                    new Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)>();
-                ValidatePlaceholdersInScope(elements, loopStack, data, allPlaceholders, missingVariables, warnings, errors, resolver, warnOnEmptyLoopCollections);
-            }
-        }
-
-        foreach (FooterPart footerPart in document.MainDocumentPart.FooterParts)
-        {
-            if (footerPart.Footer != null)
-            {
-                List<OpenXmlElement> elements = footerPart.Footer.Elements<OpenXmlElement>().ToList();
-                Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)> loopStack =
-                    new Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)>();
-                ValidatePlaceholdersInScope(elements, loopStack, data, allPlaceholders, missingVariables, warnings, errors, resolver, warnOnEmptyLoopCollections);
-            }
+            Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)> loopStack =
+                new Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)>();
+            ValidatePlaceholdersInScope(elements, loopStack, data, allPlaceholders, missingVariables, warnings, errors, resolver, warnOnEmptyLoopCollections);
         }
     }
 

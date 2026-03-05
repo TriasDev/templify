@@ -585,31 +585,16 @@ public sealed class DocumentVerifier : IDisposable
     public RunProperties? GetHeaderRunProperties() => GetHeaderRunProperties(HeaderFooterValues.Default);
 
     /// <summary>
+    /// Gets the RunProperties from the first run in the default footer.
+    /// </summary>
+    public RunProperties? GetFooterRunProperties() => GetFooterRunProperties(HeaderFooterValues.Default);
+
+    /// <summary>
     /// Gets the text content of a header by type.
     /// </summary>
     public string GetHeaderText(HeaderFooterValues type)
     {
-        MainDocumentPart mainPart = _document.MainDocumentPart
-            ?? throw new InvalidOperationException("MainDocumentPart not found");
-
-        Body body = mainPart.Document?.Body
-            ?? throw new InvalidOperationException("Document body not found");
-
-        SectionProperties? sectionProps = body.Elements<SectionProperties>().FirstOrDefault();
-        if (sectionProps == null)
-        {
-            throw new InvalidOperationException("SectionProperties not found");
-        }
-
-        HeaderReference? headerRef = sectionProps.Elements<HeaderReference>()
-            .FirstOrDefault(hr => hr.Type?.Value == type);
-
-        if (headerRef?.Id?.Value == null)
-        {
-            throw new InvalidOperationException($"Header reference of type {type} not found");
-        }
-
-        HeaderPart headerPart = (HeaderPart)mainPart.GetPartById(headerRef.Id.Value);
+        HeaderPart headerPart = GetHeaderPart(type);
         return headerPart.Header?.InnerText ?? string.Empty;
     }
 
@@ -618,27 +603,7 @@ public sealed class DocumentVerifier : IDisposable
     /// </summary>
     public string GetFooterText(HeaderFooterValues type)
     {
-        MainDocumentPart mainPart = _document.MainDocumentPart
-            ?? throw new InvalidOperationException("MainDocumentPart not found");
-
-        Body body = mainPart.Document?.Body
-            ?? throw new InvalidOperationException("Document body not found");
-
-        SectionProperties? sectionProps = body.Elements<SectionProperties>().FirstOrDefault();
-        if (sectionProps == null)
-        {
-            throw new InvalidOperationException("SectionProperties not found");
-        }
-
-        FooterReference? footerRef = sectionProps.Elements<FooterReference>()
-            .FirstOrDefault(fr => fr.Type?.Value == type);
-
-        if (footerRef?.Id?.Value == null)
-        {
-            throw new InvalidOperationException($"Footer reference of type {type} not found");
-        }
-
-        FooterPart footerPart = (FooterPart)mainPart.GetPartById(footerRef.Id.Value);
+        FooterPart footerPart = GetFooterPart(type);
         return footerPart.Footer?.InnerText ?? string.Empty;
     }
 
@@ -647,27 +612,7 @@ public sealed class DocumentVerifier : IDisposable
     /// </summary>
     public List<string> GetHeaderParagraphTexts(HeaderFooterValues type)
     {
-        MainDocumentPart mainPart = _document.MainDocumentPart
-            ?? throw new InvalidOperationException("MainDocumentPart not found");
-
-        Body body = mainPart.Document?.Body
-            ?? throw new InvalidOperationException("Document body not found");
-
-        SectionProperties? sectionProps = body.Elements<SectionProperties>().FirstOrDefault();
-        if (sectionProps == null)
-        {
-            throw new InvalidOperationException("SectionProperties not found");
-        }
-
-        HeaderReference? headerRef = sectionProps.Elements<HeaderReference>()
-            .FirstOrDefault(hr => hr.Type?.Value == type);
-
-        if (headerRef?.Id?.Value == null)
-        {
-            throw new InvalidOperationException($"Header reference of type {type} not found");
-        }
-
-        HeaderPart headerPart = (HeaderPart)mainPart.GetPartById(headerRef.Id.Value);
+        HeaderPart headerPart = GetHeaderPart(type);
         return headerPart.Header?.Elements<Paragraph>()
             .Select(p => p.InnerText)
             .ToList() ?? new List<string>();
@@ -678,27 +623,7 @@ public sealed class DocumentVerifier : IDisposable
     /// </summary>
     public List<string> GetFooterParagraphTexts(HeaderFooterValues type)
     {
-        MainDocumentPart mainPart = _document.MainDocumentPart
-            ?? throw new InvalidOperationException("MainDocumentPart not found");
-
-        Body body = mainPart.Document?.Body
-            ?? throw new InvalidOperationException("Document body not found");
-
-        SectionProperties? sectionProps = body.Elements<SectionProperties>().FirstOrDefault();
-        if (sectionProps == null)
-        {
-            throw new InvalidOperationException("SectionProperties not found");
-        }
-
-        FooterReference? footerRef = sectionProps.Elements<FooterReference>()
-            .FirstOrDefault(fr => fr.Type?.Value == type);
-
-        if (footerRef?.Id?.Value == null)
-        {
-            throw new InvalidOperationException($"Footer reference of type {type} not found");
-        }
-
-        FooterPart footerPart = (FooterPart)mainPart.GetPartById(footerRef.Id.Value);
+        FooterPart footerPart = GetFooterPart(type);
         return footerPart.Footer?.Elements<Paragraph>()
             .Select(p => p.InnerText)
             .ToList() ?? new List<string>();
@@ -709,17 +634,27 @@ public sealed class DocumentVerifier : IDisposable
     /// </summary>
     public RunProperties? GetHeaderRunProperties(HeaderFooterValues type)
     {
+        HeaderPart headerPart = GetHeaderPart(type);
+        return headerPart.Header?.Descendants<Run>().FirstOrDefault()?.RunProperties;
+    }
+
+    /// <summary>
+    /// Gets the RunProperties from the first run in the footer.
+    /// </summary>
+    public RunProperties? GetFooterRunProperties(HeaderFooterValues type)
+    {
+        FooterPart footerPart = GetFooterPart(type);
+        return footerPart.Footer?.Descendants<Run>().FirstOrDefault()?.RunProperties;
+    }
+
+    private HeaderPart GetHeaderPart(HeaderFooterValues type)
+    {
         MainDocumentPart mainPart = _document.MainDocumentPart
             ?? throw new InvalidOperationException("MainDocumentPart not found");
 
-        Body body = mainPart.Document?.Body
-            ?? throw new InvalidOperationException("Document body not found");
-
-        SectionProperties? sectionProps = body.Elements<SectionProperties>().FirstOrDefault();
-        if (sectionProps == null)
-        {
-            throw new InvalidOperationException("SectionProperties not found");
-        }
+        SectionProperties sectionProps = (mainPart.Document?.Body)
+            ?.Elements<SectionProperties>().FirstOrDefault()
+            ?? throw new InvalidOperationException("SectionProperties not found");
 
         HeaderReference? headerRef = sectionProps.Elements<HeaderReference>()
             .FirstOrDefault(hr => hr.Type?.Value == type);
@@ -729,31 +664,17 @@ public sealed class DocumentVerifier : IDisposable
             throw new InvalidOperationException($"Header reference of type {type} not found");
         }
 
-        HeaderPart headerPart = (HeaderPart)mainPart.GetPartById(headerRef.Id.Value);
-        return headerPart.Header?.Descendants<Run>().FirstOrDefault()?.RunProperties;
+        return (HeaderPart)mainPart.GetPartById(headerRef.Id.Value);
     }
 
-    /// <summary>
-    /// Gets the RunProperties from the first run in the default footer.
-    /// </summary>
-    public RunProperties? GetFooterRunProperties() => GetFooterRunProperties(HeaderFooterValues.Default);
-
-    /// <summary>
-    /// Gets the RunProperties from the first run in the footer.
-    /// </summary>
-    public RunProperties? GetFooterRunProperties(HeaderFooterValues type)
+    private FooterPart GetFooterPart(HeaderFooterValues type)
     {
         MainDocumentPart mainPart = _document.MainDocumentPart
             ?? throw new InvalidOperationException("MainDocumentPart not found");
 
-        Body body = mainPart.Document?.Body
-            ?? throw new InvalidOperationException("Document body not found");
-
-        SectionProperties? sectionProps = body.Elements<SectionProperties>().FirstOrDefault();
-        if (sectionProps == null)
-        {
-            throw new InvalidOperationException("SectionProperties not found");
-        }
+        SectionProperties sectionProps = (mainPart.Document?.Body)
+            ?.Elements<SectionProperties>().FirstOrDefault()
+            ?? throw new InvalidOperationException("SectionProperties not found");
 
         FooterReference? footerRef = sectionProps.Elements<FooterReference>()
             .FirstOrDefault(fr => fr.Type?.Value == type);
@@ -763,8 +684,7 @@ public sealed class DocumentVerifier : IDisposable
             throw new InvalidOperationException($"Footer reference of type {type} not found");
         }
 
-        FooterPart footerPart = (FooterPart)mainPart.GetPartById(footerRef.Id.Value);
-        return footerPart.Footer?.Descendants<Run>().FirstOrDefault()?.RunProperties;
+        return (FooterPart)mainPart.GetPartById(footerRef.Id.Value);
     }
 
     public void Dispose()
