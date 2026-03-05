@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Header & Footer Support** - Process placeholders, conditionals, and loops in document headers and footers (#15)
+  - All header/footer types supported: Default, First Page, Even Page
+  - Same syntax and features as document body - no additional API calls needed
+  - Formatting is preserved in headers and footers
+
 ## [1.5.0] - 2026-02-13
 
 ### Added

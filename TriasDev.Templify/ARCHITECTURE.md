@@ -834,8 +834,7 @@ object value → string representation
 While the MVP is intentionally limited, the architecture supports future extensions:
 
 ### 1. Additional Replacers
-Create new replacer classes for:
-- Headers/Footers
+- ~~Headers/Footers~~ (implemented via `DocumentWalker.WalkHeadersAndFooters`)
 - Text boxes
 - Footnotes
 - Custom XML parts

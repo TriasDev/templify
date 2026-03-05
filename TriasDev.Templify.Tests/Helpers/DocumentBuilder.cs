@@ -537,10 +537,159 @@ public sealed class DocumentBuilder
     }
 
     /// <summary>
+    /// Adds a default header with the specified text.
+    /// </summary>
+    public DocumentBuilder AddHeader(string text) => AddHeader(text, HeaderFooterValues.Default);
+
+    /// <summary>
+    /// Adds a header with the specified text.
+    /// </summary>
+    public DocumentBuilder AddHeader(string text, HeaderFooterValues type)
+    {
+        return AddHeaderPart(type, null, text);
+    }
+
+    /// <summary>
+    /// Adds a header with multiple paragraphs.
+    /// </summary>
+    public DocumentBuilder AddHeaderWithParagraphs(HeaderFooterValues type, params string[] texts)
+    {
+        return AddHeaderPart(type, null, texts);
+    }
+
+    /// <summary>
+    /// Adds a default footer with the specified text.
+    /// </summary>
+    public DocumentBuilder AddFooter(string text) => AddFooter(text, HeaderFooterValues.Default);
+
+    /// <summary>
+    /// Adds a footer with the specified text.
+    /// </summary>
+    public DocumentBuilder AddFooter(string text, HeaderFooterValues type)
+    {
+        return AddFooterPart(type, null, text);
+    }
+
+    /// <summary>
+    /// Adds a footer with multiple paragraphs.
+    /// </summary>
+    public DocumentBuilder AddFooterWithParagraphs(HeaderFooterValues type, params string[] texts)
+    {
+        return AddFooterPart(type, null, texts);
+    }
+
+    /// <summary>
+    /// Adds a default header with the specified text and formatting.
+    /// </summary>
+    public DocumentBuilder AddHeader(string text, RunProperties formatting) => AddHeader(text, formatting, HeaderFooterValues.Default);
+
+    /// <summary>
+    /// Adds a header with the specified text and formatting.
+    /// </summary>
+    public DocumentBuilder AddHeader(string text, RunProperties formatting, HeaderFooterValues type)
+    {
+        return AddHeaderPart(type, formatting, text);
+    }
+
+    /// <summary>
+    /// Adds a default footer with the specified text and formatting.
+    /// </summary>
+    public DocumentBuilder AddFooter(string text, RunProperties formatting) => AddFooter(text, formatting, HeaderFooterValues.Default);
+
+    /// <summary>
+    /// Adds a footer with the specified text and formatting.
+    /// </summary>
+    public DocumentBuilder AddFooter(string text, RunProperties formatting, HeaderFooterValues type)
+    {
+        return AddFooterPart(type, formatting, text);
+    }
+
+    private DocumentBuilder AddHeaderPart(HeaderFooterValues type, RunProperties? formatting, params string[] texts)
+    {
+        MainDocumentPart mainPart = _document.MainDocumentPart!;
+        HeaderPart headerPart = mainPart.AddNewPart<HeaderPart>();
+        headerPart.Header = new Header();
+        AppendParagraphs(headerPart.Header, formatting, texts);
+        headerPart.Header.Save();
+
+        string partId = mainPart.GetIdOfPart(headerPart);
+        SectionProperties sectionProps = EnsureSectionProperties();
+
+        // Remove existing header reference of the same type to avoid duplicates
+        HeaderReference? existing = sectionProps.Elements<HeaderReference>()
+            .FirstOrDefault(r => r.Type?.Value == type || (type == HeaderFooterValues.Default && r.Type == null));
+        existing?.Remove();
+
+        sectionProps.Append(new HeaderReference { Type = type, Id = partId });
+        return this;
+    }
+
+    private DocumentBuilder AddFooterPart(HeaderFooterValues type, RunProperties? formatting, params string[] texts)
+    {
+        MainDocumentPart mainPart = _document.MainDocumentPart!;
+        FooterPart footerPart = mainPart.AddNewPart<FooterPart>();
+        footerPart.Footer = new Footer();
+        AppendParagraphs(footerPart.Footer, formatting, texts);
+        footerPart.Footer.Save();
+
+        string partId = mainPart.GetIdOfPart(footerPart);
+        SectionProperties sectionProps = EnsureSectionProperties();
+
+        // Remove existing footer reference of the same type to avoid duplicates
+        FooterReference? existingFooter = sectionProps.Elements<FooterReference>()
+            .FirstOrDefault(r => r.Type?.Value == type || (type == HeaderFooterValues.Default && r.Type == null));
+        existingFooter?.Remove();
+
+        sectionProps.Append(new FooterReference { Type = type, Id = partId });
+        return this;
+    }
+
+    private static void AppendParagraphs(OpenXmlCompositeElement container, RunProperties? formatting, string[] texts)
+    {
+        foreach (string text in texts)
+        {
+            Paragraph paragraph = new Paragraph();
+            Run run = new Run();
+            Text textElement = new Text(text) { Space = SpaceProcessingModeValues.Preserve };
+            run.Append(textElement);
+            if (formatting != null)
+            {
+                run.RunProperties = (RunProperties)formatting.CloneNode(true);
+            }
+
+            paragraph.Append(run);
+            container.Append(paragraph);
+        }
+    }
+
+    /// <summary>
+    /// Ensures the body has SectionProperties and returns it.
+    /// </summary>
+    private SectionProperties EnsureSectionProperties()
+    {
+        SectionProperties? sectionProps = _body.Elements<SectionProperties>().FirstOrDefault();
+        if (sectionProps == null)
+        {
+            sectionProps = new SectionProperties();
+            _body.Append(sectionProps);
+        }
+
+        return sectionProps;
+    }
+
+    /// <summary>
     /// Returns the document as a MemoryStream for processing.
     /// </summary>
     public MemoryStream ToStream()
     {
+        // Ensure SectionProperties is the last child of Body (OpenXML schema requirement)
+        SectionProperties? sectPr = _body.Elements<SectionProperties>().FirstOrDefault();
+        if (sectPr != null)
+        {
+            sectPr.Remove();
+            _body.Append(sectPr);
+        }
+
         // Save and close the document
         _document.MainDocumentPart!.Document.Save();
         _document.Dispose();

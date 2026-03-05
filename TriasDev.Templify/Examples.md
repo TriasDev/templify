@@ -20,6 +20,7 @@ This document provides practical examples for common use cases.
 14. [Web Application Integration](#web-application-integration)
 15. [Report Generation](#report-generation)
 16. [Document Properties](#document-properties)
+17. [Headers and Footers](#headers-and-footers)
 
 ---
 
@@ -2099,6 +2100,104 @@ var optionsGB = new PlaceholderReplacementOptions
 
 ---
 
+## Headers and Footers
+
+Headers and footers support the same template syntax as the document body. No additional API calls or configuration are needed - `ProcessTemplate` automatically processes all headers and footers.
+
+### Placeholders in Headers
+
+**Template header:**
+```
+{{CompanyName}} | Confidential
+```
+
+**Data:**
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["CompanyName"] = "Acme Corp"
+};
+```
+
+**Result header:**
+```
+Acme Corp | Confidential
+```
+
+### Conditional in Footer
+
+**Template footer:**
+```
+{{#if IsDraft}}DRAFT - For internal use only{{#else}}Final Version{{/if}} | Page {{PageNumber}}
+```
+
+**Data:**
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["IsDraft"] = true,
+    ["PageNumber"] = "1"
+};
+```
+
+**Result footer:**
+```
+DRAFT - For internal use only | Page 1
+```
+
+### Loop in Header
+
+**Template header:**
+```
+{{#foreach Authors}}{{Name}}{{#if @last}}{{#else}}, {{/if}}{{/foreach}}
+```
+
+**Data:**
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["Authors"] = new List<object>
+    {
+        new Dictionary<string, object> { ["Name"] = "Alice" },
+        new Dictionary<string, object> { ["Name"] = "Bob" }
+    }
+};
+```
+
+**Result header:**
+```
+Alice, Bob
+```
+
+### Supported Header/Footer Types
+
+All Word header/footer types are processed:
+- **Default** - Standard header/footer for most pages
+- **First Page** - Header/footer for the first page only
+- **Even Page** - Header/footer for even-numbered pages
+
+### Code Example
+
+```csharp
+// No special configuration needed - headers/footers are processed automatically
+var processor = new DocumentTemplateProcessor();
+
+using var templateStream = File.OpenRead("template.docx");
+using var outputStream = File.Create("output.docx");
+
+var data = new Dictionary<string, object>
+{
+    ["CompanyName"] = "Acme Corp",
+    ["DocumentTitle"] = "Annual Report",
+    ["IsDraft"] = false
+};
+
+// This processes body, tables, headers, AND footers
+var result = processor.ProcessTemplate(templateStream, outputStream, data);
+```
+
+---
+
 ## Troubleshooting Common Issues
 
 ### Placeholder Not Replaced
@@ -2134,7 +2233,7 @@ var optionsGB = new PlaceholderReplacementOptions
 
 **Verify**:
 1. Placeholder syntax is correct
-2. Table is in document body (not header/footer - not supported in MVP)
+2. Table is in document body, header, or footer
 3. Check result.MissingVariables for clues
 
 ---

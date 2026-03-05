@@ -21,6 +21,7 @@ Templify is built on the Microsoft OpenXML SDK and provides a straightforward AP
 - **Smart value conversion**: Automatically converts numbers, dates, booleans to readable strings
 - **Localization support**: Format specifiers adapt to cultures (en, de, fr, es, it, pt)
 - **Table support**: Replace placeholders in table cells, repeat table rows, conditional table rows
+- **Header & footer support**: Placeholders, conditionals, and loops in document headers and footers
 - **Configurable behavior**: Control what happens when variables are missing
 - **No Word required**: Pure OpenXML processing, no COM automation
 - **.NET 9**: Built with modern .NET features
@@ -1147,12 +1148,12 @@ For complete documentation, see the [Boolean Expressions Guide](../docs/guides/b
 
 ## Supported Document Locations
 
-Current MVP supports:
+Currently supported:
 - Document body paragraphs
 - Table cells
+- Headers and footers (Default, First, Even)
 
 Future versions may include:
-- Headers and footers
 - Text boxes
 - Footnotes/endnotes
 - Custom XML parts

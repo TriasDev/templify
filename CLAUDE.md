@@ -189,7 +189,7 @@ The library uses a **visitor pattern** for processing Word documents, enabling:
 
 2. **DocumentWalker** (Visitors/DocumentWalker.cs)
    - Unified document traversal engine
-   - Walks document tree (body, tables, rows, cells)
+   - Walks document tree (body, tables, rows, cells, headers, footers)
    - Detects template elements (conditionals, loops, placeholders)
    - Dispatches to appropriate visitors
 
@@ -216,10 +216,12 @@ The library uses a **visitor pattern** for processing Word documents, enabling:
    ├─▶ Create GlobalEvaluationContext(data)
    ├─▶ Create DocumentWalker
    ├─▶ Create visitor composite (conditional + loop + placeholder)
-   └─▶ walker.Walk(document, composite, globalContext)
-       ├─▶ Step 1: Detect & visit conditionals (deepest first)
-       ├─▶ Step 2: Detect & visit loops
-       └─▶ Step 3: Visit paragraphs for placeholders
+   ├─▶ walker.Walk(document, composite, globalContext)
+   │   ├─▶ Step 1: Detect & visit conditionals (deepest first)
+   │   ├─▶ Step 2: Detect & visit loops
+   │   └─▶ Step 3: Visit paragraphs for placeholders
+   └─▶ walker.WalkHeadersAndFooters(document, composite, globalContext)
+       └─▶ Same 3-step processing for each header/footer part
 
 2. When LoopVisitor processes a loop:
    ├─▶ Resolve collection from context

@@ -569,6 +569,115 @@ public sealed class DocumentVerifier : IDisposable
     /// </summary>
     public string? GetDocumentLastModifiedBy() => _document.PackageProperties.LastModifiedBy;
 
+    /// <summary>
+    /// Gets the text content of the default header.
+    /// </summary>
+    public string GetHeaderText() => GetHeaderText(HeaderFooterValues.Default);
+
+    /// <summary>
+    /// Gets the text content of the default footer.
+    /// </summary>
+    public string GetFooterText() => GetFooterText(HeaderFooterValues.Default);
+
+    /// <summary>
+    /// Gets the RunProperties from the first run in the default header.
+    /// </summary>
+    public RunProperties? GetHeaderRunProperties() => GetHeaderRunProperties(HeaderFooterValues.Default);
+
+    /// <summary>
+    /// Gets the RunProperties from the first run in the default footer.
+    /// </summary>
+    public RunProperties? GetFooterRunProperties() => GetFooterRunProperties(HeaderFooterValues.Default);
+
+    /// <summary>
+    /// Gets the text content of a header by type.
+    /// </summary>
+    public string GetHeaderText(HeaderFooterValues type)
+    {
+        HeaderPart headerPart = GetHeaderPart(type);
+        return headerPart.Header?.InnerText ?? string.Empty;
+    }
+
+    /// <summary>
+    /// Gets the text content of a footer by type.
+    /// </summary>
+    public string GetFooterText(HeaderFooterValues type)
+    {
+        FooterPart footerPart = GetFooterPart(type);
+        return footerPart.Footer?.InnerText ?? string.Empty;
+    }
+
+    /// <summary>
+    /// Gets all paragraph texts from a header by type.
+    /// </summary>
+    public List<string> GetHeaderParagraphTexts(HeaderFooterValues type)
+    {
+        HeaderPart headerPart = GetHeaderPart(type);
+        return headerPart.Header?.Elements<Paragraph>()
+            .Select(p => p.InnerText)
+            .ToList() ?? new List<string>();
+    }
+
+    /// <summary>
+    /// Gets all paragraph texts from a footer by type.
+    /// </summary>
+    public List<string> GetFooterParagraphTexts(HeaderFooterValues type)
+    {
+        FooterPart footerPart = GetFooterPart(type);
+        return footerPart.Footer?.Elements<Paragraph>()
+            .Select(p => p.InnerText)
+            .ToList() ?? new List<string>();
+    }
+
+    /// <summary>
+    /// Gets the RunProperties from the first run in the header.
+    /// </summary>
+    public RunProperties? GetHeaderRunProperties(HeaderFooterValues type)
+    {
+        HeaderPart headerPart = GetHeaderPart(type);
+        return headerPart.Header?.Descendants<Run>().FirstOrDefault()?.RunProperties;
+    }
+
+    /// <summary>
+    /// Gets the RunProperties from the first run in the footer.
+    /// </summary>
+    public RunProperties? GetFooterRunProperties(HeaderFooterValues type)
+    {
+        FooterPart footerPart = GetFooterPart(type);
+        return footerPart.Footer?.Descendants<Run>().FirstOrDefault()?.RunProperties;
+    }
+
+    private HeaderPart GetHeaderPart(HeaderFooterValues type)
+    {
+        return (HeaderPart)GetHeaderFooterPart<HeaderReference>(type, "Header");
+    }
+
+    private FooterPart GetFooterPart(HeaderFooterValues type)
+    {
+        return (FooterPart)GetHeaderFooterPart<FooterReference>(type, "Footer");
+    }
+
+    private OpenXmlPart GetHeaderFooterPart<TReference>(HeaderFooterValues type, string partName)
+        where TReference : HeaderFooterReferenceType
+    {
+        MainDocumentPart mainPart = _document.MainDocumentPart
+            ?? throw new InvalidOperationException("MainDocumentPart not found");
+
+        SectionProperties sectionProps = (mainPart.Document?.Body)
+            ?.Elements<SectionProperties>().FirstOrDefault()
+            ?? throw new InvalidOperationException("SectionProperties not found");
+
+        TReference? reference = sectionProps.Elements<TReference>()
+            .FirstOrDefault(r => r.Type?.Value == type || (type == HeaderFooterValues.Default && r.Type == null));
+
+        if (reference?.Id?.Value == null)
+        {
+            throw new InvalidOperationException($"{partName} reference of type {type} not found");
+        }
+
+        return mainPart.GetPartById(reference.Id.Value);
+    }
+
     public void Dispose()
     {
         _document?.Dispose();
