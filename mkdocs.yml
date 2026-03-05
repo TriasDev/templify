@@ -79,6 +79,7 @@ nav:
     - Format Specifiers: for-template-authors/format-specifiers.md
     - Boolean Expressions: for-template-authors/boolean-expressions.md
     - Best Practices: for-template-authors/best-practices.md
+    - Headers & Footers: for-template-authors/headers-footers.md
     - Examples Gallery: for-template-authors/examples-gallery.md
   - For Developers:
     - Quick Start: for-developers/quick-start.md

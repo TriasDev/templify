@@ -128,7 +128,7 @@
 
 #### Medium Priority
 
-- [ ] Add support for headers and footers
+- [x] Add support for headers and footers
 - [ ] Add support for text boxes
 - [ ] Add support for footnotes/endnotes
 - [ ] Add support for custom XML parts

@@ -683,6 +683,36 @@ public sealed class DocumentBuilder
     }
 
     /// <summary>
+    /// Adds a default footer with the specified text and formatting.
+    /// </summary>
+    public DocumentBuilder AddFooter(string text, RunProperties formatting) => AddFooter(text, formatting, HeaderFooterValues.Default);
+
+    /// <summary>
+    /// Adds a footer with the specified text and formatting.
+    /// </summary>
+    public DocumentBuilder AddFooter(string text, RunProperties formatting, HeaderFooterValues type)
+    {
+        MainDocumentPart mainPart = _document.MainDocumentPart!;
+
+        FooterPart footerPart = mainPart.AddNewPart<FooterPart>();
+        Footer footer = new Footer();
+        Paragraph paragraph = new Paragraph();
+        Run run = new Run();
+        Text textElement = new Text(text) { Space = SpaceProcessingModeValues.Preserve };
+        run.Append(textElement);
+        run.RunProperties = (RunProperties)formatting.CloneNode(true);
+        paragraph.Append(run);
+        footer.Append(paragraph);
+        footerPart.Footer = footer;
+        footerPart.Footer.Save();
+
+        string footerPartId = mainPart.GetIdOfPart(footerPart);
+        EnsureSectionProperties().Append(new FooterReference { Type = type, Id = footerPartId });
+
+        return this;
+    }
+
+    /// <summary>
     /// Ensures the body has SectionProperties and returns it.
     /// </summary>
     private SectionProperties EnsureSectionProperties()

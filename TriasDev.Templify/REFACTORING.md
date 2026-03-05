@@ -249,7 +249,7 @@ Output Document (Stream)
 **Examples of difficult-to-add features**:
 - Custom functions: `{{#if FormatDate(OrderDate) = "2025-01-01"}}`
 - Filter expressions: `{{#foreach Orders where Amount > 1000}}`
-- Headers/footers: Would need separate code path
+- ~~Headers/footers: Would need separate code path~~ (implemented - reuses existing visitor pipeline via `DocumentWalker.WalkHeadersAndFooters`)
 - Partial templates: `{{> include "header.docx"}}`
 - Custom blocks: `{{#custom MyBlock}}...{{/custom}}`
 

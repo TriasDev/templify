@@ -296,14 +296,14 @@ public sealed class DocumentTemplateProcessor
         }
 
         // Collect field codes from body, headers, and footers
-        IEnumerable<FieldCode> fieldCodes = document.MainDocumentPart.Document.Body
-            .Descendants<FieldCode>();
+        List<FieldCode> fieldCodes = new List<FieldCode>(
+            document.MainDocumentPart.Document.Body.Descendants<FieldCode>());
 
         foreach (HeaderPart headerPart in document.MainDocumentPart.HeaderParts)
         {
             if (headerPart.Header != null)
             {
-                fieldCodes = fieldCodes.Concat(headerPart.Header.Descendants<FieldCode>());
+                fieldCodes.AddRange(headerPart.Header.Descendants<FieldCode>());
             }
         }
 
@@ -311,7 +311,7 @@ public sealed class DocumentTemplateProcessor
         {
             if (footerPart.Footer != null)
             {
-                fieldCodes = fieldCodes.Concat(footerPart.Footer.Descendants<FieldCode>());
+                fieldCodes.AddRange(footerPart.Footer.Descendants<FieldCode>());
             }
         }
 

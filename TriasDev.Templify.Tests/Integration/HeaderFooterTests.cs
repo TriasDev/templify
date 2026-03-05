@@ -361,4 +361,129 @@ public sealed class HeaderFooterTests
         Assert.Equal("Default footer: Confidential", verifier.GetFooterText(HeaderFooterValues.Default));
         Assert.Equal("Even footer: Confidential", verifier.GetFooterText(HeaderFooterValues.Even));
     }
+
+    [Fact]
+    public void ProcessTemplate_NestedPropertyInHeader_ReplacesCorrectly()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddHeader("Contact: {{Customer.Name}}");
+        builder.AddParagraph("Body content");
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Customer"] = new Dictionary<string, object>
+            {
+                ["Name"] = "Alice Smith"
+            }
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.ReplacementCount);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        Assert.Equal("Contact: Alice Smith", verifier.GetHeaderText());
+    }
+
+    [Fact]
+    public void ProcessTemplate_FormattingPreservedInFooter_MaintainsFormatting()
+    {
+        // Arrange
+        RunProperties boldRedFormatting = DocumentBuilder.CreateFormatting(bold: true, color: "0000FF");
+
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddFooter("Footer: {{Info}}", boldRedFormatting);
+        builder.AddParagraph("Body content");
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Info"] = "Confidential"
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        Assert.Equal("Footer: Confidential", verifier.GetFooterText());
+
+        RunProperties? footerProps = verifier.GetFooterRunProperties();
+        DocumentVerifier.VerifyFormatting(footerProps, expectedBold: true, expectedColor: "0000FF");
+    }
+
+    [Fact]
+    public void ProcessTemplate_HeaderOnlyNoFooter_ProcessesSuccessfully()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddHeader("Header: {{Title}}");
+        builder.AddParagraph("Body: {{Content}}");
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Title"] = "Report",
+            ["Content"] = "Hello"
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2, result.ReplacementCount);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        Assert.Equal("Header: Report", verifier.GetHeaderText());
+        Assert.Equal("Body: Hello", verifier.GetParagraphText(0));
+    }
+
+    [Fact]
+    public void ProcessTemplate_MarkdownInHeader_AppliesFormatting()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddHeader("{{Title}}");
+        builder.AddParagraph("Body content");
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Title"] = "This is **bold** text"
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        string headerText = verifier.GetHeaderText();
+        Assert.Equal("This is bold text", headerText);
+    }
 }

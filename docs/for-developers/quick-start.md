@@ -58,6 +58,10 @@ var processor = new DocumentTemplateProcessor(options);
 | `TextReplacements` | dictionary | `null` | Text replacement lookup table |
 | `DocumentProperties` | `DocumentProperties?` | `null` | Metadata properties to set on output document |
 
+## Headers and Footers
+
+`ProcessTemplate` automatically processes all headers and footers in the document - no additional API calls or configuration needed. The same visitor pipeline (placeholders, conditionals, loops) is applied to every header and footer part (Default, First Page, Even Page).
+
 ## Update Fields on Open (TOC Support)
 
 When templates contain Table of Contents (TOC) or other dynamic fields, and content changes during processing (via conditionals or loops), page numbers become stale.
