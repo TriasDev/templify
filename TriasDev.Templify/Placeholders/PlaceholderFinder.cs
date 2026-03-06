@@ -21,7 +21,7 @@ public sealed class PlaceholderFinder
     // - Expression: (var1 and var2), (not IsActive), (Count > 0), ((var1 or var2) and var3)
     // Optional format specifier: :checkbox, :yesno, :currency, :number:N2, :date:yyyy-MM-dd, etc.
     private static readonly Regex _placeholderPattern = new(
-        @"\{\{(\.|this|@?[\w\.\[\]]+|\([^\}]+\))(?::(\w+(?::[^\}]+)?))?}\}",
+        @"\{\{(\.|this|@?[\w\.\[\]]+|\([^\}]+\))(?::(\w+(?::[^\}]+)?))?\}\}",
         RegexOptions.Compiled);
 
     /// <summary>

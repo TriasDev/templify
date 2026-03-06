@@ -8,16 +8,7 @@ namespace TriasDev.Templify.Gui.Models;
 /// <summary>
 /// Represents a culture option for the UI dropdown.
 /// </summary>
-public class CultureOption
+public record CultureOption(string DisplayName, CultureInfo Culture)
 {
-    public string DisplayName { get; }
-    public CultureInfo Culture { get; }
-
-    public CultureOption(string displayName, CultureInfo culture)
-    {
-        DisplayName = displayName;
-        Culture = culture;
-    }
-
     public override string ToString() => DisplayName;
 }

@@ -99,13 +99,13 @@ internal static class ValueConverter
         {
             if (string.Equals(format, "currency", StringComparison.OrdinalIgnoreCase))
             {
-                result = Convert.ToDecimal(value, culture).ToString("C", culture);
+                result = Convert.ToDecimal(value, CultureInfo.InvariantCulture).ToString("C", culture);
                 return true;
             }
 
             if (format.StartsWith("number:", StringComparison.OrdinalIgnoreCase) && format.Length > 7)
             {
-                string numberFormat = format.Substring(7);
+                string numberFormat = format[7..];
                 if (value is IFormattable formattable)
                 {
                     result = formattable.ToString(numberFormat, culture);
@@ -113,9 +113,9 @@ internal static class ValueConverter
                 }
             }
         }
-        catch (FormatException)
+        catch (Exception ex) when (ex is FormatException or OverflowException)
         {
-            // Invalid format string — fall through to default conversion
+            // Invalid format string or numeric overflow — fall through to default conversion
         }
 
         return false;
@@ -130,21 +130,22 @@ internal static class ValueConverter
             return false;
         }
 
-        string dateFormat = format.Substring(5);
+        string dateFormat = format[5..];
 
         try
         {
-            DateTime? dateTime = value switch
+            // Use DateTimeOffset to preserve timezone information when available
+            DateTimeOffset? dateTimeOffset = value switch
             {
-                DateTime dt => dt,
-                DateTimeOffset dto => dto.DateTime,
-                string s when DateTime.TryParse(s, culture, DateTimeStyles.None, out DateTime parsed) => parsed,
+                DateTimeOffset dto => dto,
+                DateTime dt => new DateTimeOffset(dt),
+                string s when TryParseDateTime(s, culture, out DateTimeOffset parsed) => parsed,
                 _ => null
             };
 
-            if (dateTime.HasValue)
+            if (dateTimeOffset.HasValue)
             {
-                result = dateTime.Value.ToString(dateFormat, culture);
+                result = dateTimeOffset.Value.ToString(dateFormat, culture);
                 return true;
             }
         }
@@ -154,5 +155,21 @@ internal static class ValueConverter
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Tries to parse a date string, first with InvariantCulture (for ISO formats),
+    /// then with the specified culture as a fallback.
+    /// </summary>
+    private static bool TryParseDateTime(string s, CultureInfo culture, out DateTimeOffset parsed)
+    {
+        // Try InvariantCulture first for reliable ISO date parsing (e.g., "2024-01-15", "2024-01-15T10:30:00+02:00")
+        if (DateTimeOffset.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.None, out parsed))
+        {
+            return true;
+        }
+
+        // Fall back to the specified culture for locale-specific formats (e.g., "15.01.2024" with de-DE)
+        return DateTimeOffset.TryParse(s, culture, DateTimeStyles.None, out parsed);
     }
 }

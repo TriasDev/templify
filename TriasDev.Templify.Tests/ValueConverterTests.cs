@@ -755,5 +755,34 @@ public class ValueConverterTests
         Assert.Equal("not a date", result);
     }
 
+    [Fact]
+    public void ConvertToString_WithIsoDateString_ParsesReliably()
+    {
+        // ISO format should parse reliably regardless of culture
+        string result = ConvertToString("2024-01-15", new CultureInfo("de-DE"), "date:dd.MM.yyyy", null);
+
+        Assert.Equal("15.01.2024", result);
+    }
+
+    [Fact]
+    public void ConvertToString_WithIsoDateTimeWithTimezone_PreservesTimezone()
+    {
+        // DateTimeOffset string should preserve timezone info
+        var dto = new DateTimeOffset(2024, 1, 15, 10, 30, 0, TimeSpan.FromHours(2));
+
+        string result = ConvertToString(dto, CultureInfo.InvariantCulture, "date:yyyy-MM-dd HH:mm zzz", null);
+
+        Assert.Equal("2024-01-15 10:30 +02:00", result);
+    }
+
+    [Fact]
+    public void ConvertToString_WithStringDateTimeWithTimezone_PreservesTimezone()
+    {
+        // String with timezone offset should preserve timezone info
+        string result = ConvertToString("2024-01-15T10:30:00+02:00", CultureInfo.InvariantCulture, "date:yyyy-MM-dd HH:mm zzz", null);
+
+        Assert.Equal("2024-01-15 10:30 +02:00", result);
+    }
+
     #endregion
 }
