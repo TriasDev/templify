@@ -426,6 +426,327 @@ public class FormatSpecifierIntegrationTests
         Assert.Equal(3, checkboxCount);
     }
 
+    #region Number Format Integration Tests
+
+    [Fact]
+    public void ProcessTemplate_WithCurrencyFormat_ReplacesWithCurrencyString()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("Total: {{Amount:currency}}");
+        using MemoryStream templateStream = builder.ToStream();
+
+        var options = new PlaceholderReplacementOptions { Culture = new CultureInfo("en-US") };
+        var processor = new DocumentTemplateProcessor(options);
+        var data = new Dictionary<string, object> { ["Amount"] = 1234.56m };
+
+        // Act
+        string result = ProcessTemplate(templateStream, data, processor);
+
+        // Assert
+        Assert.Contains("Total: $1,234.56", result);
+    }
+
+    [Fact]
+    public void ProcessTemplate_WithNumberFormatN2_ReplacesWithFormattedNumber()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("Value: {{Value:number:N2}}");
+        using MemoryStream templateStream = builder.ToStream();
+
+        var options = new PlaceholderReplacementOptions { Culture = new CultureInfo("en-US") };
+        var processor = new DocumentTemplateProcessor(options);
+        var data = new Dictionary<string, object> { ["Value"] = 1234.5678m };
+
+        // Act
+        string result = ProcessTemplate(templateStream, data, processor);
+
+        // Assert
+        Assert.Contains("Value: 1,234.57", result);
+    }
+
+    [Fact]
+    public void ProcessTemplate_WithCurrencyFormatAndGermanCulture_ReplacesWithEuroFormatting()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("Betrag: {{Amount:currency}}");
+        using MemoryStream templateStream = builder.ToStream();
+
+        var germanCulture = new CultureInfo("de-DE");
+        var options = new PlaceholderReplacementOptions { Culture = germanCulture };
+        var processor = new DocumentTemplateProcessor(options);
+        var data = new Dictionary<string, object> { ["Amount"] = 1234.56m };
+
+        // Act
+        string result = ProcessTemplate(templateStream, data, processor);
+
+        // Assert
+        Assert.Contains("1.234,56", result);
+    }
+
+    [Fact]
+    public void ProcessTemplate_WithNumberFormatInLoop_ReplacesAllItems()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{#foreach Items}}");
+        builder.AddParagraph("- {{Name}}: {{Price:currency}}");
+        builder.AddParagraph("{{/foreach}}");
+        using MemoryStream templateStream = builder.ToStream();
+
+        var options = new PlaceholderReplacementOptions { Culture = new CultureInfo("en-US") };
+        var processor = new DocumentTemplateProcessor(options);
+        var data = new Dictionary<string, object>
+        {
+            ["Items"] = new[]
+            {
+                new { Name = "Widget", Price = 9.99m },
+                new { Name = "Gadget", Price = 19.99m }
+            }
+        };
+
+        // Act
+        string result = ProcessTemplate(templateStream, data, processor);
+
+        // Assert
+        Assert.Contains("Widget: $9.99", result);
+        Assert.Contains("Gadget: $19.99", result);
+    }
+
+    [Fact]
+    public void ProcessTemplate_WithMixedBooleanAndNumberFormats_ReplacesAll()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("Active: {{IsActive:checkbox}}, Total: {{Amount:currency}}");
+        using MemoryStream templateStream = builder.ToStream();
+
+        var options = new PlaceholderReplacementOptions
+        {
+            Culture = new CultureInfo("en-US"),
+            BooleanFormatterRegistry = new BooleanFormatterRegistry(CultureInfo.InvariantCulture)
+        };
+        var processor = new DocumentTemplateProcessor(options);
+        var data = new Dictionary<string, object>
+        {
+            ["IsActive"] = true,
+            ["Amount"] = 42.50m
+        };
+
+        // Act
+        string result = ProcessTemplate(templateStream, data, processor);
+
+        // Assert
+        Assert.Contains("Active: ☑", result);
+        Assert.Contains("Total: $42.50", result);
+    }
+
+    [Fact]
+    public void ProcessTemplate_WithNestedPropertyAndCurrencyFormat_ReplacesCorrectly()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("Order total: {{Order.Total:currency}}");
+        using MemoryStream templateStream = builder.ToStream();
+
+        var options = new PlaceholderReplacementOptions { Culture = new CultureInfo("en-US") };
+        var processor = new DocumentTemplateProcessor(options);
+        var data = new Dictionary<string, object>
+        {
+            ["Order"] = new { Total = 99.95m }
+        };
+
+        // Act
+        string result = ProcessTemplate(templateStream, data, processor);
+
+        // Assert
+        Assert.Contains("Order total: $99.95", result);
+    }
+
+    #endregion
+
+    #region String Format Integration Tests
+
+    [Fact]
+    public void ProcessTemplate_WithUppercaseFormat_ReplacesWithUppercase()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("Name: {{Name:uppercase}}");
+        using MemoryStream templateStream = builder.ToStream();
+
+        var processor = CreateInvariantProcessor();
+        var data = new Dictionary<string, object> { ["Name"] = "alice johnson" };
+
+        // Act
+        string result = ProcessTemplate(templateStream, data, processor);
+
+        // Assert
+        Assert.Contains("Name: ALICE JOHNSON", result);
+    }
+
+    [Fact]
+    public void ProcessTemplate_WithLowercaseFormat_ReplacesWithLowercase()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("Code: {{Code:lowercase}}");
+        using MemoryStream templateStream = builder.ToStream();
+
+        var processor = CreateInvariantProcessor();
+        var data = new Dictionary<string, object> { ["Code"] = "ABC-123-XYZ" };
+
+        // Act
+        string result = ProcessTemplate(templateStream, data, processor);
+
+        // Assert
+        Assert.Contains("Code: abc-123-xyz", result);
+    }
+
+    [Fact]
+    public void ProcessTemplate_WithStringFormatInLoop_ReplacesAllItems()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{#foreach Items}}");
+        builder.AddParagraph("- {{Name:uppercase}}");
+        builder.AddParagraph("{{/foreach}}");
+        using MemoryStream templateStream = builder.ToStream();
+
+        var processor = CreateInvariantProcessor();
+        var data = new Dictionary<string, object>
+        {
+            ["Items"] = new[]
+            {
+                new { Name = "widget" },
+                new { Name = "gadget" }
+            }
+        };
+
+        // Act
+        string result = ProcessTemplate(templateStream, data, processor);
+
+        // Assert
+        Assert.Contains("WIDGET", result);
+        Assert.Contains("GADGET", result);
+    }
+
+    #endregion
+
+    #region Date Format Integration Tests
+
+    [Fact]
+    public void ProcessTemplate_WithDateFormat_ReplacesWithFormattedDate()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("Date: {{OrderDate:date:yyyy-MM-dd}}");
+        using MemoryStream templateStream = builder.ToStream();
+
+        var options = new PlaceholderReplacementOptions { Culture = new CultureInfo("en-US") };
+        var processor = new DocumentTemplateProcessor(options);
+        var data = new Dictionary<string, object> { ["OrderDate"] = new DateTime(2024, 1, 15) };
+
+        // Act
+        string result = ProcessTemplate(templateStream, data, processor);
+
+        // Assert
+        Assert.Contains("Date: 2024-01-15", result);
+    }
+
+    [Fact]
+    public void ProcessTemplate_WithLongDateFormat_ReplacesWithFormattedDate()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("Date: {{OrderDate:date:MMMM d, yyyy}}");
+        using MemoryStream templateStream = builder.ToStream();
+
+        var options = new PlaceholderReplacementOptions { Culture = new CultureInfo("en-US") };
+        var processor = new DocumentTemplateProcessor(options);
+        var data = new Dictionary<string, object> { ["OrderDate"] = new DateTime(2024, 1, 15) };
+
+        // Act
+        string result = ProcessTemplate(templateStream, data, processor);
+
+        // Assert
+        Assert.Contains("Date: January 15, 2024", result);
+    }
+
+    [Fact]
+    public void ProcessTemplate_WithDateFormatAndGermanCulture_ReplacesWithLocalizedDate()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("Datum: {{OrderDate:date:dd. MMMM yyyy}}");
+        using MemoryStream templateStream = builder.ToStream();
+
+        var germanCulture = new CultureInfo("de-DE");
+        var options = new PlaceholderReplacementOptions { Culture = germanCulture };
+        var processor = new DocumentTemplateProcessor(options);
+        var data = new Dictionary<string, object> { ["OrderDate"] = new DateTime(2024, 1, 15) };
+
+        // Act
+        string result = ProcessTemplate(templateStream, data, processor);
+
+        // Assert
+        Assert.Contains("Datum: 15. Januar 2024", result);
+    }
+
+    [Fact]
+    public void ProcessTemplate_WithStringDateAndDateFormat_ParsesAndFormats()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("Date: {{OrderDate:date:dd.MM.yyyy}}");
+        using MemoryStream templateStream = builder.ToStream();
+
+        var processor = CreateInvariantProcessor();
+        var data = new Dictionary<string, object> { ["OrderDate"] = "01/15/2024" };
+
+        // Act
+        string result = ProcessTemplate(templateStream, data, processor);
+
+        // Assert
+        Assert.Contains("Date: 15.01.2024", result);
+    }
+
+    [Fact]
+    public void ProcessTemplate_WithAllFormatTypes_ReplacesAll()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("Name: {{Name:uppercase}}, Active: {{IsActive:checkbox}}, Total: {{Amount:currency}}, Date: {{OrderDate:date:yyyy-MM-dd}}");
+        using MemoryStream templateStream = builder.ToStream();
+
+        var options = new PlaceholderReplacementOptions
+        {
+            Culture = new CultureInfo("en-US"),
+            BooleanFormatterRegistry = new BooleanFormatterRegistry(CultureInfo.InvariantCulture)
+        };
+        var processor = new DocumentTemplateProcessor(options);
+        var data = new Dictionary<string, object>
+        {
+            ["Name"] = "alice",
+            ["IsActive"] = true,
+            ["Amount"] = 42.50m,
+            ["OrderDate"] = new DateTime(2024, 1, 15)
+        };
+
+        // Act
+        string result = ProcessTemplate(templateStream, data, processor);
+
+        // Assert
+        Assert.Contains("Name: ALICE", result);
+        Assert.Contains("Active: ☑", result);
+        Assert.Contains("Total: $42.50", result);
+        Assert.Contains("Date: 2024-01-15", result);
+    }
+
+    #endregion
+
     #region Helper Methods
 
     /// <summary>

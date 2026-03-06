@@ -24,14 +24,16 @@ public class TemplifyService : ITemplifyService
     public async Task<ValidationResult> ValidateTemplateAsync(
         string templatePath,
         string? jsonPath = null,
-        bool enableHtmlEntityReplacement = false)
+        bool enableHtmlEntityReplacement = false,
+        CultureInfo? culture = null)
     {
         return await Task.Run(() =>
         {
+            CultureInfo effectiveCulture = culture ?? CultureInfo.InvariantCulture;
             PlaceholderReplacementOptions options = new PlaceholderReplacementOptions
             {
                 MissingVariableBehavior = MissingVariableBehavior.LeaveUnchanged,
-                Culture = CultureInfo.InvariantCulture,
+                Culture = effectiveCulture,
                 TextReplacements = enableHtmlEntityReplacement ? TextReplacements.HtmlEntities : null
             };
 
@@ -63,6 +65,7 @@ public class TemplifyService : ITemplifyService
         string jsonPath,
         string outputPath,
         bool enableHtmlEntityReplacement = false,
+        CultureInfo? culture = null,
         IProgress<double>? progress = null)
     {
         return await Task.Run(() =>
@@ -83,10 +86,11 @@ public class TemplifyService : ITemplifyService
                 progress?.Report(0.3);
 
                 // Configure options with optional HTML entity replacement
+                CultureInfo effectiveCulture = culture ?? CultureInfo.InvariantCulture;
                 PlaceholderReplacementOptions options = new PlaceholderReplacementOptions
                 {
                     MissingVariableBehavior = MissingVariableBehavior.LeaveUnchanged,
-                    Culture = CultureInfo.InvariantCulture,
+                    Culture = effectiveCulture,
                     TextReplacements = enableHtmlEntityReplacement ? TextReplacements.HtmlEntities : null
                 };
 

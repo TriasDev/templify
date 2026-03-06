@@ -408,4 +408,117 @@ public class PlaceholderFinderTests
     }
 
     #endregion
+
+    #region Compound Format Specifier Tests
+
+    [Fact]
+    public void FindPlaceholders_WithCurrencyFormat_ParsesFormat()
+    {
+        // Arrange
+        string text = "{{Amount:currency}}";
+
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Single(matches);
+        Assert.Equal("Amount", matches[0].VariableName);
+        Assert.Equal("currency", matches[0].Format);
+    }
+
+    [Fact]
+    public void FindPlaceholders_WithCompoundNumberFormat_ParsesFormat()
+    {
+        // Arrange
+        string text = "{{Amount:number:N2}}";
+
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Single(matches);
+        Assert.Equal("Amount", matches[0].VariableName);
+        Assert.Equal("number:N2", matches[0].Format);
+    }
+
+    [Fact]
+    public void FindPlaceholders_WithCompoundNumberFormatF3_ParsesFormat()
+    {
+        // Arrange
+        string text = "{{Rate:number:F3}}";
+
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Single(matches);
+        Assert.Equal("Rate", matches[0].VariableName);
+        Assert.Equal("number:F3", matches[0].Format);
+    }
+
+    [Fact]
+    public void FindPlaceholders_WithNestedPropertyAndCurrencyFormat_ParsesBoth()
+    {
+        // Arrange
+        string text = "{{Order.Total:currency}}";
+
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Single(matches);
+        Assert.Equal("Order.Total", matches[0].VariableName);
+        Assert.Equal("currency", matches[0].Format);
+    }
+
+    #endregion
+
+    #region Date Format Specifier Tests
+
+    [Fact]
+    public void FindPlaceholders_WithDateFormat_ParsesFormat()
+    {
+        // Arrange
+        string text = "{{OrderDate:date:yyyy-MM-dd}}";
+
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Single(matches);
+        Assert.Equal("OrderDate", matches[0].VariableName);
+        Assert.Equal("date:yyyy-MM-dd", matches[0].Format);
+    }
+
+    [Fact]
+    public void FindPlaceholders_WithDateFormatWithSpaces_ParsesFormat()
+    {
+        // Arrange
+        string text = "{{OrderDate:date:MMMM d, yyyy}}";
+
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Single(matches);
+        Assert.Equal("OrderDate", matches[0].VariableName);
+        Assert.Equal("date:MMMM d, yyyy", matches[0].Format);
+    }
+
+    [Fact]
+    public void FindPlaceholders_WithNestedPropertyAndDateFormat_ParsesBoth()
+    {
+        // Arrange
+        string text = "{{Order.Date:date:dd.MM.yyyy}}";
+
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Single(matches);
+        Assert.Equal("Order.Date", matches[0].VariableName);
+        Assert.Equal("date:dd.MM.yyyy", matches[0].Format);
+    }
+
+    #endregion
 }
