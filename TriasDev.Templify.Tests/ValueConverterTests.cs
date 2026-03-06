@@ -447,4 +447,130 @@ public class ValueConverterTests
     }
 
     #endregion
+
+    #region Number Format Specifier Tests
+
+    [Theory]
+    [InlineData(1234.567, "currency", "$1,234.57")]
+    [InlineData(42, "currency", "$42.00")]
+    [InlineData(42L, "currency", "$42.00")]
+    [InlineData(42.0, "currency", "$42.00")]
+    [InlineData(42.0f, "currency", "$42.00")]
+    public void ConvertToString_WithNumericAndCurrencyFormat_ReturnsCurrencyString(object value, string format, string expected)
+    {
+        // Act
+        string result = ConvertToString(value, new CultureInfo("en-US"), format, null);
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void ConvertToString_WithCurrencyFormatAndGermanCulture_ReturnsEuroFormatting()
+    {
+        // Arrange
+        var culture = new CultureInfo("de-DE");
+
+        // Act
+        string result = ConvertToString(1234.56m, culture, "currency", null);
+
+        // Assert
+        Assert.Contains("1.234,56", result);
+    }
+
+    [Theory]
+    [InlineData("CURRENCY")]
+    [InlineData("Currency")]
+    [InlineData("currency")]
+    public void ConvertToString_WithCurrencyFormatCaseInsensitive_ReturnsCurrencyString(string format)
+    {
+        // Act
+        string result = ConvertToString(42m, new CultureInfo("en-US"), format, null);
+
+        // Assert
+        Assert.Equal("$42.00", result);
+    }
+
+    [Fact]
+    public void ConvertToString_WithNumberFormatN2_ReturnsFormattedNumber()
+    {
+        // Act
+        string result = ConvertToString(1234.5678m, new CultureInfo("en-US"), "number:N2", null);
+
+        // Assert
+        Assert.Equal("1,234.57", result);
+    }
+
+    [Fact]
+    public void ConvertToString_WithNumberFormatN0_ReturnsFormattedNumber()
+    {
+        // Act
+        string result = ConvertToString(1234, new CultureInfo("en-US"), "number:N0", null);
+
+        // Assert
+        Assert.Equal("1,234", result);
+    }
+
+    [Fact]
+    public void ConvertToString_WithNumberFormatF3_ReturnsFormattedNumber()
+    {
+        // Act
+        string result = ConvertToString(3.14159, new CultureInfo("en-US"), "number:F3", null);
+
+        // Assert
+        Assert.Equal("3.142", result);
+    }
+
+    [Fact]
+    public void ConvertToString_WithNumberFormatP_ReturnsPercentage()
+    {
+        // Act
+        string result = ConvertToString(0.1234m, new CultureInfo("en-US"), "number:P", null);
+
+        // Assert
+        Assert.Contains("12.34", result);
+        Assert.Contains("%", result);
+    }
+
+    [Fact]
+    public void ConvertToString_WithNumberFormatC_ReturnsCurrency()
+    {
+        // Act
+        string result = ConvertToString(42m, new CultureInfo("en-US"), "number:C", null);
+
+        // Assert
+        Assert.Equal("$42.00", result);
+    }
+
+    [Fact]
+    public void ConvertToString_WithStringAndCurrencyFormat_IgnoresFormat()
+    {
+        // Act
+        string result = ConvertToString("text", new CultureInfo("en-US"), "currency", null);
+
+        // Assert
+        Assert.Equal("text", result);
+    }
+
+    [Fact]
+    public void ConvertToString_WithNullAndCurrencyFormat_ReturnsEmptyString()
+    {
+        // Act
+        string result = ConvertToString(null, new CultureInfo("en-US"), "currency", null);
+
+        // Assert
+        Assert.Equal(string.Empty, result);
+    }
+
+    [Fact]
+    public void ConvertToString_WithInvalidNumberFormat_FallsThrough()
+    {
+        // Act
+        string result = ConvertToString(42m, new CultureInfo("en-US"), "number:XYZ", null);
+
+        // Assert — should not throw, falls through to default
+        Assert.NotEmpty(result);
+    }
+
+    #endregion
 }

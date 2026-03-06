@@ -1,11 +1,13 @@
 # Format Specifiers Guide
 
-Format specifiers allow you to control how boolean values are displayed in your generated documents. Instead of showing "True" or "False", you can display checkboxes, Yes/No text, checkmarks, and more.
+Format specifiers allow you to control how values are displayed in your generated documents. You can format booleans as checkboxes or Yes/No text, display numbers with specific decimal places, and format currency values according to locale.
 
 ## Table of Contents
 
 - [Quick Start](#quick-start)
 - [Available Format Specifiers](#available-format-specifiers)
+  - [Boolean Formatters](#boolean-formatters)
+  - [Number and Currency Formatters](#number-and-currency-formatters)
 - [Using Format Specifiers](#using-format-specifiers)
 - [Localization Support](#localization-support)
 - [Custom Formatters](#custom-formatters)
@@ -43,7 +45,9 @@ User Status: ☑
 
 ## Available Format Specifiers
 
-### checkbox
+### Boolean Formatters
+
+#### checkbox
 Displays a checked or unchecked checkbox symbol.
 
 | Value | Output |
@@ -56,7 +60,7 @@ Displays a checked or unchecked checkbox symbol.
 Task completed: {{IsCompleted:checkbox}}
 ```
 
-### yesno
+#### yesno
 Displays "Yes" or "No" text.
 
 | Value | Output |
@@ -69,7 +73,7 @@ Displays "Yes" or "No" text.
 Approved: {{IsApproved:yesno}}
 ```
 
-### checkmark
+#### checkmark
 Displays a checkmark or X symbol.
 
 | Value | Output |
@@ -82,7 +86,7 @@ Displays a checkmark or X symbol.
 Valid: {{IsValid:checkmark}}
 ```
 
-### truefalse
+#### truefalse
 Displays "True" or "False" text (explicit default).
 
 | Value | Output |
@@ -95,7 +99,7 @@ Displays "True" or "False" text (explicit default).
 Debug mode: {{DebugEnabled:truefalse}}
 ```
 
-### onoff
+#### onoff
 Displays "On" or "Off" text.
 
 | Value | Output |
@@ -108,7 +112,7 @@ Displays "On" or "Off" text.
 Power: {{PowerStatus:onoff}}
 ```
 
-### enabled
+#### enabled
 Displays "Enabled" or "Disabled" text.
 
 | Value | Output |
@@ -121,7 +125,7 @@ Displays "Enabled" or "Disabled" text.
 Feature flag: {{NewFeature:enabled}}
 ```
 
-### active
+#### active
 Displays "Active" or "Inactive" text.
 
 | Value | Output |
@@ -133,6 +137,76 @@ Displays "Active" or "Inactive" text.
 ```
 Account status: {{AccountStatus:active}}
 ```
+
+### Number and Currency Formatters
+
+#### currency
+
+Formats a number as currency using the configured culture's currency symbol and format.
+
+| Culture | Input | Output |
+|---------|-------|--------|
+| en-US | 1234.56 | $1,234.56 |
+| de-DE | 1234.56 | 1.234,56 € |
+| fr-FR | 1234.56 | 1 234,56 € |
+
+**Example:**
+```
+Total: {{Amount:currency}}
+```
+
+**JSON:**
+```json
+{
+  "Amount": 1234.56
+}
+```
+
+**Output (en-US culture):**
+```
+Total: $1,234.56
+```
+
+#### number:FORMAT
+
+Formats a number using a .NET format string. The format string follows the colon after `number`.
+
+| Specifier | Description | Input | Output |
+|-----------|-------------|-------|--------|
+| `:number:N2` | Number with 2 decimal places | 1234.5678 | 1,234.57 |
+| `:number:N0` | Number with no decimals | 1234.5 | 1,235 |
+| `:number:F3` | Fixed-point with 3 decimals | 3.14159 | 3.142 |
+| `:number:P` | Percentage | 0.1234 | 12.34 % |
+| `:number:C` | Currency (same as `:currency`) | 42 | $42.00 |
+
+**Example:**
+```
+Value: {{Price:number:N2}}
+Rate: {{InterestRate:number:F3}}
+Progress: {{Completion:number:P}}
+```
+
+**JSON:**
+```json
+{
+  "Price": 1234.5678,
+  "InterestRate": 3.14159,
+  "Completion": 0.85
+}
+```
+
+**Output (en-US culture):**
+```
+Value: 1,234.57
+Rate: 3.142
+Progress: 85.00 %
+```
+
+**Notes:**
+- Number formatters only apply to numeric values (int, long, decimal, double, float)
+- Non-numeric values with a number format specifier are rendered normally (format is ignored)
+- Invalid format strings are handled gracefully — the value falls through to default formatting
+- Format specifier names are case-insensitive: `:currency`, `:CURRENCY`, and `:Currency` all work
 
 ## Using Format Specifiers
 
@@ -762,9 +836,11 @@ var processor = new DocumentTemplateProcessor(options);
 
 ## Summary
 
-Format specifiers provide a powerful way to control boolean value presentation in your documents:
+Format specifiers provide a powerful way to control value presentation in your documents:
 
-- ✅ 7 built-in formatters (checkbox, yesno, checkmark, truefalse, onoff, enabled, active)
+- ✅ 7 built-in boolean formatters (checkbox, yesno, checkmark, truefalse, onoff, enabled, active)
+- ✅ Currency formatting with locale support (`:currency`)
+- ✅ Flexible number formatting with .NET format strings (`:number:N2`, `:number:F3`, `:number:P`)
 - ✅ Automatic localization support
 - ✅ Custom formatter registration
 - ✅ Works with nested properties, arrays, loops, and conditionals

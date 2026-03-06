@@ -4,6 +4,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -57,6 +58,24 @@ public partial class MainWindowViewModel : ViewModelBase
     private bool _enableHtmlEntityReplacement;
 
     /// <summary>
+    /// Available cultures for formatting.
+    /// </summary>
+    public ObservableCollection<CultureOption> AvailableCultures { get; } = new(
+    [
+        new CultureOption("Invariant", CultureInfo.InvariantCulture),
+        new CultureOption("English (US)", new CultureInfo("en-US")),
+        new CultureOption("German (DE)", new CultureInfo("de-DE")),
+        new CultureOption("French (FR)", new CultureInfo("fr-FR")),
+        new CultureOption("Spanish (ES)", new CultureInfo("es-ES")),
+    ]);
+
+    /// <summary>
+    /// Gets or sets the selected culture for formatting.
+    /// </summary>
+    [ObservableProperty]
+    private CultureOption _selectedCulture = null!;
+
+    /// <summary>
     /// Stores the last processing result to enable warning report generation.
     /// </summary>
     [ObservableProperty]
@@ -69,6 +88,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         _templifyService = templifyService;
         _fileDialogService = fileDialogService;
+        _selectedCulture = AvailableCultures[0];
     }
 
     [RelayCommand]
@@ -121,7 +141,8 @@ public partial class MainWindowViewModel : ViewModelBase
             ValidationResult validation = await _templifyService.ValidateTemplateAsync(
                 TemplatePath,
                 JsonPath,
-                EnableHtmlEntityReplacement);
+                EnableHtmlEntityReplacement,
+                SelectedCulture.Culture);
 
             if (validation.IsValid)
             {
@@ -196,6 +217,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 JsonPath,
                 OutputPath,
                 EnableHtmlEntityReplacement,
+                SelectedCulture.Culture,
                 progressReporter);
 
             // Store for warning report generation
@@ -282,6 +304,7 @@ public partial class MainWindowViewModel : ViewModelBase
         StatusMessage = "Ready";
         Progress = 0;
         LastProcessingResult = null;
+        SelectedCulture = AvailableCultures[0];
     }
 
     [RelayCommand(CanExecute = nameof(CanGenerateWarningReport))]

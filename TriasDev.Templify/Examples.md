@@ -2096,7 +2096,7 @@ var optionsGB = new PlaceholderReplacementOptions
    - International reports → Use InvariantCulture
    - Multi-national documents → Consider using multiple templates or custom formatting
 
-5. **Handle currency symbols separately**: Culture only affects number formatting, not currency symbols. Include currency symbols in your template or data.
+5. **Use `:currency` for locale-aware currency formatting**: `{{Amount:currency}}` automatically applies the culture's currency symbol and number format (e.g., `$1,234.56` for en-US, `1.234,56 €` for de-DE). Use `:number:N2` or other format strings for plain number formatting without currency symbols.
 
 ---
 

@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - All header/footer types supported: Default, First Page, Even Page
   - Same syntax and features as document body - no additional API calls needed
   - Formatting is preserved in headers and footers
+- **Number and Currency Format Specifiers** - Format numeric values directly in placeholders (#22)
+  - `:currency` — locale-aware currency formatting (e.g., `$1,234.56` or `1.234,56 €`)
+  - `:number:FORMAT` — any .NET numeric format string (e.g., `:number:N2`, `:number:F3`, `:number:P`)
+  - Works with int, long, decimal, double, and float values
+  - Supports compound format specifiers in placeholder regex
+- **GUI Culture Selector** - Dropdown to choose formatting culture (Invariant, en-US, de-DE, fr-FR, es-ES)
 
 ## [1.5.0] - 2026-02-13
 

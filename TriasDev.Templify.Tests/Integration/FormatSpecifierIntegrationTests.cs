@@ -426,6 +426,147 @@ public class FormatSpecifierIntegrationTests
         Assert.Equal(3, checkboxCount);
     }
 
+    #region Number Format Integration Tests
+
+    [Fact]
+    public void ProcessTemplate_WithCurrencyFormat_ReplacesWithCurrencyString()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("Total: {{Amount:currency}}");
+        using MemoryStream templateStream = builder.ToStream();
+
+        var options = new PlaceholderReplacementOptions { Culture = new CultureInfo("en-US") };
+        var processor = new DocumentTemplateProcessor(options);
+        var data = new Dictionary<string, object> { ["Amount"] = 1234.56m };
+
+        // Act
+        string result = ProcessTemplate(templateStream, data, processor);
+
+        // Assert
+        Assert.Contains("Total: $1,234.56", result);
+    }
+
+    [Fact]
+    public void ProcessTemplate_WithNumberFormatN2_ReplacesWithFormattedNumber()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("Value: {{Value:number:N2}}");
+        using MemoryStream templateStream = builder.ToStream();
+
+        var options = new PlaceholderReplacementOptions { Culture = new CultureInfo("en-US") };
+        var processor = new DocumentTemplateProcessor(options);
+        var data = new Dictionary<string, object> { ["Value"] = 1234.5678m };
+
+        // Act
+        string result = ProcessTemplate(templateStream, data, processor);
+
+        // Assert
+        Assert.Contains("Value: 1,234.57", result);
+    }
+
+    [Fact]
+    public void ProcessTemplate_WithCurrencyFormatAndGermanCulture_ReplacesWithEuroFormatting()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("Betrag: {{Amount:currency}}");
+        using MemoryStream templateStream = builder.ToStream();
+
+        var germanCulture = new CultureInfo("de-DE");
+        var options = new PlaceholderReplacementOptions { Culture = germanCulture };
+        var processor = new DocumentTemplateProcessor(options);
+        var data = new Dictionary<string, object> { ["Amount"] = 1234.56m };
+
+        // Act
+        string result = ProcessTemplate(templateStream, data, processor);
+
+        // Assert
+        Assert.Contains("1.234,56", result);
+    }
+
+    [Fact]
+    public void ProcessTemplate_WithNumberFormatInLoop_ReplacesAllItems()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{#foreach Items}}");
+        builder.AddParagraph("- {{Name}}: {{Price:currency}}");
+        builder.AddParagraph("{{/foreach}}");
+        using MemoryStream templateStream = builder.ToStream();
+
+        var options = new PlaceholderReplacementOptions { Culture = new CultureInfo("en-US") };
+        var processor = new DocumentTemplateProcessor(options);
+        var data = new Dictionary<string, object>
+        {
+            ["Items"] = new[]
+            {
+                new { Name = "Widget", Price = 9.99m },
+                new { Name = "Gadget", Price = 19.99m }
+            }
+        };
+
+        // Act
+        string result = ProcessTemplate(templateStream, data, processor);
+
+        // Assert
+        Assert.Contains("Widget: $9.99", result);
+        Assert.Contains("Gadget: $19.99", result);
+    }
+
+    [Fact]
+    public void ProcessTemplate_WithMixedBooleanAndNumberFormats_ReplacesAll()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("Active: {{IsActive:checkbox}}, Total: {{Amount:currency}}");
+        using MemoryStream templateStream = builder.ToStream();
+
+        var options = new PlaceholderReplacementOptions
+        {
+            Culture = new CultureInfo("en-US"),
+            BooleanFormatterRegistry = new BooleanFormatterRegistry(CultureInfo.InvariantCulture)
+        };
+        var processor = new DocumentTemplateProcessor(options);
+        var data = new Dictionary<string, object>
+        {
+            ["IsActive"] = true,
+            ["Amount"] = 42.50m
+        };
+
+        // Act
+        string result = ProcessTemplate(templateStream, data, processor);
+
+        // Assert
+        Assert.Contains("Active: ☑", result);
+        Assert.Contains("Total: $42.50", result);
+    }
+
+    [Fact]
+    public void ProcessTemplate_WithNestedPropertyAndCurrencyFormat_ReplacesCorrectly()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("Order total: {{Order.Total:currency}}");
+        using MemoryStream templateStream = builder.ToStream();
+
+        var options = new PlaceholderReplacementOptions { Culture = new CultureInfo("en-US") };
+        var processor = new DocumentTemplateProcessor(options);
+        var data = new Dictionary<string, object>
+        {
+            ["Order"] = new { Total = 99.95m }
+        };
+
+        // Act
+        string result = ProcessTemplate(templateStream, data, processor);
+
+        // Assert
+        Assert.Contains("Order total: $99.95", result);
+    }
+
+    #endregion
+
     #region Helper Methods
 
     /// <summary>

@@ -64,10 +64,17 @@
         </Grid>
 
         <!-- Options Section -->
-        <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,0,0,20">
+        <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="20" Margin="0,0,0,20">
             <CheckBox Content="Enable HTML Entity Replacement"
                       IsChecked="{Binding EnableHtmlEntityReplacement}"
                       ToolTip.Tip="Convert HTML entities like &lt;br&gt;, &amp;nbsp;, &amp;lt;, etc. to Word equivalents"/>
+            <StackPanel Orientation="Horizontal" Spacing="5">
+                <TextBlock Text="Culture:" VerticalAlignment="Center"/>
+                <ComboBox ItemsSource="{Binding AvailableCultures}"
+                          SelectedItem="{Binding SelectedCulture}"
+                          Width="160"
+                          ToolTip.Tip="Culture used for number and currency formatting"/>
+            </StackPanel>
         </StackPanel>
 
         <!-- Action Buttons -->

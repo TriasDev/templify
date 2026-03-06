@@ -189,6 +189,28 @@ To disable (for backward compatibility):
 var options = new PlaceholderReplacementOptions { EnableNewlineSupport = false };
 ```
 
+### Number and Currency Formatting
+
+Format numbers and currencies directly in placeholders using format specifiers:
+
+```
+{{Amount:currency}}           → $1,234.57 (en-US) or 1.234,57 € (de-DE)
+{{Value:number:N2}}           → 1,234.57
+{{Rate:number:F3}}            → 3.142
+{{Percentage:number:P}}       → 12.34 %
+{{Order.Total:currency}}      → Works with nested properties
+```
+
+The `:currency` specifier uses the configured culture's currency format. The `:number:FORMAT` specifier accepts any .NET standard or custom numeric format string.
+
+```csharp
+var options = new PlaceholderReplacementOptions
+{
+    Culture = new CultureInfo("de-DE")  // Formats numbers/currency for German locale
+};
+var processor = new DocumentTemplateProcessor(options);
+```
+
 ### Standalone Condition Evaluation
 
 Use Templify's condition engine without processing Word documents:

@@ -294,6 +294,8 @@ The library uses a **visitor pattern** for processing Word documents, enabling:
 - Nested: `{{Customer.Address.City}}`
 - Array indexing: `{{Items[0].Name}}`
 - Dictionary: `{{Settings[Theme]}}` or `{{Settings.Theme}}`
+- Currency format: `{{Amount:currency}}`
+- Number format: `{{Value:number:N2}}`, `{{Rate:number:F3}}`, `{{Pct:number:P}}`
 
 ### Conditional Syntax
 ```

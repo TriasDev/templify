@@ -408,4 +408,68 @@ public class PlaceholderFinderTests
     }
 
     #endregion
+
+    #region Compound Format Specifier Tests
+
+    [Fact]
+    public void FindPlaceholders_WithCurrencyFormat_ParsesFormat()
+    {
+        // Arrange
+        string text = "{{Amount:currency}}";
+
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Single(matches);
+        Assert.Equal("Amount", matches[0].VariableName);
+        Assert.Equal("currency", matches[0].Format);
+    }
+
+    [Fact]
+    public void FindPlaceholders_WithCompoundNumberFormat_ParsesFormat()
+    {
+        // Arrange
+        string text = "{{Amount:number:N2}}";
+
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Single(matches);
+        Assert.Equal("Amount", matches[0].VariableName);
+        Assert.Equal("number:N2", matches[0].Format);
+    }
+
+    [Fact]
+    public void FindPlaceholders_WithCompoundNumberFormatF3_ParsesFormat()
+    {
+        // Arrange
+        string text = "{{Rate:number:F3}}";
+
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Single(matches);
+        Assert.Equal("Rate", matches[0].VariableName);
+        Assert.Equal("number:F3", matches[0].Format);
+    }
+
+    [Fact]
+    public void FindPlaceholders_WithNestedPropertyAndCurrencyFormat_ParsesBoth()
+    {
+        // Arrange
+        string text = "{{Order.Total:currency}}";
+
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Single(matches);
+        Assert.Equal("Order.Total", matches[0].VariableName);
+        Assert.Equal("currency", matches[0].Format);
+    }
+
+    #endregion
 }

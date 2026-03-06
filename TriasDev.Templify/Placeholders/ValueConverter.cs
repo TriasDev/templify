@@ -43,6 +43,12 @@ internal static class ValueConverter
             // Fall through to default formatting if format not found
         }
 
+        // Handle number formatting with format specifier
+        if (!string.IsNullOrWhiteSpace(format) && IsNumeric(value) && TryFormatNumber(value!, culture, format!, out string? numberResult))
+        {
+            return numberResult!;
+        }
+
         // Default conversion without format
         return value switch
         {
@@ -58,5 +64,40 @@ internal static class ValueConverter
             bool boolean => boolean.ToString(),
             _ => value.ToString() ?? string.Empty
         };
+    }
+
+    private static bool IsNumeric(object? value)
+    {
+        return value is decimal or double or float or int or long;
+    }
+
+    private static bool TryFormatNumber(object value, CultureInfo culture, string format, out string? result)
+    {
+        result = null;
+
+        try
+        {
+            if (string.Equals(format, "currency", StringComparison.OrdinalIgnoreCase))
+            {
+                result = Convert.ToDecimal(value, culture).ToString("C", culture);
+                return true;
+            }
+
+            if (format.StartsWith("number:", StringComparison.OrdinalIgnoreCase) && format.Length > 7)
+            {
+                string numberFormat = format.Substring(7);
+                if (value is IFormattable formattable)
+                {
+                    result = formattable.ToString(numberFormat, culture);
+                    return true;
+                }
+            }
+        }
+        catch (FormatException)
+        {
+            // Invalid format string — fall through to default conversion
+        }
+
+        return false;
     }
 }
