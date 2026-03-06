@@ -573,4 +573,187 @@ public class ValueConverterTests
     }
 
     #endregion
+
+    #region String Format Specifier Tests
+
+    [Theory]
+    [InlineData("hello world", "uppercase", "HELLO WORLD")]
+    [InlineData("HELLO WORLD", "lowercase", "hello world")]
+    [InlineData("Mixed Case", "uppercase", "MIXED CASE")]
+    [InlineData("Mixed Case", "lowercase", "mixed case")]
+    public void ConvertToString_WithStringFormat_ReturnsFormattedString(string value, string format, string expected)
+    {
+        // Act
+        string result = ConvertToString(value, CultureInfo.InvariantCulture, format, null);
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void ConvertToString_WithEmptyStringAndUppercase_ReturnsEmpty()
+    {
+        // Act
+        string result = ConvertToString("", CultureInfo.InvariantCulture, "uppercase", null);
+
+        // Assert
+        Assert.Equal("", result);
+    }
+
+    [Theory]
+    [InlineData("UPPERCASE")]
+    [InlineData("Uppercase")]
+    [InlineData("uppercase")]
+    public void ConvertToString_WithUppercaseCaseInsensitive_Works(string format)
+    {
+        // Act
+        string result = ConvertToString("test", CultureInfo.InvariantCulture, format, null);
+
+        // Assert
+        Assert.Equal("TEST", result);
+    }
+
+    [Fact]
+    public void ConvertToString_WithNonStringAndUppercase_IgnoresFormat()
+    {
+        // Act
+        string result = ConvertToString(42, CultureInfo.InvariantCulture, "uppercase", null);
+
+        // Assert
+        Assert.Equal("42", result);
+    }
+
+    [Fact]
+    public void ConvertToString_WithNullAndUppercase_ReturnsEmpty()
+    {
+        // Act
+        string result = ConvertToString(null, CultureInfo.InvariantCulture, "uppercase", null);
+
+        // Assert
+        Assert.Equal(string.Empty, result);
+    }
+
+    #endregion
+
+    #region Date Format Specifier Tests
+
+    [Fact]
+    public void ConvertToString_WithDateTimeAndDateFormat_ReturnsFormattedDate()
+    {
+        // Arrange
+        var date = new DateTime(2024, 1, 15);
+
+        // Act
+        string result = ConvertToString(date, new CultureInfo("en-US"), "date:yyyy-MM-dd", null);
+
+        // Assert
+        Assert.Equal("2024-01-15", result);
+    }
+
+    [Fact]
+    public void ConvertToString_WithDateTimeAndLongDateFormat_ReturnsFormattedDate()
+    {
+        // Arrange
+        var date = new DateTime(2024, 1, 15);
+
+        // Act
+        string result = ConvertToString(date, new CultureInfo("en-US"), "date:MMMM d, yyyy", null);
+
+        // Assert
+        Assert.Equal("January 15, 2024", result);
+    }
+
+    [Fact]
+    public void ConvertToString_WithDateTimeAndGermanCulture_ReturnsLocalizedDate()
+    {
+        // Arrange
+        var date = new DateTime(2024, 1, 15);
+
+        // Act
+        string result = ConvertToString(date, new CultureInfo("de-DE"), "date:dd. MMMM yyyy", null);
+
+        // Assert
+        Assert.Equal("15. Januar 2024", result);
+    }
+
+    [Fact]
+    public void ConvertToString_WithStringDateAndDateFormat_ParsesAndFormats()
+    {
+        // Act
+        string result = ConvertToString("2024-01-15", CultureInfo.InvariantCulture, "date:yyyy-MM-dd", null);
+
+        // Assert
+        Assert.Equal("2024-01-15", result);
+    }
+
+    [Fact]
+    public void ConvertToString_WithDateTimeOffsetAndDateFormat_ReturnsFormattedDate()
+    {
+        // Arrange
+        var date = new DateTimeOffset(2024, 1, 15, 10, 30, 0, TimeSpan.Zero);
+
+        // Act
+        string result = ConvertToString(date, new CultureInfo("en-US"), "date:yyyy-MM-dd", null);
+
+        // Assert
+        Assert.Equal("2024-01-15", result);
+    }
+
+    [Fact]
+    public void ConvertToString_WithDateFormatDotSeparated_ReturnsFormattedDate()
+    {
+        // Arrange
+        var date = new DateTime(2024, 1, 15);
+
+        // Act
+        string result = ConvertToString(date, CultureInfo.InvariantCulture, "date:dd.MM.yyyy", null);
+
+        // Assert
+        Assert.Equal("15.01.2024", result);
+    }
+
+    [Fact]
+    public void ConvertToString_WithNonDateAndDateFormat_IgnoresFormat()
+    {
+        // Act
+        string result = ConvertToString(42, CultureInfo.InvariantCulture, "date:yyyy-MM-dd", null);
+
+        // Assert
+        Assert.Equal("42", result);
+    }
+
+    [Fact]
+    public void ConvertToString_WithNullAndDateFormat_ReturnsEmpty()
+    {
+        // Act
+        string result = ConvertToString(null, CultureInfo.InvariantCulture, "date:yyyy-MM-dd", null);
+
+        // Assert
+        Assert.Equal(string.Empty, result);
+    }
+
+    [Fact]
+    public void ConvertToString_WithInvalidDateFormat_FallsThrough()
+    {
+        // Arrange
+        var date = new DateTime(2024, 1, 15);
+
+        // Act — should not throw
+        string result = ConvertToString(date, CultureInfo.InvariantCulture, "date:QQQQQ", null);
+
+        // Assert — falls through gracefully (may produce unexpected output but no exception)
+        Assert.NotEmpty(result);
+    }
+
+    [Fact]
+    public void ConvertToString_WithUnparseableStringAndDateFormat_FallsThrough()
+    {
+        // Act
+        string result = ConvertToString("not a date", CultureInfo.InvariantCulture, "date:yyyy-MM-dd", null);
+
+        // Assert — string value falls through to default
+        Assert.Equal("not a date", result);
+    }
+
+    #endregion
 }

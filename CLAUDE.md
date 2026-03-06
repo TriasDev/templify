@@ -296,6 +296,8 @@ The library uses a **visitor pattern** for processing Word documents, enabling:
 - Dictionary: `{{Settings[Theme]}}` or `{{Settings.Theme}}`
 - Currency format: `{{Amount:currency}}`
 - Number format: `{{Value:number:N2}}`, `{{Rate:number:F3}}`, `{{Pct:number:P}}`
+- String format: `{{Name:uppercase}}`, `{{Code:lowercase}}`
+- Date format: `{{OrderDate:date:yyyy-MM-dd}}`, `{{Date:date:MMMM d, yyyy}}`
 
 ### Conditional Syntax
 ```

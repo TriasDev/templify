@@ -472,4 +472,53 @@ public class PlaceholderFinderTests
     }
 
     #endregion
+
+    #region Date Format Specifier Tests
+
+    [Fact]
+    public void FindPlaceholders_WithDateFormat_ParsesFormat()
+    {
+        // Arrange
+        string text = "{{OrderDate:date:yyyy-MM-dd}}";
+
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Single(matches);
+        Assert.Equal("OrderDate", matches[0].VariableName);
+        Assert.Equal("date:yyyy-MM-dd", matches[0].Format);
+    }
+
+    [Fact]
+    public void FindPlaceholders_WithDateFormatWithSpaces_ParsesFormat()
+    {
+        // Arrange
+        string text = "{{OrderDate:date:MMMM d, yyyy}}";
+
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Single(matches);
+        Assert.Equal("OrderDate", matches[0].VariableName);
+        Assert.Equal("date:MMMM d, yyyy", matches[0].Format);
+    }
+
+    [Fact]
+    public void FindPlaceholders_WithNestedPropertyAndDateFormat_ParsesBoth()
+    {
+        // Arrange
+        string text = "{{Order.Date:date:dd.MM.yyyy}}";
+
+        // Act
+        List<PlaceholderMatch> matches = _finder.FindPlaceholders(text).ToList();
+
+        // Assert
+        Assert.Single(matches);
+        Assert.Equal("Order.Date", matches[0].VariableName);
+        Assert.Equal("date:dd.MM.yyyy", matches[0].Format);
+    }
+
+    #endregion
 }

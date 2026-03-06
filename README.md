@@ -189,24 +189,28 @@ To disable (for backward compatibility):
 var options = new PlaceholderReplacementOptions { EnableNewlineSupport = false };
 ```
 
-### Number and Currency Formatting
+### Format Specifiers
 
-Format numbers and currencies directly in placeholders using format specifiers:
+Control how values are displayed using format specifiers:
 
 ```
+{{Name:uppercase}}            → ALICE JOHNSON
+{{Code:lowercase}}            → abc-123
 {{Amount:currency}}           → $1,234.57 (en-US) or 1.234,57 € (de-DE)
 {{Value:number:N2}}           → 1,234.57
-{{Rate:number:F3}}            → 3.142
 {{Percentage:number:P}}       → 12.34 %
-{{Order.Total:currency}}      → Works with nested properties
+{{OrderDate:date:yyyy-MM-dd}} → 2024-01-15
+{{OrderDate:date:MMMM d, yyyy}} → January 15, 2024
+{{IsActive:checkbox}}         → ☑ or ☐
+{{IsActive:yesno}}            → Yes or No
 ```
 
-The `:currency` specifier uses the configured culture's currency format. The `:number:FORMAT` specifier accepts any .NET standard or custom numeric format string.
+All format specifiers are culture-aware:
 
 ```csharp
 var options = new PlaceholderReplacementOptions
 {
-    Culture = new CultureInfo("de-DE")  // Formats numbers/currency for German locale
+    Culture = new CultureInfo("de-DE")  // Affects currency, numbers, dates, and localized text
 };
 var processor = new DocumentTemplateProcessor(options);
 ```

@@ -43,10 +43,30 @@ internal static class ValueConverter
             // Fall through to default formatting if format not found
         }
 
+        // Handle string formatting with format specifier
+        if (value is string strValue && !string.IsNullOrWhiteSpace(format))
+        {
+            if (string.Equals(format, "uppercase", StringComparison.OrdinalIgnoreCase))
+            {
+                return strValue.ToUpper(culture);
+            }
+
+            if (string.Equals(format, "lowercase", StringComparison.OrdinalIgnoreCase))
+            {
+                return strValue.ToLower(culture);
+            }
+        }
+
         // Handle number formatting with format specifier
         if (!string.IsNullOrWhiteSpace(format) && IsNumeric(value) && TryFormatNumber(value!, culture, format!, out string? numberResult))
         {
             return numberResult!;
+        }
+
+        // Handle date formatting with format specifier
+        if (!string.IsNullOrWhiteSpace(format) && TryFormatDate(value, culture, format!, out string? dateResult))
+        {
+            return dateResult!;
         }
 
         // Default conversion without format
@@ -91,6 +111,41 @@ internal static class ValueConverter
                     result = formattable.ToString(numberFormat, culture);
                     return true;
                 }
+            }
+        }
+        catch (FormatException)
+        {
+            // Invalid format string — fall through to default conversion
+        }
+
+        return false;
+    }
+
+    private static bool TryFormatDate(object? value, CultureInfo culture, string format, out string? result)
+    {
+        result = null;
+
+        if (!format.StartsWith("date:", StringComparison.OrdinalIgnoreCase) || format.Length <= 5)
+        {
+            return false;
+        }
+
+        string dateFormat = format.Substring(5);
+
+        try
+        {
+            DateTime? dateTime = value switch
+            {
+                DateTime dt => dt,
+                DateTimeOffset dto => dto.DateTime,
+                string s when DateTime.TryParse(s, culture, DateTimeStyles.None, out DateTime parsed) => parsed,
+                _ => null
+            };
+
+            if (dateTime.HasValue)
+            {
+                result = dateTime.Value.ToString(dateFormat, culture);
+                return true;
             }
         }
         catch (FormatException)

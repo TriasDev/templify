@@ -1,13 +1,15 @@
 # Format Specifiers Guide
 
-Format specifiers allow you to control how values are displayed in your generated documents. You can format booleans as checkboxes or Yes/No text, display numbers with specific decimal places, and format currency values according to locale.
+Format specifiers allow you to control how values are displayed in your generated documents. You can format booleans as checkboxes or Yes/No text, transform string casing, display numbers with specific decimal places, format currency values according to locale, and apply custom date formats.
 
 ## Table of Contents
 
 - [Quick Start](#quick-start)
 - [Available Format Specifiers](#available-format-specifiers)
+  - [String Formatters](#string-formatters)
   - [Boolean Formatters](#boolean-formatters)
   - [Number and Currency Formatters](#number-and-currency-formatters)
+  - [Date Formatters](#date-formatters)
 - [Using Format Specifiers](#using-format-specifiers)
 - [Localization Support](#localization-support)
 - [Custom Formatters](#custom-formatters)
@@ -16,7 +18,7 @@ Format specifiers allow you to control how values are displayed in your generate
 
 ## Quick Start
 
-Add a format specifier to any boolean placeholder using the `:format` syntax:
+Add a format specifier to any placeholder using the `:format` syntax:
 
 **Template:**
 ```
@@ -44,6 +46,54 @@ User Status: ☑
 ```
 
 ## Available Format Specifiers
+
+### String Formatters
+
+#### uppercase
+
+Converts a string value to UPPERCASE.
+
+**Example:**
+```
+Customer: {{CustomerName:uppercase}}
+```
+
+**JSON:**
+```json
+{
+  "CustomerName": "alice johnson"
+}
+```
+
+**Output:**
+```
+Customer: ALICE JOHNSON
+```
+
+#### lowercase
+
+Converts a string value to lowercase.
+
+**Example:**
+```
+Code: {{ProductCode:lowercase}}
+```
+
+**JSON:**
+```json
+{
+  "ProductCode": "ABC-123-XYZ"
+}
+```
+
+**Output:**
+```
+Code: abc-123-xyz
+```
+
+**Notes:**
+- String formatters only apply to string values. Non-string values are rendered normally.
+- Case conversion respects the configured culture (e.g., Turkish locale handles `I`/`i` correctly).
 
 ### Boolean Formatters
 
@@ -207,6 +257,51 @@ Progress: 85.00 %
 - Non-numeric values with a number format specifier are rendered normally (format is ignored)
 - Invalid format strings are handled gracefully — the value falls through to default formatting
 - Format specifier names are case-insensitive: `:currency`, `:CURRENCY`, and `:Currency` all work
+
+### Date Formatters
+
+#### date:FORMAT
+
+Formats date values using a .NET date format string. The format string follows the colon after `date`.
+
+| Specifier | Description | Input | Output (en-US) |
+|-----------|-------------|-------|----------------|
+| `:date:yyyy-MM-dd` | ISO date | 2024-01-15 | 2024-01-15 |
+| `:date:dd.MM.yyyy` | European date | 2024-01-15 | 15.01.2024 |
+| `:date:MMMM d, yyyy` | Long date | 2024-01-15 | January 15, 2024 |
+| `:date:dd. MMMM yyyy` | German long date (de-DE) | 2024-01-15 | 15. Januar 2024 |
+| `:date:yyyy` | Year only | 2024-01-15 | 2024 |
+
+**Example:**
+```
+Order Date: {{OrderDate:date:MMMM d, yyyy}}
+Due Date: {{DueDate:date:dd.MM.yyyy}}
+```
+
+**JSON:**
+```json
+{
+  "OrderDate": "2024-01-15",
+  "DueDate": "2024-02-15"
+}
+```
+
+**Output (en-US culture):**
+```
+Order Date: January 15, 2024
+Due Date: 15.01.2024
+```
+
+**Supported value types:**
+- `DateTime` objects
+- `DateTimeOffset` objects
+- Date strings (parsed automatically, e.g., `"2024-01-15"`, `"01/15/2024"`)
+
+**Notes:**
+- Month and day names are localized based on the configured culture
+- Non-date values with a date format specifier are rendered normally (format is ignored)
+- Unparseable date strings are rendered as-is
+- Invalid format strings are handled gracefully
 
 ## Using Format Specifiers
 
@@ -838,9 +933,11 @@ var processor = new DocumentTemplateProcessor(options);
 
 Format specifiers provide a powerful way to control value presentation in your documents:
 
+- ✅ String formatters (`:uppercase`, `:lowercase`)
 - ✅ 7 built-in boolean formatters (checkbox, yesno, checkmark, truefalse, onoff, enabled, active)
 - ✅ Currency formatting with locale support (`:currency`)
 - ✅ Flexible number formatting with .NET format strings (`:number:N2`, `:number:F3`, `:number:P`)
+- ✅ Date formatting with .NET format strings (`:date:yyyy-MM-dd`, `:date:MMMM d, yyyy`)
 - ✅ Automatic localization support
 - ✅ Custom formatter registration
 - ✅ Works with nested properties, arrays, loops, and conditionals

@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `:number:FORMAT` — any .NET numeric format string (e.g., `:number:N2`, `:number:F3`, `:number:P`)
   - Works with int, long, decimal, double, and float values
   - Supports compound format specifiers in placeholder regex
+- **String Format Specifiers** - Transform string casing in placeholders (#22)
+  - `:uppercase` — convert to UPPERCASE
+  - `:lowercase` — convert to lowercase
+- **Date Format Specifiers** - Format dates directly in placeholders (#22)
+  - `:date:FORMAT` — any .NET date format string (e.g., `:date:yyyy-MM-dd`, `:date:MMMM d, yyyy`)
+  - Supports DateTime, DateTimeOffset, and ISO date string values
+  - Culture-aware month/day names
 - **GUI Culture Selector** - Dropdown to choose formatting culture (Invariant, en-US, de-DE, fr-FR, es-ES)
 
 ## [1.5.0] - 2026-02-13
