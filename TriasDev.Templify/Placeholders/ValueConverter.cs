@@ -99,8 +99,11 @@ internal static class ValueConverter
         {
             if (string.Equals(format, "currency", StringComparison.OrdinalIgnoreCase))
             {
-                result = Convert.ToDecimal(value, CultureInfo.InvariantCulture).ToString("C", culture);
-                return true;
+                if (value is IFormattable currencyFormattable)
+                {
+                    result = currencyFormattable.ToString("C", culture);
+                    return true;
+                }
             }
 
             if (format.StartsWith("number:", StringComparison.OrdinalIgnoreCase) && format.Length > 7)

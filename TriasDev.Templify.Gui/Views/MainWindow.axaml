@@ -73,7 +73,7 @@
                 <ComboBox ItemsSource="{Binding AvailableCultures}"
                           SelectedItem="{Binding SelectedCulture}"
                           Width="160"
-                          ToolTip.Tip="Culture used for number and currency formatting"/>
+                          ToolTip.Tip="Culture used for number, currency, date formatting and string casing"/>
             </StackPanel>
         </StackPanel>
 
