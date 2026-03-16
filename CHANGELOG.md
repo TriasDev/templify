@@ -7,24 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-03-16
+
 ### Added
 - **Header & Footer Support** - Process placeholders, conditionals, and loops in document headers and footers (#15)
   - All header/footer types supported: Default, First Page, Even Page
   - Same syntax and features as document body - no additional API calls needed
   - Formatting is preserved in headers and footers
-- **Number and Currency Format Specifiers** - Format numeric values directly in placeholders (#22)
+- **Non-Boolean Format Specifiers** - Format numeric, string, and date values directly in placeholders (#22)
   - `:currency` — locale-aware currency formatting (e.g., `$1,234.56` or `1.234,56 €`)
   - `:number:FORMAT` — any .NET numeric format string (e.g., `:number:N2`, `:number:F3`, `:number:P`)
-  - Works with int, long, decimal, double, and float values
-  - Supports compound format specifiers in placeholder regex
-- **String Format Specifiers** - Transform string casing in placeholders (#22)
-  - `:uppercase` — convert to UPPERCASE
-  - `:lowercase` — convert to lowercase
-- **Date Format Specifiers** - Format dates directly in placeholders (#22)
+  - `:uppercase` / `:lowercase` — string casing transformations
   - `:date:FORMAT` — any .NET date format string (e.g., `:date:yyyy-MM-dd`, `:date:MMMM d, yyyy`)
-  - Supports DateTime, DateTimeOffset, and ISO date string values
-  - Culture-aware month/day names
+  - Works with int, long, decimal, double, float, DateTime, DateTimeOffset, and ISO date strings
+  - Culture-aware formatting throughout
+- **Unified Equality Operators** - `==` now works as an alias for `=` in conditional expressions (#84)
+  - Condition validation warns on common mistakes (assignment `=` vs comparison `==`)
 - **GUI Culture Selector** - Dropdown to choose formatting culture (Invariant, en-US, de-DE, fr-FR, es-ES)
+
+### Improved
+- Test coverage increased to 1,095 tests
 
 ## [1.5.0] - 2026-02-13
 
@@ -193,7 +195,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cross-platform: Windows, Linux, macOS
 - No Microsoft Word installation required
 
-[Unreleased]: https://github.com/TriasDev/templify/compare/v1.4.2...HEAD
+[Unreleased]: https://github.com/TriasDev/templify/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/TriasDev/templify/compare/v1.5.0...v1.6.0
+[1.5.0]: https://github.com/TriasDev/templify/compare/v1.4.2...v1.5.0
 [1.4.2]: https://github.com/TriasDev/templify/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/TriasDev/templify/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/TriasDev/templify/compare/v1.3.0...v1.4.0
