@@ -7,7 +7,7 @@ namespace TriasDev.Templify.Expressions;
 
 /// <summary>
 /// Parses boolean expressions from text.
-/// Supports: and, or, not, ==, !=, &gt;, &gt;=, &lt;, &lt;=, parentheses
+/// Supports: and, or, not, =, ==, !=, &gt;, &gt;=, &lt;, &lt;=, parentheses
 /// Examples:
 /// - (var1 and var2)
 /// - (var1 or var2)

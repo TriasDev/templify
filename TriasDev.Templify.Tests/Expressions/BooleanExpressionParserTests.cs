@@ -110,6 +110,20 @@ public class BooleanExpressionParserTests
     }
 
     [Fact]
+    public void Parse_WithComparisonSingleEquals_ReturnsExpression()
+    {
+        // Arrange
+        object parser = CreateParser();
+
+        // Act
+        object? result = Parse(parser, "(Status = \"active\")");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.IsAssignableFrom(_expressionType, result);
+    }
+
+    [Fact]
     public void Parse_WithNestedExpression_ReturnsExpression()
     {
         // Arrange
