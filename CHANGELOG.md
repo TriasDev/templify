@@ -21,8 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `:date:FORMAT` — any .NET date format string (e.g., `:date:yyyy-MM-dd`, `:date:MMMM d, yyyy`)
   - Works with int, long, decimal, double, float, DateTime, DateTimeOffset, and ISO date strings
   - Culture-aware formatting throughout
-- **Unified Equality Operators** - `==` now works as an alias for `=` in conditional expressions (#84)
-  - Condition validation warns on common mistakes (assignment `=` vs comparison `==`)
+- **Unified Equality Operators** - `==` now works as an alias for `=` in both `{{#if}}` conditionals and `{{(...)}}` boolean expressions (#84)
+  - Condition validation detects unknown operators (`===`, `<>`, `&&`, `||`) and structural issues (missing operands, unbalanced quotes, consecutive operators)
 - **GUI Culture Selector** - Dropdown to choose formatting culture (Invariant, en-US, de-DE, fr-FR, es-ES)
 
 ### Improved
