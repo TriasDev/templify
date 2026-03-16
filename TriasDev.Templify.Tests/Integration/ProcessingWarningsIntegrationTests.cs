@@ -257,7 +257,7 @@ public sealed class ProcessingWarningsIntegrationTests
     [Fact]
     public void ProcessTemplate_InvalidExpressionSyntax_CollectsWarning()
     {
-        // Arrange - expression with invalid syntax (unclosed parenthesis)
+        // Arrange - expression with invalid operator (===)
         // This causes parse failure which generates ExpressionFailed warning
         DocumentBuilder builder = new DocumentBuilder();
         builder.AddParagraph("{{(Status === \"Active\")}}");

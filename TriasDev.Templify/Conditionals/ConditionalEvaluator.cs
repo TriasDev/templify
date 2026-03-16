@@ -95,7 +95,7 @@ internal sealed class ConditionalEvaluator
             string token = tokens[i];
             string currentType;
 
-            if (token.ToLower() == NotOperator)
+            if (string.Equals(token, NotOperator, StringComparison.OrdinalIgnoreCase))
             {
                 currentType = "not";
             }
@@ -109,7 +109,7 @@ internal sealed class ConditionalEvaluator
             }
             else if (IsSuspectedUnknownOperator(token))
             {
-                string hint = token == "==" ? "" : token == "<>" ? " Did you mean '!='?" : "";
+                string hint = token == "<>" ? " Did you mean '!='?" : "";
                 issues.Add(new ConditionValidationIssue(
                     ConditionValidationIssueType.UnknownOperator,
                     $"Unknown operator '{token}'.{hint}",
