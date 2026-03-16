@@ -1059,4 +1059,92 @@ public class ConditionalEvaluatorTests
     }
 
     #endregion
+
+    #region Missing Nested Variable Comparison
+
+    [Fact]
+    public void Evaluate_MissingNestedVariable_EqualsFalse_ReturnsFalse()
+    {
+        // var1 exists but var2 does not → null != "false" → false
+        Dictionary<string, object> data = new()
+        {
+            ["var1"] = new Dictionary<string, object> { ["other"] = "value" }
+        };
+
+        bool result = Evaluate("var1.var2 = false", data);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void Evaluate_MissingNestedVariable_EqualsTrue_ReturnsFalse()
+    {
+        // var1 exists but var2 does not → null != "true" → false
+        Dictionary<string, object> data = new()
+        {
+            ["var1"] = new Dictionary<string, object> { ["other"] = "value" }
+        };
+
+        bool result = Evaluate("var1.var2 = true", data);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void Evaluate_MissingNestedVariable_DoubleEqualsTrue_ReturnsFalse()
+    {
+        // Same behavior with == operator
+        Dictionary<string, object> data = new()
+        {
+            ["var1"] = new Dictionary<string, object> { ["other"] = "value" }
+        };
+
+        bool result = Evaluate("var1.var2 == true", data);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void Evaluate_MissingNestedVariable_Standalone_ReturnsFalse()
+    {
+        // var1.var2 as standalone boolean check → missing = falsy → false
+        Dictionary<string, object> data = new()
+        {
+            ["var1"] = new Dictionary<string, object> { ["other"] = "value" }
+        };
+
+        bool result = Evaluate("var1.var2", data);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void Evaluate_ExistingNestedVariable_EqualsFalse_WhenValueIsTrue_ReturnsFalse()
+    {
+        // var1.var2 exists and is true → "True" != "false" → false
+        Dictionary<string, object> data = new()
+        {
+            ["var1"] = new Dictionary<string, object> { ["var2"] = true }
+        };
+
+        bool result = Evaluate("var1.var2 = false", data);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void Evaluate_ExistingNestedVariable_EqualsFalse_WhenValueIsFalse_ReturnsTrue()
+    {
+        // var1.var2 exists and is false → "False" == "false" → true
+        Dictionary<string, object> data = new()
+        {
+            ["var1"] = new Dictionary<string, object> { ["var2"] = false }
+        };
+
+        bool result = Evaluate("var1.var2 = false", data);
+
+        Assert.True(result);
+    }
+
+    #endregion
 }
