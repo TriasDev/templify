@@ -257,10 +257,10 @@ public sealed class ProcessingWarningsIntegrationTests
     [Fact]
     public void ProcessTemplate_InvalidExpressionSyntax_CollectsWarning()
     {
-        // Arrange - expression with invalid syntax (= instead of ==)
+        // Arrange - expression with invalid operator (===)
         // This causes parse failure which generates ExpressionFailed warning
         DocumentBuilder builder = new DocumentBuilder();
-        builder.AddParagraph("{{(Status = \"Active\")}}");
+        builder.AddParagraph("{{(Status === \"Active\")}}");
 
         Dictionary<string, object> data = new Dictionary<string, object>();
 
@@ -279,7 +279,7 @@ public sealed class ProcessingWarningsIntegrationTests
         // Note: Also generates MissingVariable warning because resolved=false
         Assert.Contains(result.Warnings, w => w.Type == ProcessingWarningType.ExpressionFailed);
         ProcessingWarning exprWarning = result.Warnings.First(w => w.Type == ProcessingWarningType.ExpressionFailed);
-        Assert.Equal("(Status = \"Active\")", exprWarning.VariableName);
+        Assert.Equal("(Status === \"Active\")", exprWarning.VariableName);
         Assert.Contains("expression", exprWarning.Context);
     }
 

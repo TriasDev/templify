@@ -14,7 +14,7 @@ namespace TriasDev.Templify.Conditionals;
 /// for use in standalone scenarios without Word document processing.
 /// </para>
 /// <para>
-/// Supported operators: =, !=, &gt;, &lt;, &gt;=, &lt;=, and, or, not
+/// Supported operators: =, ==, !=, &gt;, &lt;, &gt;=, &lt;=, and, or, not
 /// </para>
 /// <para>
 /// Examples:
@@ -34,6 +34,34 @@ namespace TriasDev.Templify.Conditionals;
 /// </remarks>
 public interface IConditionEvaluator
 {
+    #region Validate
+
+    /// <summary>
+    /// Validates a conditional expression for syntactic correctness without evaluating it.
+    /// This is a pure syntax check that does not require a data context.
+    /// </summary>
+    /// <param name="expression">The expression to validate.</param>
+    /// <returns>A <see cref="ConditionValidationResult"/> indicating whether the expression is valid and any issues found.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="expression"/> is null.</exception>
+    /// <example>
+    /// <code>
+    /// var evaluator = new ConditionEvaluator();
+    ///
+    /// var result = evaluator.Validate("Status = \"Active\"");
+    /// // result.IsValid == true
+    ///
+    /// var result2 = evaluator.Validate("Status == \"Active\"");
+    /// // result2.IsValid == true (both = and == are supported)
+    ///
+    /// var result3 = evaluator.Validate("A $ B");
+    /// // result3.IsValid == false
+    /// // result3.Issues[0].Type == ConditionValidationIssueType.UnknownOperator
+    /// </code>
+    /// </example>
+    ConditionValidationResult Validate(string expression);
+
+    #endregion
+
     #region Evaluate (Synchronous)
 
     /// <summary>

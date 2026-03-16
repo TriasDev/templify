@@ -7,7 +7,7 @@ namespace TriasDev.Templify.Expressions;
 
 /// <summary>
 /// Parses boolean expressions from text.
-/// Supports: and, or, not, ==, !=, &gt;, &gt;=, &lt;, &lt;=, parentheses
+/// Supports: and, or, not, =, ==, !=, &gt;, &gt;=, &lt;, &lt;=, parentheses
 /// Examples:
 /// - (var1 and var2)
 /// - (var1 or var2)
@@ -165,6 +165,12 @@ internal sealed class BooleanExpressionParser
         if (Consume("!="))
         {
             op = ComparisonOperator.NotEqual;
+            return true;
+        }
+        // Single = (must be after == and != checks to avoid consuming first = of ==)
+        if (Consume('='))
+        {
+            op = ComparisonOperator.Equal;
             return true;
         }
         if (Consume(">="))

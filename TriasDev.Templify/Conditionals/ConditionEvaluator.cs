@@ -62,6 +62,13 @@ public sealed class ConditionEvaluator : IConditionEvaluator
     private readonly ConditionalEvaluator _evaluator = new();
 
     /// <inheritdoc/>
+    public ConditionValidationResult Validate(string expression)
+    {
+        ArgumentNullException.ThrowIfNull(expression);
+        return _evaluator.Validate(expression);
+    }
+
+    /// <inheritdoc/>
     public bool Evaluate(string expression, Dictionary<string, object> data)
     {
         ArgumentNullException.ThrowIfNull(expression);
