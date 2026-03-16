@@ -31,6 +31,15 @@ namespace TriasDev.Templify.Conditionals;
 public interface IConditionContext
 {
     /// <summary>
+    /// Validates a conditional expression for syntactic correctness without evaluating it.
+    /// This is a pure syntax check that does not use the pre-loaded data.
+    /// </summary>
+    /// <param name="expression">The expression to validate.</param>
+    /// <returns>A <see cref="ConditionValidationResult"/> indicating whether the expression is valid and any issues found.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="expression"/> is null.</exception>
+    ConditionValidationResult Validate(string expression);
+
+    /// <summary>
     /// Evaluates a conditional expression against the pre-loaded data.
     /// </summary>
     /// <param name="expression">

@@ -371,6 +371,70 @@ public class ConditionalEvaluatorTests
 
     #endregion
 
+    #region Double Equality Operator (==)
+
+    [Fact]
+    public void Evaluate_DoubleEqOperator_WithMatchingStrings_ReturnsTrue()
+    {
+        Dictionary<string, object> data = new() { ["Status"] = "Active" };
+
+        bool result = Evaluate("Status == Active", data);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void Evaluate_DoubleEqOperator_WithMatchingQuotedStrings_ReturnsTrue()
+    {
+        Dictionary<string, object> data = new() { ["Status"] = "In Progress" };
+
+        bool result = Evaluate("Status == \"In Progress\"", data);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void Evaluate_DoubleEqOperator_WithNonMatchingStrings_ReturnsFalse()
+    {
+        Dictionary<string, object> data = new() { ["Status"] = "Active" };
+
+        bool result = Evaluate("Status == Inactive", data);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void Evaluate_DoubleEqOperator_WithMatchingNumbers_ReturnsTrue()
+    {
+        Dictionary<string, object> data = new() { ["Count"] = 5 };
+
+        bool result = Evaluate("Count == 5", data);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void Evaluate_DoubleEqOperator_WithBooleanFalse_ReturnsFalse()
+    {
+        Dictionary<string, object> data = new() { ["IsActive"] = true };
+
+        bool result = Evaluate("IsActive == false", data);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void Evaluate_DoubleEqOperator_WithBooleanTrue_ReturnsTrue()
+    {
+        Dictionary<string, object> data = new() { ["IsActive"] = true };
+
+        bool result = Evaluate("IsActive == true", data);
+
+        Assert.True(result);
+    }
+
+    #endregion
+
     #region Not Equal Operator (!=)
 
     [Fact]

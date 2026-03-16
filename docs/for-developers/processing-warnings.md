@@ -31,7 +31,7 @@ if (result.IsSuccess)
 | `MissingVariable` | Variable not found in data | Placeholder like `{{CustomerName}}` when `CustomerName` is not in the data dictionary |
 | `MissingLoopCollection` | Loop collection not found | `{{#foreach Items}}` when `Items` is not in the data dictionary |
 | `NullLoopCollection` | Loop collection is null | `{{#foreach Items}}` when `Items` exists but is `null` |
-| `ExpressionFailed` | Expression parsing or evaluation failed | `{{(Status = "Active")}}` with invalid syntax (should be `==`) |
+| `ExpressionFailed` | Expression parsing or evaluation failed | `{{(Status === "Active")}}` with invalid syntax (use `=` or `==`) |
 
 ## Warning Properties
 
@@ -106,5 +106,5 @@ if (result.HasWarnings)
 
 - **Empty collections** do not generate warnings (they're valid, just produce no output)
 - **Valid expressions with missing variables** evaluate to `false` without warnings (e.g., `{{(Price > 100)}}` where `Price` is missing returns `false`)
-- **Invalid expression syntax** generates `ExpressionFailed` (e.g., using `=` instead of `==`)
+- **Invalid expression syntax** generates `ExpressionFailed` (e.g., using `===` instead of `=` or `==`)
 - Warnings are collected even when `MissingVariableBehavior` is set to `LeaveUnchanged` or `ReplaceWithEmpty`

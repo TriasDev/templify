@@ -194,9 +194,9 @@ Account locked: True
 
 ## Comparison Operators
 
-### Equality (==)
+### Equality (== or =)
 
-Checks if two values are equal.
+Checks if two values are equal. Both `==` and `=` are supported.
 
 **Template:**
 ```
@@ -895,7 +895,7 @@ Expressions are evaluated with standard operator precedence:
 
 1. **Parentheses** `()` - Highest priority
 2. **NOT** `not`
-3. **Comparison** `>`, `>=`, `<`, `<=`, `==`, `!=`
+3. **Comparison** `>`, `>=`, `<`, `<=`, `=`, `==`, `!=`
 4. **AND** `and`
 5. **OR** `or` - Lowest priority
 
@@ -915,7 +915,7 @@ Expressions are evaluated with standard operator precedence:
 Boolean expressions enable powerful inline logic in your templates:
 
 - ✅ Logical operators: `and`, `or`, `not`
-- ✅ Comparison operators: `==`, `!=`, `>`, `>=`, `<`, `<=`
+- ✅ Comparison operators: `=`, `==`, `!=`, `>`, `>=`, `<`, `<=`
 - ✅ Nested expressions with parentheses
 - ✅ Combine with format specifiers for readable output
 - ✅ Works with nested properties and arrays

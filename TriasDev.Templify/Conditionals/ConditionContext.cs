@@ -48,6 +48,13 @@ public sealed class ConditionContext : IConditionContext
     }
 
     /// <inheritdoc/>
+    public ConditionValidationResult Validate(string expression)
+    {
+        ArgumentNullException.ThrowIfNull(expression);
+        return _evaluator.Validate(expression);
+    }
+
+    /// <inheritdoc/>
     public bool Evaluate(string expression)
     {
         ArgumentNullException.ThrowIfNull(expression);

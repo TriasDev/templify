@@ -859,9 +859,9 @@ Geschäftszeiten: 9:00 - 17:00 Uhr MEZ
    - ✅ `{{#if Status = "Active"}}` with JSON: `"Status": "Active"`
    - ❌ `{{#if Status = "active"}}` with JSON: `"Status": "Active"}`
 
-4. **Wrong operator:**
-   - ✅ `{{#if Age = 18}}` (checking equality)
-   - ❌ `{{#if Age == 18}}` (wrong operator, use single `=`)
+4. **Equality operator:**
+   - ✅ `{{#if Age = 18}}` (single `=` for equality)
+   - ✅ `{{#if Age == 18}}` (double `==` also accepted)
 
 5. **Quotes around text:**
    - ✅ `{{#if Name = "Alice"}}`

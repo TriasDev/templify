@@ -167,6 +167,12 @@ internal sealed class BooleanExpressionParser
             op = ComparisonOperator.NotEqual;
             return true;
         }
+        // Single = (must be after == and != checks to avoid consuming first = of ==)
+        if (Consume('='))
+        {
+            op = ComparisonOperator.Equal;
+            return true;
+        }
         if (Consume(">="))
         {
             op = ComparisonOperator.GreaterThanOrEqual;

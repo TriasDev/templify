@@ -399,7 +399,7 @@ Can proceed: ✓
 
 **Supported operators**:
 - Logical: `and`, `or`, `not`
-- Comparison: `==`, `!=`, `>`, `>=`, `<`, `<=`
+- Comparison: `=`, `==`, `!=`, `>`, `>=`, `<`, `<=`
 - Nested: `((var1 or var2) and var3)`
 
 See the [Boolean Expressions Guide](for-template-authors/boolean-expressions.md) for complete documentation.
@@ -565,7 +565,7 @@ Parallel.ForEach(dataList, data =>
 1. **Condition syntax**: `{{#if IsActive}}` not `{{if IsActive}}`
 2. **Variable exists**: Provide the variable in data
 3. **Type mismatch**: `"true"` (string) is not `true` (boolean)
-4. **Comparison operators**: Use `==` for equality, not `=`
+4. **Comparison operators**: Use `=` or `==` for equality (both are supported)
 5. **Closing tag**: Must have `{{/if}}`
 
 ### Q: Loop isn't repeating. Why?
