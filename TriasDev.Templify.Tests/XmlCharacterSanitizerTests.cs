@@ -93,9 +93,41 @@ public class XmlCharacterSanitizerTests
     }
 
     [Fact]
+    public void Sanitize_RemovesUnpairedHighSurrogate()
+    {
+        // \uD83D is a high surrogate (first half of 👍 U+1F44D) without its low surrogate
+        string input = "before\uD83Dafter";
+        Assert.Equal("beforeafter", XmlCharacterSanitizer.Sanitize(input));
+    }
+
+    [Fact]
+    public void Sanitize_RemovesUnpairedLowSurrogate()
+    {
+        // \uDC4D is a low surrogate (second half of 👍 U+1F44D) without its high surrogate
+        string input = "before\uDC4Dafter";
+        Assert.Equal("beforeafter", XmlCharacterSanitizer.Sanitize(input));
+    }
+
+    [Fact]
+    public void Sanitize_RemovesReversedSurrogatePair()
+    {
+        // Low surrogate before high surrogate — invalid ordering
+        string input = "before\uDC4D\uD83Dafter";
+        Assert.Equal("beforeafter", XmlCharacterSanitizer.Sanitize(input));
+    }
+
+    [Fact]
     public void Sanitize_StringWithoutInvalidChars_ReturnsSameInstance()
     {
         string input = "No invalid characters here";
+        string result = XmlCharacterSanitizer.Sanitize(input);
+        Assert.Same(input, result);
+    }
+
+    [Fact]
+    public void Sanitize_StringWithValidSurrogatePair_ReturnsSameInstance()
+    {
+        string input = "Hello 👍 World";
         string result = XmlCharacterSanitizer.Sanitize(input);
         Assert.Same(input, result);
     }
