@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using TriasDev.Templify.Formatting;
+using TriasDev.Templify.Utilities;
 
 namespace TriasDev.Templify.Placeholders;
 
@@ -48,12 +49,12 @@ internal static class ValueConverter
         {
             if (string.Equals(format, "uppercase", StringComparison.OrdinalIgnoreCase))
             {
-                return strValue.ToUpper(culture);
+                return SanitizeXml(strValue.ToUpper(culture));
             }
 
             if (string.Equals(format, "lowercase", StringComparison.OrdinalIgnoreCase))
             {
-                return strValue.ToLower(culture);
+                return SanitizeXml(strValue.ToLower(culture));
             }
         }
 
@@ -70,7 +71,7 @@ internal static class ValueConverter
         }
 
         // Default conversion without format
-        return value switch
+        return SanitizeXml(value switch
         {
             null => string.Empty,
             string str => str,
@@ -83,7 +84,16 @@ internal static class ValueConverter
             long lng => lng.ToString(culture),
             bool boolean => boolean.ToString(),
             _ => value.ToString() ?? string.Empty
-        };
+        });
+    }
+
+    /// <summary>
+    /// Removes characters that are invalid in XML 1.0 (e.g., 0x02 STX)
+    /// to prevent OpenXML serialization failures.
+    /// </summary>
+    private static string SanitizeXml(string value)
+    {
+        return XmlCharacterSanitizer.Sanitize(value)!;
     }
 
     private static bool IsNumeric(object? value)

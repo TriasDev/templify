@@ -785,4 +785,34 @@ public class ValueConverterTests
     }
 
     #endregion
+
+    #region XML Character Sanitization Tests
+
+    [Fact]
+    public void ConvertToString_WithInvalidXmlCharacter_RemovesIt()
+    {
+        // Arrange - string with 0x02 (STX) control character
+        string value = "before\u0002after";
+
+        // Act
+        string result = ConvertToString(value);
+
+        // Assert
+        Assert.Equal("beforeafter", result);
+    }
+
+    [Fact]
+    public void ConvertToString_WithMultipleInvalidXmlCharacters_RemovesAll()
+    {
+        // Arrange
+        string value = "Zugangs-\u0002und Berichtigungsrechte\u0003wahrn";
+
+        // Act
+        string result = ConvertToString(value);
+
+        // Assert
+        Assert.Equal("Zugangs-und Berichtigungsrechtewahrn", result);
+    }
+
+    #endregion
 }
