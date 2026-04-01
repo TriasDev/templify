@@ -1,0 +1,92 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      version: ${{ steps.release.outputs.version }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+
+    steps:
+      - id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  publish:
+    if: needs.release-please.outputs.release_created == 'true'
+    needs: release-please
+    runs-on: ubuntu-latest
+
+    env:
+      VERSION: ${{ needs.release-please.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            6.0.x
+            8.0.x
+            9.0.x
+
+      - name: Build
+        run: |
+          dotnet build TriasDev.Templify/TriasDev.Templify.csproj \
+            --configuration Release \
+            -p:Version=${{ env.VERSION }}
+
+      - name: Run tests
+        run: |
+          dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj \
+            --configuration Release \
+            --no-build \
+            --verbosity normal
+
+      - name: Pack
+        run: |
+          dotnet pack TriasDev.Templify/TriasDev.Templify.csproj \
+            --configuration Release \
+            --no-build \
+            -p:Version=${{ env.VERSION }} \
+            --output ./artifacts
+
+      - name: Push to NuGet
+        run: |
+          dotnet nuget push ./artifacts/*.nupkg \
+            --source https://api.nuget.org/v3/index.json \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --skip-duplicate
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: ./artifacts/*.nupkg
+
+      - name: Summary
+        run: |
+          echo "## NuGet Release" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Key | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Package** | \`TriasDev.Templify\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Version** | \`${{ env.VERSION }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Tag** | \`${{ needs.release-please.outputs.tag_name }}\` |" >> $GITHUB_STEP_SUMMARY

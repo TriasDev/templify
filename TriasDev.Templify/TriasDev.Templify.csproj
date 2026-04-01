@@ -23,7 +23,6 @@
     <PackageTags>word;docx;template;openxml;document-generation;templating;word-documents;office;dotnet;email;text-templates</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
-    <PackageReleaseNotes>v1.6.0: Header and footer support for placeholders, conditionals, and loops. Non-boolean format specifiers (currency, number, string, date). Unified equality operators (== alias for =) with condition validation.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
