@@ -3,7 +3,6 @@
 
 using System.Globalization;
 using TriasDev.Templify.Formatting;
-using TriasDev.Templify.Utilities;
 
 namespace TriasDev.Templify.Placeholders;
 
@@ -39,7 +38,7 @@ internal static class ValueConverter
             var registry = formatterRegistry ?? new BooleanFormatterRegistry(culture);
             if (registry.TryFormat(boolValue, format, out string? formattedValue))
             {
-                return SanitizeXml(formattedValue!);
+                return formattedValue!;
             }
             // Fall through to default formatting if format not found
         }
@@ -49,29 +48,29 @@ internal static class ValueConverter
         {
             if (string.Equals(format, "uppercase", StringComparison.OrdinalIgnoreCase))
             {
-                return SanitizeXml(strValue.ToUpper(culture));
+                return strValue.ToUpper(culture);
             }
 
             if (string.Equals(format, "lowercase", StringComparison.OrdinalIgnoreCase))
             {
-                return SanitizeXml(strValue.ToLower(culture));
+                return strValue.ToLower(culture);
             }
         }
 
         // Handle number formatting with format specifier
         if (!string.IsNullOrWhiteSpace(format) && IsNumeric(value) && TryFormatNumber(value!, culture, format!, out string? numberResult))
         {
-            return SanitizeXml(numberResult!);
+            return numberResult!;
         }
 
         // Handle date formatting with format specifier
         if (!string.IsNullOrWhiteSpace(format) && TryFormatDate(value, culture, format!, out string? dateResult))
         {
-            return SanitizeXml(dateResult!);
+            return dateResult!;
         }
 
         // Default conversion without format
-        return SanitizeXml(value switch
+        return value switch
         {
             null => string.Empty,
             string str => str,
@@ -84,16 +83,7 @@ internal static class ValueConverter
             long lng => lng.ToString(culture),
             bool boolean => boolean.ToString(),
             _ => value.ToString() ?? string.Empty
-        });
-    }
-
-    /// <summary>
-    /// Removes characters that are invalid in XML 1.0 (e.g., 0x02 STX)
-    /// to prevent OpenXML serialization failures.
-    /// </summary>
-    private static string SanitizeXml(string value)
-    {
-        return XmlCharacterSanitizer.Sanitize(value)!;
+        };
     }
 
     private static bool IsNumeric(object? value)

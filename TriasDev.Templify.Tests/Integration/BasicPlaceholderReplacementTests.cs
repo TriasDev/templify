@@ -343,4 +343,37 @@ public sealed class BasicPlaceholderReplacementTests
         Assert.Contains("123.45", text);
         Assert.Contains("True", text);
     }
+
+    [Fact]
+    public void ProcessTemplate_ValueWithInvalidXmlCharacters_SanitizesAndSucceeds()
+    {
+        // Arrange — simulate JSON data containing control characters (e.g., 0x02 STX)
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("Description: {{Description}}");
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Description"] = "Zugangs-\u0002und Berichtigungsrechte"
+        };
+
+        PlaceholderReplacementOptions options = new PlaceholderReplacementOptions
+        {
+            Culture = CultureInfo.InvariantCulture
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor(options);
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert — should succeed without XML serialization error
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.ReplacementCount);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        Assert.Equal("Description: Zugangs-und Berichtigungsrechte", verifier.GetParagraphText(0));
+    }
 }
