@@ -152,6 +152,10 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
             // Note: Apply returns null only if input is null, which won't happen here
             replacementValue = TextReplacements.Apply(replacementValue, _options.TextReplacements)!;
 
+            // Remove characters invalid in XML 1.0 (e.g., 0x02 STX from JSON data)
+            // to prevent OpenXML serialization failures
+            replacementValue = XmlCharacterSanitizer.Sanitize(replacementValue)!;
+
             ReplacePlaceholderInParagraph(paragraph, placeholder, replacementValue);
             _replacementCount++;
         }
