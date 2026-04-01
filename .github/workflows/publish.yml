@@ -23,11 +23,18 @@ jobs:
             9.0.x
             10.0.x
 
+      - name: Normalize version
+        id: version
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          VERSION="${VERSION#v}"
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Build
         run: |
           dotnet build TriasDev.Templify/TriasDev.Templify.csproj \
             --configuration Release \
-            -p:Version=${{ github.event.inputs.version }}
+            -p:Version=${{ steps.version.outputs.VERSION }}
 
       - name: Run tests
         run: |
@@ -41,7 +48,7 @@ jobs:
           dotnet pack TriasDev.Templify/TriasDev.Templify.csproj \
             --configuration Release \
             --no-build \
-            -p:Version=${{ github.event.inputs.version }} \
+            -p:Version=${{ steps.version.outputs.VERSION }} \
             --output ./artifacts
 
       - name: Push to NuGet
