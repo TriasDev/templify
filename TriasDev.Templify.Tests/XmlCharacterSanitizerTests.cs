@@ -79,6 +79,20 @@ public class XmlCharacterSanitizerTests
     }
 
     [Fact]
+    public void Sanitize_PreservesEmoji()
+    {
+        string input = "Status: 👍 OK";
+        Assert.Equal(input, XmlCharacterSanitizer.Sanitize(input));
+    }
+
+    [Fact]
+    public void Sanitize_EntirelyInvalidCharacters_ReturnsEmpty()
+    {
+        string input = "\u0001\u0002\u0003";
+        Assert.Equal(string.Empty, XmlCharacterSanitizer.Sanitize(input));
+    }
+
+    [Fact]
     public void Sanitize_StringWithoutInvalidChars_ReturnsSameInstance()
     {
         string input = "No invalid characters here";

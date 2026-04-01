@@ -62,7 +62,11 @@ internal static class XmlCharacterSanitizer
     private static bool IsValidXmlCharacter(char c)
     {
         // XML 1.0 valid characters: #x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD]
-        // Surrogate pairs (#x10000-#x10FFFF) are handled as surrogate char pairs by .NET
-        return c == '\x09' || c == '\x0A' || c == '\x0D' || (c >= '\x20' && c <= '\xD7FF') || (c >= '\xE000' && c <= '\xFFFD');
+        // Surrogate chars (0xD800-0xDFFF) are allowed through because they form valid pairs
+        // for supplementary plane characters (#x10000-#x10FFFF) like emoji.
+        return c == '\x09' || c == '\x0A' || c == '\x0D'
+            || (c >= '\x20' && c <= '\xD7FF')
+            || (c >= '\xD800' && c <= '\xDFFF')  // Surrogates: allow for valid pairs (emoji, etc.)
+            || (c >= '\xE000' && c <= '\xFFFD');
     }
 }

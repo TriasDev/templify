@@ -39,7 +39,7 @@ internal static class ValueConverter
             var registry = formatterRegistry ?? new BooleanFormatterRegistry(culture);
             if (registry.TryFormat(boolValue, format, out string? formattedValue))
             {
-                return formattedValue!;
+                return SanitizeXml(formattedValue!);
             }
             // Fall through to default formatting if format not found
         }
@@ -61,13 +61,13 @@ internal static class ValueConverter
         // Handle number formatting with format specifier
         if (!string.IsNullOrWhiteSpace(format) && IsNumeric(value) && TryFormatNumber(value!, culture, format!, out string? numberResult))
         {
-            return numberResult!;
+            return SanitizeXml(numberResult!);
         }
 
         // Handle date formatting with format specifier
         if (!string.IsNullOrWhiteSpace(format) && TryFormatDate(value, culture, format!, out string? dateResult))
         {
-            return dateResult!;
+            return SanitizeXml(dateResult!);
         }
 
         // Default conversion without format
