@@ -1,8 +1,6 @@
-name: Publish to NuGet
+name: Publish to NuGet (Manual)
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       version:
@@ -23,16 +21,13 @@ jobs:
             6.0.x
             8.0.x
             9.0.x
+            10.0.x
 
-      - name: Determine version
+      - name: Normalize version
         id: version
         run: |
-          if [[ "${{ github.event_name }}" == "release" ]]; then
-            VERSION="${{ github.event.release.tag_name }}"
-            VERSION="${VERSION#v}"  # Remove 'v' prefix if present
-          else
-            VERSION="${{ github.event.inputs.version }}"
-          fi
+          VERSION="${{ github.event.inputs.version }}"
+          VERSION="${VERSION#v}"
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Build
