@@ -30,7 +30,7 @@
             <TextBox Grid.Column="1"
                      Text="{Binding TemplatePath}"
                      IsReadOnly="True"
-                     Watermark="Select a .docx template file"
+                     PlaceholderText="Select a .docx template file"
                      Margin="10,0,10,0"/>
             <Button Grid.Column="2"
                     Content="Browse..."
@@ -43,7 +43,7 @@
             <TextBox Grid.Column="1"
                      Text="{Binding JsonPath}"
                      IsReadOnly="True"
-                     Watermark="Select a .json data file"
+                     PlaceholderText="Select a .json data file"
                      Margin="10,0,10,0"/>
             <Button Grid.Column="2"
                     Content="Browse..."
@@ -56,7 +56,7 @@
             <TextBox Grid.Column="1"
                      Text="{Binding OutputPath}"
                      IsReadOnly="True"
-                     Watermark="Output will be saved here"
+                     PlaceholderText="Output will be saved here"
                      Margin="10,0,10,0"/>
             <Button Grid.Column="2"
                     Content="Browse..."
