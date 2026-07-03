@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.2](https://github.com/TriasDev/templify/compare/v1.6.1...v1.6.2) (2026-07-03)
+
+
+### Bug Fixes
+
+* **conditionals:** keep table cells valid when a branch is removed ([#117](https://github.com/TriasDev/templify/issues/117)) ([#118](https://github.com/TriasDev/templify/issues/118)) ([fbd159a](https://github.com/TriasDev/templify/commit/fbd159a555b58f29b9cd72c6c89ad5e101112284))
+
 ## [1.6.1](https://github.com/TriasDev/templify/compare/v1.6.0...v1.6.1) (2026-04-01)
 
 
