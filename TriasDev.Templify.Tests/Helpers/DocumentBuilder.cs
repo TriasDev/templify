@@ -226,6 +226,63 @@ public sealed class DocumentBuilder
     }
 
     /// <summary>
+    /// Adds a table where each cell can contain multiple paragraphs.
+    /// Useful for reproducing block-level conditionals (e.g. {{#if}} / {{/if}} on
+    /// separate paragraphs) whose entire content is a single table cell.
+    /// </summary>
+    /// <param name="rows">Number of rows.</param>
+    /// <param name="columns">Number of columns.</param>
+    /// <param name="cellParagraphsProvider">Returns the paragraph texts for cell (row, col). One paragraph per string.</param>
+    public DocumentBuilder AddTableWithCellParagraphs(
+        int rows,
+        int columns,
+        Func<int, int, string[]> cellParagraphsProvider)
+    {
+        Table table = new Table();
+
+        TableProperties tableProperties = new TableProperties();
+        TableBorders tableBorders = new TableBorders(
+            new TopBorder { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 4 },
+            new BottomBorder { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 4 },
+            new LeftBorder { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 4 },
+            new RightBorder { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 4 },
+            new InsideHorizontalBorder { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 4 },
+            new InsideVerticalBorder { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 4 }
+        );
+        tableProperties.Append(tableBorders);
+        table.Append(tableProperties);
+
+        for (int row = 0; row < rows; row++)
+        {
+            TableRow tableRow = new TableRow();
+
+            for (int col = 0; col < columns; col++)
+            {
+                TableCell cell = new TableCell();
+
+                foreach (string paragraphText in cellParagraphsProvider(row, col))
+                {
+                    Paragraph paragraph = new Paragraph();
+                    Run run = new Run();
+                    Text text = new Text(paragraphText);
+                    text.Space = SpaceProcessingModeValues.Preserve;
+                    run.Append(text);
+                    paragraph.Append(run);
+                    cell.Append(paragraph);
+                }
+
+                tableRow.Append(cell);
+            }
+
+            table.Append(tableRow);
+        }
+
+        _body.Append(table);
+
+        return this;
+    }
+
+    /// <summary>
     /// Adds a table with the specified number of rows and columns.
     /// </summary>
     public DocumentBuilder AddTable(int rows, int columns, Func<int, int, string> cellTextProvider)

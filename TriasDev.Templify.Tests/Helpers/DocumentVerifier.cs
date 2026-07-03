@@ -204,6 +204,54 @@ public sealed class DocumentVerifier : IDisposable
     }
 
     /// <summary>
+    /// Gets the number of paragraphs directly inside a specific table cell.
+    /// </summary>
+    public int GetTableCellParagraphCount(int tableIndex, int rowIndex, int columnIndex)
+    {
+        return GetTableCell(tableIndex, rowIndex, columnIndex).Elements<Paragraph>().Count();
+    }
+
+    /// <summary>
+    /// Determines whether a specific table cell's last child element is a paragraph.
+    /// Per ECMA-376 §17.4.66, a table cell must contain at least one block-level
+    /// element and must end with a paragraph, otherwise the OOXML is invalid.
+    /// </summary>
+    public bool DoesTableCellEndWithParagraph(int tableIndex, int rowIndex, int columnIndex)
+    {
+        return GetTableCell(tableIndex, rowIndex, columnIndex).LastChild is Paragraph;
+    }
+
+    /// <summary>
+    /// Navigates to a specific table cell, validating all indexes.
+    /// </summary>
+    private TableCell GetTableCell(int tableIndex, int rowIndex, int columnIndex)
+    {
+        IEnumerable<Table> tables = _body.Elements<Table>();
+
+        if (tableIndex < 0 || tableIndex >= tables.Count())
+        {
+            throw new ArgumentOutOfRangeException(nameof(tableIndex));
+        }
+
+        Table table = tables.ElementAt(tableIndex);
+        List<TableRow> rows = table.Elements<TableRow>().ToList();
+
+        if (rowIndex < 0 || rowIndex >= rows.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(rowIndex));
+        }
+
+        List<TableCell> cells = rows[rowIndex].Elements<TableCell>().ToList();
+
+        if (columnIndex < 0 || columnIndex >= cells.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(columnIndex));
+        }
+
+        return cells[columnIndex];
+    }
+
+    /// <summary>
     /// Gets the RunProperties from a specific cell in a table.
     /// </summary>
     public RunProperties? GetTableCellRunProperties(

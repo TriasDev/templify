@@ -90,6 +90,10 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
     /// </summary>
     private void ProcessBranches(ConditionalBlock conditional, ConditionalBranch? matchingBranch)
     {
+        // Table cells that could be emptied by this block's removals.
+        // Captured BEFORE mutating the tree, so ancestor lookups still resolve.
+        HashSet<TableCell> affectedCells = CollectAncestorCells(conditional);
+
         // Remove all branch markers
         foreach (ConditionalBranch branch in conditional.Branches)
         {
@@ -108,7 +112,64 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
         // Remove the end marker
         TemplateElementHelper.SafeRemove(conditional.EndMarker);
 
-        // Matching branch content (if any) remains in the document
+        // Matching branch content (if any) remains in the document.
+
+        // ECMA-376 §17.4.66: a <w:tc> must contain at least one block-level element and must end
+        // with a <w:p>. Removing a branch can empty a cell whose entire content was the conditional
+        // block; top such cells back up so the produced OOXML stays valid.
+        EnsureCellsEndWithParagraph(affectedCells);
+    }
+
+    /// <summary>
+    /// Collects the table cells that contain any of the conditional's markers or content elements.
+    /// Must be called before the tree is mutated so ancestor lookups still resolve.
+    /// </summary>
+    private static HashSet<TableCell> CollectAncestorCells(ConditionalBlock conditional)
+    {
+        HashSet<TableCell> cells = new HashSet<TableCell>();
+
+        void AddCellOf(OpenXmlElement? node)
+        {
+            TableCell? cell = node?.Ancestors<TableCell>().FirstOrDefault();
+            if (cell is not null)
+            {
+                cells.Add(cell);
+            }
+        }
+
+        foreach (ConditionalBranch branch in conditional.Branches)
+        {
+            AddCellOf(branch.Marker);
+            foreach (OpenXmlElement element in branch.ContentElements)
+            {
+                AddCellOf(element);
+            }
+        }
+
+        AddCellOf(conditional.EndMarker);
+
+        return cells;
+    }
+
+    /// <summary>
+    /// Ensures every given table cell still ends with a paragraph, appending an empty one if needed.
+    /// Cells that were themselves removed (e.g. a table-row conditional) are skipped.
+    /// </summary>
+    private static void EnsureCellsEndWithParagraph(IEnumerable<TableCell> cells)
+    {
+        foreach (TableCell cell in cells)
+        {
+            // Skip cells that were removed along with their containing row.
+            if (cell.Parent is null)
+            {
+                continue;
+            }
+
+            if (cell.LastChild is not Paragraph)
+            {
+                cell.AppendChild(new Paragraph());
+            }
+        }
     }
 
     /// <summary>
