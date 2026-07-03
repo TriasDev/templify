@@ -16,7 +16,6 @@ namespace TriasDev.Templify.Visitors;
 /// Expands loops by cloning content for each collection item.
 /// </summary>
 /// <remarks>
-/// This visitor wraps the loop expansion logic from LoopProcessor into the visitor pattern.
 /// Benefits:
 /// - Works with DocumentWalker for unified traversal
 /// - Context-aware (uses IEvaluationContext from Phase 1)

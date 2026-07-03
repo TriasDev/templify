@@ -335,6 +335,13 @@ graph TD
 
 ## Core Components
 
+> **Note (December 2025):** The classes `DocumentBodyReplacer` (§3), `TableReplacer` (§4),
+> `LoopProcessor` (§7), and `ConditionalProcessor` were **removed** from the codebase. They
+> were the pre-Phase 2 processing path and had been kept only for reference after the visitor
+> pattern superseded them. Their responsibilities now live in `PlaceholderVisitor`,
+> `LoopVisitor`, and `ConditionalVisitor` (see *Current Architecture* above). The sections
+> below are retained as a description of the historical design.
+
 ### 1. DocumentTemplateProcessor
 
 **Purpose**: Main entry point and orchestrator
