@@ -17,12 +17,10 @@ namespace TriasDev.Templify.Visitors;
 /// Evaluates conditions and removes non-matching branches.
 /// </summary>
 /// <remarks>
-/// This visitor wraps the logic from ConditionalProcessor into the visitor pattern.
 /// Benefits:
 /// - Works with DocumentWalker for unified traversal
 /// - Context-aware (uses IEvaluationContext from Phase 1)
 /// - Can be composed with other visitors
-/// - Eliminates duplication between ConditionalProcessor and LoopProcessor
 /// </remarks>
 internal sealed class ConditionalVisitor : ITemplateElementVisitor
 {

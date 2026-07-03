@@ -27,8 +27,7 @@ namespace TriasDev.Templify.Visitors;
 /// - Handles both global variables and loop-scoped variables
 ///
 /// Note: DocumentWalker calls VisitPlaceholder for EACH placeholder in a paragraph.
-/// This visitor processes them individually, unlike DocumentBodyReplacer which
-/// processes all placeholders in a paragraph at once.
+/// This visitor processes them individually.
 /// </remarks>
 internal sealed class PlaceholderVisitor : ITemplateElementVisitor
 {

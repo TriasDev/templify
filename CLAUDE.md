@@ -253,7 +253,6 @@ The library uses a **visitor pattern** for processing Word documents, enabling:
 **Conditionals:**
 - `Conditionals/ConditionalBlock.cs` - Data structure for if/else blocks
 - `Conditionals/ConditionalDetector.cs` - Finds conditional blocks
-- `Conditionals/ConditionalProcessor.cs` - Legacy processor (kept for reference)
 - `Conditionals/ConditionalEvaluator.cs` - Evaluates expressions with operators
 - `Conditionals/IConditionEvaluator.cs` - Public interface for standalone condition evaluation
 - `Conditionals/ConditionEvaluator.cs` - Public implementation of standalone evaluator
@@ -263,7 +262,6 @@ The library uses a **visitor pattern** for processing Word documents, enabling:
 **Loops:**
 - `Loops/LoopBlock.cs` - Data structure for loop blocks
 - `Loops/LoopDetector.cs` - Finds foreach blocks
-- `Loops/LoopProcessor.cs` - Legacy processor (kept for reference)
 - `Loops/LoopContext.cs` - Loop iteration state
 - `Loops/LoopEvaluationContext.cs` - Loop-scoped variable resolution
 
@@ -271,8 +269,6 @@ The library uses a **visitor pattern** for processing Word documents, enabling:
 - `Placeholders/PlaceholderFinder.cs` - Pattern matching for {{placeholders}}
 - `Placeholders/ValueResolver.cs` - Variable lookup
 - `Placeholders/ValueConverter.cs` - Type conversion to strings
-- `Placeholders/DocumentBodyReplacer.cs` - Legacy body replacer
-- `Placeholders/TableReplacer.cs` - Legacy table replacer
 
 **Property Paths:**
 - `PropertyPaths/PropertyPath.cs` - Parsed property path representation

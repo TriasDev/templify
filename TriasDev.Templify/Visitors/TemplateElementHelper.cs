@@ -14,7 +14,6 @@ namespace TriasDev.Templify.Visitors;
 /// This class consolidates duplicate implementations from:
 /// - ConditionalDetector.GetElementText()
 /// - LoopDetector.GetElementText()
-/// - LoopProcessor.GetElementText()
 /// </remarks>
 internal static class TemplateElementHelper
 {
@@ -33,7 +32,6 @@ internal static class TemplateElementHelper
     /// This method replaces 3 duplicate implementations:
     /// - ConditionalDetector.GetElementText() (lines 189-207)
     /// - LoopDetector.GetElementText() (lines 150-168)
-    /// - LoopProcessor.GetElementText() (lines 548-566)
     /// </remarks>
     public static string? GetElementText(OpenXmlElement element)
     {
@@ -69,7 +67,7 @@ internal static class TemplateElementHelper
     /// <param name="element">The element to remove.</param>
     /// <remarks>
     /// Prevents "element has no parent" exceptions when removing already-detached elements.
-    /// This is a common pattern in ConditionalProcessor and LoopProcessor where elements
+    /// This is a common pattern in the conditional and loop visitors where elements
     /// may have been removed by nested processing.
     /// </remarks>
     public static void SafeRemove(OpenXmlElement element)
