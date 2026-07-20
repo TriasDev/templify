@@ -5,7 +5,6 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using TriasDev.Templify.Conditionals;
 using TriasDev.Templify.Core;
-using TriasDev.Templify.Expressions;
 using TriasDev.Templify.Loops;
 using TriasDev.Templify.Markdown;
 using TriasDev.Templify.Placeholders;
@@ -71,39 +70,18 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         // Check if this is an expression
         if (placeholder.IsExpression)
         {
-            // Parse and evaluate the expression
-            var parser = new BooleanExpressionParser();
-            BooleanExpression? expression = parser.Parse(placeholder.VariableName);
-
-            if (expression != null)
+            try
             {
-                try
-                {
-                    var dataContext = new EvaluationContextAdapter(context);
-                    bool result = expression.Evaluate(dataContext);
-                    value = result;
-                    resolved = true;
-                }
-                catch (ArgumentException ex)
-                {
-                    _warningCollector.AddWarning(ProcessingWarning.ExpressionFailed(placeholder.VariableName, ex.Message));
-                    resolved = false;
-                    value = null;
-                }
-                catch (InvalidOperationException ex)
-                {
-                    _warningCollector.AddWarning(ProcessingWarning.ExpressionFailed(placeholder.VariableName, ex.Message));
-                    resolved = false;
-                    value = null;
-                }
-                catch (InvalidCastException ex)
-                {
-                    _warningCollector.AddWarning(ProcessingWarning.ExpressionFailed(placeholder.VariableName, ex.Message));
-                    resolved = false;
-                    value = null;
-                }
+                IReadOnlyList<Conditionals.Engine.ConditionToken> tokens =
+                    new Conditionals.Engine.ConditionLexer().Tokenize(placeholder.VariableName);
+                Conditionals.Engine.ConditionNode node =
+                    new Conditionals.Engine.ConditionParser(Conditionals.Engine.ConditionOperatorRegistry.Shared).Parse(tokens);
+                bool result = new Conditionals.Engine.ConditionEvaluatorCore(context, Conditionals.Engine.InlineConditionDialect.Instance)
+                    .EvaluateBool(node);
+                value = result;
+                resolved = true;
             }
-            else
+            catch (Conditionals.Engine.ConditionParseException)
             {
                 _warningCollector.AddWarning(ProcessingWarning.ExpressionFailed(placeholder.VariableName, "Failed to parse expression"));
                 resolved = false;
