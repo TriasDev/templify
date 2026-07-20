@@ -98,6 +98,12 @@ internal sealed class ConditionalEvaluator
             {
                 currentType = "not";
             }
+            else if (string.Equals(token, "exists", StringComparison.OrdinalIgnoreCase)
+                  || string.Equals(token, "empty", StringComparison.OrdinalIgnoreCase)
+                  || string.Equals(token, "is", StringComparison.OrdinalIgnoreCase))
+            {
+                currentType = "comparison";
+            }
             else if (IsComparisonOperator(token))
             {
                 currentType = "comparison";
