@@ -3,21 +3,21 @@
 
 namespace TriasDev.Templify.Conditionals.Engine;
 
-/// <summary>Contract for operator implementations in the condition-expression engine.</summary>
-/// <remarks>
-/// This interface is implemented by built-in operators (equality, comparison, logical, etc).
-/// The <c>Evaluate</c> method is added in Task 3 when the evaluator core is available.
-/// </remarks>
+/// <summary>
+/// A pluggable condition operator. Adding a new operator means implementing this and
+/// registering it in <see cref="ConditionOperatorRegistry"/>; the parser is not modified.
+/// </summary>
 internal interface IConditionOperator
 {
-    /// <summary>The token strings that invoke this operator (e.g., <c>"=", "==" for equality</c>).</summary>
+    /// <summary>Token sequence that denotes this operator (e.g. ["="], ["is","empty"]).</summary>
     IReadOnlyList<string> Tokens { get; }
 
-    /// <summary>Operator precedence (higher number binds tighter).</summary>
+    /// <summary>Binding precedence (higher binds tighter).</summary>
     int Precedence { get; }
 
-    /// <summary>Where this operator sits relative to its operands (prefix, infix, postfix).</summary>
+    /// <summary>Operator position relative to its operands.</summary>
     OperatorFixity Fixity { get; }
 
-    // NOTE: Evaluate(...) method added in Task 3
+    /// <summary>Evaluates the operator against its operand nodes.</summary>
+    bool Evaluate(ConditionEvaluatorCore core, IReadOnlyList<ConditionNode> operands);
 }
