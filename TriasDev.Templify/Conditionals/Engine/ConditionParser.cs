@@ -42,11 +42,14 @@ internal sealed class ConditionParser
         while (true)
         {
             ConditionNode? postfixed = TryApplyPostfix(left);
-            if (postfixed != null) { left = postfixed; continue; }
+            if (postfixed != null)
+            { left = postfixed; continue; }
 
-            if (Current.Type != ConditionTokenType.Operator) { break; }
+            if (Current.Type != ConditionTokenType.Operator)
+            { break; }
             IConditionOperator? infix = _registry.FindInfix(Current.Text);
-            if (infix == null || infix.Precedence < minPrecedence) { break; }
+            if (infix == null || infix.Precedence < minPrecedence)
+            { break; }
 
             Advance();
             ConditionNode right = ParseExpression(infix.Precedence + 1);

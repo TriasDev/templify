@@ -24,11 +24,15 @@ internal sealed class ConditionLexer
         {
             char c = text[i];
 
-            if (char.IsWhiteSpace(c)) { i++; continue; }
+            if (char.IsWhiteSpace(c))
+            { i++; continue; }
 
-            if (c == '(') { tokens.Add(new ConditionToken(ConditionTokenType.LParen, "(")); i++; continue; }
-            if (c == ')') { tokens.Add(new ConditionToken(ConditionTokenType.RParen, ")")); i++; continue; }
-            if (c == ',') { tokens.Add(new ConditionToken(ConditionTokenType.Comma, ",")); i++; continue; }
+            if (c == '(')
+            { tokens.Add(new ConditionToken(ConditionTokenType.LParen, "(")); i++; continue; }
+            if (c == ')')
+            { tokens.Add(new ConditionToken(ConditionTokenType.RParen, ")")); i++; continue; }
+            if (c == ',')
+            { tokens.Add(new ConditionToken(ConditionTokenType.Comma, ",")); i++; continue; }
 
             if (c == '"')
             {
@@ -36,7 +40,8 @@ internal sealed class ConditionLexer
                 StringBuilder sb = new();
                 while (i < text.Length && text[i] != '"')
                 {
-                    if (text[i] == '\\' && i + 1 < text.Length && text[i + 1] == '"') { sb.Append('"'); i += 2; continue; }
+                    if (text[i] == '\\' && i + 1 < text.Length && text[i + 1] == '"')
+                    { sb.Append('"'); i += 2; continue; }
                     sb.Append(text[i]);
                     i++;
                 }
@@ -56,8 +61,10 @@ internal sealed class ConditionLexer
             if (IsWordChar(c) || (c == '-' && i + 1 < text.Length && char.IsDigit(text[i + 1])))
             {
                 int start = i;
-                if (c == '-') { i++; }
-                while (i < text.Length && IsWordChar(text[i])) { i++; }
+                if (c == '-')
+                { i++; }
+                while (i < text.Length && IsWordChar(text[i]))
+                { i++; }
                 string word = text.Substring(start, i - start);
                 tokens.Add(ClassifyWord(word));
                 continue;
@@ -128,12 +135,14 @@ internal sealed class ConditionLexer
             string pair = text.Substring(i, 2);
             foreach (string op in twoChar)
             {
-                if (pair == op) { return op; }
+                if (pair == op)
+                { return op; }
             }
         }
 
         char c = text[i];
-        if (c == '=' || c == '>' || c == '<') { return c.ToString(); }
+        if (c == '=' || c == '>' || c == '<')
+        { return c.ToString(); }
         return null;
     }
 
