@@ -11,7 +11,6 @@ internal sealed class ConditionOperatorRegistry
     private readonly Dictionary<string, IConditionOperator> _infix = new(StringComparer.Ordinal);
     private readonly Dictionary<string, IConditionOperator> _prefix = new(StringComparer.Ordinal);
     private readonly List<IConditionOperator> _postfix = new();
-    private readonly HashSet<string> _allTokens = new(StringComparer.Ordinal);
 
     public static ConditionOperatorRegistry Shared { get; } = CreateDefault();
 
@@ -21,15 +20,8 @@ internal sealed class ConditionOperatorRegistry
 
     public IConditionOperator? FindPrefix(string token) => _prefix.GetValueOrDefault(token);
 
-    public bool IsKnownOperatorToken(string token) => _allTokens.Contains(token);
-
     public void Register(IConditionOperator op)
     {
-        foreach (string token in op.Tokens)
-        {
-            _allTokens.Add(token);
-        }
-
         switch (op.Fixity)
         {
             case OperatorFixity.Infix:

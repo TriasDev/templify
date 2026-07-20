@@ -36,13 +36,21 @@ internal sealed class ConditionalEvaluator
     /// Validates a conditional expression for syntactic correctness.
     /// This is a pure syntax check that does not require a data context.
     /// </summary>
+    /// <remarks>
+    /// Validation is parser-based so that it accepts exactly what <see cref="Evaluate(string, IEvaluationContext)"/>
+    /// accepts (including the operator syntax added by the expression engine, e.g. <c>in</c>, <c>contains</c>,
+    /// <c>exists</c>). Two independent pre-checks that the parser does not naturally surface are kept:
+    /// empty/whitespace expressions and unbalanced quotes (the lexer is permissive about unterminated
+    /// strings, so the parser would not report those). When the parser rejects an expression, a heuristic
+    /// structural analysis classifies the failure into a typed issue.
+    /// </remarks>
     /// <param name="expression">The expression to validate.</param>
     /// <returns>A validation result indicating whether the expression is valid and any issues found.</returns>
     internal ConditionValidationResult Validate(string expression)
     {
         List<ConditionValidationIssue> issues = new();
 
-        // Rule 1: Empty expression
+        // Pre-check (a): Empty/whitespace expression.
         if (string.IsNullOrWhiteSpace(expression))
         {
             issues.Add(new ConditionValidationIssue(
@@ -51,7 +59,8 @@ internal sealed class ConditionalEvaluator
             return ConditionValidationResult.Failure(issues);
         }
 
-        // Rule 2: Unbalanced quotes
+        // Pre-check (b): Unbalanced quotes. The lexer accepts unterminated strings, so the parser
+        // would NOT catch this — the pre-check must remain.
         string normalized = NormalizeQuotes(expression);
         int quoteCount = 0;
         foreach (char c in normalized)
@@ -69,24 +78,69 @@ internal sealed class ConditionalEvaluator
                 "Expression contains unbalanced quotes."));
         }
 
-        // Tokenize
+        // Attempt a real parse. Validate must accept everything the parser (and therefore Evaluate)
+        // accepts, including the new operator syntax.
+        if (TryParse(expression))
+        {
+            // Parser accepts the expression; only pre-check issues (if any) remain.
+            return issues.Count == 0
+                ? ConditionValidationResult.Success()
+                : ConditionValidationResult.Failure(issues);
+        }
+
+        // Parser rejected the expression. Fall back to the heuristic structural analysis to classify
+        // the failure into a typed issue, combined with any pre-check issues.
+        AnalyzeStructure(expression, issues);
+
+        if (issues.Count == 0)
+        {
+            // Parser failed but the heuristic found nothing specific; still report the expression as
+            // invalid rather than silently succeeding.
+            issues.Add(new ConditionValidationIssue(
+                ConditionValidationIssueType.MissingOperand,
+                "Expression is not a valid condition."));
+        }
+
+        return ConditionValidationResult.Failure(issues);
+    }
+
+    /// <summary>
+    /// Attempts to fully parse the expression using the expression engine.
+    /// </summary>
+    /// <returns><c>true</c> if the parser accepts the expression; otherwise <c>false</c>.</returns>
+    private static bool TryParse(string expression)
+    {
+        try
+        {
+            IReadOnlyList<Engine.ConditionToken> tokens = new Engine.ConditionLexer().Tokenize(expression);
+            new Engine.ConditionParser(Engine.ConditionOperatorRegistry.Shared).Parse(tokens);
+            return true;
+        }
+        catch (Engine.ConditionParseException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Heuristic structural analysis used only when the parser rejects an expression. It reproduces the
+    /// legacy whitespace-split classification so parser failures map onto the historical typed issues
+    /// (<see cref="ConditionValidationIssueType.MissingOperand"/>, <c>ConsecutiveOperators</c>,
+    /// <c>ConsecutiveOperands</c>, <c>UnknownOperator</c>). Discovered issues are appended to
+    /// <paramref name="issues"/>.
+    /// </summary>
+    private void AnalyzeStructure(string expression, List<ConditionValidationIssue> issues)
+    {
         List<string> tokens = ParseExpression(expression);
 
         if (tokens.Count == 0)
         {
-            if (issues.Count == 0)
-            {
-                issues.Add(new ConditionValidationIssue(
-                    ConditionValidationIssueType.EmptyExpression,
-                    "Expression is empty."));
-            }
-
-            return ConditionValidationResult.Failure(issues);
+            return;
         }
 
-        // Walk tokens and check structure
-        // Classify: "operator" (comparison/logical), "not", or "operand"
-        string? previousType = null; // "operand", "comparison", "logical", "not"
+        // Walk tokens and check structure.
+        // Classify: "operator" (comparison/logical), "not", "postfix", or "operand".
+        string? previousType = null;
         string? previousToken = null;
 
         for (int i = 0; i < tokens.Count; i++)
@@ -172,10 +226,6 @@ internal sealed class ConditionalEvaluator
                 $"Operator '{previousToken}' is missing a right-hand operand.",
                 previousToken));
         }
-
-        return issues.Count == 0
-            ? ConditionValidationResult.Success()
-            : ConditionValidationResult.Failure(issues);
     }
 
     /// <summary>

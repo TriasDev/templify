@@ -192,6 +192,25 @@ evaluator.Evaluate("(IsActive or IsTrial) and not IsBanned", data);
 !!! note "Operator Precedence"
     `and` binds tighter than `or` (`A or B and C` is `A or (B and C)`). Use parentheses to override the default precedence.
 
+## Reserved Words and Literal Quoting
+
+The operator keywords are **reserved words**. The following names are always parsed as operators, never as variable names or bareword text:
+
+```
+and, or, not, in, contains, startswith, endswith, exists, is, empty
+```
+
+Because these words are reserved, **string literals must be quoted**. Use `= "empty"` rather than `= empty`:
+
+```csharp
+evaluator.Evaluate("Category = \"empty\"", data);   // compares against the text "empty" -> true when Category is "empty"
+evaluator.Evaluate("Category = empty", data);        // "empty" is the reserved keyword, not a literal -> does not match
+```
+
+An unquoted reserved word on the right-hand side of a comparison is not a valid operand, so the expression fails to parse and `Evaluate` returns `false`. Always quote literals that could collide with a reserved word.
+
+In inline `{{(...)}}` expressions, **both sides of a comparison are resolved as variables-or-literals**: in `{{(A = B)}}`, both `A` and `B` are looked up in the data and the comparison succeeds when the resolved values are equal. Quote a side (`{{(A = "B")}}`) when you mean the literal text instead of a variable lookup.
+
 ## Expression Syntax
 
 ### Simple Variables
