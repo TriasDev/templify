@@ -59,8 +59,10 @@ internal sealed class ConditionOperatorRegistry
         r.Register(new GreaterOrEqualOperator());
         r.Register(new LessOrEqualOperator());
         r.Register(new InOperator());
-        // Tasks 7-9 add: ContainsOperator, StartsWithOperator, EndsWithOperator,
-        // ExistsOperator, IsEmptyOperator, IsNotEmptyOperator.
+        r.Register(new ContainsOperator());
+        r.Register(new StartsWithOperator());
+        r.Register(new EndsWithOperator());
+        // Tasks 8-9 add: ExistsOperator, IsEmptyOperator, IsNotEmptyOperator.
         return r;
     }
 }
