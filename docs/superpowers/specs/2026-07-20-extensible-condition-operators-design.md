@@ -41,10 +41,10 @@ New namespace `Conditionals/Engine/` (final name TBD in plan):
 
 - **`ConditionLexer`** — expression string → tokens: variable paths, string/number/bool/null literals, operator tokens, `(`, `)`, `,`. Quote normalization (curly → ASCII) lives here.
 - **AST** (`ConditionNode`): `LiteralNode`, `VariableNode`, `ListNode`, `BinaryNode`, `UnaryNode`.
-- **`ConditionParser`** — Pratt / precedence-climbing parser. Operator precedence, fixity and arity come from the **operator registry**, parameterized by the active **dialect**. Supports parenthesized grouping and list literals.
+- **`ConditionParser`** — Pratt / precedence-climbing parser. Operator precedence, fixity and arity come from the **operator registry** (single, uniform precedence — see §5). Supports parenthesized grouping and list literals.
 - **`IConditionOperator` + `ConditionOperatorRegistry`** — each operator = token(s), precedence, fixity (prefix/infix/postfix), `Evaluate`. **Adding an operator = registering one class; the parser is not touched.**
 - **`ConditionEvaluatorCore`** — walks the AST, resolving variables via `IEvaluationContext`, applying the dialect's value policy.
-- **`ConditionDialect`** — the per-entry-point policy: precedence profile, truthiness rule, comparison rule, bare-variable rule. Two instances (see §4).
+- **`ConditionDialect`** — the per-entry-point value policy: truthiness rule and base comparison rule (precedence is uniform, not dialect-specific). Two instances (see §4).
 
 Entry points become thin facades over the core:
 - `ConditionalEvaluator` (internal facade) → **Default** dialect. Keeps public `ConditionEvaluator`/`IConditionEvaluator`/`ConditionContext` signatures unchanged; used by `ConditionalVisitor` and `TextTemplateProcessor`.
@@ -55,44 +55,47 @@ Entry points become thin facades over the core:
 | Unit | Responsibility | Depends on |
 |---|---|---|
 | `ConditionLexer` | string → tokens | — |
-| `ConditionParser` | tokens → AST | registry, dialect (precedence) |
+| `ConditionParser` | tokens → AST | registry |
 | `ConditionOperatorRegistry` | token → operator metadata + eval | `IConditionOperator` impls |
 | `IConditionOperator` (per op) | one operator's parse metadata + evaluation | dialect value policy |
 | `ConditionEvaluatorCore` | AST → bool | `IEvaluationContext`, dialect |
-| `ConditionDialect` | precedence/truthiness/comparison policy | — |
+| `ConditionDialect` | truthiness + base comparison policy | — |
 | facades | orchestrate lex→parse→eval per entry point | all of the above |
 
 ## 4. Dialects (how both behaviors are preserved)
 
 One shared engine, two dialects differing only in semantic policy:
 
+**Precedence is now unified** to the standard `and > or` for all entry points (see §5). This was confirmed safe: no existing test in either suite (conditionals or boolean-expressions) asserts a mixed `and`/`or` precedence, and no known template relies on it. This removes precedence as a per-dialect concern.
+
+Dialects therefore differ only in **truthiness** and **comparison**, which are externally observable and relied upon:
+
 **Default dialect** — used by `{{#if}}`, text templates, standalone `IConditionEvaluator`.
-- `and`/`or`: equal precedence, left-associative (current behavior).
-- Truthiness: current `EvaluateValue` rules.
+- Truthiness: current `EvaluateValue` rules (rich: non-empty strings/collections, `"true"`/`"1"`, non-zero ints…).
 - Comparison: current `double.Parse` / `ToString` rules.
 
 **Inline dialect** — used by `{{(...)}}` placeholders.
-- `and`/`or`: `and > or` (current behavior).
 - Truthiness: bare variable true only if `bool true` (current behavior).
 - Comparison: `IComparable.CompareTo` / `object.Equals` (current behavior).
 
-New operators (`in`, `contains`, `startswith`, `endswith`, `exists`, `is empty`, grouping) are registered **once** and available in **both** dialects. Their own comparison sub-semantics (e.g. `in` element equality, string ops case-sensitivity) are defined by the operator and are identical across dialects (see §6); dialects only govern the pre-existing divergent behaviors above.
+New operators (`in`, `contains`, `startswith`, `endswith`, `exists`, `is empty`, grouping) are registered **once** and available in **both** dialects. Their own comparison sub-semantics (e.g. `in` element equality, string ops case-sensitivity) are defined by the operator and are identical across dialects (see §6); dialects only govern truthiness and the base comparison rule above.
 
-> Note: dialects intentionally preserve today's divergences rather than converge them. Convergence would change externally observable output and is out of scope.
+> Note: dialects preserve today's truthiness/comparison divergences rather than converge them (that would change externally observable output). Converging truthiness is a separate, later decision.
 
 ## 5. Precedence & Grouping
 
-Precedence table (binds looser → tighter). `and`/`or` level differs by dialect; everything else is shared:
+Single precedence table for all entry points (binds looser → tighter):
 
 | Level | Operators | Fixity / associativity |
 |---|---|---|
-| 1 (loosest) | `or`, then `and` — **Inline**: `and` tighter than `or`; **Default**: `or`/`and` equal, left-assoc | infix |
-| 2 | `not` | prefix |
-| 3 | `=` `==` `!=` `>` `<` `>=` `<=` `in` `contains` `startswith` `endswith` | infix |
-| 4 | `exists` `is empty` `is not empty` | postfix |
-| 5 (tightest) | `( ... )` grouping, `( a, b, ... )` list literal | — |
+| 1 (loosest) | `or` | infix, left-assoc |
+| 2 | `and` | infix, left-assoc |
+| 3 | `not` | prefix |
+| 4 | `=` `==` `!=` `>` `<` `>=` `<=` `in` `contains` `startswith` `endswith` | infix |
+| 5 | `exists` `is empty` `is not empty` | postfix |
+| 6 (tightest) | `( ... )` grouping, `( a, b, ... )` list literal | — |
 
-Because comparison/membership (level 3) bind tighter than `not` (level 2), `not Status in Roles` parses as `not (Status in Roles)`, reading naturally. Parentheses provide explicit grouping in both dialects: `(A or B) and C`.
+`and` binds tighter than `or` (standard). Because comparison/membership (level 4) bind tighter than `not` (level 3), `not Status in Roles` parses as `not (Status in Roles)`, reading naturally. Parentheses provide explicit grouping: `(A or B) and C`.
 
 ## 6. Operator Catalog (shared across dialects)
 
@@ -137,7 +140,7 @@ Parser-based validation replaces the heuristic, plus a **mapping layer** preserv
 
 - **Characterization gate:** the entire existing test suite (conditionals + boolean-expressions + integration) passes without edits. This proves both dialects preserve external behavior.
 - **Lexer:** tokenization, quote normalization, multi-word tokens (`is empty`, `is not empty`).
-- **Parser:** precedence per dialect, parenthesized grouping, list literals, associativity.
+- **Parser:** precedence (`and > or`, uniform), parenthesized grouping, list literals, associativity.
 - **Per operator:** `in` in all three RHS forms + negation; `contains`/`startswith`/`endswith`; `exists`/`is empty`/`is not empty` — tested in both dialects.
 - **Edge cases:** `in` with non-collection RHS, empty collection, `null` LHS; string operators with non-string operand; `exists`/`is empty` on nested property paths.
 
@@ -151,7 +154,7 @@ Update in the same PR:
 
 ## 12. Out of Scope
 
-- Converging the two dialects' truthiness/precedence into one behavior (would change external output).
+- Converging the two dialects' truthiness into one behavior (would change external output). Precedence is already unified.
 - Collection size comparison in conditions (`Items > 0`) — separate concern.
 - Regex `matches`, range `between` — deferred (YAGNI).
 - Public user-defined operator registration — architecture supports it, not implemented now.
