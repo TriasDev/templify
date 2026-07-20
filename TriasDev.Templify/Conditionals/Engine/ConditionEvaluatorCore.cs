@@ -38,7 +38,7 @@ internal sealed class ConditionEvaluatorCore
         return node switch
         {
             LiteralNode lit => lit.Value,
-            VariableNode var => Resolve(var),
+            VariableNode var => ResolveOrLiteral(var),
             ListNode list => MaterializeList(list),
             OperatorNode op => op.Operator.Evaluate(this, op.Operands),
             _ => null
@@ -49,6 +49,19 @@ internal sealed class ConditionEvaluatorCore
     {
         _context.TryResolveVariable(var.Path, out object? value);
         return value;
+    }
+
+    /// <summary>
+    /// Resolves a variable for use as a comparison operand, falling back to its own path
+    /// text as a string literal when it cannot be resolved. This preserves the historical
+    /// <c>ConditionalEvaluator</c> behavior where unquoted bareword comparison operands
+    /// (e.g. the <c>Active</c> in <c>Status = Active</c>) are treated as string literals
+    /// when they do not match a known variable. Truthiness checks (see <see cref="EvaluateBool"/>)
+    /// intentionally do NOT fall back this way, so a lone missing variable still evaluates to false.
+    /// </summary>
+    private object? ResolveOrLiteral(VariableNode var)
+    {
+        return _context.TryResolveVariable(var.Path, out object? value) ? value : var.Path;
     }
 
     private List<object?> MaterializeList(ListNode list)

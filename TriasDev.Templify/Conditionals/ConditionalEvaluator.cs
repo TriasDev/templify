@@ -1,7 +1,6 @@
 // Copyright (c) 2025 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System.Collections;
 using System.Text;
 using TriasDev.Templify.Core;
 using TriasDev.Templify.Placeholders;
@@ -206,22 +205,16 @@ internal sealed class ConditionalEvaluator
             return false;
         }
 
-        // Parse the expression into tokens
-        List<string> tokens = ParseExpression(expression);
-
-        if (tokens.Count == 0)
+        try
+        {
+            IReadOnlyList<Engine.ConditionToken> tokens = new Engine.ConditionLexer().Tokenize(expression);
+            Engine.ConditionNode node = new Engine.ConditionParser(Engine.ConditionOperatorRegistry.Shared).Parse(tokens);
+            return new Engine.ConditionEvaluatorCore(context, Engine.DefaultConditionDialect.Instance).EvaluateBool(node);
+        }
+        catch (Engine.ConditionParseException)
         {
             return false;
         }
-
-        // If it's a simple variable reference, evaluate it directly
-        if (tokens.Count == 1)
-        {
-            return EvaluateVariable(tokens[0], context, out _);
-        }
-
-        // Process complex expression with operators
-        return EvaluateTokens(tokens, context);
     }
 
     /// <summary>
@@ -282,346 +275,6 @@ internal sealed class ConditionalEvaluator
         return tokens;
     }
 
-    /// <summary>
-    /// Evaluates a list of tokens with operators.
-    /// </summary>
-    private bool EvaluateTokens(List<string> tokens, IEvaluationContext context)
-    {
-        // Check if expression starts with NOT
-        int startIndex = 0;
-        bool negateNext = false;
-        if (tokens[0].ToLower() == NotOperator)
-        {
-            negateNext = true;
-            startIndex = 1;
-        }
-
-        // Get the initial variable value
-        bool result = EvaluateVariable(tokens[startIndex], context, out object? currentValue);
-
-        string? lastOperator = null;
-        string? pendingLogicalOperator = null;
-
-        for (int i = startIndex + 1; i < tokens.Count; i++)
-        {
-            string token = tokens[i];
-
-            // Check if it's an operator
-            if (IsLogicalOperator(token))
-            {
-                pendingLogicalOperator = token.ToLower();
-                lastOperator = token.ToLower();
-            }
-            else if (IsComparisonOperator(token))
-            {
-                lastOperator = token.ToLower();
-            }
-            else if (token.ToLower() == NotOperator)
-            {
-                result = !result;
-                negateNext = !negateNext;
-            }
-            else
-            {
-                // This is a value/variable to compare
-                if (lastOperator != null)
-                {
-                    // Get the value (either from data or as literal)
-                    object? nextValue = ResolveValueOrLiteral(token, context);
-
-                    // Check if next operation is a comparison (for chained expressions like "var1 or var2 eq value")
-                    bool isComparisonFollowing = false;
-                    if (IsLogicalOperator(lastOperator) && i + 1 < tokens.Count)
-                    {
-                        isComparisonFollowing = IsComparisonOperator(tokens[i + 1]);
-                    }
-
-                    if (isComparisonFollowing)
-                    {
-                        // This is a variable for the next comparison
-                        currentValue = nextValue;
-                        continue;
-                    }
-
-                    // Perform the operation
-                    switch (lastOperator)
-                    {
-                        case OrOperator:
-                            result = result || EvaluateValue(nextValue);
-                            break;
-
-                        case AndOperator:
-                            result = result && EvaluateValue(nextValue);
-                            break;
-
-                        case EqOperator:
-                        case EqOperatorDouble:
-                            {
-                                bool comparisonResult = AreEqual(currentValue, nextValue);
-                                if (negateNext)
-                                {
-                                    comparisonResult = !comparisonResult;
-                                    negateNext = false;
-                                }
-                                result = ApplyLogicalOperator(result, comparisonResult, pendingLogicalOperator);
-                                pendingLogicalOperator = null;
-                                break;
-                            }
-
-                        case NeOperator:
-                            {
-                                bool comparisonResult = !AreEqual(currentValue, nextValue);
-                                if (negateNext)
-                                {
-                                    comparisonResult = !comparisonResult;
-                                    negateNext = false;
-                                }
-                                result = ApplyLogicalOperator(result, comparisonResult, pendingLogicalOperator);
-                                pendingLogicalOperator = null;
-                                break;
-                            }
-
-                        case GtOperator:
-                            {
-                                bool comparisonResult = IsGreaterThan(currentValue, nextValue);
-                                if (negateNext)
-                                {
-                                    comparisonResult = !comparisonResult;
-                                    negateNext = false;
-                                }
-                                result = ApplyLogicalOperator(result, comparisonResult, pendingLogicalOperator);
-                                pendingLogicalOperator = null;
-                                break;
-                            }
-
-                        case LtOperator:
-                            {
-                                bool comparisonResult = IsLessThan(currentValue, nextValue);
-                                if (negateNext)
-                                {
-                                    comparisonResult = !comparisonResult;
-                                    negateNext = false;
-                                }
-                                result = ApplyLogicalOperator(result, comparisonResult, pendingLogicalOperator);
-                                pendingLogicalOperator = null;
-                                break;
-                            }
-
-                        case GteOperator:
-                            {
-                                bool comparisonResult = IsGreaterThan(currentValue, nextValue) || AreEqual(currentValue, nextValue);
-                                if (negateNext)
-                                {
-                                    comparisonResult = !comparisonResult;
-                                    negateNext = false;
-                                }
-                                result = ApplyLogicalOperator(result, comparisonResult, pendingLogicalOperator);
-                                pendingLogicalOperator = null;
-                                break;
-                            }
-
-                        case LteOperator:
-                            {
-                                bool comparisonResult = IsLessThan(currentValue, nextValue) || AreEqual(currentValue, nextValue);
-                                if (negateNext)
-                                {
-                                    comparisonResult = !comparisonResult;
-                                    negateNext = false;
-                                }
-                                result = ApplyLogicalOperator(result, comparisonResult, pendingLogicalOperator);
-                                pendingLogicalOperator = null;
-                                break;
-                            }
-                    }
-
-                    lastOperator = null;
-                }
-            }
-        }
-
-        // If negateNext is still true at the end, it means we had "not Variable" with no comparison
-        // In this case, negate the result
-        if (negateNext && lastOperator == null)
-        {
-            result = !result;
-        }
-
-        return result;
-    }
-
-    /// <summary>
-    /// Applies a logical operator between two boolean values.
-    /// </summary>
-    private bool ApplyLogicalOperator(bool currentResult, bool comparisonResult, string? pendingOperator)
-    {
-        if (pendingOperator == null)
-        {
-            return comparisonResult;
-        }
-
-        return pendingOperator == OrOperator
-            ? currentResult || comparisonResult
-            : currentResult && comparisonResult;
-    }
-
-    /// <summary>
-    /// Resolves a value from context or returns it as a literal.
-    /// </summary>
-    private object? ResolveValueOrLiteral(string token, IEvaluationContext context)
-    {
-        // Try to resolve as variable first
-        if (context.TryResolveVariable(token, out object? value))
-        {
-            return value;
-        }
-
-        // Return as literal
-        return token;
-    }
-
-    /// <summary>
-    /// Evaluates a variable from the evaluation context.
-    /// </summary>
-    private bool EvaluateVariable(string variablePath, IEvaluationContext context, out object? value)
-    {
-        if (context.TryResolveVariable(variablePath, out value))
-        {
-            return EvaluateValue(value);
-        }
-
-        value = null;
-        return false;
-    }
-
-    /// <summary>
-    /// Evaluates a value as a boolean.
-    /// Follows OpenXMLTemplates rules:
-    /// - null → false
-    /// - bool → its value
-    /// - "true"/"false" → true/false
-    /// - 1/0 → true/false
-    /// - "1"/"0" → true/false
-    /// - empty string/whitespace → false
-    /// - empty collection → false
-    /// - non-empty string → true
-    /// - non-empty collection → true
-    /// </summary>
-    private bool EvaluateValue(object? value)
-    {
-        if (value == null)
-        {
-            return false;
-        }
-
-        if (value is bool boolValue)
-        {
-            return boolValue;
-        }
-
-        if (value is string stringValue)
-        {
-            if (string.IsNullOrWhiteSpace(stringValue))
-            {
-                return false;
-            }
-
-            string lowerValue = stringValue.ToLower();
-            if (lowerValue == "false" || lowerValue == "0")
-            {
-                return false;
-            }
-
-            if (lowerValue == "true" || lowerValue == "1")
-            {
-                return true;
-            }
-
-            // Non-empty string
-            return true;
-        }
-
-        if (value is int intValue)
-        {
-            return intValue switch
-            {
-                0 => false,
-                1 => true,
-                _ => true // Non-zero/one integers are true
-            };
-        }
-
-        if (value is ICollection collection)
-        {
-            return collection.Count > 0;
-        }
-
-        // Any other non-null value
-        return true;
-    }
-
-    /// <summary>
-    /// Compares two values for equality.
-    /// </summary>
-    private bool AreEqual(object? left, object? right)
-    {
-        if (left == null && right == null)
-        {
-            return true;
-        }
-
-        if (left == null || right == null)
-        {
-            return false;
-        }
-
-        // Use case-insensitive comparison for booleans because C#'s
-        // bool.ToString() returns "True"/"False" while template literals
-        // are lowercase "true"/"false".
-        if (left is bool || right is bool || IsBooleanLiteral(left) || IsBooleanLiteral(right))
-        {
-            return string.Equals(left.ToString(), right.ToString(), StringComparison.OrdinalIgnoreCase);
-        }
-
-        return left.ToString() == right.ToString();
-    }
-
-    private static bool IsBooleanLiteral(object? value)
-    {
-        string? str = value as string;
-        return str != null && (str.Equals("true", StringComparison.OrdinalIgnoreCase)
-            || str.Equals("false", StringComparison.OrdinalIgnoreCase));
-    }
-
-    /// <summary>
-    /// Checks if left is greater than right.
-    /// </summary>
-    private bool IsGreaterThan(object? left, object? right)
-    {
-        try
-        {
-            return double.Parse(left?.ToString() ?? "0") > double.Parse(right?.ToString() ?? "0");
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Checks if left is less than right.
-    /// </summary>
-    private bool IsLessThan(object? left, object? right)
-    {
-        try
-        {
-            return double.Parse(left?.ToString() ?? "0") < double.Parse(right?.ToString() ?? "0");
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
     private bool IsLogicalOperator(string token)
     {
         string lower = token.ToLower();
@@ -633,7 +286,8 @@ internal sealed class ConditionalEvaluator
         string lower = token.ToLower();
         return lower == EqOperator || lower == EqOperatorDouble || lower == NeOperator ||
                lower == GtOperator || lower == LtOperator ||
-               lower == GteOperator || lower == LteOperator;
+               lower == GteOperator || lower == LteOperator ||
+               lower == "in" || lower == "contains" || lower == "startswith" || lower == "endswith";
     }
 
     /// <summary>

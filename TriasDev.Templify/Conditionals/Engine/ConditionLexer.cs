@@ -138,7 +138,7 @@ internal sealed class ConditionLexer
     }
 
     private static bool IsWordChar(char c)
-        => char.IsLetterOrDigit(c) || c == '_' || c == '.' || c == '[' || c == ']';
+        => char.IsLetterOrDigit(c) || c == '_' || c == '.' || c == '[' || c == ']' || c == '@';
 
     private static string NormalizeQuotes(string expression)
     {
