@@ -1,119 +1,157 @@
-# Design: Extensible Condition Evaluator + New Operators
+# Design: Unified Extensible Condition Engine + New Operators
 
 - **Issue:** [#128](https://github.com/TriasDev/templify/issues/128)
 - **Date:** 2026-07-20
-- **Status:** Approved (design), pending implementation plan
+- **Status:** Approved (design direction), pending final spec review + implementation plan
 
 ## 1. Goal & Compatibility Principle
 
-Rearchitect the core of `ConditionalEvaluator` into a **lexer → parser → AST → evaluation** pipeline backed by an **operator registry**, and add:
+Unify the two existing condition/boolean engines into **one** extensible engine (**lexer → parser → AST → operator registry → evaluator**) and add:
 
 - membership operator `in` (with negation via `not`),
 - string operators `contains`, `startswith`, `endswith`,
 - existence/emptiness operators `exists`, `is empty`, `is not empty`,
-- **parentheses for grouping**.
+- **parentheses for grouping** (available uniformly).
 
-The condition evaluator is used both by the template engine (`{{#if ...}}`) and as a standalone public API (`IConditionEvaluator`, e.g. in ViasPro).
+**Hard compatibility requirement (external):** every already-authored template and every already-stored condition keeps producing the same result. The **internal implementation may be replaced entirely.** The existing test suites (conditionals, boolean-expressions, integration) are the compatibility oracle — they must pass unchanged.
 
-**Hard compatibility requirement:** all existing unit and integration tests pass **unchanged**. This is the compatibility oracle. No existing operator or expression changes behavior. The engine internals may be rewritten freely; what must not change is the observable behavior of already-stored conditions/templates and the current test suite.
+The engine is consumed both by the template engine (`{{#if ...}}`, inline `{{(...)}}`, text templates) and by a standalone public API (`IConditionEvaluator`, e.g. in ViasPro).
 
-## 2. Architecture
+## 2. Current State (why unification)
 
-New namespace `Conditionals/Expressions/`:
+Two independent engines exist today with **different semantics**:
 
-- **`ConditionLexer`** — turns the expression string into tokens: variable paths, string literals, numeric literals, operator tokens, `(`, `)`, `,`. Quote normalization (curly/typographic → ASCII) moves here from the current `NormalizeQuotes`.
-- **AST** (`ConditionNode` hierarchy): `LiteralNode`, `VariableNode`, `ListNode`, `BinaryNode`, `UnaryNode`.
-- **`ConditionParser`** — Pratt / precedence-climbing parser. Precedence, arity and fixity come **from the operator registry**. Supports parenthesized grouping and list literals.
-- **`IConditionOperator` + `ConditionOperatorRegistry`** — each operator = token(s), precedence, fixity (prefix/infix/postfix), and an `Evaluate` function. **Adding an operator = registering one class; the parser is not touched.**
-- **`ConditionExpressionEvaluator`** — walks the AST, resolving variables via the existing `IEvaluationContext`.
+| Aspect | `ConditionalEvaluator` (`Conditionals/`) | `BooleanExpressionParser` + `BooleanExpression` (`Expressions/`) |
+|---|---|---|
+| Consumers | `{{#if}}` (`ConditionalVisitor`), text templates (`TextTemplateProcessor`), **public `IConditionEvaluator`/`ConditionContext`** | inline expression placeholder `{{(...)}}` (`PlaceholderVisitor`), rendered via boolean formatters (checkbox/yes-no) |
+| Structure | flat left-to-right token loop, **no parentheses** | recursive-descent, **AST, parentheses supported** |
+| `and`/`or` precedence | **equal**, left-associative | **standard `and > or`** |
+| Truthiness | rich (`EvaluateValue`: strings/ints/collections/"true"/"1"…) | weak (bare variable true only if `bool true`) |
+| Comparison | `double.Parse` for `>`/`<`; `ToString` equality (bool case-insensitive) | `IComparable.CompareTo`; `object.Equals` |
+| Context | `IEvaluationContext` | `IDataContext` via `EvaluationContextAdapter` |
+| Validation | heuristic `Validate()` with `ConditionValidationIssueType` | none (parse failure → treated as plain variable) |
 
-`ConditionalEvaluator` (internal) becomes a thin facade (`lex → parse → evaluate`). Public `ConditionEvaluator` / `IConditionEvaluator` / `ConditionContext` keep their signatures unchanged; new operators become available automatically. The template engine (`ConditionalDetector` / `ConditionalVisitor`) is unchanged — it just passes an expression string to the evaluator.
+These differences are **observable externally**, so they must be preserved. Unification therefore shares *structure* (parsing, AST, operator registry) while keeping *semantics* selectable per entry point (see Dialects).
+
+All `Expressions/` types (`BooleanExpressionParser`, `BooleanExpression` and subclasses, `ComparisonOperator`, `IDataContext`, `EvaluationContextAdapter`) are `internal` and can be removed once their call site is migrated.
+
+## 3. Unified Architecture
+
+New namespace `Conditionals/Engine/` (final name TBD in plan):
+
+- **`ConditionLexer`** — expression string → tokens: variable paths, string/number/bool/null literals, operator tokens, `(`, `)`, `,`. Quote normalization (curly → ASCII) lives here.
+- **AST** (`ConditionNode`): `LiteralNode`, `VariableNode`, `ListNode`, `BinaryNode`, `UnaryNode`.
+- **`ConditionParser`** — Pratt / precedence-climbing parser. Operator precedence, fixity and arity come from the **operator registry**, parameterized by the active **dialect**. Supports parenthesized grouping and list literals.
+- **`IConditionOperator` + `ConditionOperatorRegistry`** — each operator = token(s), precedence, fixity (prefix/infix/postfix), `Evaluate`. **Adding an operator = registering one class; the parser is not touched.**
+- **`ConditionEvaluatorCore`** — walks the AST, resolving variables via `IEvaluationContext`, applying the dialect's value policy.
+- **`ConditionDialect`** — the per-entry-point policy: precedence profile, truthiness rule, comparison rule, bare-variable rule. Two instances (see §4).
+
+Entry points become thin facades over the core:
+- `ConditionalEvaluator` (internal facade) → **Default** dialect. Keeps public `ConditionEvaluator`/`IConditionEvaluator`/`ConditionContext` signatures unchanged; used by `ConditionalVisitor` and `TextTemplateProcessor`.
+- inline `{{(...)}}` in `PlaceholderVisitor` → **Inline** dialect, replacing `BooleanExpressionParser`.
 
 ### Unit boundaries
 
 | Unit | Responsibility | Depends on |
 |---|---|---|
-| `ConditionLexer` | string → token list | — |
-| `ConditionParser` | tokens → AST | `ConditionOperatorRegistry` |
-| `ConditionOperatorRegistry` | token → operator metadata + eval | `IConditionOperator` implementations |
-| `IConditionOperator` (per op) | one operator's parse metadata + evaluation | `IEvaluationContext` |
-| `ConditionExpressionEvaluator` | AST → bool | `IEvaluationContext`, registry |
-| `ConditionalEvaluator` (facade) | orchestrates the above; public entry | all of the above |
+| `ConditionLexer` | string → tokens | — |
+| `ConditionParser` | tokens → AST | registry, dialect (precedence) |
+| `ConditionOperatorRegistry` | token → operator metadata + eval | `IConditionOperator` impls |
+| `IConditionOperator` (per op) | one operator's parse metadata + evaluation | dialect value policy |
+| `ConditionEvaluatorCore` | AST → bool | `IEvaluationContext`, dialect |
+| `ConditionDialect` | precedence/truthiness/comparison policy | — |
+| facades | orchestrate lex→parse→eval per entry point | all of the above |
 
-## 3. Precedence & Grouping (compatibility core)
+## 4. Dialects (how both behaviors are preserved)
 
-Precedence table (binds looser → tighter):
+One shared engine, two dialects differing only in semantic policy:
+
+**Default dialect** — used by `{{#if}}`, text templates, standalone `IConditionEvaluator`.
+- `and`/`or`: equal precedence, left-associative (current behavior).
+- Truthiness: current `EvaluateValue` rules.
+- Comparison: current `double.Parse` / `ToString` rules.
+
+**Inline dialect** — used by `{{(...)}}` placeholders.
+- `and`/`or`: `and > or` (current behavior).
+- Truthiness: bare variable true only if `bool true` (current behavior).
+- Comparison: `IComparable.CompareTo` / `object.Equals` (current behavior).
+
+New operators (`in`, `contains`, `startswith`, `endswith`, `exists`, `is empty`, grouping) are registered **once** and available in **both** dialects. Their own comparison sub-semantics (e.g. `in` element equality, string ops case-sensitivity) are defined by the operator and are identical across dialects (see §6); dialects only govern the pre-existing divergent behaviors above.
+
+> Note: dialects intentionally preserve today's divergences rather than converge them. Convergence would change externally observable output and is out of scope.
+
+## 5. Precedence & Grouping
+
+Precedence table (binds looser → tighter). `and`/`or` level differs by dialect; everything else is shared:
 
 | Level | Operators | Fixity / associativity |
 |---|---|---|
-| 1 (loosest) | `or`, `and` | **equal precedence, left-associative** (preserves current left-to-right) |
+| 1 (loosest) | `or`, then `and` — **Inline**: `and` tighter than `or`; **Default**: `or`/`and` equal, left-assoc | infix |
 | 2 | `not` | prefix |
 | 3 | `=` `==` `!=` `>` `<` `>=` `<=` `in` `contains` `startswith` `endswith` | infix |
 | 4 | `exists` `is empty` `is not empty` | postfix |
 | 5 (tightest) | `( ... )` grouping, `( a, b, ... )` list literal | — |
 
-Key decisions:
+Because comparison/membership (level 3) bind tighter than `not` (level 2), `not Status in Roles` parses as `not (Status in Roles)`, reading naturally. Parentheses provide explicit grouping in both dialects: `(A or B) and C`.
 
-- `and`/`or` share **one** precedence level and are **left-associative**, exactly matching the current behavior. We deliberately do **not** introduce standard `and > or` precedence, because `A or B and C` would then evaluate differently and silently change stored conditions.
-- Because comparison/membership operators (level 3) bind tighter than `not` (level 2), `not Status in Roles` parses as `not (Status in Roles)`, which reads naturally.
-- Parentheses provide explicit grouping: `(A or B) and C`.
-
-The existing test suite is the acceptance gate for these precedence choices: if any existing test encodes a different expectation, the precedence/associativity is adjusted to keep that test green.
-
-## 4. Operator Catalog
+## 6. Operator Catalog (shared across dialects)
 
 ### Membership
-
-- **`in`** — `scalar in <source>`. Right-hand side forms:
-  1. a variable resolving to `ICollection` / array;
-  2. a list literal `("Active", "Pending")`;
-  3. a comma-separated string `"Active,Pending"`.
-  Element comparison reuses the existing `AreEqual` semantics (strings case-sensitive; booleans case-insensitive). Result is `true` if the scalar equals any element.
-- **Negation** — via `not`: `not Status in Roles`. Optional `not in` sugar is **out of scope**.
+- **`in`** — `scalar in <source>`. RHS forms: (1) variable resolving to `ICollection`/array; (2) list literal `("Active", "Pending")`; (3) comma-separated string `"Active,Pending"`. Element comparison reuses the Default engine's `AreEqual` semantics (strings case-sensitive; booleans case-insensitive). `true` if the scalar equals any element.
+- **Negation** — via `not`: `not Status in Roles`. `not in` sugar is out of scope.
 
 ### String operators (case-sensitive, ordinal — consistent with `=`)
-
-- **`contains`** — `string contains substring`. Note: operand direction is the opposite of `in` (string ⊃ substring, not element ⊂ collection).
+- **`contains`** — `string contains substring` (operand direction opposite of `in`).
 - **`startswith`** — `string startswith prefix`.
 - **`endswith`** — `string endswith suffix`.
 
-Operands are compared via `.ToString()`, ordinal, case-sensitive.
-
 ### Existence / emptiness (postfix)
-
-- **`Foo exists`** — the variable is present in the context (`TryResolveVariable == true`), regardless of its value. Closes the current gap where a missing variable and a `false`/empty value are indistinguishable.
-- **`Foo is empty`** — the resolved value is `null`, an empty/whitespace string, or an empty collection; a **missing variable is also `is empty = true`**.
+- **`Foo exists`** — variable present in context (`TryResolveVariable == true`), regardless of value. Closes the current gap where a missing variable and a `false`/empty value are indistinguishable.
+- **`Foo is empty`** — resolved value is `null`, empty/whitespace string, or empty collection; a **missing variable is also `is empty = true`**.
 - **`Foo is not empty`** — negation of `is empty`.
 
+For a present-but-null variable: `exists == true` and `is empty == true` (coherent and explicit).
+
 ### Grouping & list literals
+- `( expr )` — grouping. `( a, b, c )` — list literal, valid as RHS of `in`. Parser distinguishes by commas: `(expr)` is grouping, `(expr, expr, …)` is a list.
 
-- `( expr )` — boolean grouping.
-- `( a, b, c )` — list literal, valid as the RHS of `in`. The parser distinguishes by the presence of commas: `(expr)` is grouping, `(expr, expr, ...)` is a list literal.
+## 7. Call-site Migration
 
-## 5. Validation (main compatibility risk)
+1. `ConditionalVisitor` — no change (still calls `ConditionalEvaluator` facade / Default dialect).
+2. `TextTemplateProcessor` — no change (Default dialect facade).
+3. Public `ConditionEvaluator` / `ConditionContext` — signatures unchanged (Default dialect); new operators available automatically.
+4. `PlaceholderVisitor` inline `{{(...)}}` — switch from `BooleanExpressionParser` to the unified engine with the **Inline** dialect. Expression detection (placeholder starts with `(`) stays.
+5. Remove `Expressions/` engine types once (4) is migrated.
 
-Today `Validate()` is a heuristic returning specific `ConditionValidationIssueType` values, and tests assert those. A parser gives validation "for free" (a parse error = invalid), but issue-type classification may differ.
+## 8. Validation
 
-Plan: parser-based validation plus a **mapping layer** that preserves existing `ConditionValidationIssueType` outcomes for existing cases. If any existing validation test yields a legitimately improved but different result, it is surfaced for a human decision rather than changed silently.
+Parser-based validation replaces the heuristic, plus a **mapping layer** preserving existing `ConditionValidationIssueType` outcomes for existing cases. If an existing validation test yields a legitimately improved but different result, it is surfaced for a human decision rather than changed silently.
 
-## 6. Public API Impact
+## 9. Public API Impact
 
-- `ConditionalEvaluator` (internal) — internals rewritten, entry behavior preserved.
-- `ConditionEvaluator` / `IConditionEvaluator` (public standalone) — signatures unchanged; new operators available automatically.
-- `ConditionContext` / batch evaluation — unchanged.
-- Template engine (`ConditionalDetector`, `ConditionalVisitor`) — unchanged.
-- `ConditionOperatorRegistry` — internal for now. The architecture allows exposing user-defined operators later; that is **out of scope**.
+- `IConditionEvaluator` / `ConditionEvaluator` / `IConditionContext` / `ConditionContext` — signatures unchanged; new operators available.
+- `ConditionOperatorRegistry` / `ConditionDialect` — internal for now; the architecture allows exposing user-defined operators later (out of scope).
+- Template author syntax: `{{#if}}` and `{{(...)}}` unchanged, gain the new operators + grouping (grouping already existed for `{{(...)}}`).
 
-## 7. Testing Strategy
+## 10. Testing Strategy
 
-- **Characterization gate:** the entire existing test suite passes without edits.
+- **Characterization gate:** the entire existing test suite (conditionals + boolean-expressions + integration) passes without edits. This proves both dialects preserve external behavior.
 - **Lexer:** tokenization, quote normalization, multi-word tokens (`is empty`, `is not empty`).
-- **Parser:** precedence, parenthesized grouping, list literals, left-associativity of `and`/`or`.
-- **Per operator:** `in` in all three RHS forms + negation; `contains`/`startswith`/`endswith`; `exists`/`is empty`/`is not empty`.
-- **Edge cases:** `in` with a non-collection RHS, empty collection, `null` LHS; string operators with a non-string operand; `exists`/`is empty` on nested property paths.
+- **Parser:** precedence per dialect, parenthesized grouping, list literals, associativity.
+- **Per operator:** `in` in all three RHS forms + negation; `contains`/`startswith`/`endswith`; `exists`/`is empty`/`is not empty` — tested in both dialects.
+- **Edge cases:** `in` with non-collection RHS, empty collection, `null` LHS; string operators with non-string operand; `exists`/`is empty` on nested property paths.
 
-## 8. Out of Scope
+## 11. Documentation (GitHub Pages, `docs/`)
 
-- Collection size comparison in conditions (`Items > 0`) — separate concern (current `IsGreaterThan` can't compare collections).
+Update in the same PR:
+- `docs/for-template-authors/conditionals.md` — new operators, grouping, `exists`/`is empty`.
+- `docs/for-template-authors/boolean-expressions.md` — new operators in inline `{{(...)}}`; note unified operator set.
+- `docs/for-developers/condition-evaluation.md` — standalone API operator reference.
+- `docs/for-template-authors/best-practices.md`, `docs/for-template-authors/template-syntax.md`, `docs/FAQ.md` — touch where operator lists / capabilities appear.
+
+## 12. Out of Scope
+
+- Converging the two dialects' truthiness/precedence into one behavior (would change external output).
+- Collection size comparison in conditions (`Items > 0`) — separate concern.
 - Regex `matches`, range `between` — deferred (YAGNI).
 - Public user-defined operator registration — architecture supports it, not implemented now.
