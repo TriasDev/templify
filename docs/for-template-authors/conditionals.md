@@ -380,6 +380,111 @@ You are eligible to travel internationally.
 4. `and`
 5. `or`
 
+## Membership, String, and Existence Checks
+
+### Membership (`in`)
+
+Check whether a value appears in a collection. The right side can be a collection variable, a quoted list literal, or a comma-separated string:
+
+**JSON:**
+```json
+{
+  "Role": "Editor",
+  "Roles": ["Admin", "Editor", "Viewer"]
+}
+```
+
+**Template:**
+```
+{{#if Role in Roles}}
+You have access to the content management system.
+{{/if}}
+
+{{#if Role in ("Admin", "Editor")}}
+You can publish articles.
+{{/if}}
+
+{{#if Role in "Admin,Editor,Viewer"}}
+You are a recognized role.
+{{/if}}
+```
+
+Negate membership with `not`:
+
+```
+{{#if not Role in Roles}}
+Your role is not recognized.
+{{/if}}
+```
+
+### String Checks (`contains`, `startswith`, `endswith`)
+
+**JSON:**
+```json
+{
+  "Description": "This order is urgent",
+  "OrderCode": "US-4821",
+  "FileName": "invoice.pdf"
+}
+```
+
+**Template:**
+```
+{{#if Description contains "urgent"}}
+⚠️ Priority handling required.
+{{/if}}
+
+{{#if OrderCode startswith "US-"}}
+Domestic order.
+{{/if}}
+
+{{#if FileName endswith ".pdf"}}
+PDF attachment included.
+{{/if}}
+```
+
+**Note:** Like `=`, these string comparisons are **case-sensitive**.
+
+### Existence (`exists`, `is empty`, `is not empty`)
+
+`exists` checks that a variable is present, regardless of its value. `is empty` / `is not empty` check whether a value is missing, null, blank, or an empty collection.
+
+**JSON:**
+```json
+{
+  "Notes": ""
+}
+```
+
+**Template:**
+```
+{{#if Notes exists}}
+The Notes field was provided.
+{{/if}}
+
+{{#if Notes is empty}}
+No notes were added.
+{{/if}}
+
+{{#if Notes is not empty}}
+Notes: {{Notes}}
+{{/if}}
+```
+
+A missing variable is treated as empty. A variable that is present but explicitly `null` satisfies both `exists` and `is empty`.
+
+### Grouping with Parentheses
+
+Use parentheses to control evaluation order, the same as in [boolean expressions](boolean-expressions.md):
+
+```
+{{#if (Role in ("Admin", "Editor")) and not IsSuspended}}
+You can manage content.
+{{/if}}
+```
+
+**Reminder on precedence:** `and` binds tighter than `or` (`A or B and C` means `A or (B and C)`). Use parentheses whenever you want a different grouping.
+
 ## Common Patterns
 
 ### Boolean Flags
