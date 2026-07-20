@@ -102,7 +102,11 @@ internal sealed class ConditionalEvaluator
                   || string.Equals(token, "empty", StringComparison.OrdinalIgnoreCase)
                   || string.Equals(token, "is", StringComparison.OrdinalIgnoreCase))
             {
-                currentType = "comparison";
+                // Postfix existence/emptiness keywords (`exists`, `is empty`, `is not empty`).
+                // Kept distinct from "comparison"/"logical" so they are exempt from the
+                // trailing-operator check (an expression is allowed to end in one of these)
+                // and from the consecutive-operator/operand checks around them.
+                currentType = "postfix";
             }
             else if (IsComparisonOperator(token))
             {
