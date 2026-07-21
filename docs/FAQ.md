@@ -82,6 +82,8 @@ Or in Visual Studio: `Install-Package TriasDev.Templify`
 - ✅ **Formatting preservation**: Bold, italic, colors, fonts maintained
 - ✅ **Comparison operators**: `>`, `<`, `>=`, `<=`, `==`, `!=`
 - ✅ **Logical operators**: `and`, `or`, `not`
+- ✅ **Membership, string, and existence operators**: `in`, `contains`, `startswith`, `endswith`, `exists`, `is empty`, `is not empty`
+- ✅ **Grouping**: parentheses `()` for controlling evaluation order
 - ✅ **Localization**: Format specifiers adapt to cultures (en, de, fr, es, it, pt)
 - ✅ **JSON support**: Use JSON data instead of C# dictionaries
 - ✅ **Type coercion**: Automatic number/date conversions
@@ -400,6 +402,9 @@ Can proceed: ✓
 **Supported operators**:
 - Logical: `and`, `or`, `not`
 - Comparison: `=`, `==`, `!=`, `>`, `>=`, `<`, `<=`
+- Membership: `in` (collection variable, list literal, or comma-separated string)
+- String checks: `contains`, `startswith`, `endswith` (case-sensitive)
+- Existence: `exists`, `is empty`, `is not empty`
 - Nested: `((var1 or var2) and var3)`
 
 See the [Boolean Expressions Guide](for-template-authors/boolean-expressions.md) for complete documentation.

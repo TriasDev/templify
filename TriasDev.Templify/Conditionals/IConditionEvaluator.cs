@@ -14,7 +14,8 @@ namespace TriasDev.Templify.Conditionals;
 /// for use in standalone scenarios without Word document processing.
 /// </para>
 /// <para>
-/// Supported operators: =, ==, !=, &gt;, &lt;, &gt;=, &lt;=, and, or, not
+/// Supported operators: =, ==, !=, &gt;, &lt;, &gt;=, &lt;=, and, or, not,
+/// in, contains, startswith, endswith, exists, is empty, is not empty, and parentheses for grouping.
 /// </para>
 /// <para>
 /// Examples:

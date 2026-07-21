@@ -117,6 +117,100 @@ Use `IConditionContext` when:
     Logical operators `and`, `or`, and `not` are case-insensitive.
     `AND`, `And`, `and` all work identically.
 
+## Operators Reference
+
+Complete list of all supported operators, one example each.
+
+| Operator | Description | Example |
+|----------|-------------|---------|
+| `=` / `==` | Equals | `Status = "Active"` |
+| `!=` | Not equals | `Status != "Deleted"` |
+| `>` | Greater than | `Count > 0` |
+| `<` | Less than | `Price < 100` |
+| `>=` | Greater or equal | `Age >= 18` |
+| `<=` | Less or equal | `Score <= 100` |
+| `and` | Logical AND | `IsActive and HasAccess` |
+| `or` | Logical OR | `IsAdmin or IsModerator` |
+| `not` | Logical NOT | `not IsDeleted` |
+| `in` | Membership check | `Role in Roles` |
+| `contains` | Substring check | `Description contains "urgent"` |
+| `startswith` | Prefix check | `Code startswith "US-"` |
+| `endswith` | Suffix check | `FileName endswith ".pdf"` |
+| `exists` | Variable is present | `Notes exists` |
+| `is empty` | Variable is null/empty | `Notes is empty` |
+| `is not empty` | Variable has a value | `Notes is not empty` |
+| `(...)` | Grouping | `(A or B) and C` |
+
+### The `in` Operator
+
+`in` checks whether a value is a member of a collection. The right-hand side can take three forms:
+
+```csharp
+// Collection variable
+evaluator.Evaluate("Role in Roles", data);
+
+// List literal
+evaluator.Evaluate("Status in (\"Active\", \"Pending\")", data);
+
+// Comma-separated string
+evaluator.Evaluate("Status in \"Active,Pending\"", data);
+```
+
+To negate membership, use `not` as a prefix: `not Role in Roles`.
+
+### String Operators: `contains`, `startswith`, `endswith`
+
+```csharp
+evaluator.Evaluate("Description contains \"urgent\"", data);
+evaluator.Evaluate("Code startswith \"US-\"", data);
+evaluator.Evaluate("FileName endswith \".pdf\"", data);
+```
+
+### Existence and Emptiness: `exists`, `is empty`, `is not empty`
+
+These are postfix operators — the keyword follows the variable.
+
+```csharp
+evaluator.Evaluate("Notes exists", data);          // true if the key is present, even if its value is null
+evaluator.Evaluate("Notes is empty", data);         // true if missing, null, whitespace/empty string, or an empty collection
+evaluator.Evaluate("Notes is not empty", data);     // opposite of "is empty"
+```
+
+A missing variable counts as empty. A variable that is present but `null` satisfies both `exists` and `is empty` at the same time.
+
+### Grouping with Parentheses
+
+Parentheses override default precedence:
+
+```csharp
+evaluator.Evaluate("(IsActive or IsTrial) and not IsBanned", data);
+```
+
+!!! note "Case Sensitivity"
+    String operators (`contains`, `startswith`, `endswith`) and `in` element equality compare values with ordinal, **case-sensitive** semantics — the same rule used by `=`. The operator keywords themselves (`in`, `contains`, `exists`, etc.) are case-insensitive, like `and`/`or`/`not`.
+
+!!! note "Operator Precedence"
+    `and` binds tighter than `or` (`A or B and C` is `A or (B and C)`). Use parentheses to override the default precedence.
+
+## Reserved Words and Literal Quoting
+
+The operator keywords are **reserved words**. The following names are always parsed as operators, never as variable names or bareword text:
+
+```
+and, or, not, in, contains, startswith, endswith, exists, is, empty
+```
+
+Because these words are reserved, **string literals must be quoted**. Use `= "empty"` rather than `= empty`:
+
+```csharp
+evaluator.Evaluate("Category = \"empty\"", data);   // compares against the text "empty" -> true when Category is "empty"
+evaluator.Evaluate("Category = empty", data);        // "empty" is the reserved keyword, not a literal -> does not match
+```
+
+An unquoted reserved word on the right-hand side of a comparison is not a valid operand, so the expression fails to parse and `Evaluate` returns `false`. Always quote literals that could collide with a reserved word.
+
+In inline `{{(...)}}` expressions, **both sides of a comparison are resolved as variables-or-literals**: in `{{(A = B)}}`, both `A` and `B` are looked up in the data and the comparison succeeds when the resolved values are equal. Quote a side (`{{(A = "B")}}`) when you mean the literal text instead of a variable lookup.
+
 ## Expression Syntax
 
 ### Simple Variables

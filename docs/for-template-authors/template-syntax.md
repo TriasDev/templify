@@ -379,13 +379,29 @@ The row will be repeated for each item.
 | `or` | At least one true | `{{#if IsVIP or IsPremium}}` |
 | `not` | Negates condition | `{{#if not IsExpired}}` |
 
+### Membership, String, and Existence Operators
+
+| Operator | Meaning | Example |
+|----------|---------|---------|
+| `in` | Value is in a collection, list literal, or comma-separated string | `{{#if Role in Roles}}`, `{{#if Role in ("Admin", "Editor")}}` |
+| `contains` | Substring check (case-sensitive) | `{{#if Description contains "urgent"}}` |
+| `startswith` | Prefix check (case-sensitive) | `{{#if Code startswith "US-"}}` |
+| `endswith` | Suffix check (case-sensitive) | `{{#if FileName endswith ".pdf"}}` |
+| `exists` | Variable is present, even if null | `{{#if Notes exists}}` |
+| `is empty` | Missing, null, blank, or an empty collection | `{{#if Notes is empty}}` |
+| `is not empty` | Has a value | `{{#if Notes is not empty}}` |
+
+Negate `in` with `not`: `{{#if not Role in Roles}}`.
+
 ### Operator Precedence
 
 1. Parentheses `()`
 2. `not`
-3. Comparison operators (`=`, `!=`, `>`, etc.)
+3. Comparison operators (`=`, `!=`, `>`, etc.), `in`, `contains`, `startswith`, `endswith`
 4. `and`
 5. `or`
+
+`and` binds tighter than `or`; use parentheses to override.
 
 **Example:**
 ```

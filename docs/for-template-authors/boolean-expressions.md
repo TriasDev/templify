@@ -8,6 +8,8 @@ Boolean expressions allow you to evaluate complex logical conditions directly wi
 - [Expression Syntax](#expression-syntax)
 - [Logical Operators](#logical-operators)
 - [Comparison Operators](#comparison-operators)
+- [Membership, String, and Existence Operators](#membership-string-and-existence-operators)
+- [Reserved Words and Literal Quoting](#reserved-words-and-literal-quoting)
 - [Combining with Format Specifiers](#combining-with-format-specifiers)
 - [Advanced Usage](#advanced-usage)
 - [Best Practices](#best-practices)
@@ -338,6 +340,96 @@ At or under limit: {{(Count <= MaxCount)}}
 ```
 At or under limit: True
 ```
+
+## Membership, String, and Existence Operators
+
+### Membership (in)
+
+Checks whether a value is a member of a collection. The right side can be a collection variable, a quoted list literal, or a comma-separated string.
+
+**Template:**
+```
+Recognized role: {{(Role in Roles)}}
+Can publish: {{(Role in ("Admin", "Editor")):yesno}}
+```
+
+**Data:**
+```json
+{
+  "Role": "Editor",
+  "Roles": ["Admin", "Editor", "Viewer"]
+}
+```
+
+**Output:**
+```
+Recognized role: True
+Can publish: Yes
+```
+
+Negate with `not`: `{{(not Role in Roles)}}`.
+
+### String Checks (contains, startswith, endswith)
+
+**Template:**
+```
+Priority: {{(Description contains "urgent"):yesno}}
+```
+
+**Data:**
+```json
+{
+  "Description": "This order is urgent"
+}
+```
+
+**Output:**
+```
+Priority: Yes
+```
+
+These comparisons are **case-sensitive**, like `=` and `==`.
+
+### Existence (exists, is empty, is not empty)
+
+`exists` checks that a variable is present regardless of its value; `is empty` / `is not empty` check whether a value is missing, null, blank, or an empty collection.
+
+**Template:**
+```
+Notes provided: {{(Notes exists):yesno}}
+Notes empty: {{(Notes is empty):yesno}}
+```
+
+**Data:**
+```json
+{
+  "Notes": ""
+}
+```
+
+**Output:**
+```
+Notes provided: Yes
+Notes empty: Yes
+```
+
+## Reserved Words and Literal Quoting
+
+The operator keywords are **reserved words**. The following names are always interpreted as operators, never as variable names or bareword text:
+
+```
+and, or, not, in, contains, startswith, endswith, exists, is, empty
+```
+
+Because of this, **string literals must be quoted**. Write `= "empty"`, not `= empty`:
+
+```
+Status is missing: {{(Category = "empty"):yesno}}   ← compares against the text "empty"
+```
+
+If you leave a reserved word unquoted (for example `{{(Category = empty)}}`), Templify reads `empty` as the reserved keyword rather than as the literal text `empty`, and the expression will not evaluate as you intended. Always quote string literals that could collide with a reserved word.
+
+In inline `{{(...)}}` expressions, **both sides of a comparison are resolved as variables-or-literals**. In `{{(A = B)}}`, both `A` and `B` are looked up in your data; the comparison succeeds when the two resolved values are equal. Quote a side (`{{(A = "B")}}`) when you mean the literal text rather than a variable lookup.
 
 ## Combining with Format Specifiers
 
@@ -895,9 +987,13 @@ Expressions are evaluated with standard operator precedence:
 
 1. **Parentheses** `()` - Highest priority
 2. **NOT** `not`
-3. **Comparison** `>`, `>=`, `<`, `<=`, `=`, `==`, `!=`
+3. **Comparison** `>`, `>=`, `<`, `<=`, `=`, `==`, `!=`, `in`, `contains`, `startswith`, `endswith`
 4. **AND** `and`
 5. **OR** `or` - Lowest priority
+
+`and` always binds tighter than `or`. Use parentheses to override the default grouping.
+
+`exists`, `is empty`, and `is not empty` are postfix operators — they attach directly to the variable that precedes them (e.g. `Notes is empty`), so they behave like a comparison result and combine with `and`/`or` the same way.
 
 ### Examples
 
@@ -916,6 +1012,7 @@ Boolean expressions enable powerful inline logic in your templates:
 
 - ✅ Logical operators: `and`, `or`, `not`
 - ✅ Comparison operators: `=`, `==`, `!=`, `>`, `>=`, `<`, `<=`
+- ✅ Membership, string, and existence operators: `in`, `contains`, `startswith`, `endswith`, `exists`, `is empty`, `is not empty`
 - ✅ Nested expressions with parentheses
 - ✅ Combine with format specifiers for readable output
 - ✅ Works with nested properties and arrays
