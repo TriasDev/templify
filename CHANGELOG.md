@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0](https://github.com/TriasDev/templify/compare/v1.6.2...v1.7.0) (2026-07-21)
+
+
+### Features
+
+* **conditionals:** extensible operator engine + in/string/existence operators + grouping ([#128](https://github.com/TriasDev/templify/issues/128)) ([#129](https://github.com/TriasDev/templify/issues/129)) ([035669c](https://github.com/TriasDev/templify/commit/035669c90ee2c106d33b216d96ea1e789b56a9b1))
+
 ## [1.6.2](https://github.com/TriasDev/templify/compare/v1.6.1...v1.6.2) (2026-07-03)
 
 
