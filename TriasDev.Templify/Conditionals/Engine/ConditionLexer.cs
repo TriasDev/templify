@@ -14,6 +14,22 @@ internal sealed class ConditionLexer
         "and", "or", "not", "in", "contains", "startswith", "endswith", "exists", "is", "empty"
     };
 
+    private readonly bool _allowSingleQuotedStrings;
+
+    /// <summary>
+    /// Creates a new <see cref="ConditionLexer"/>.
+    /// </summary>
+    /// <param name="allowSingleQuotedStrings">
+    /// When <see langword="true"/>, single quotes (<c>'</c>) delimit string literals in addition to
+    /// double quotes, mirroring the legacy inline <c>{{(...)}}</c> expression parser. Defaults to
+    /// <see langword="false"/>, which preserves the original behavior used by <c>{{#if}}</c>/text/standalone
+    /// condition evaluation, where a single quote is not a string delimiter.
+    /// </param>
+    public ConditionLexer(bool allowSingleQuotedStrings = false)
+    {
+        _allowSingleQuotedStrings = allowSingleQuotedStrings;
+    }
+
     public IReadOnlyList<ConditionToken> Tokenize(string expression)
     {
         string text = NormalizeQuotes(expression ?? string.Empty);
@@ -34,14 +50,15 @@ internal sealed class ConditionLexer
             if (c == ',')
             { tokens.Add(new ConditionToken(ConditionTokenType.Comma, ",")); i++; continue; }
 
-            if (c == '"')
+            if (c == '"' || (_allowSingleQuotedStrings && c == '\''))
             {
+                char quote = c;
                 i++;
                 StringBuilder sb = new();
-                while (i < text.Length && text[i] != '"')
+                while (i < text.Length && text[i] != quote)
                 {
-                    if (text[i] == '\\' && i + 1 < text.Length && text[i + 1] == '"')
-                    { sb.Append('"'); i += 2; continue; }
+                    if (text[i] == '\\' && i + 1 < text.Length && text[i + 1] == quote)
+                    { sb.Append(quote); i += 2; continue; }
                     sb.Append(text[i]);
                     i++;
                 }

@@ -73,7 +73,7 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
             try
             {
                 IReadOnlyList<Conditionals.Engine.ConditionToken> tokens =
-                    new Conditionals.Engine.ConditionLexer().Tokenize(placeholder.VariableName);
+                    new Conditionals.Engine.ConditionLexer(allowSingleQuotedStrings: true).Tokenize(placeholder.VariableName);
                 Conditionals.Engine.ConditionNode node =
                     new Conditionals.Engine.ConditionParser(Conditionals.Engine.ConditionOperatorRegistry.Shared).Parse(tokens);
                 bool result = new Conditionals.Engine.ConditionEvaluatorCore(context, Conditionals.Engine.InlineConditionDialect.Instance)
