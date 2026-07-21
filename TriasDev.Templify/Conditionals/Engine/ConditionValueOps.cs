@@ -4,9 +4,10 @@
 namespace TriasDev.Templify.Conditionals.Engine;
 
 /// <summary>
-/// Dialect-independent value helpers shared by operators (equality, string coercion).
-/// These preserve the historical <c>ConditionalEvaluator</c> equality semantics so that
-/// <c>=</c>, <c>in</c>, and the string operators behave identically regardless of dialect.
+/// Dialect-independent value helpers (equality, string coercion) used directly by the
+/// <c>in</c> operator and the string operators, and by <see cref="DefaultConditionDialect"/>'s
+/// <c>AreEqual</c> implementation. This class does NOT govern <c>=</c>/<c>!=</c> in the Inline
+/// dialect, which compares operands via <c>object.Equals</c> instead.
 /// </summary>
 internal static class ConditionValueOps
 {

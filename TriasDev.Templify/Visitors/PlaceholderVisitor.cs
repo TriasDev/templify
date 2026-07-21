@@ -81,9 +81,15 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
                 value = result;
                 resolved = true;
             }
-            catch (Conditionals.Engine.ConditionParseException)
+            catch (Conditionals.Engine.ConditionParseException ex)
             {
-                _warningCollector.AddWarning(ProcessingWarning.ExpressionFailed(placeholder.VariableName, "Failed to parse expression"));
+                _warningCollector.AddWarning(ProcessingWarning.ExpressionFailed(placeholder.VariableName, ex.Message));
+                resolved = false;
+                value = null;
+            }
+            catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or InvalidCastException)
+            {
+                _warningCollector.AddWarning(ProcessingWarning.ExpressionFailed(placeholder.VariableName, ex.Message));
                 resolved = false;
                 value = null;
             }

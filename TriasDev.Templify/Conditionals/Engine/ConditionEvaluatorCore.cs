@@ -52,6 +52,21 @@ internal sealed class ConditionEvaluatorCore
     }
 
     /// <summary>
+    /// Resolves a node's value for operators that must not fall back to a variable's path text
+    /// when it is missing (e.g. <c>in</c>, string operators, emptiness checks). A
+    /// <see cref="VariableNode"/> that fails to resolve yields <c>null</c> (missing = absent)
+    /// rather than the literal-fallback behavior used by comparison operators.
+    /// </summary>
+    public object? ResolveValueStrict(ConditionNode node)
+    {
+        if (node is VariableNode v)
+        {
+            return TryResolveVariable(v.Path, out object? value) ? value : null;
+        }
+        return EvaluateValue(node);
+    }
+
+    /// <summary>
     /// Resolves a variable for use as a comparison operand, falling back to its own path
     /// text as a string literal when it cannot be resolved. This preserves the historical
     /// <c>ConditionalEvaluator</c> behavior where unquoted bareword comparison operands

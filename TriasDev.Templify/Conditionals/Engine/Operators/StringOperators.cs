@@ -11,9 +11,15 @@ internal abstract class StringOperatorBase : IConditionOperator
 
     public bool Evaluate(ConditionEvaluatorCore core, IReadOnlyList<ConditionNode> operands)
     {
-        string left = ConditionValueOps.ToStr(core.EvaluateValue(operands[0]));
-        string right = ConditionValueOps.ToStr(core.EvaluateValue(operands[1]));
-        return Test(left, right);
+        object? leftValue = core.ResolveValueStrict(operands[0]);
+        object? rightValue = core.ResolveValueStrict(operands[1]);
+        if (leftValue is null || rightValue is null)
+        {
+            // Missing operand: short-circuit to false rather than coercing to an empty string.
+            return false;
+        }
+
+        return Test(ConditionValueOps.ToStr(leftValue), ConditionValueOps.ToStr(rightValue));
     }
 
     protected abstract bool Test(string left, string right);

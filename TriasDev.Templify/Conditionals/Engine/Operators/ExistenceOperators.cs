@@ -30,22 +30,7 @@ internal sealed class IsEmptyOperator : IConditionOperator
     public OperatorFixity Fixity => OperatorFixity.Postfix;
 
     public bool Evaluate(ConditionEvaluatorCore core, IReadOnlyList<ConditionNode> operands)
-        => IsEmptyValue(ResolveOperandValue(core, operands[0]));
-
-    /// <summary>
-    /// Resolves the operand's raw value for emptiness checks. Unlike
-    /// <see cref="ConditionEvaluatorCore.EvaluateValue"/>, a <see cref="VariableNode"/> that fails to
-    /// resolve yields <c>null</c> (missing = empty) rather than falling back to its path text as a
-    /// string literal.
-    /// </summary>
-    internal static object? ResolveOperandValue(ConditionEvaluatorCore core, ConditionNode operand)
-    {
-        if (operand is VariableNode variable)
-        {
-            return core.TryResolveVariable(variable.Path, out object? value) ? value : null;
-        }
-        return core.EvaluateValue(operand);
-    }
+        => IsEmptyValue(core.ResolveValueStrict(operands[0]));
 
     internal static bool IsEmptyValue(object? value)
     {
@@ -73,5 +58,5 @@ internal sealed class IsNotEmptyOperator : IConditionOperator
     public OperatorFixity Fixity => OperatorFixity.Postfix;
 
     public bool Evaluate(ConditionEvaluatorCore core, IReadOnlyList<ConditionNode> operands)
-        => !IsEmptyOperator.IsEmptyValue(IsEmptyOperator.ResolveOperandValue(core, operands[0]));
+        => !IsEmptyOperator.IsEmptyValue(core.ResolveValueStrict(operands[0]));
 }

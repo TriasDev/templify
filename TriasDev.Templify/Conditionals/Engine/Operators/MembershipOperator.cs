@@ -15,8 +15,8 @@ internal sealed class InOperator : IConditionOperator
 
     public bool Evaluate(ConditionEvaluatorCore core, IReadOnlyList<ConditionNode> operands)
     {
-        object? left = core.EvaluateValue(operands[0]);
-        object? right = core.EvaluateValue(operands[1]);
+        object? left = core.ResolveValueStrict(operands[0]);
+        object? right = core.ResolveValueStrict(operands[1]);
 
         foreach (object? candidate in EnumerateCandidates(right))
         {
@@ -30,6 +30,12 @@ internal sealed class InOperator : IConditionOperator
 
     private static IEnumerable<object?> EnumerateCandidates(object? right)
     {
+        if (right is null)
+        {
+            // Missing collection/scalar never matches (strict resolution: absent, not empty-equal-to-null).
+            yield break;
+        }
+
         if (right is string s)
         {
             foreach (string part in s.Split(','))
