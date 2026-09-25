@@ -22,6 +22,7 @@ Templify is built on the Microsoft OpenXML SDK and provides a straightforward AP
 - **Localization support**: Format specifiers adapt to cultures (en, de, fr, es, it, pt)
 - **Table support**: Replace placeholders in table cells, repeat table rows, conditional table rows
 - **Header & footer support**: Placeholders, conditionals, and loops in document headers and footers
+- **Footnotes, text boxes, content controls**: Processed like the document body
 - **Configurable behavior**: Control what happens when variables are missing
 - **No Word required**: Pure OpenXML processing, no COM automation
 - **.NET 9**: Built with modern .NET features
@@ -1152,10 +1153,12 @@ Currently supported:
 - Document body paragraphs
 - Table cells
 - Headers and footers (Default, First, Even)
+- Footnotes and endnotes (separator notes are skipped)
+- Text boxes (VML and DrawingML, including the `mc:AlternateContent` fallback)
+- Content controls (block, row, cell and inline)
 
-Future versions may include:
-- Text boxes
-- Footnotes/endnotes
+Not processed:
+- Comments (reviewer notes; placeholders in comments are left unchanged)
 - Custom XML parts
 
 ## API Reference

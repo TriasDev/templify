@@ -22,6 +22,21 @@ var result = processor.ProcessTemplate(templateStream, outputStream, data);
 // Headers and footers are already processed!
 ```
 
+## Where Templates Are Processed
+
+Placeholders, conditionals and loops work in all of these places:
+
+| Location | Notes |
+|----------|-------|
+| Document body | Paragraphs and tables (including nested tables) |
+| Headers and footers | Default, first page and even page |
+| Footnotes and endnotes | Separator notes are left untouched |
+| Text boxes | VML and DrawingML text boxes; for DrawingML, both the modern shape and its compatibility fallback are processed |
+| Content controls | Block-level (around paragraphs/tables), row-level, cell-level and inline content controls |
+
+**Not processed:** comments. Comments are reviewer notes rather than document content, so placeholders
+in comments stay as they are.
+
 ## Examples
 
 ### Placeholder in Header

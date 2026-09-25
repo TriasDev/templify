@@ -126,6 +126,10 @@ public sealed class DocumentTemplateProcessor
                 // Walk headers and footers with the same visitor pipeline
                 walker.WalkHeadersAndFooters(document, composite, globalContext);
 
+                // Walk footnotes and endnotes (comments are intentionally not processed:
+                // they are reviewer notes, not document content)
+                walker.WalkFootnotesAndEndnotes(document, composite, globalContext);
+
                 // Apply UpdateFieldsOnOpen setting based on mode
                 bool shouldUpdateFields = _options.UpdateFieldsOnOpen switch
                 {

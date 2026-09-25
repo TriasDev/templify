@@ -64,6 +64,8 @@ var processor = new DocumentTemplateProcessor(options);
 
 `ProcessTemplate` automatically processes all headers and footers in the document - no additional API calls or configuration needed. The same visitor pipeline (placeholders, conditionals, loops) is applied to every header and footer part (Default, First Page, Even Page).
 
+The same applies to footnotes and endnotes (separator notes are skipped), text boxes (VML and DrawingML, both the `mc:Choice` and the `mc:Fallback` rendering) and content controls (block, row, cell and inline). Comments are not processed.
+
 ## Update Fields on Open (TOC Support)
 
 When templates contain Table of Contents (TOC) or other dynamic fields, and content changes during processing (via conditionals or loops), page numbers become stale.
