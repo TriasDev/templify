@@ -1,0 +1,25 @@
+name: Dependency Review
+
+# Flags pull requests that add dependencies with known vulnerabilities.
+on:
+  pull_request:
+    branches: [ main, develop ]
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Review dependency changes
+        # Requires "Dependency graph" (Settings -> Code security). Until it is enabled the action
+        # errors with "Dependency review is not supported on this repository"; remove this line then.
+        continue-on-error: true
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
