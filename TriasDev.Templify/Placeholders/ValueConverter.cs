@@ -74,8 +74,8 @@ internal static class ValueConverter
         {
             null => string.Empty,
             string str => str,
-            DateTime dateTime => dateTime.ToString(culture),
-            DateTimeOffset dateTimeOffset => dateTimeOffset.ToString(culture),
+            DateTime dateTime => FormatDateSafe(dateTime, null, culture),
+            DateTimeOffset dateTimeOffset => FormatDateSafe(dateTimeOffset, null, culture),
             decimal dec => dec.ToString(culture),
             double dbl => dbl.ToString(culture),
             float flt => flt.ToString(culture),
@@ -141,14 +141,14 @@ internal static class ValueConverter
             DateTimeOffset? dateTimeOffset = value switch
             {
                 DateTimeOffset dto => dto,
-                DateTime dt => new DateTimeOffset(dt),
+                DateTime dt => ToDateTimeOffsetSafe(dt),
                 string s when TryParseDateTime(s, culture, out DateTimeOffset parsed) => parsed,
                 _ => null
             };
 
             if (dateTimeOffset.HasValue)
             {
-                result = dateTimeOffset.Value.ToString(dateFormat, culture);
+                result = FormatDateSafe(dateTimeOffset.Value, dateFormat, culture);
                 return true;
             }
         }
@@ -158,6 +158,42 @@ internal static class ValueConverter
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Converts a <see cref="DateTime"/> to a <see cref="DateTimeOffset"/> without throwing.
+    /// <c>new DateTimeOffset(dt)</c> applies the local UTC offset and throws for values near
+    /// <see cref="DateTime.MinValue"/>/<see cref="DateTime.MaxValue"/> when the machine offset is
+    /// positive/negative (e.g. an unset <c>DateTime</c> in Europe/Berlin). In that case the
+    /// wall-clock value is kept and a zero offset is used.
+    /// </summary>
+    private static DateTimeOffset ToDateTimeOffsetSafe(DateTime dt)
+    {
+        try
+        {
+            return new DateTimeOffset(dt);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return new DateTimeOffset(DateTime.SpecifyKind(dt, DateTimeKind.Unspecified), TimeSpan.Zero);
+        }
+    }
+
+    /// <summary>
+    /// Formats a date with the given culture, falling back to <see cref="CultureInfo.InvariantCulture"/>
+    /// when the value lies outside the range of the culture's calendar (e.g. <see cref="DateTime.MinValue"/>
+    /// with the Um Al-Qura calendar of ar-SA), so a single placeholder never fails the whole document.
+    /// </summary>
+    private static string FormatDateSafe(IFormattable date, string? format, CultureInfo culture)
+    {
+        try
+        {
+            return date.ToString(format, culture);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return date.ToString(format, CultureInfo.InvariantCulture);
+        }
     }
 
     /// <summary>

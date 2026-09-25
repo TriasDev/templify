@@ -1,6 +1,7 @@
 // Copyright (c) 2026 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Globalization;
 using System.Reflection;
 
 namespace TriasDev.Templify.Core;
@@ -24,7 +25,7 @@ internal static class WarningReportGenerator
         using Stream templateStream = LoadTemplate();
 
         // Build data dictionary from warnings
-        Dictionary<string, object> data = BuildReportData(warnings);
+        Dictionary<string, object> data = BuildReportData(warnings, DateTime.Now);
 
         // Process template with Templify
         MemoryStream outputStream = new MemoryStream();
@@ -62,7 +63,7 @@ internal static class WarningReportGenerator
         return stream;
     }
 
-    private static Dictionary<string, object> BuildReportData(IReadOnlyList<ProcessingWarning> warnings)
+    internal static Dictionary<string, object> BuildReportData(IReadOnlyList<ProcessingWarning> warnings, DateTime generatedAt)
     {
         // Categorize warnings by type
         List<Dictionary<string, object>> missingVariables = new();
@@ -98,7 +99,7 @@ internal static class WarningReportGenerator
 
         return new Dictionary<string, object>
         {
-            ["GeneratedAt"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+            ["GeneratedAt"] = generatedAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
             ["TotalWarnings"] = warnings.Count,
             ["MissingVariableCount"] = missingVariables.Count,
             ["MissingCollectionCount"] = missingCollections.Count,

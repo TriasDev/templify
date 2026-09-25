@@ -1,6 +1,8 @@
 // Copyright (c) 2026 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Globalization;
+
 namespace TriasDev.Templify.Conditionals.Engine;
 
 /// <summary>
@@ -29,11 +31,21 @@ internal static class ConditionValueOps
             return string.Equals(left.ToString(), right.ToString(), StringComparison.OrdinalIgnoreCase);
         }
 
-        return left.ToString() == right.ToString();
+        return ToStr(left) == ToStr(right);
     }
 
-    /// <summary>Coerces a value to its ordinal string form (empty string for null).</summary>
-    public static string ToStr(object? value) => value?.ToString() ?? string.Empty;
+    /// <summary>
+    /// Coerces a value to its ordinal string form (empty string for null). Numeric values are
+    /// formatted with <see cref="CultureInfo.InvariantCulture"/> so results do not depend on the
+    /// current culture (e.g. <c>1.5m</c> is always <c>"1.5"</c>, never <c>"1,5"</c>).
+    /// </summary>
+    public static string ToStr(object? value) => value switch
+    {
+        null => string.Empty,
+        double or float or decimal or int or long or short or byte or sbyte or ushort or uint or ulong
+            => ((IFormattable)value).ToString(null, CultureInfo.InvariantCulture),
+        _ => value.ToString() ?? string.Empty,
+    };
 
     private static bool IsBooleanLiteral(object? value)
     {

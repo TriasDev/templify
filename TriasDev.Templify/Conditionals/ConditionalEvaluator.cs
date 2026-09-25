@@ -337,13 +337,13 @@ internal sealed class ConditionalEvaluator
 
     private bool IsLogicalOperator(string token)
     {
-        string lower = token.ToLower();
+        string lower = token.ToLowerInvariant();
         return lower == OrOperator || lower == AndOperator;
     }
 
     private bool IsComparisonOperator(string token)
     {
-        string lower = token.ToLower();
+        string lower = token.ToLowerInvariant();
         return lower == EqOperator || lower == EqOperatorDouble || lower == NeOperator ||
                lower == GtOperator || lower == LtOperator ||
                lower == GteOperator || lower == LteOperator ||
