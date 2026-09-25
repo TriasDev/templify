@@ -3,6 +3,7 @@
 
 using System.Collections;
 using System.Globalization;
+using TriasDev.Templify.Utilities;
 
 namespace TriasDev.Templify.Conditionals.Engine;
 
@@ -44,11 +45,27 @@ internal sealed class DefaultConditionDialect : ConditionDialect
             return true;
         }
 
-        if (value is int i)
-        { return i != 0; }
+        // Any numeric zero (0, 0L, 0m, 0.0, -0.0, JSON 0.0, ...) is falsy; NaN is falsy too (like JavaScript).
+        if (NumericValue.TryFrom(value, out NumericValue number))
+        { return !number.IsZero && !number.IsNaN; }
         if (value is ICollection c)
         { return c.Count > 0; }
+        if (value is IEnumerable e)
+        { return HasAny(e); }
         return true;
+    }
+
+    private static bool HasAny(IEnumerable enumerable)
+    {
+        IEnumerator enumerator = enumerable.GetEnumerator();
+        try
+        {
+            return enumerator.MoveNext();
+        }
+        finally
+        {
+            (enumerator as IDisposable)?.Dispose();
+        }
     }
 
     public override bool AreEqual(object? left, object? right) => ConditionValueOps.AreEqual(left, right);
@@ -56,70 +73,51 @@ internal sealed class DefaultConditionDialect : ConditionDialect
     public override bool TryCompare(object? left, object? right, out int cmp)
     {
         cmp = 0;
-
-        // Compare exact numeric types (integers, decimal) as decimal to avoid double rounding.
-        if (TryGetExactDecimal(left, out decimal ld) && TryGetExactDecimal(right, out decimal rd))
-        {
-            cmp = ld.CompareTo(rd);
-            return true;
-        }
-
-        if (TryGetDouble(left, out double l) && TryGetDouble(right, out double r))
-        {
-            cmp = l.CompareTo(r);
-            return true;
-        }
-        return false;
-    }
-
-    /// <summary>Null (treated as 0), integer types and decimal convert exactly to decimal.</summary>
-    private static bool TryGetExactDecimal(object? value, out decimal result)
-    {
-        switch (value)
-        {
-            case null:
-                result = 0m;
-                return true;
-            case decimal or int or long or short or byte or sbyte or ushort or uint or ulong:
-                result = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
-                return true;
-            default:
-                result = 0m;
-                return false;
-        }
+        return TryGetNumber(left, out NumericValue l)
+            && TryGetNumber(right, out NumericValue r)
+            && l.TryCompareTo(r, out cmp);
     }
 
     /// <summary>
-    /// Converts a value to double without round-tripping numeric CLR values through the current
-    /// culture: numeric types are converted directly, strings (and any other value's string form)
-    /// are parsed with <see cref="CultureInfo.InvariantCulture"/>.
+    /// Converts an operand to a number without round-tripping numeric CLR values through the
+    /// current culture: null is treated as 0, numeric types (and JSON numbers) are normalized
+    /// directly, strings (and any other value's string form) are parsed with
+    /// <see cref="CultureInfo.InvariantCulture"/>.
     /// </summary>
-    private static bool TryGetDouble(object? value, out double result)
+    private static bool TryGetNumber(object? value, out NumericValue result)
     {
-        switch (value)
+        if (value is null)
         {
-            case null:
-                result = 0d;
-                return true;
-            case double or float or decimal or int or long or short or byte or sbyte or ushort or uint or ulong:
-                result = Convert.ToDouble(value, CultureInfo.InvariantCulture);
-                return true;
-            case string s:
-                return double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out result);
-            default:
-                return double.TryParse(value.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out result);
+            return NumericValue.TryFrom(0, out result);
         }
+
+        if (NumericValue.TryFrom(value, out result))
+        {
+            return true;
+        }
+
+        return NumericValue.TryParse(value as string ?? value.ToString(), out result);
     }
 }
 
-/// <summary>Semantics for inline <c>{{(...)}}</c> placeholders (bool-only truthiness, IComparable compare).</summary>
+/// <summary>Semantics for inline <c>{{(...)}}</c> placeholders (bool-only truthiness, numeric compare across
+/// numeric types, IComparable compare otherwise).</summary>
 internal sealed class InlineConditionDialect : ConditionDialect
 {
     public static readonly InlineConditionDialect Instance = new();
 
     public override bool ToBool(object? value) => value is bool b && b;
 
-    public override bool AreEqual(object? left, object? right) => Equals(left, right);
+    public override bool AreEqual(object? left, object? right)
+    {
+        // Numbers compare numerically across CLR types (5L = 5, 10.50m = 10.5); everything else keeps object.Equals.
+        if (NumericValue.TryFrom(left, out NumericValue ln) && NumericValue.TryFrom(right, out NumericValue rn))
+        {
+            return ln.NumericEquals(rn);
+        }
+
+        return Equals(left, right);
+    }
 
     public override bool TryCompare(object? left, object? right, out int cmp)
     {
@@ -128,6 +126,11 @@ internal sealed class InlineConditionDialect : ConditionDialect
         {
             cmp = left == null ? (right == null ? 0 : -1) : 1;
             return true;
+        }
+
+        if (NumericValue.TryFrom(left, out NumericValue ln) && NumericValue.TryFrom(right, out NumericValue rn))
+        {
+            return ln.TryCompareTo(rn, out cmp);
         }
 
         if (left is IComparable lc && right is IComparable)

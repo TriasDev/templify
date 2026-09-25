@@ -16,6 +16,8 @@ Conditionals let you show or hide content in your document based on data values.
 - Variable exists and is `true`
 - Variable exists and is not empty/zero/false
 
+**Falsy values** (content is hidden): missing/`null`, `false`, empty or whitespace text, the text `"false"` or `"0"`, **any numeric zero** (`0`, `0.0`, `0.00`, JSON `0.0`, and zero of every numeric type such as `decimal` or `long`), `NaN`, and empty lists. Everything else is truthy.
+
 **JSON:**
 ```json
 {
@@ -156,6 +158,8 @@ Your account is pending approval.
 **Tips:**
 - Use quotes around text values: `Status = "Active"`
 - Numbers don't need quotes: `Age = 18`
+- Numbers are compared by value, regardless of how they are stored: `Price = 10` matches `10`, `10.0` and `10.00`, and JSON `10.50` matches `Price = 10.5`
+- A number compared with quoted text compares the text form: `Count = "5"` matches `5` but not `5.0`
 - Comparison is case-sensitive: `"active"` ≠ `"Active"`
 
 ### Inequality (`!=`)
@@ -444,6 +448,16 @@ PDF attachment included.
 ```
 
 **Note:** Like `=`, these string comparisons are **case-sensitive**.
+
+**On lists:** when the left side is a list, `contains` checks **membership** (an element equal to the value, like `"urgent" in Tags`), not a substring:
+
+```
+{{#if Tags contains "urgent"}}
+⚠️ Tagged as urgent.
+{{/if}}
+```
+
+`startswith` / `endswith` on a list are always false.
 
 ### Existence (`exists`, `is empty`, `is not empty`)
 

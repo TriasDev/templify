@@ -42,4 +42,31 @@ public class InlineDialectTests
     [Fact]
     public void NewOperators_WorkInInlineDialect()
         => Assert.True(Eval("(Status in (\"A\", \"B\"))", new() { ["Status"] = "B" }));
+
+    [Fact]
+    public void Comparison_DecimalGreaterThanIntLiteral()
+        => Assert.True(Eval("(Price > 5)", new() { ["Price"] = 10.5m }));
+
+    [Fact]
+    public void Equality_LongEqualsIntLiteral()
+        => Assert.True(Eval("(Id = 5)", new() { ["Id"] = 5L }));
+
+    [Fact]
+    public void Equality_DecimalEqualsDoubleLiteral()
+        => Assert.True(Eval("(Price = 10.5)", new() { ["Price"] = 10.50m }));
+
+    [Fact]
+    public void Comparison_LongLessThanDecimal()
+        => Assert.True(Eval("(A < B)", new() { ["A"] = 1L, ["B"] = 1.5m }));
+
+    [Fact]
+    public void Comparison_NaN_IsFalse()
+        => Assert.False(Eval("(A > 0)", new() { ["A"] = double.NaN }));
+
+    [Fact]
+    public void Truthiness_Unchanged_NumbersAndStringTrueAreFalse()
+    {
+        Assert.False(Eval("(Count)", new() { ["Count"] = 5 }));
+        Assert.False(Eval("(Flag)", new() { ["Flag"] = "true" }));
+    }
 }
