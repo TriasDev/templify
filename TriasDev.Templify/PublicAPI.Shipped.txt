@@ -1,0 +1,244 @@
+#nullable enable
+TriasDev.Templify.Conditionals.ConditionContext
+TriasDev.Templify.Conditionals.ConditionContext.Evaluate(string! expression) -> bool
+TriasDev.Templify.Conditionals.ConditionContext.EvaluateAsync(string! expression, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+TriasDev.Templify.Conditionals.ConditionContext.Validate(string! expression) -> TriasDev.Templify.Conditionals.ConditionValidationResult!
+TriasDev.Templify.Conditionals.ConditionEvaluator
+TriasDev.Templify.Conditionals.ConditionEvaluator.ConditionEvaluator() -> void
+TriasDev.Templify.Conditionals.ConditionEvaluator.CreateConditionContext(System.Collections.Generic.Dictionary<string!, object!>! data) -> TriasDev.Templify.Conditionals.IConditionContext!
+TriasDev.Templify.Conditionals.ConditionEvaluator.CreateConditionContext(string! jsonData) -> TriasDev.Templify.Conditionals.IConditionContext!
+TriasDev.Templify.Conditionals.ConditionEvaluator.CreateContext(System.Collections.Generic.Dictionary<string!, object!>! data) -> TriasDev.Templify.Core.IEvaluationContext!
+TriasDev.Templify.Conditionals.ConditionEvaluator.CreateContext(string! jsonData) -> TriasDev.Templify.Core.IEvaluationContext!
+TriasDev.Templify.Conditionals.ConditionEvaluator.Evaluate(string! expression, System.Collections.Generic.Dictionary<string!, object!>! data) -> bool
+TriasDev.Templify.Conditionals.ConditionEvaluator.Evaluate(string! expression, TriasDev.Templify.Core.IEvaluationContext! context) -> bool
+TriasDev.Templify.Conditionals.ConditionEvaluator.Evaluate(string! expression, string! jsonData) -> bool
+TriasDev.Templify.Conditionals.ConditionEvaluator.EvaluateAsync(string! expression, System.Collections.Generic.Dictionary<string!, object!>! data, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+TriasDev.Templify.Conditionals.ConditionEvaluator.EvaluateAsync(string! expression, TriasDev.Templify.Core.IEvaluationContext! context, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+TriasDev.Templify.Conditionals.ConditionEvaluator.EvaluateAsync(string! expression, string! jsonData, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+TriasDev.Templify.Conditionals.ConditionEvaluator.Validate(string! expression) -> TriasDev.Templify.Conditionals.ConditionValidationResult!
+TriasDev.Templify.Conditionals.ConditionValidationIssue
+TriasDev.Templify.Conditionals.ConditionValidationIssue.ConditionValidationIssue(TriasDev.Templify.Conditionals.ConditionValidationIssueType type, string! message, string? token = null) -> void
+TriasDev.Templify.Conditionals.ConditionValidationIssue.Message.get -> string!
+TriasDev.Templify.Conditionals.ConditionValidationIssue.Token.get -> string?
+TriasDev.Templify.Conditionals.ConditionValidationIssue.Type.get -> TriasDev.Templify.Conditionals.ConditionValidationIssueType
+TriasDev.Templify.Conditionals.ConditionValidationIssueType
+TriasDev.Templify.Conditionals.ConditionValidationIssueType.ConsecutiveOperands = 5 -> TriasDev.Templify.Conditionals.ConditionValidationIssueType
+TriasDev.Templify.Conditionals.ConditionValidationIssueType.ConsecutiveOperators = 4 -> TriasDev.Templify.Conditionals.ConditionValidationIssueType
+TriasDev.Templify.Conditionals.ConditionValidationIssueType.EmptyExpression = 0 -> TriasDev.Templify.Conditionals.ConditionValidationIssueType
+TriasDev.Templify.Conditionals.ConditionValidationIssueType.MissingOperand = 3 -> TriasDev.Templify.Conditionals.ConditionValidationIssueType
+TriasDev.Templify.Conditionals.ConditionValidationIssueType.UnbalancedQuotes = 2 -> TriasDev.Templify.Conditionals.ConditionValidationIssueType
+TriasDev.Templify.Conditionals.ConditionValidationIssueType.UnknownOperator = 1 -> TriasDev.Templify.Conditionals.ConditionValidationIssueType
+TriasDev.Templify.Conditionals.ConditionValidationResult
+TriasDev.Templify.Conditionals.ConditionValidationResult.ConditionValidationResult() -> void
+TriasDev.Templify.Conditionals.ConditionValidationResult.IsValid.get -> bool
+TriasDev.Templify.Conditionals.ConditionValidationResult.IsValid.init -> void
+TriasDev.Templify.Conditionals.ConditionValidationResult.Issues.get -> System.Collections.Generic.IReadOnlyList<TriasDev.Templify.Conditionals.ConditionValidationIssue!>!
+TriasDev.Templify.Conditionals.ConditionValidationResult.Issues.init -> void
+TriasDev.Templify.Conditionals.IConditionContext
+TriasDev.Templify.Conditionals.IConditionContext.Evaluate(string! expression) -> bool
+TriasDev.Templify.Conditionals.IConditionContext.EvaluateAsync(string! expression, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+TriasDev.Templify.Conditionals.IConditionContext.Validate(string! expression) -> TriasDev.Templify.Conditionals.ConditionValidationResult!
+TriasDev.Templify.Conditionals.IConditionEvaluator
+TriasDev.Templify.Conditionals.IConditionEvaluator.CreateConditionContext(System.Collections.Generic.Dictionary<string!, object!>! data) -> TriasDev.Templify.Conditionals.IConditionContext!
+TriasDev.Templify.Conditionals.IConditionEvaluator.CreateConditionContext(string! jsonData) -> TriasDev.Templify.Conditionals.IConditionContext!
+TriasDev.Templify.Conditionals.IConditionEvaluator.CreateContext(System.Collections.Generic.Dictionary<string!, object!>! data) -> TriasDev.Templify.Core.IEvaluationContext!
+TriasDev.Templify.Conditionals.IConditionEvaluator.CreateContext(string! jsonData) -> TriasDev.Templify.Core.IEvaluationContext!
+TriasDev.Templify.Conditionals.IConditionEvaluator.Evaluate(string! expression, System.Collections.Generic.Dictionary<string!, object!>! data) -> bool
+TriasDev.Templify.Conditionals.IConditionEvaluator.Evaluate(string! expression, TriasDev.Templify.Core.IEvaluationContext! context) -> bool
+TriasDev.Templify.Conditionals.IConditionEvaluator.Evaluate(string! expression, string! jsonData) -> bool
+TriasDev.Templify.Conditionals.IConditionEvaluator.EvaluateAsync(string! expression, System.Collections.Generic.Dictionary<string!, object!>! data, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+TriasDev.Templify.Conditionals.IConditionEvaluator.EvaluateAsync(string! expression, TriasDev.Templify.Core.IEvaluationContext! context, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+TriasDev.Templify.Conditionals.IConditionEvaluator.EvaluateAsync(string! expression, string! jsonData, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+TriasDev.Templify.Conditionals.IConditionEvaluator.Validate(string! expression) -> TriasDev.Templify.Conditionals.ConditionValidationResult!
+TriasDev.Templify.Core.DocumentProperties
+TriasDev.Templify.Core.DocumentProperties.Author.get -> string?
+TriasDev.Templify.Core.DocumentProperties.Author.init -> void
+TriasDev.Templify.Core.DocumentProperties.Category.get -> string?
+TriasDev.Templify.Core.DocumentProperties.Category.init -> void
+TriasDev.Templify.Core.DocumentProperties.Description.get -> string?
+TriasDev.Templify.Core.DocumentProperties.Description.init -> void
+TriasDev.Templify.Core.DocumentProperties.DocumentProperties() -> void
+TriasDev.Templify.Core.DocumentProperties.Keywords.get -> string?
+TriasDev.Templify.Core.DocumentProperties.Keywords.init -> void
+TriasDev.Templify.Core.DocumentProperties.LastModifiedBy.get -> string?
+TriasDev.Templify.Core.DocumentProperties.LastModifiedBy.init -> void
+TriasDev.Templify.Core.DocumentProperties.Subject.get -> string?
+TriasDev.Templify.Core.DocumentProperties.Subject.init -> void
+TriasDev.Templify.Core.DocumentProperties.Title.get -> string?
+TriasDev.Templify.Core.DocumentProperties.Title.init -> void
+TriasDev.Templify.Core.DocumentTemplateProcessor
+TriasDev.Templify.Core.DocumentTemplateProcessor.DocumentTemplateProcessor(TriasDev.Templify.Core.PlaceholderReplacementOptions? options = null) -> void
+TriasDev.Templify.Core.DocumentTemplateProcessor.ProcessTemplate(System.IO.Stream! templateStream, System.IO.Stream! outputStream, System.Collections.Generic.Dictionary<string!, object!>! data) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.DocumentTemplateProcessor.ProcessTemplate(System.IO.Stream! templateStream, System.IO.Stream! outputStream, string! jsonData) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.DocumentTemplateProcessor.ValidateTemplate(System.IO.Stream! templateStream) -> TriasDev.Templify.Core.ValidationResult!
+TriasDev.Templify.Core.DocumentTemplateProcessor.ValidateTemplate(System.IO.Stream! templateStream, System.Collections.Generic.Dictionary<string!, object!>! data) -> TriasDev.Templify.Core.ValidationResult!
+TriasDev.Templify.Core.GlobalEvaluationContext
+TriasDev.Templify.Core.GlobalEvaluationContext.GlobalEvaluationContext(System.Collections.Generic.Dictionary<string!, object!>! data) -> void
+TriasDev.Templify.Core.GlobalEvaluationContext.Parent.get -> TriasDev.Templify.Core.IEvaluationContext?
+TriasDev.Templify.Core.GlobalEvaluationContext.RootData.get -> System.Collections.Generic.IReadOnlyDictionary<string!, object!>!
+TriasDev.Templify.Core.GlobalEvaluationContext.TryResolveVariable(string! variableName, out object? value) -> bool
+TriasDev.Templify.Core.IEvaluationContext
+TriasDev.Templify.Core.IEvaluationContext.Parent.get -> TriasDev.Templify.Core.IEvaluationContext?
+TriasDev.Templify.Core.IEvaluationContext.RootData.get -> System.Collections.Generic.IReadOnlyDictionary<string!, object!>!
+TriasDev.Templify.Core.IEvaluationContext.TryResolveVariable(string! variableName, out object? value) -> bool
+TriasDev.Templify.Core.MissingVariableBehavior
+TriasDev.Templify.Core.MissingVariableBehavior.LeaveUnchanged = 0 -> TriasDev.Templify.Core.MissingVariableBehavior
+TriasDev.Templify.Core.MissingVariableBehavior.ReplaceWithEmpty = 1 -> TriasDev.Templify.Core.MissingVariableBehavior
+TriasDev.Templify.Core.MissingVariableBehavior.ThrowException = 2 -> TriasDev.Templify.Core.MissingVariableBehavior
+TriasDev.Templify.Core.PlaceholderReplacementOptions
+TriasDev.Templify.Core.PlaceholderReplacementOptions.BooleanFormatterRegistry.get -> TriasDev.Templify.Formatting.BooleanFormatterRegistry?
+TriasDev.Templify.Core.PlaceholderReplacementOptions.BooleanFormatterRegistry.init -> void
+TriasDev.Templify.Core.PlaceholderReplacementOptions.Culture.get -> System.Globalization.CultureInfo!
+TriasDev.Templify.Core.PlaceholderReplacementOptions.Culture.init -> void
+TriasDev.Templify.Core.PlaceholderReplacementOptions.DocumentProperties.get -> TriasDev.Templify.Core.DocumentProperties?
+TriasDev.Templify.Core.PlaceholderReplacementOptions.DocumentProperties.init -> void
+TriasDev.Templify.Core.PlaceholderReplacementOptions.EnableNewlineSupport.get -> bool
+TriasDev.Templify.Core.PlaceholderReplacementOptions.EnableNewlineSupport.init -> void
+TriasDev.Templify.Core.PlaceholderReplacementOptions.MissingVariableBehavior.get -> TriasDev.Templify.Core.MissingVariableBehavior
+TriasDev.Templify.Core.PlaceholderReplacementOptions.MissingVariableBehavior.init -> void
+TriasDev.Templify.Core.PlaceholderReplacementOptions.PlaceholderReplacementOptions() -> void
+TriasDev.Templify.Core.PlaceholderReplacementOptions.TextReplacements.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>?
+TriasDev.Templify.Core.PlaceholderReplacementOptions.TextReplacements.init -> void
+TriasDev.Templify.Core.PlaceholderReplacementOptions.UpdateFieldsOnOpen.get -> TriasDev.Templify.Core.UpdateFieldsOnOpenMode
+TriasDev.Templify.Core.PlaceholderReplacementOptions.UpdateFieldsOnOpen.init -> void
+TriasDev.Templify.Core.PlaceholderReplacementOptions.WarnOnEmptyLoopCollections.get -> bool
+TriasDev.Templify.Core.PlaceholderReplacementOptions.WarnOnEmptyLoopCollections.init -> void
+TriasDev.Templify.Core.ProcessingResult
+TriasDev.Templify.Core.ProcessingResult.ErrorMessage.get -> string?
+TriasDev.Templify.Core.ProcessingResult.ErrorMessage.init -> void
+TriasDev.Templify.Core.ProcessingResult.GetWarningReport() -> System.IO.MemoryStream!
+TriasDev.Templify.Core.ProcessingResult.GetWarningReportBytes() -> byte[]!
+TriasDev.Templify.Core.ProcessingResult.HasWarnings.get -> bool
+TriasDev.Templify.Core.ProcessingResult.IsSuccess.get -> bool
+TriasDev.Templify.Core.ProcessingResult.IsSuccess.init -> void
+TriasDev.Templify.Core.ProcessingResult.MissingVariables.get -> System.Collections.Generic.IReadOnlyList<string!>!
+TriasDev.Templify.Core.ProcessingResult.MissingVariables.init -> void
+TriasDev.Templify.Core.ProcessingResult.ProcessingResult() -> void
+TriasDev.Templify.Core.ProcessingResult.ReplacementCount.get -> int
+TriasDev.Templify.Core.ProcessingResult.ReplacementCount.init -> void
+TriasDev.Templify.Core.ProcessingResult.Warnings.get -> System.Collections.Generic.IReadOnlyList<TriasDev.Templify.Core.ProcessingWarning!>!
+TriasDev.Templify.Core.ProcessingResult.Warnings.init -> void
+TriasDev.Templify.Core.ProcessingWarning
+TriasDev.Templify.Core.ProcessingWarning.Context.get -> string?
+TriasDev.Templify.Core.ProcessingWarning.Message.get -> string!
+TriasDev.Templify.Core.ProcessingWarning.ProcessingWarning(TriasDev.Templify.Core.ProcessingWarningType type, string! message, string? variableName = null, string? context = null) -> void
+TriasDev.Templify.Core.ProcessingWarning.Type.get -> TriasDev.Templify.Core.ProcessingWarningType
+TriasDev.Templify.Core.ProcessingWarning.VariableName.get -> string?
+TriasDev.Templify.Core.ProcessingWarningType
+TriasDev.Templify.Core.ProcessingWarningType.ExpressionFailed = 3 -> TriasDev.Templify.Core.ProcessingWarningType
+TriasDev.Templify.Core.ProcessingWarningType.MissingLoopCollection = 1 -> TriasDev.Templify.Core.ProcessingWarningType
+TriasDev.Templify.Core.ProcessingWarningType.MissingVariable = 0 -> TriasDev.Templify.Core.ProcessingWarningType
+TriasDev.Templify.Core.ProcessingWarningType.NullLoopCollection = 2 -> TriasDev.Templify.Core.ProcessingWarningType
+TriasDev.Templify.Core.TextProcessingResult
+TriasDev.Templify.Core.TextProcessingResult.ErrorMessage.get -> string?
+TriasDev.Templify.Core.TextProcessingResult.ErrorMessage.init -> void
+TriasDev.Templify.Core.TextProcessingResult.IsSuccess.get -> bool
+TriasDev.Templify.Core.TextProcessingResult.IsSuccess.init -> void
+TriasDev.Templify.Core.TextProcessingResult.MissingVariables.get -> System.Collections.Generic.IReadOnlyList<string!>!
+TriasDev.Templify.Core.TextProcessingResult.MissingVariables.init -> void
+TriasDev.Templify.Core.TextProcessingResult.ProcessedText.get -> string!
+TriasDev.Templify.Core.TextProcessingResult.ProcessedText.init -> void
+TriasDev.Templify.Core.TextProcessingResult.ReplacementCount.get -> int
+TriasDev.Templify.Core.TextProcessingResult.ReplacementCount.init -> void
+TriasDev.Templify.Core.TextProcessingResult.TextProcessingResult() -> void
+TriasDev.Templify.Core.TextTemplateProcessor
+TriasDev.Templify.Core.TextTemplateProcessor.ProcessTemplate(string! templateText, System.Collections.Generic.Dictionary<string!, object!>! data) -> TriasDev.Templify.Core.TextProcessingResult!
+TriasDev.Templify.Core.TextTemplateProcessor.TextTemplateProcessor(TriasDev.Templify.Core.PlaceholderReplacementOptions? options = null) -> void
+TriasDev.Templify.Core.UpdateFieldsOnOpenMode
+TriasDev.Templify.Core.UpdateFieldsOnOpenMode.Always = 1 -> TriasDev.Templify.Core.UpdateFieldsOnOpenMode
+TriasDev.Templify.Core.UpdateFieldsOnOpenMode.Auto = 2 -> TriasDev.Templify.Core.UpdateFieldsOnOpenMode
+TriasDev.Templify.Core.UpdateFieldsOnOpenMode.Never = 0 -> TriasDev.Templify.Core.UpdateFieldsOnOpenMode
+TriasDev.Templify.Core.ValidationError
+TriasDev.Templify.Core.ValidationError.Location.get -> string?
+TriasDev.Templify.Core.ValidationError.Location.init -> void
+TriasDev.Templify.Core.ValidationError.Message.get -> string!
+TriasDev.Templify.Core.ValidationError.Message.init -> void
+TriasDev.Templify.Core.ValidationError.Type.get -> TriasDev.Templify.Core.ValidationErrorType
+TriasDev.Templify.Core.ValidationError.Type.init -> void
+TriasDev.Templify.Core.ValidationError.ValidationError() -> void
+TriasDev.Templify.Core.ValidationErrorType
+TriasDev.Templify.Core.ValidationErrorType.InvalidConditionalExpression = 6 -> TriasDev.Templify.Core.ValidationErrorType
+TriasDev.Templify.Core.ValidationErrorType.InvalidPlaceholderSyntax = 4 -> TriasDev.Templify.Core.ValidationErrorType
+TriasDev.Templify.Core.ValidationErrorType.MissingVariable = 5 -> TriasDev.Templify.Core.ValidationErrorType
+TriasDev.Templify.Core.ValidationErrorType.UnmatchedConditionalEnd = 1 -> TriasDev.Templify.Core.ValidationErrorType
+TriasDev.Templify.Core.ValidationErrorType.UnmatchedConditionalStart = 0 -> TriasDev.Templify.Core.ValidationErrorType
+TriasDev.Templify.Core.ValidationErrorType.UnmatchedLoopEnd = 3 -> TriasDev.Templify.Core.ValidationErrorType
+TriasDev.Templify.Core.ValidationErrorType.UnmatchedLoopStart = 2 -> TriasDev.Templify.Core.ValidationErrorType
+TriasDev.Templify.Core.ValidationResult
+TriasDev.Templify.Core.ValidationResult.AllPlaceholders.get -> System.Collections.Generic.IReadOnlyList<string!>!
+TriasDev.Templify.Core.ValidationResult.AllPlaceholders.init -> void
+TriasDev.Templify.Core.ValidationResult.Errors.get -> System.Collections.Generic.IReadOnlyList<TriasDev.Templify.Core.ValidationError!>!
+TriasDev.Templify.Core.ValidationResult.Errors.init -> void
+TriasDev.Templify.Core.ValidationResult.IsValid.get -> bool
+TriasDev.Templify.Core.ValidationResult.MissingVariables.get -> System.Collections.Generic.IReadOnlyList<string!>!
+TriasDev.Templify.Core.ValidationResult.MissingVariables.init -> void
+TriasDev.Templify.Core.ValidationResult.ValidationResult() -> void
+TriasDev.Templify.Core.ValidationResult.Warnings.get -> System.Collections.Generic.IReadOnlyList<TriasDev.Templify.Core.ValidationWarning!>!
+TriasDev.Templify.Core.ValidationResult.Warnings.init -> void
+TriasDev.Templify.Core.ValidationWarning
+TriasDev.Templify.Core.ValidationWarning.Location.get -> string?
+TriasDev.Templify.Core.ValidationWarning.Location.init -> void
+TriasDev.Templify.Core.ValidationWarning.Message.get -> string!
+TriasDev.Templify.Core.ValidationWarning.Message.init -> void
+TriasDev.Templify.Core.ValidationWarning.Type.get -> TriasDev.Templify.Core.ValidationWarningType
+TriasDev.Templify.Core.ValidationWarning.Type.init -> void
+TriasDev.Templify.Core.ValidationWarning.ValidationWarning() -> void
+TriasDev.Templify.Core.ValidationWarningType
+TriasDev.Templify.Core.ValidationWarningType.EmptyLoopCollection = 0 -> TriasDev.Templify.Core.ValidationWarningType
+TriasDev.Templify.Formatting.BooleanFormatter
+TriasDev.Templify.Formatting.BooleanFormatter.BooleanFormatter(string! trueValue, string! falseValue) -> void
+TriasDev.Templify.Formatting.BooleanFormatter.FalseValue.get -> string!
+TriasDev.Templify.Formatting.BooleanFormatter.Format(bool value) -> string!
+TriasDev.Templify.Formatting.BooleanFormatter.TrueValue.get -> string!
+TriasDev.Templify.Formatting.BooleanFormatterRegistry
+TriasDev.Templify.Formatting.BooleanFormatterRegistry.BooleanFormatterRegistry(System.Globalization.CultureInfo? culture = null) -> void
+TriasDev.Templify.Formatting.BooleanFormatterRegistry.Register(string! name, TriasDev.Templify.Formatting.BooleanFormatter! formatter) -> void
+TriasDev.Templify.Formatting.BooleanFormatterRegistry.TryFormat(bool value, string! formatName, out string? result) -> bool
+TriasDev.Templify.Formatting.BooleanFormatterRegistry.TryGetFormatter(string! name, out TriasDev.Templify.Formatting.BooleanFormatter? formatter) -> bool
+TriasDev.Templify.Placeholders.PlaceholderFinder
+TriasDev.Templify.Placeholders.PlaceholderFinder.ExtractVariableName(string! placeholder) -> string?
+TriasDev.Templify.Placeholders.PlaceholderFinder.FindPlaceholders(string! text) -> System.Collections.Generic.IEnumerable<TriasDev.Templify.Placeholders.PlaceholderMatch!>!
+TriasDev.Templify.Placeholders.PlaceholderFinder.FindPlaceholdersAsList(string! text) -> System.Collections.Generic.IReadOnlyList<TriasDev.Templify.Placeholders.PlaceholderMatch!>!
+TriasDev.Templify.Placeholders.PlaceholderFinder.GetUniqueVariableNames(string! text) -> System.Collections.Generic.IEnumerable<string!>!
+TriasDev.Templify.Placeholders.PlaceholderFinder.IsValidPlaceholder(string! text) -> bool
+TriasDev.Templify.Placeholders.PlaceholderFinder.PlaceholderFinder() -> void
+TriasDev.Templify.Placeholders.PlaceholderMatch
+TriasDev.Templify.Placeholders.PlaceholderMatch.Format.get -> string?
+TriasDev.Templify.Placeholders.PlaceholderMatch.Format.init -> void
+TriasDev.Templify.Placeholders.PlaceholderMatch.FullMatch.get -> string!
+TriasDev.Templify.Placeholders.PlaceholderMatch.FullMatch.init -> void
+TriasDev.Templify.Placeholders.PlaceholderMatch.IsExpression.get -> bool
+TriasDev.Templify.Placeholders.PlaceholderMatch.Length.get -> int
+TriasDev.Templify.Placeholders.PlaceholderMatch.Length.init -> void
+TriasDev.Templify.Placeholders.PlaceholderMatch.PlaceholderMatch() -> void
+TriasDev.Templify.Placeholders.PlaceholderMatch.StartIndex.get -> int
+TriasDev.Templify.Placeholders.PlaceholderMatch.StartIndex.init -> void
+TriasDev.Templify.Placeholders.PlaceholderMatch.VariableName.get -> string!
+TriasDev.Templify.Placeholders.PlaceholderMatch.VariableName.init -> void
+TriasDev.Templify.Replacements.TextReplacements
+TriasDev.Templify.Utilities.JsonDataParser
+TriasDev.Templify.Visitors.TemplateElementType
+TriasDev.Templify.Visitors.TemplateElementType.Conditional = 0 -> TriasDev.Templify.Visitors.TemplateElementType
+TriasDev.Templify.Visitors.TemplateElementType.Loop = 1 -> TriasDev.Templify.Visitors.TemplateElementType
+TriasDev.Templify.Visitors.TemplateElementType.Paragraph = 3 -> TriasDev.Templify.Visitors.TemplateElementType
+TriasDev.Templify.Visitors.TemplateElementType.Placeholder = 2 -> TriasDev.Templify.Visitors.TemplateElementType
+TriasDev.Templify.Visitors.TemplateElementType.Unknown = 4 -> TriasDev.Templify.Visitors.TemplateElementType
+override TriasDev.Templify.Conditionals.ConditionValidationIssue.ToString() -> string!
+override TriasDev.Templify.Core.ProcessingWarning.ToString() -> string!
+static TriasDev.Templify.Conditionals.ConditionValidationResult.Failure(System.Collections.Generic.IReadOnlyList<TriasDev.Templify.Conditionals.ConditionValidationIssue!>! issues) -> TriasDev.Templify.Conditionals.ConditionValidationResult!
+static TriasDev.Templify.Conditionals.ConditionValidationResult.Success() -> TriasDev.Templify.Conditionals.ConditionValidationResult!
+static TriasDev.Templify.Core.ProcessingResult.Failure(string! errorMessage) -> TriasDev.Templify.Core.ProcessingResult!
+static TriasDev.Templify.Core.ProcessingResult.Success(int replacementCount, System.Collections.Generic.IReadOnlyList<string!>? missingVariables = null, System.Collections.Generic.IReadOnlyList<TriasDev.Templify.Core.ProcessingWarning!>? warnings = null) -> TriasDev.Templify.Core.ProcessingResult!
+static TriasDev.Templify.Core.ProcessingWarning.ExpressionFailed(string! expression, string! reason) -> TriasDev.Templify.Core.ProcessingWarning!
+static TriasDev.Templify.Core.ProcessingWarning.MissingLoopCollection(string! collectionName) -> TriasDev.Templify.Core.ProcessingWarning!
+static TriasDev.Templify.Core.ProcessingWarning.MissingVariable(string! variableName) -> TriasDev.Templify.Core.ProcessingWarning!
+static TriasDev.Templify.Core.ProcessingWarning.NullLoopCollection(string! collectionName) -> TriasDev.Templify.Core.ProcessingWarning!
+static TriasDev.Templify.Core.TextProcessingResult.Failure(string! errorMessage) -> TriasDev.Templify.Core.TextProcessingResult!
+static TriasDev.Templify.Core.TextProcessingResult.Success(string! processedText, int replacementCount, System.Collections.Generic.IReadOnlyList<string!>? missingVariables = null) -> TriasDev.Templify.Core.TextProcessingResult!
+static TriasDev.Templify.Core.ValidationError.Create(TriasDev.Templify.Core.ValidationErrorType type, string! message, string? location = null) -> TriasDev.Templify.Core.ValidationError!
+static TriasDev.Templify.Core.ValidationResult.Failure(System.Collections.Generic.IReadOnlyList<TriasDev.Templify.Core.ValidationError!>! errors, System.Collections.Generic.IReadOnlyList<string!>! allPlaceholders, System.Collections.Generic.IReadOnlyList<string!>? missingVariables = null, System.Collections.Generic.IReadOnlyList<TriasDev.Templify.Core.ValidationWarning!>? warnings = null) -> TriasDev.Templify.Core.ValidationResult!
+static TriasDev.Templify.Core.ValidationResult.Success(System.Collections.Generic.IReadOnlyList<string!>! allPlaceholders, System.Collections.Generic.IReadOnlyList<string!>? missingVariables = null, System.Collections.Generic.IReadOnlyList<TriasDev.Templify.Core.ValidationWarning!>? warnings = null) -> TriasDev.Templify.Core.ValidationResult!
+static TriasDev.Templify.Core.ValidationWarning.Create(TriasDev.Templify.Core.ValidationWarningType type, string! message, string? location = null) -> TriasDev.Templify.Core.ValidationWarning!
+static TriasDev.Templify.Replacements.TextReplacements.Apply(string? input, System.Collections.Generic.IReadOnlyDictionary<string!, string!>? replacements) -> string?
+static TriasDev.Templify.Replacements.TextReplacements.HtmlEntities.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+static TriasDev.Templify.Utilities.JsonDataParser.ParseJsonToDataDictionary(string! jsonString) -> System.Collections.Generic.Dictionary<string!, object!>!
