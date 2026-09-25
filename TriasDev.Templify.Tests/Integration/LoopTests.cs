@@ -1005,4 +1005,287 @@ public sealed class LoopTests
         Assert.Contains(paragraphs, p => p.Contains("David"));
     }
     */
+
+    #region Null Handling (#147)
+
+    private sealed class NoteItem
+    {
+        public string Name { get; set; } = "";
+        public string? Notes { get; set; }
+    }
+
+    private sealed class NullableCategory
+    {
+        public string Name { get; set; } = "";
+        public List<string?>? Products { get; set; }
+    }
+
+    private static (ProcessingResult Result, List<string> Paragraphs) ProcessParagraphs(
+        Dictionary<string, object> data,
+        params string[] paragraphs)
+    {
+        DocumentBuilder builder = new DocumentBuilder();
+        foreach (string paragraph in paragraphs)
+        {
+            builder.AddParagraph(paragraph);
+        }
+
+        MemoryStream templateStream = builder.ToStream();
+        MemoryStream outputStream = new MemoryStream();
+        ProcessingResult result = new DocumentTemplateProcessor().ProcessTemplate(templateStream, outputStream, data);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        return (result, verifier.GetAllParagraphTexts());
+    }
+
+    [Fact]
+    public void ProcessTemplate_JsonArrayWithNullItem_DoesNotFailAndRendersNullAsEmpty()
+    {
+        // Arrange
+        Dictionary<string, object> data = JsonDataParser.ParseJsonToDataDictionary("{\"Tags\": [\"a\", null, \"b\"]}");
+
+        // Act
+        (ProcessingResult result, List<string> paragraphs) = ProcessParagraphs(
+            data, "{{#foreach Tags}}", "[{{.}}]", "{{/foreach}}");
+
+        // Assert
+        Assert.True(result.IsSuccess, result.ErrorMessage);
+        Assert.Equal(new[] { "[a]", "[]", "[b]" }, paragraphs);
+        Assert.Empty(result.MissingVariables);
+        Assert.DoesNotContain(result.Warnings, w => w.Type == ProcessingWarningType.MissingVariable);
+    }
+
+    [Fact]
+    public void ProcessTemplate_NullItem_ThisRendersEmpty()
+    {
+        // Arrange
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Tags"] = new List<string?> { "a", null }
+        };
+
+        // Act
+        (ProcessingResult result, List<string> paragraphs) = ProcessParagraphs(
+            data, "{{#foreach Tags}}", "[{{this}}]", "{{/foreach}}");
+
+        // Assert
+        Assert.True(result.IsSuccess, result.ErrorMessage);
+        Assert.Equal(new[] { "[a]", "[]" }, paragraphs);
+    }
+
+    [Fact]
+    public void ProcessTemplate_NullItem_LoopMetadataStillCorrect()
+    {
+        // Arrange
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Tags"] = new List<string?> { "a", null, "b" }
+        };
+
+        // Act
+        (ProcessingResult result, List<string> paragraphs) = ProcessParagraphs(
+            data, "{{#foreach Tags}}", "{{@index}}:{{.}}:{{@count}}:{{@first}}:{{@last}}", "{{/foreach}}");
+
+        // Assert
+        Assert.True(result.IsSuccess, result.ErrorMessage);
+        Assert.Equal(new[] { "0:a:3:True:False", "1::3:False:False", "2:b:3:False:True" }, paragraphs);
+    }
+
+    [Fact]
+    public void ProcessTemplate_NullItem_IfDotEvaluatesToFalse()
+    {
+        // Arrange
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Tags"] = new List<string?> { "a", null }
+        };
+
+        // Act
+        (ProcessingResult result, List<string> paragraphs) = ProcessParagraphs(
+            data,
+            "{{#foreach Tags}}",
+            "{{#if .}}",
+            "value {{.}}",
+            "{{#else}}",
+            "no value",
+            "{{/if}}",
+            "{{/foreach}}");
+
+        // Assert
+        Assert.True(result.IsSuccess, result.ErrorMessage);
+        Assert.Equal(new[] { "value a", "no value" }, paragraphs);
+    }
+
+    [Fact]
+    public void ProcessTemplate_NullItem_ImplicitNameFallsThroughToGlobal()
+    {
+        // Arrange: a null item has no properties, so implicit names still reach the parent scope
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Company"] = "ACME",
+            ["Tags"] = new List<string?> { "a", null }
+        };
+
+        // Act
+        (ProcessingResult result, List<string> paragraphs) = ProcessParagraphs(
+            data, "{{#foreach Tags}}", "{{Company}}:{{.}}", "{{/foreach}}");
+
+        // Assert
+        Assert.True(result.IsSuccess, result.ErrorMessage);
+        Assert.Equal(new[] { "ACME:a", "ACME:" }, paragraphs);
+    }
+
+    [Fact]
+    public void ProcessTemplate_NullItemProperty_DoesNotLeakGlobalValue()
+    {
+        // Arrange
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Notes"] = "GLOBAL",
+            ["Items"] = new List<NoteItem> { new NoteItem { Name = "A", Notes = null } }
+        };
+
+        // Act
+        (ProcessingResult result, List<string> paragraphs) = ProcessParagraphs(
+            data, "{{#foreach Items}}", "{{Name}}:{{Notes}}", "{{/foreach}}");
+
+        // Assert
+        Assert.True(result.IsSuccess, result.ErrorMessage);
+        Assert.Equal(new[] { "A:" }, paragraphs);
+        Assert.Empty(result.MissingVariables);
+    }
+
+    [Fact]
+    public void ProcessTemplate_NullDictionaryItemValue_DoesNotLeakGlobalValue()
+    {
+        // Arrange
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Notes"] = "GLOBAL",
+            ["Items"] = new List<Dictionary<string, object?>>
+            {
+                new Dictionary<string, object?> { ["Name"] = "A", ["Notes"] = null },
+                new Dictionary<string, object?> { ["Name"] = "B" }
+            }
+        };
+
+        // Act
+        (ProcessingResult result, List<string> paragraphs) = ProcessParagraphs(
+            data, "{{#foreach Items}}", "{{Name}}:{{Notes}}", "{{/foreach}}");
+
+        // Assert: present-but-null renders empty; a missing key still falls through to the global value
+        Assert.True(result.IsSuccess, result.ErrorMessage);
+        Assert.Equal(new[] { "A:", "B:GLOBAL" }, paragraphs);
+        Assert.Empty(result.MissingVariables);
+    }
+
+    [Fact]
+    public void ProcessTemplate_NullJsonItemValue_DoesNotLeakGlobalValue()
+    {
+        // Arrange
+        Dictionary<string, object> data = JsonDataParser.ParseJsonToDataDictionary(
+            "{\"Notes\": \"GLOBAL\", \"Items\": [{\"Name\": \"A\", \"Notes\": null}]}");
+
+        // Act
+        (ProcessingResult result, List<string> paragraphs) = ProcessParagraphs(
+            data, "{{#foreach Items}}", "{{Name}}:{{Notes}}", "{{/foreach}}");
+
+        // Assert
+        Assert.True(result.IsSuccess, result.ErrorMessage);
+        Assert.Equal(new[] { "A:" }, paragraphs);
+    }
+
+    [Fact]
+    public void ProcessTemplate_NullItemProperty_ConditionDoesNotUseGlobalValue()
+    {
+        // Arrange
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Notes"] = "GLOBAL",
+            ["Items"] = new List<NoteItem> { new NoteItem { Name = "A", Notes = null } }
+        };
+
+        // Act
+        (ProcessingResult result, List<string> paragraphs) = ProcessParagraphs(
+            data,
+            "{{#foreach Items}}",
+            "{{#if Notes}}",
+            "has notes",
+            "{{#else}}",
+            "no notes",
+            "{{/if}}",
+            "{{/foreach}}");
+
+        // Assert
+        Assert.True(result.IsSuccess, result.ErrorMessage);
+        Assert.Equal(new[] { "no notes" }, paragraphs);
+    }
+
+    [Fact]
+    public void ProcessTemplate_NullItemProperty_ExistsIsTrue()
+    {
+        // Arrange: POCO and dictionary items, with present-null and missing properties
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Pocos"] = new List<NoteItem> { new NoteItem { Name = "P", Notes = null } },
+            ["Dicts"] = new List<Dictionary<string, object?>>
+            {
+                new Dictionary<string, object?> { ["Name"] = "D1", ["Notes"] = null },
+                new Dictionary<string, object?> { ["Name"] = "D2" }
+            }
+        };
+
+        // Act
+        (ProcessingResult result, List<string> paragraphs) = ProcessParagraphs(
+            data,
+            "{{#foreach Pocos}}",
+            "{{#if Notes exists}}",
+            "{{Name}} present",
+            "{{#else}}",
+            "{{Name}} absent",
+            "{{/if}}",
+            "{{/foreach}}",
+            "{{#foreach Dicts}}",
+            "{{#if Notes exists}}",
+            "{{Name}} present",
+            "{{#else}}",
+            "{{Name}} absent",
+            "{{/if}}",
+            "{{/foreach}}");
+
+        // Assert
+        Assert.True(result.IsSuccess, result.ErrorMessage);
+        Assert.Equal(new[] { "P present", "D1 present", "D2 absent" }, paragraphs);
+    }
+
+    [Fact]
+    public void ProcessTemplate_NestedLoop_NullInnerCollection_SkipsInnerLoop()
+    {
+        // Arrange
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Categories"] = new List<NullableCategory>
+            {
+                new NullableCategory { Name = "A", Products = null },
+                new NullableCategory { Name = "B", Products = new List<string?> { "x", null } }
+            }
+        };
+
+        // Act
+        (ProcessingResult result, List<string> paragraphs) = ProcessParagraphs(
+            data,
+            "{{#foreach Categories}}",
+            "Category {{Name}}",
+            "{{#foreach Products}}",
+            "- [{{.}}]",
+            "{{/foreach}}",
+            "{{/foreach}}");
+
+        // Assert
+        Assert.True(result.IsSuccess, result.ErrorMessage);
+        Assert.Equal(new[] { "Category A", "Category B", "- [x]", "- []" }, paragraphs);
+        Assert.Contains(result.Warnings, w => w.Type == ProcessingWarningType.NullLoopCollection);
+    }
+
+    #endregion
 }

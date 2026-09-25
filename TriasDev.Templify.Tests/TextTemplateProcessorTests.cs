@@ -240,6 +240,49 @@ Status is active
     #region Loop Tests
 
     [Fact]
+    public void ProcessTemplate_LoopWithNullItem_RendersNullAsEmpty()
+    {
+        // Arrange
+        var processor = new TextTemplateProcessor();
+        string template = "{{#foreach Tags}}[{{@index}}:{{.}}]{{/foreach}}";
+        var data = new Dictionary<string, object>
+        {
+            ["Tags"] = new List<string?> { "a", null, "b" }
+        };
+
+        // Act
+        TextProcessingResult result = processor.ProcessTemplate(template, data);
+
+        // Assert
+        Assert.True(result.IsSuccess, result.ErrorMessage);
+        Assert.Equal("[0:a][1:][2:b]", result.ProcessedText);
+    }
+
+    [Fact]
+    public void ProcessTemplate_LoopItemWithNullProperty_DoesNotLeakGlobalValue()
+    {
+        // Arrange
+        var processor = new TextTemplateProcessor();
+        string template = "{{#foreach Items}}{{Name}}:{{Notes}};{{/foreach}}";
+        var data = new Dictionary<string, object>
+        {
+            ["Notes"] = "GLOBAL",
+            ["Items"] = new List<Dictionary<string, object?>>
+            {
+                new Dictionary<string, object?> { ["Name"] = "A", ["Notes"] = null }
+            }
+        };
+
+        // Act
+        TextProcessingResult result = processor.ProcessTemplate(template, data);
+
+        // Assert
+        Assert.True(result.IsSuccess, result.ErrorMessage);
+        Assert.Equal("A:;", result.ProcessedText);
+        Assert.Empty(result.MissingVariables);
+    }
+
+    [Fact]
     public void ProcessTemplate_SimpleLoop_ExpandsCollection()
     {
         // Arrange

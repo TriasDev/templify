@@ -848,6 +848,23 @@ No items available.
 {{/if}}
 ```
 
+## Null Items and Null Properties
+
+Arrays may contain `null` entries, and item properties may be `null`:
+
+**JSON:**
+```json
+{
+  "Notes": "Global note",
+  "Tags": ["a", null, "b"],
+  "Items": [{ "Name": "A", "Notes": null }]
+}
+```
+
+- A `null` entry is iterated like any other item: `{{.}}` / `{{this}}` (and `{{item}}` / `{{item.Name}}` with a named iteration variable) render empty, `{{#if .}}` is false, and `{{@index}}` / `{{@count}}` count it.
+- A property that exists on the item with a `null` value renders empty. It does **not** fall back to a variable of the same name in an outer scope: with the data above, `{{#foreach Items}}{{Name}}:{{Notes}}{{/foreach}}` renders `A:`, not `A:Global note`. `{{#if Notes exists}}` is true for such a property.
+- A `null` entry has no properties, so implicit names like `{{Company}}` inside the loop still resolve from outer scopes.
+
 ## Common Patterns
 
 ### Comma-Separated List
