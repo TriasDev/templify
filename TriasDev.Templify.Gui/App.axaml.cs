@@ -19,6 +19,11 @@ public partial class App : Application
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+
+#if DEBUG
+        // Bridge to the external AvaloniaUI Developer Tools (press F12 while running).
+        this.AttachDeveloperTools();
+#endif
     }
 
     public override void OnFrameworkInitializationCompleted()
@@ -31,7 +36,9 @@ public partial class App : Application
             // Configure dependency injection after window is created
             ServiceCollection services = new ServiceCollection();
             ConfigureServices(services);
-            Services = services.BuildServiceProvider();
+            ServiceProvider serviceProvider = services.BuildServiceProvider();
+            Services = serviceProvider;
+            desktop.Exit += (_, _) => serviceProvider.Dispose();
 
             // Create ViewModel with DI
             MainWindowViewModel viewModel = Services.GetRequiredService<MainWindowViewModel>();
@@ -45,6 +52,7 @@ public partial class App : Application
     {
         // Core services
         services.AddSingleton<ITemplifyService, TemplifyService>();
+        services.AddSingleton<IFileLauncher, ShellFileLauncher>();
 
         // ViewModels
         services.AddTransient<MainWindowViewModel>();

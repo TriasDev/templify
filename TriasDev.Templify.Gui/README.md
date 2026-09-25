@@ -1,6 +1,6 @@
 # Templify GUI Test Application
 
-A cross-platform desktop application for testing Templify template processing capabilities. Built with [Avalonia UI](https://avaloniaui.net/) and .NET 9.0.
+A cross-platform desktop application for testing Templify template processing capabilities. Built with [Avalonia UI](https://avaloniaui.net/) and .NET 10.0.
 
 ## Overview
 
@@ -12,7 +12,7 @@ This GUI application provides an interactive interface to:
 
 ## Prerequisites
 
-- .NET 9.0 SDK or later
+- .NET 10.0 SDK or later
 - Works on Windows, macOS, and Linux
 
 ## Running the Application
@@ -38,12 +38,6 @@ dotnet run
 2. Set `TriasDev.Templify.Gui` as the startup project
 3. Press F5 or click Run
 
-### From VS Code
-
-1. Open the workspace in VS Code
-2. Select the "Launch Templify GUI" configuration from the Run menu
-3. Press F5 to start debugging
-
 ## Building for Distribution
 
 ### Windows
@@ -54,7 +48,7 @@ Build a self-contained executable:
 dotnet publish TriasDev.Templify.Gui -c Release -r win-x64 --self-contained
 ```
 
-Output: `TriasDev.Templify.Gui/bin/Release/net9.0/win-x64/publish/TriasDev.Templify.Gui.exe`
+Output: `TriasDev.Templify.Gui/bin/Release/net10.0/win-x64/publish/TriasDev.Templify.Gui.exe`
 
 ### macOS
 
@@ -64,7 +58,7 @@ Build a self-contained application:
 dotnet publish TriasDev.Templify.Gui -c Release -r osx-x64 --self-contained
 ```
 
-Output: `TriasDev.Templify.Gui/bin/Release/net9.0/osx-x64/publish/TriasDev.Templify.Gui`
+Output: `TriasDev.Templify.Gui/bin/Release/net10.0/osx-x64/publish/TriasDev.Templify.Gui`
 
 ### Linux
 
@@ -74,56 +68,40 @@ Build a self-contained application:
 dotnet publish TriasDev.Templify.Gui -c Release -r linux-x64 --self-contained
 ```
 
-Output: `TriasDev.Templify.Gui/bin/Release/net9.0/linux-x64/publish/TriasDev.Templify.Gui`
+Output: `TriasDev.Templify.Gui/bin/Release/net10.0/linux-x64/publish/TriasDev.Templify.Gui`
 
 ## Using the Application
 
-1. **Load Template**
-   - Click "Load Template" or drag-and-drop a `.docx` file
-   - The template should contain Templify placeholders (e.g., `{{Name}}`, `{{IsActive:checkbox}}`)
-
-2. **Provide Test Data**
-   - Enter JSON data in the data panel
-   - Example:
-     ```json
-     {
-       "Name": "John Doe",
-       "IsActive": true,
-       "Items": [
-         { "Name": "Item 1", "Price": 10.00 }
-       ]
-     }
-     ```
-
-3. **Process Template**
-   - Click "Process" to generate the document
-   - View processing results and statistics
-
-4. **Save Result**
-   - Click "Save" to export the generated document
-   - Choose location and filename
+1. **Select Template** - Click "Browse..." next to *Template File* and pick a `.docx` file containing
+   Templify placeholders (e.g. `{{Name}}`, `{{IsActive:checkbox}}`).
+2. **Select JSON Data** - Click "Browse..." next to *JSON Data* and pick a `.json` file, e.g.:
+   ```json
+   {
+     "Name": "John Doe",
+     "IsActive": true,
+     "Items": [
+       { "Name": "Item 1", "Price": 10.00 }
+     ]
+   }
+   ```
+3. **Output File** - Defaults to `<template>-output.docx` next to the template. Click "Browse..." to choose
+   another location; an explicitly chosen output file is kept when you change the template or JSON file.
+   If the output file already exists, a notice tells you that it will be overwritten. The output must
+   differ from the template and JSON files.
+4. **Options** - Optionally enable HTML entity replacement and choose the formatting culture.
+5. **Validate / Process** - "Validate Template" checks the syntax (and missing variables if JSON is selected).
+   "Process Template" generates the document. The output is written to a temporary file first and only
+   moved into place on success, so a failed run never leaves a broken document behind.
+6. **Results** - "Open Output File" opens the generated document. If processing produced warnings,
+   "Generate Warning Report" saves a Word report and "Open Warning Report" opens it.
 
 ## Features
 
-### Template Processing
-- Full support for all Templify features:
-  - Simple placeholders: `{{Name}}`
-  - Nested properties: `{{User.Email}}`
-  - Array indexing: `{{Items[0]}}`
-  - Format specifiers: `{{IsActive:checkbox}}`
-  - Boolean expressions: `{{(Age >= 18):yesno}}`
-  - Conditionals: `{{#if Active}}...{{/if}}`
-  - Loops: `{{#foreach Items}}...{{/foreach}}`
-
-### JSON Data Input
-- Syntax highlighting
-- Validation
-- Auto-formatting
-
-### Error Reporting
-- Clear error messages
-- Missing variable detection
-- Processing statistics
+- Full support for all Templify features: placeholders, nested properties, array indexing,
+  format specifiers, boolean expressions, conditionals (`if`/`elseif`/`else`) and loops
+- Template validation with missing variable detection
+- Processing statistics and warnings, with an optional Word warning report
+- Culture selection for number, currency and date formatting
 
 ## Architecture
 
@@ -142,7 +120,6 @@ TriasDev.Templify.Gui/
 ├── App.axaml            # Application definition
 ├── App.axaml.cs         # Application startup
 ├── Program.cs           # Entry point
-├── ViewLocator.cs       # View resolution
 ├── Assets/              # Icons, images
 ├── Models/              # Data models
 ├── ViewModels/          # View models
@@ -159,16 +136,25 @@ TriasDev.Templify.Gui/
 
 ## Debugging
 
-The application includes Avalonia DevTools for debugging:
-- Press F12 while running in Debug mode
+Debug builds attach the [AvaloniaUI Developer Tools](https://docs.avaloniaui.net/tools/developer-tools/installation)
+bridge (`AvaloniaUI.DiagnosticsSupport`):
+- Install the AvaloniaUI Developer Tools, then press F12 while running in Debug mode
 - Inspect visual tree, styles, and data bindings
 - Available only in Debug configuration
+
+### Tests
+
+ViewModel and service tests live in `TriasDev.Templify.Tools.Tests` and run headless (no display required):
+
+```bash
+dotnet test TriasDev.Templify.Tools.Tests/TriasDev.Templify.Tools.Tests.csproj
+```
 
 ## Troubleshooting
 
 ### Application won't start
 
-1. Ensure .NET 9.0 SDK is installed:
+1. Ensure .NET 10.0 SDK is installed:
    ```bash
    dotnet --version
    ```
@@ -188,9 +174,9 @@ The application includes Avalonia DevTools for debugging:
 
 - Check that the template file is a valid Word document (.docx)
 - Verify JSON data is valid JSON format
-- Check the error panel for specific error messages
+- Check the results panel for specific error messages
 
-### JSON validation errors
+### JSON errors
 
 - Ensure proper JSON syntax (use quotes for strings, commas between items)
 - Use a JSON validator like [jsonlint.com](https://jsonlint.com/)
@@ -200,8 +186,8 @@ The application includes Avalonia DevTools for debugging:
 
 - [Main Documentation](../TriasDev.Templify/README.md) - Complete Templify API reference
 - [Quick Start Guide](../docs/quick-start.md) - Get started with Templify
-- [Format Specifiers Guide](../docs/guides/format-specifiers.md) - Boolean formatting
-- [Boolean Expressions Guide](../docs/guides/boolean-expressions.md) - Logic evaluation
+- [Format Specifiers Guide](../docs/for-template-authors/format-specifiers.md) - Boolean formatting
+- [Boolean Expressions Guide](../docs/for-template-authors/boolean-expressions.md) - Logic evaluation
 - [FAQ](../docs/FAQ.md) - Common questions and answers
 
 ## Contributing
