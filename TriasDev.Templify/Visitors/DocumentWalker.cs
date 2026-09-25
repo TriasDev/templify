@@ -95,6 +95,58 @@ internal sealed class DocumentWalker
     }
 
     /// <summary>
+    /// Walks through all footnotes and endnotes in the document and visits template elements.
+    /// Separator and continuation notes (which hold no user content) are skipped.
+    /// </summary>
+    /// <param name="document">The Word document to walk.</param>
+    /// <param name="visitor">The visitor that will process detected elements.</param>
+    /// <param name="context">The evaluation context for variable resolution.</param>
+    public void WalkFootnotesAndEndnotes(
+        WordprocessingDocument document,
+        ITemplateElementVisitor visitor,
+        IEvaluationContext context)
+    {
+        if (document?.MainDocumentPart == null)
+        {
+            return;
+        }
+
+        Footnotes? footnotes = document.MainDocumentPart.FootnotesPart?.Footnotes;
+        if (footnotes != null)
+        {
+            foreach (Footnote footnote in footnotes.Elements<Footnote>().ToList())
+            {
+                WalkNote(footnote, footnote.Type, visitor, context);
+            }
+        }
+
+        Endnotes? endnotes = document.MainDocumentPart.EndnotesPart?.Endnotes;
+        if (endnotes != null)
+        {
+            foreach (Endnote endnote in endnotes.Elements<Endnote>().ToList())
+            {
+                WalkNote(endnote, endnote.Type, visitor, context);
+            }
+        }
+    }
+
+    private void WalkNote(
+        OpenXmlCompositeElement note,
+        EnumValue<FootnoteEndnoteValues>? type,
+        ITemplateElementVisitor visitor,
+        IEvaluationContext context)
+    {
+        // Only normal notes carry user content; separators are layout artifacts.
+        if (type?.Value is FootnoteEndnoteValues value && value != FootnoteEndnoteValues.Normal)
+        {
+            return;
+        }
+
+        WalkElements(note.Elements<OpenXmlElement>().ToList(), visitor, context);
+        EnsureContainsBlock(note);
+    }
+
+    /// <summary>
     /// Walks through a list of elements and visits template constructs.
     /// </summary>
     /// <param name="elements">The elements to walk.</param>
@@ -174,6 +226,10 @@ internal sealed class DocumentWalker
 
             if (element is Paragraph paragraph)
             {
+                // Text boxes anchored in the paragraph hold their own paragraphs (and may hold
+                // their own conditionals and loops); they are walked as separate block containers.
+                WalkTextBoxes(paragraph, visitor, context);
+
                 // Skip marker paragraphs (they're already processed by block visitors)
                 if (IsMarkerParagraph(paragraph))
                 {
@@ -209,12 +265,75 @@ internal sealed class DocumentWalker
             {
                 // Handle TableRow elements (e.g., from cloned table row loops)
                 // Walk cells in the row
-                foreach (TableCell cell in row.Elements<TableCell>())
+                foreach (TableCell cell in GetCells(row))
                 {
                     List<OpenXmlElement> cellElements = cell.Elements<OpenXmlElement>().ToList();
                     WalkElements(cellElements, visitor, context);
                 }
             }
+            else if (element is SdtBlock sdtBlock && sdtBlock.SdtContentBlock != null)
+            {
+                // Block-level content control: its content is an ordinary block container.
+                WalkElements(sdtBlock.SdtContentBlock.Elements<OpenXmlElement>().ToList(), visitor, context);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Walks the content of the text boxes that belong to <paramref name="paragraph"/>.
+    /// </summary>
+    /// <remarks>
+    /// Covers VML text boxes (<c>w:pict/v:shape/v:textbox</c>) and DrawingML text boxes
+    /// (<c>wps:txbx</c>), including both the <c>mc:Choice</c> and the <c>mc:Fallback</c> of an
+    /// <c>mc:AlternateContent</c>, so that either rendering shows the processed content.
+    /// Text boxes nested in these text boxes are walked recursively via their own paragraphs.
+    /// </remarks>
+    private void WalkTextBoxes(Paragraph paragraph, ITemplateElementVisitor visitor, IEvaluationContext context)
+    {
+        List<TextBoxContent> textBoxes = paragraph.Descendants<TextBoxContent>()
+            .Where(box => box.Ancestors<Paragraph>().FirstOrDefault() == paragraph)
+            .ToList();
+
+        foreach (TextBoxContent textBox in textBoxes)
+        {
+            WalkElements(textBox.Elements<OpenXmlElement>().ToList(), visitor, context);
+            EnsureContainsBlock(textBox);
+        }
+    }
+
+    /// <summary>
+    /// Gets the cells of a row in document order, including cells wrapped in cell-level
+    /// content controls (<c>w:sdt</c> around <c>w:tc</c>).
+    /// </summary>
+    private static IEnumerable<TableCell> GetCells(TableRow row)
+    {
+        foreach (OpenXmlElement child in row.ChildElements)
+        {
+            if (child is TableCell cell)
+            {
+                yield return cell;
+            }
+            else if (child is SdtCell sdtCell)
+            {
+                foreach (TableCell wrapped in sdtCell.Descendants<TableCell>()
+                    .Where(c => c.Ancestors<TableRow>().FirstOrDefault() == row))
+                {
+                    yield return wrapped;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Appends an empty paragraph to a container (note, text box) whose block content was removed
+    /// entirely, since these containers must hold at least one block-level element.
+    /// </summary>
+    private static void EnsureContainsBlock(OpenXmlCompositeElement container)
+    {
+        if (!container.Elements<Paragraph>().Any() && !container.Elements<Table>().Any()
+            && !container.Elements<SdtBlock>().Any())
+        {
+            container.AppendChild(new Paragraph());
         }
     }
 
@@ -229,11 +348,38 @@ internal sealed class DocumentWalker
         ITemplateElementVisitor visitor,
         IEvaluationContext context)
     {
+        bool hadRows = HasRows(table);
+
+        WalkRows(table, visitor, context);
+
+        // A table whose rows were all removed (false row conditionals, empty row loops)
+        // is not a valid table - Word rejects a <w:tbl> without <w:tr>. Remove it entirely.
+        if (hadRows && !HasRows(table))
+        {
+            RemoveEmptyTable(table);
+        }
+    }
+
+    /// <summary>
+    /// Checks whether a table has rows, directly or wrapped in row-level content controls.
+    /// </summary>
+    private static bool HasRows(Table table) =>
+        table.Elements<TableRow>().Any() || table.Elements<SdtRow>().Any(sdt => sdt.Descendants<TableRow>().Any());
+
+    /// <summary>
+    /// Walks the rows of a row container: a table, or the content of a row-level content control.
+    /// </summary>
+    private void WalkRows(
+        OpenXmlCompositeElement container,
+        ITemplateElementVisitor visitor,
+        IEvaluationContext context)
+    {
         // Snapshot the rows before loop expansion. Rows produced by a table row loop are
         // already walked by the LoopVisitor with the loop's evaluation context; walking them
         // again here (with this outer context) would re-process data values as template
         // syntax (template injection) and duplicate warnings. See issue #140.
-        List<TableRow> originalRows = table.Elements<TableRow>().ToList();
+        List<TableRow> originalRows = container.Elements<TableRow>().ToList();
+        List<SdtRow> rowContentControls = container.Elements<SdtRow>().ToList();
 
         // Table row loops and conditionals have markers in separate rows
         // (e.g., row 1: {{#foreach Items}} / {{#if Show}}, row 3: {{/foreach}} / {{/if}}).
@@ -269,7 +415,7 @@ internal sealed class DocumentWalker
                 continue;
             }
 
-            foreach (TableCell cell in row.Elements<TableCell>())
+            foreach (TableCell cell in GetCells(row))
             {
                 // Walk paragraphs in each cell
                 List<OpenXmlElement> cellElements = cell.Elements<OpenXmlElement>().ToList();
@@ -293,11 +439,13 @@ internal sealed class DocumentWalker
             }
         }
 
-        // Step 4: A table whose rows were all removed (false row conditionals, empty row loops)
-        // is not a valid table - Word rejects a <w:tbl> without <w:tr>. Remove it entirely.
-        if (originalRows.Count > 0 && !table.Elements<TableRow>().Any())
+        // Step 4: Rows wrapped in row-level content controls form their own row containers.
+        foreach (SdtRow rowContentControl in rowContentControls)
         {
-            RemoveEmptyTable(table);
+            if (rowContentControl.Parent != null && rowContentControl.SdtContentRow != null)
+            {
+                WalkRows(rowContentControl.SdtContentRow, visitor, context);
+            }
         }
     }
 
@@ -381,7 +529,7 @@ internal sealed class DocumentWalker
     /// </remarks>
     private bool IsMarkerParagraph(Paragraph paragraph)
     {
-        string text = paragraph.InnerText;
+        string text = ParagraphTextModel.GetText(paragraph);
 
         // Check for conditional markers
         if (text.Contains("{{#if") || text.Contains("{{#else}}") || text.Contains("{{/if}}"))

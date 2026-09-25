@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using TriasDev.Templify.Utilities;
 
 namespace TriasDev.Templify.Conditionals;
 
@@ -256,7 +257,9 @@ internal static class ConditionalDetector
     {
         if (element is Paragraph paragraph)
         {
-            return paragraph.InnerText;
+            // The paragraph's own text: excludes text boxes (walked as separate containers)
+            // and field instructions.
+            return ParagraphTextModel.GetText(paragraph);
         }
 
         if (element is TableRow row)
