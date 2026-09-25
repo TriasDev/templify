@@ -160,7 +160,7 @@ public class ConditionEvaluatorTests
     {
         Dictionary<string, object> data = new() { ["IsActive"] = true };
 
-        bool result = await _evaluator.EvaluateAsync("IsActive", data);
+        bool result = await _evaluator.EvaluateAsync("IsActive", data, TestContext.Current.CancellationToken);
 
         Assert.True(result);
     }
@@ -170,7 +170,7 @@ public class ConditionEvaluatorTests
     {
         string json = """{"IsActive": true}""";
 
-        bool result = await _evaluator.EvaluateAsync("IsActive", json);
+        bool result = await _evaluator.EvaluateAsync("IsActive", json, TestContext.Current.CancellationToken);
 
         Assert.True(result);
     }
@@ -181,7 +181,7 @@ public class ConditionEvaluatorTests
         Dictionary<string, object> data = new() { ["IsActive"] = true };
         IEvaluationContext context = _evaluator.CreateContext(data);
 
-        bool result = await _evaluator.EvaluateAsync("IsActive", context);
+        bool result = await _evaluator.EvaluateAsync("IsActive", context, TestContext.Current.CancellationToken);
 
         Assert.True(result);
     }
@@ -315,25 +315,25 @@ public class ConditionEvaluatorTests
     {
         Dictionary<string, object> data = new() { ["Key"] = "Value" };
 
-        await Assert.ThrowsAsync<ArgumentNullException>(() => _evaluator.EvaluateAsync(null!, data));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => _evaluator.EvaluateAsync(null!, data, TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task EvaluateAsync_WithNullDictionary_ThrowsArgumentNullException()
     {
-        await Assert.ThrowsAsync<ArgumentNullException>(() => _evaluator.EvaluateAsync("IsActive", (Dictionary<string, object>)null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => _evaluator.EvaluateAsync("IsActive", (Dictionary<string, object>)null!, TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task EvaluateAsync_WithNullJsonData_ThrowsArgumentNullException()
     {
-        await Assert.ThrowsAsync<ArgumentNullException>(() => _evaluator.EvaluateAsync("IsActive", (string)null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => _evaluator.EvaluateAsync("IsActive", (string)null!, TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task EvaluateAsync_WithNullContext_ThrowsArgumentNullException()
     {
-        await Assert.ThrowsAsync<ArgumentNullException>(() => _evaluator.EvaluateAsync("IsActive", (IEvaluationContext)null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => _evaluator.EvaluateAsync("IsActive", (IEvaluationContext)null!, TestContext.Current.CancellationToken));
     }
 
     [Fact]
