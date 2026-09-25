@@ -71,15 +71,8 @@ public sealed class TextTemplateProcessor
     /// </exception>
     public TextProcessingResult ProcessTemplate(string templateText, Dictionary<string, object> data)
     {
-        if (templateText == null)
-        {
-            throw new ArgumentNullException(nameof(templateText));
-        }
-
-        if (data == null)
-        {
-            throw new ArgumentNullException(nameof(data));
-        }
+        ArgumentNullException.ThrowIfNull(templateText);
+        ArgumentNullException.ThrowIfNull(data);
 
         try
         {

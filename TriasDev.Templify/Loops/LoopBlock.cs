@@ -31,11 +31,6 @@ internal sealed class LoopBlock
     public IReadOnlyList<OpenXmlElement> ContentElements { get; }
 
     /// <summary>
-    /// Gets the optional empty block to show when collection is empty.
-    /// </summary>
-    public LoopBlock? EmptyBlock { get; }
-
-    /// <summary>
     /// Gets whether this is a table row loop.
     /// </summary>
     public bool IsTableRowLoop { get; }
@@ -56,8 +51,7 @@ internal sealed class LoopBlock
         IReadOnlyList<OpenXmlElement> contentElements,
         OpenXmlElement startMarker,
         OpenXmlElement endMarker,
-        bool isTableRowLoop = false,
-        LoopBlock? emptyBlock = null)
+        bool isTableRowLoop = false)
     {
         CollectionName = collectionName ?? throw new ArgumentNullException(nameof(collectionName));
         IterationVariableName = iterationVariableName;
@@ -65,6 +59,5 @@ internal sealed class LoopBlock
         StartMarker = startMarker ?? throw new ArgumentNullException(nameof(startMarker));
         EndMarker = endMarker ?? throw new ArgumentNullException(nameof(endMarker));
         IsTableRowLoop = isTableRowLoop;
-        EmptyBlock = emptyBlock;
     }
 }

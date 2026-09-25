@@ -88,10 +88,7 @@ internal sealed class PropertyPathResolver
     /// </remarks>
     public static bool TryResolvePath(object? root, PropertyPath path, out object? value)
     {
-        if (path == null)
-        {
-            throw new ArgumentNullException(nameof(path));
-        }
+        ArgumentNullException.ThrowIfNull(path);
 
         value = null;
         object? current = root;

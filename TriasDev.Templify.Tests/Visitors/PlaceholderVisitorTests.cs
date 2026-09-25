@@ -358,7 +358,6 @@ public sealed class PlaceholderVisitorTests
             contentElements: content,
             startMarker: startMarker,
             endMarker: endMarker,
-            isTableRowLoop: false,
-            emptyBlock: null);
+            isTableRowLoop: false);
     }
 }
