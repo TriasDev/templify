@@ -14,8 +14,9 @@ internal sealed class LoopContext
 {
     /// <summary>
     /// Gets the current item being processed in the loop.
+    /// May be null when the collection contains null elements (e.g., a JSON array <c>["a", null]</c>).
     /// </summary>
-    public object CurrentItem { get; }
+    public object? CurrentItem { get; }
 
     /// <summary>
     /// Gets the zero-based index of the current item.
@@ -61,14 +62,14 @@ internal sealed class LoopContext
     public bool IsLast => Index == Count - 1;
 
     public LoopContext(
-        object currentItem,
+        object? currentItem,
         int index,
         int count,
         string collectionName,
         string? iterationVariableName = null,
         LoopContext? parent = null)
     {
-        CurrentItem = currentItem ?? throw new ArgumentNullException(nameof(currentItem));
+        CurrentItem = currentItem;
         Index = index;
         Count = count;
         CollectionName = collectionName ?? throw new ArgumentNullException(nameof(collectionName));
@@ -91,8 +92,8 @@ internal sealed class LoopContext
             throw new ArgumentNullException(nameof(collection));
         }
 
-        List<object> items = new List<object>();
-        foreach (object item in collection)
+        List<object?> items = new List<object?>();
+        foreach (object? item in collection)
         {
             items.Add(item);
         }
@@ -125,6 +126,13 @@ internal sealed class LoopContext
     /// has a property with the same name as a parent loop's iteration variable, the current
     /// item's property will be resolved first.
     /// </para>
+    /// <para>
+    /// A property that exists on the current item with a null value is resolved (as null) and
+    /// does not fall through to the parent scope. When the current item itself is null,
+    /// <c>.</c>, <c>this</c>, the iteration variable and its property paths (e.g., <c>item.Name</c>)
+    /// resolve as null; implicit names (e.g., <c>Name</c>) are not considered properties of a null
+    /// item and fall through to the parent scope.
+    /// </para>
     /// </remarks>
     public bool TryResolveVariable(string variableName, out object? value)
     {
@@ -148,12 +156,12 @@ internal sealed class LoopContext
             if (variableName.StartsWith(_iterationVariablePrefix!, StringComparison.Ordinal))
             {
                 string propertyPath = variableName.Substring(_iterationVariablePrefix!.Length);
-                return TryResolveFromCurrentItem(propertyPath, out value);
+                return TryResolveFromCurrentItem(propertyPath, isIterationVariableAccess: true, out value);
             }
         }
 
         // Try to resolve from current item (implicit syntax - backward compatible)
-        if (TryResolveFromCurrentItem(variableName, out value))
+        if (TryResolveFromCurrentItem(variableName, isIterationVariableAccess: false, out value))
         {
             return true;
         }
@@ -190,7 +198,7 @@ internal sealed class LoopContext
         }
     }
 
-    private bool TryResolveFromCurrentItem(string variableName, out object? value)
+    private bool TryResolveFromCurrentItem(string variableName, bool isIterationVariableAccess, out object? value)
     {
         // Special case: "." or "this" refers to the current item itself
         // Useful for collections of primitive values (strings, numbers, etc.)
@@ -209,7 +217,18 @@ internal sealed class LoopContext
         }
 
         path = parsedPath;
-        value = PropertyPathResolver.ResolvePath(CurrentItem, path);
-        return value != null;
+
+        if (CurrentItem == null)
+        {
+            // A null item has no properties. Explicit access via the iteration variable
+            // (e.g., {{item.Name}}) resolves as null, consistent with a null value mid-path;
+            // implicit names are not claimed so they can resolve from the parent scope.
+            value = null;
+            return isIterationVariableAccess;
+        }
+
+        // Distinguish "property exists with null value" from "property not found" so that a
+        // present-but-null property does not fall through to the parent scope (see #147).
+        return PropertyPathResolver.TryResolvePath(CurrentItem, path, out value);
     }
 }

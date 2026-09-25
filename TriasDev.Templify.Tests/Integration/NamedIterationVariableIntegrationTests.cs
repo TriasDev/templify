@@ -468,4 +468,72 @@ public sealed class NamedIterationVariableIntegrationTests
 
         Assert.Contains("reserved for loop metadata", exception.Message);
     }
+
+    private sealed class NoteItem
+    {
+        public string Name { get; set; } = "";
+        public string? Notes { get; set; }
+    }
+
+    [Fact]
+    public void ProcessTemplate_NamedVariable_NullItemProperty_RendersEmptyWithoutWarning()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{#foreach item in Items}}");
+        builder.AddParagraph("{{item.Name}}:{{item.Notes}}");
+        builder.AddParagraph("{{/foreach}}");
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Notes"] = "GLOBAL",
+            ["Items"] = new List<NoteItem> { new NoteItem { Name = "A", Notes = null } }
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess, result.ErrorMessage);
+        Assert.Empty(result.MissingVariables);
+        Assert.DoesNotContain(result.Warnings, w => w.Type == ProcessingWarningType.MissingVariable);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        Assert.Equal(new[] { "A:" }, verifier.GetAllParagraphTexts());
+    }
+
+    [Fact]
+    public void ProcessTemplate_NamedVariable_NullItem_PropertyAccessRendersEmpty()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{#foreach item in Items}}");
+        builder.AddParagraph("{{@index}}:[{{item.Name}}]");
+        builder.AddParagraph("{{/foreach}}");
+
+        MemoryStream templateStream = builder.ToStream();
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Items"] = new List<NoteItem?> { new NoteItem { Name = "A" }, null }
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        // Assert
+        Assert.True(result.IsSuccess, result.ErrorMessage);
+        Assert.Empty(result.MissingVariables);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        Assert.Equal(new[] { "0:[A]", "1:[]" }, verifier.GetAllParagraphTexts());
+    }
 }
