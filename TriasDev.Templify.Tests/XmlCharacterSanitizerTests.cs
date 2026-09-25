@@ -120,7 +120,7 @@ public class XmlCharacterSanitizerTests
     public void Sanitize_StringWithoutInvalidChars_ReturnsSameInstance()
     {
         string input = "No invalid characters here";
-        string result = XmlCharacterSanitizer.Sanitize(input);
+        string result = XmlCharacterSanitizer.Sanitize(input)!;
         Assert.Same(input, result);
     }
 
@@ -128,7 +128,7 @@ public class XmlCharacterSanitizerTests
     public void Sanitize_StringWithValidSurrogatePair_ReturnsSameInstance()
     {
         string input = "Hello 👍 World";
-        string result = XmlCharacterSanitizer.Sanitize(input);
+        string result = XmlCharacterSanitizer.Sanitize(input)!;
         Assert.Same(input, result);
     }
 }

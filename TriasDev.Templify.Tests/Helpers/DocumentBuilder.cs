@@ -816,7 +816,7 @@ public sealed class DocumentBuilder
         }
 
         // Save and close the document
-        _document.MainDocumentPart!.Document.Save();
+        _document.MainDocumentPart!.Document!.Save();
         _document.Dispose();
 
         // Reset stream position for reading

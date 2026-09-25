@@ -334,7 +334,7 @@ public sealed class ProcessingWarningsIntegrationTests
         reportStream.Position = 0;
 
         using WordprocessingDocument doc = WordprocessingDocument.Open(reportStream, false);
-        Body? body = doc.MainDocumentPart?.Document.Body;
+        Body? body = doc.MainDocumentPart?.Document?.Body;
         Assert.NotNull(body);
 
         string text = body.InnerText;
@@ -368,7 +368,7 @@ public sealed class ProcessingWarningsIntegrationTests
         reportStream.Position = 0;
 
         using WordprocessingDocument doc = WordprocessingDocument.Open(reportStream, false);
-        Body? body = doc.MainDocumentPart?.Document.Body;
+        Body? body = doc.MainDocumentPart?.Document?.Body;
         Assert.NotNull(body);
 
         string text = body.InnerText;
@@ -400,7 +400,7 @@ public sealed class ProcessingWarningsIntegrationTests
         // Verify it's a valid docx by loading it
         using MemoryStream stream = new MemoryStream(reportBytes);
         using WordprocessingDocument doc = WordprocessingDocument.Open(stream, false);
-        Assert.NotNull(doc.MainDocumentPart?.Document.Body);
+        Assert.NotNull(doc.MainDocumentPart?.Document?.Body);
     }
 
     [Fact]
@@ -430,7 +430,7 @@ public sealed class ProcessingWarningsIntegrationTests
         // Assert
         reportStream.Position = 0;
         using WordprocessingDocument doc = WordprocessingDocument.Open(reportStream, false);
-        Body? body = doc.MainDocumentPart?.Document.Body;
+        Body? body = doc.MainDocumentPart?.Document?.Body;
         Assert.NotNull(body);
 
         string text = body.InnerText;
