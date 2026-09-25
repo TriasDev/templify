@@ -72,7 +72,7 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
                 return branch;
             }
 
-            if (_evaluator.Evaluate(branch.ConditionExpression!, context))
+            if (_evaluator.Evaluate(branch.ConditionExpression!, context, _warningCollector))
             {
                 return branch;
             }
@@ -253,7 +253,7 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
             int conditionalEnd = start + conditional.EndIndex;
 
             InlineConditionalBranch? match = conditional.Branches.FirstOrDefault(
-                b => b.Condition == null || _evaluator.Evaluate(b.Condition, context));
+                b => b.Condition == null || _evaluator.Evaluate(b.Condition, context, _warningCollector));
 
             if (match == null)
             {

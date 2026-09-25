@@ -418,7 +418,7 @@ public sealed class NamedIterationVariableIntegrationTests
     }
 
     [Fact]
-    public void ProcessTemplate_NamedVariable_ReservedKeyword_In_ThrowsException()
+    public void ProcessTemplate_NamedVariable_ReservedKeyword_In_ReturnsFailure()
     {
         // Arrange: "in" is a reserved keyword and cannot be used as iteration variable name
         DocumentBuilder builder = new DocumentBuilder();
@@ -436,15 +436,16 @@ public sealed class NamedIterationVariableIntegrationTests
         DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
         MemoryStream outputStream = new MemoryStream();
 
-        // Act & Assert
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
-            () => processor.ProcessTemplate(templateStream, outputStream, data));
+        // Act: invalid loop syntax is reported as a failed result, not thrown (#149)
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
 
-        Assert.Contains("'in' is a reserved keyword", exception.Message);
+        // Assert
+        Assert.False(result.IsSuccess);
+        Assert.Contains("'in' is a reserved keyword", result.ErrorMessage);
     }
 
     [Fact]
-    public void ProcessTemplate_NamedVariable_MetadataPrefix_ThrowsException()
+    public void ProcessTemplate_NamedVariable_MetadataPrefix_ReturnsFailure()
     {
         // Arrange: Variable names starting with @ are reserved for loop metadata
         DocumentBuilder builder = new DocumentBuilder();
@@ -462,11 +463,12 @@ public sealed class NamedIterationVariableIntegrationTests
         DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
         MemoryStream outputStream = new MemoryStream();
 
-        // Act & Assert
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
-            () => processor.ProcessTemplate(templateStream, outputStream, data));
+        // Act: invalid loop syntax is reported as a failed result, not thrown (#149)
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
 
-        Assert.Contains("reserved for loop metadata", exception.Message);
+        // Assert
+        Assert.False(result.IsSuccess);
+        Assert.Contains("reserved for loop metadata", result.ErrorMessage);
     }
 
     private sealed class NoteItem

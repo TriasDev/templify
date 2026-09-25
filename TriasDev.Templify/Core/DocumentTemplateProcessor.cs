@@ -50,8 +50,15 @@ public sealed class DocumentTemplateProcessor
     /// <param name="templateStream">Stream containing the template .docx file. Must be readable.</param>
     /// <param name="outputStream">Stream to write the processed document. Must be writable.</param>
     /// <param name="data">Dictionary containing variable names and their replacement values.</param>
-    /// <returns>A <see cref="ProcessingResult"/> indicating success or failure and providing metrics.</returns>
+    /// <returns>
+    /// A <see cref="ProcessingResult"/> indicating success or failure and providing metrics. Template syntax
+    /// errors (e.g. unmatched markers) and data errors (e.g. a loop over a non-collection) are reported as a
+    /// failed result with <see cref="ProcessingResult.ErrorMessage"/> set.
+    /// </returns>
     /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown only when a variable is missing and <see cref="MissingVariableBehavior.ThrowException"/> is configured.
+    /// </exception>
     public ProcessingResult ProcessTemplate(
         Stream templateStream,
         Stream outputStream,
@@ -162,11 +169,13 @@ public sealed class DocumentTemplateProcessor
                 missingVariables: missingVariables.OrderBy(v => v).ToList(),
                 warnings: warningCollector.GetWarnings());
         }
-        catch (InvalidOperationException)
+        catch (MissingVariableException ex)
         {
-            // Re-throw InvalidOperationException (e.g., missing variables with ThrowException behavior)
-            // These are intentional exceptions that should propagate to the caller
-            throw;
+            // Only missing variables with MissingVariableBehavior.ThrowException propagate to the caller.
+            // They surface as a plain InvalidOperationException with the same message as before, so existing
+            // exact-type checks keep working. Every other error, including template syntax errors and data
+            // that does not fit the template, is reported as a failed result.
+            throw ex.ToPublicException();
         }
         catch (Exception ex)
         {

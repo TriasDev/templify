@@ -449,7 +449,7 @@ public sealed class ElseIfTests
     }
 
     [Fact]
-    public void ProcessTemplate_ElseAfterElseIf_ThrowsException()
+    public void ProcessTemplate_ElseAfterElseIf_ReturnsFailure()
     {
         // Arrange
         DocumentBuilder builder = new DocumentBuilder();
@@ -472,12 +472,13 @@ public sealed class ElseIfTests
         DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
         MemoryStream outputStream = new MemoryStream();
 
-        // Act & Assert
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
-            () => processor.ProcessTemplate(templateStream, outputStream, data));
+        // Act: template syntax errors are reported as a failed result, not thrown (#149)
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
 
-        Assert.Contains("elseif", exception.Message.ToLower());
-        Assert.Contains("else", exception.Message.ToLower());
+        // Assert
+        Assert.False(result.IsSuccess);
+        Assert.Contains("elseif", result.ErrorMessage!.ToLower());
+        Assert.Contains("else", result.ErrorMessage.ToLower());
     }
 
     [Fact]

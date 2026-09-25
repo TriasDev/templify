@@ -21,12 +21,16 @@ internal enum ConditionTokenType
 /// <summary>A single lexed token.</summary>
 internal sealed class ConditionToken
 {
-    public ConditionToken(ConditionTokenType type, string text, object? literalValue = null)
+    public ConditionToken(ConditionTokenType type, string text, object? literalValue = null, string? rawText = null)
     {
         Type = type;
         Text = text;
         LiteralValue = literalValue;
+        RawText = rawText ?? text;
     }
+
+    /// <summary>The token text as written in the expression (keywords keep their original casing).</summary>
+    public string RawText { get; }
 
     public ConditionTokenType Type { get; }
 

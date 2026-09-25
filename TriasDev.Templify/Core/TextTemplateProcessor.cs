@@ -52,6 +52,7 @@ public sealed class TextTemplateProcessor
         {
             // Track missing variables
             HashSet<string> missingVariables = new HashSet<string>();
+            WarningCollector warningCollector = new WarningCollector();
             int replacementCount = 0;
 
             // Create global evaluation context
@@ -62,18 +63,20 @@ public sealed class TextTemplateProcessor
                 templateText,
                 globalContext,
                 missingVariables,
+                warningCollector,
                 ref replacementCount);
 
             return TextProcessingResult.Success(
                 processedText,
                 replacementCount,
-                missingVariables.OrderBy(v => v).ToList());
+                missingVariables.OrderBy(v => v).ToList(),
+                warningCollector.GetWarnings());
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("Missing variable"))
+        catch (MissingVariableException ex)
         {
-            // Re-throw only when it's a missing variable with ThrowException behavior
-            // This allows the caller to handle it as an intentional validation error
-            throw;
+            // Re-throw only missing variables with ThrowException behavior (same as DocumentTemplateProcessor),
+            // as a plain InvalidOperationException with the same message as before.
+            throw ex.ToPublicException();
         }
         catch (Exception ex)
         {
@@ -89,14 +92,15 @@ public sealed class TextTemplateProcessor
         string text,
         IEvaluationContext context,
         HashSet<string> missingVariables,
+        IWarningCollector warningCollector,
         ref int replacementCount)
     {
         // Step 1: Process loops first (innermost first)
         // This ensures conditionals inside loops are processed with the correct loop context
-        text = ProcessLoops(text, context, missingVariables, ref replacementCount);
+        text = ProcessLoops(text, context, missingVariables, warningCollector, ref replacementCount);
 
         // Step 2: Process conditionals (now that loops are expanded)
-        text = ProcessConditionals(text, context);
+        text = ProcessConditionals(text, context, warningCollector);
 
         // Step 3: Process remaining placeholders
         text = ProcessPlaceholders(text, context, missingVariables, ref replacementCount);
@@ -107,7 +111,7 @@ public sealed class TextTemplateProcessor
     /// <summary>
     /// Processes conditional blocks in the text.
     /// </summary>
-    private string ProcessConditionals(string text, IEvaluationContext context)
+    private string ProcessConditionals(string text, IEvaluationContext context, IWarningCollector warningCollector)
     {
         ConditionalEvaluator evaluator = new ConditionalEvaluator();
 
@@ -128,7 +132,7 @@ public sealed class TextTemplateProcessor
             int ifEnd = FindMatchingEndTag(text, ifStart, "{{#if ", "{{/if}}");
             if (ifEnd == -1)
             {
-                throw new InvalidOperationException($"Unmatched {{{{#if}}}} tag at position {ifStart}");
+                throw new TemplateSyntaxException(ValidationErrorType.UnmatchedConditionalStart, $"Unmatched {{{{#if}}}} tag at position {ifStart}");
             }
 
             // Parse the condition expression
@@ -136,7 +140,7 @@ public sealed class TextTemplateProcessor
             int conditionEnd = text.IndexOf("}}", conditionStart, StringComparison.Ordinal);
             if (conditionEnd == -1)
             {
-                throw new InvalidOperationException($"Malformed {{{{#if}}}} tag at position {ifStart}");
+                throw new TemplateSyntaxException(ValidationErrorType.InvalidConditionalExpression, $"Malformed {{{{#if}}}} tag at position {ifStart}");
             }
 
             string condition = text.Substring(conditionStart, conditionEnd - conditionStart);
@@ -170,7 +174,7 @@ public sealed class TextTemplateProcessor
             }
 
             // Evaluate the condition
-            bool conditionResult = evaluator.Evaluate(condition, context);
+            bool conditionResult = evaluator.Evaluate(condition, context, warningCollector);
 
             // Extract the content to keep
             string contentToKeep;
@@ -205,7 +209,7 @@ public sealed class TextTemplateProcessor
 
         if (iteration >= maxIterations)
         {
-            throw new InvalidOperationException("Maximum nesting depth exceeded for conditional blocks");
+            throw new TemplateSyntaxException(ValidationErrorType.InvalidConditionalExpression, "Maximum nesting depth exceeded for conditional blocks");
         }
 
         return text;
@@ -218,6 +222,7 @@ public sealed class TextTemplateProcessor
         string text,
         IEvaluationContext context,
         HashSet<string> missingVariables,
+        IWarningCollector warningCollector,
         ref int replacementCount)
     {
         int maxIterations = 100; // Prevent infinite loops
@@ -235,7 +240,7 @@ public sealed class TextTemplateProcessor
             int loopEnd = FindMatchingEndTag(text, loopStart, "{{#foreach ", "{{/foreach}}");
             if (loopEnd == -1)
             {
-                throw new InvalidOperationException($"Unmatched {{{{#foreach}}}} tag at position {loopStart}");
+                throw new TemplateSyntaxException(ValidationErrorType.UnmatchedLoopStart, $"Unmatched {{{{#foreach}}}} tag at position {loopStart}");
             }
 
             // Extract the collection name
@@ -243,7 +248,7 @@ public sealed class TextTemplateProcessor
             int collectionEnd = text.IndexOf("}}", collectionStart, StringComparison.Ordinal);
             if (collectionEnd == -1)
             {
-                throw new InvalidOperationException($"Malformed {{{{#foreach}}}} tag at position {loopStart}");
+                throw new TemplateSyntaxException(ValidationErrorType.InvalidPlaceholderSyntax, $"Malformed {{{{#foreach}}}} tag at position {loopStart}");
             }
 
             string collectionName = text.Substring(collectionStart, collectionEnd - collectionStart).Trim();
@@ -259,7 +264,7 @@ public sealed class TextTemplateProcessor
 
                 if (_options.MissingVariableBehavior == MissingVariableBehavior.ThrowException)
                 {
-                    throw new InvalidOperationException($"Collection not found: {collectionName}");
+                    throw new TemplateDataException($"Collection not found: {collectionName}");
                 }
 
                 // Remove the loop block
@@ -270,7 +275,7 @@ public sealed class TextTemplateProcessor
             // Check if it's enumerable
             if (collectionValue is not System.Collections.IEnumerable enumerable)
             {
-                throw new InvalidOperationException($"Variable '{collectionName}' is not a collection");
+                throw new TemplateDataException($"Variable '{collectionName}' is not a collection");
             }
 
             // Convert to list to get count
@@ -298,6 +303,7 @@ public sealed class TextTemplateProcessor
                     loopContent,
                     loopEvalContext,
                     missingVariables,
+                    warningCollector,
                     ref loopReplacementCount);
 
                 replacementCount += loopReplacementCount;
@@ -316,7 +322,7 @@ public sealed class TextTemplateProcessor
 
         if (iteration >= maxIterations)
         {
-            throw new InvalidOperationException("Maximum nesting depth exceeded for loop blocks");
+            throw new TemplateSyntaxException(ValidationErrorType.UnmatchedLoopStart, "Maximum nesting depth exceeded for loop blocks");
         }
 
         return text;
@@ -352,7 +358,7 @@ public sealed class TextTemplateProcessor
                         break;
 
                     case MissingVariableBehavior.ThrowException:
-                        throw new InvalidOperationException($"Missing variable: {placeholder.VariableName}");
+                        throw new MissingVariableException(placeholder.VariableName, $"Missing variable: {placeholder.VariableName}");
 
                     case MissingVariableBehavior.LeaveUnchanged:
                     default:

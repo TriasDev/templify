@@ -2,6 +2,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Text.RegularExpressions;
+using TriasDev.Templify.Core;
 
 namespace TriasDev.Templify.Conditionals;
 
@@ -96,7 +97,8 @@ internal static class InlineConditionalParser
                 {
                     if (hasElseAtOurLevel)
                     {
-                        throw new InvalidOperationException(
+                        throw new TemplateSyntaxException(
+                            ValidationErrorType.InvalidConditionalExpression,
                             "Invalid conditional structure: '{{#elseif}}' cannot appear after '{{#else}}'. " +
                             "The '{{#else}}' branch must be the last branch before '{{/if}}'.");
                     }

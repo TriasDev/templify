@@ -6,7 +6,14 @@ namespace TriasDev.Templify.Conditionals.Engine;
 /// <summary>Thrown when a condition expression cannot be parsed.</summary>
 internal sealed class ConditionParseException : Exception
 {
-    public ConditionParseException(string message) : base(message) { }
+    public ConditionParseException(string message, bool isUnterminatedString = false)
+        : base(message)
+    {
+        IsUnterminatedString = isUnterminatedString;
+    }
+
+    /// <summary>Gets whether the expression failed because a string literal is not closed.</summary>
+    public bool IsUnterminatedString { get; }
 }
 
 /// <summary>Precedence-climbing (Pratt) parser turning tokens into a <see cref="ConditionNode"/> AST.</summary>
@@ -93,6 +100,11 @@ internal sealed class ConditionParser
             case ConditionTokenType.Identifier:
                 Advance();
                 return new VariableNode(token.Text);
+            case ConditionTokenType.Operator when ConditionLexer.OperandFallbackKeywords.Contains(token.Text):
+                // A 1.7.0 keyword in operand position (e.g. "{{#if Exists}}") cannot be an operator here,
+                // so it is read as the variable it was before 1.7.0. "[Exists]" is the explicit escape.
+                Advance();
+                return new VariableNode(token.RawText, isBareKeyword: true);
             default:
                 throw new ConditionParseException($"Expected an operand but found '{token.Text}'.");
         }

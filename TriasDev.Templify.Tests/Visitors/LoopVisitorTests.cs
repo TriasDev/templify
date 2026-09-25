@@ -157,7 +157,7 @@ public sealed class LoopVisitorTests
         GlobalEvaluationContext context = new GlobalEvaluationContext(data);
 
         // Act & Assert
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+        TemplateDataException exception = Assert.Throws<TemplateDataException>(() =>
             visitor.VisitLoop(loop, context));
 
         Assert.Contains("Items", exception.Message);
