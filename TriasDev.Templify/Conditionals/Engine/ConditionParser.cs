@@ -133,7 +133,8 @@ internal sealed class ConditionParser
 
     private ConditionNode? TryApplyPostfix(ConditionNode left)
     {
-        foreach (IConditionOperator op in OrderedByTokenCountDescending())
+        // The registry lists postfix operators longest token sequence first.
+        foreach (IConditionOperator op in _registry.PostfixOperators)
         {
             if (MatchesSequence(op.Tokens))
             {
@@ -142,14 +143,6 @@ internal sealed class ConditionParser
             }
         }
         return null;
-    }
-
-    private IEnumerable<IConditionOperator> OrderedByTokenCountDescending()
-    {
-        // Longest sequence first so "is not empty" wins over any "is ..." prefix.
-        List<IConditionOperator> ordered = new(_registry.PostfixOperators);
-        ordered.Sort((a, b) => b.Tokens.Count.CompareTo(a.Tokens.Count));
-        return ordered;
     }
 
     private bool MatchesSequence(IReadOnlyList<string> sequence)

@@ -13,17 +13,6 @@ namespace TriasDev.Templify.Conditionals;
 /// </summary>
 internal sealed class ConditionalEvaluator
 {
-    private const string OrOperator = "or";
-    private const string AndOperator = "and";
-    private const string NotOperator = "not";
-    private const string EqOperator = "=";
-    private const string EqOperatorDouble = "==";
-    private const string NeOperator = "!=";
-    private const string GtOperator = ">";
-    private const string LtOperator = "<";
-    private const string GteOperator = ">=";
-    private const string LteOperator = "<=";
-
     /// <summary>
     /// Known operator-like tokens that are common mistakes but not valid operators.
     /// </summary>
@@ -122,9 +111,9 @@ internal sealed class ConditionalEvaluator
     /// <c>ConsecutiveOperands</c>, <c>UnknownOperator</c>). Discovered issues are appended to
     /// <paramref name="issues"/>.
     /// </summary>
-    private void AnalyzeStructure(string expression, List<ConditionValidationIssue> issues)
+    private static void AnalyzeStructure(string expression, List<ConditionValidationIssue> issues)
     {
-        List<string> tokens = ParseExpression(expression);
+        List<string> tokens = SplitForStructuralAnalysis(expression);
 
         if (tokens.Count == 0)
         {
@@ -141,13 +130,11 @@ internal sealed class ConditionalEvaluator
             string token = tokens[i];
             string currentType;
 
-            if (string.Equals(token, NotOperator, StringComparison.OrdinalIgnoreCase))
+            if (IsPrefixOperator(token))
             {
                 currentType = "not";
             }
-            else if (string.Equals(token, "exists", StringComparison.OrdinalIgnoreCase)
-                  || string.Equals(token, "empty", StringComparison.OrdinalIgnoreCase)
-                  || string.Equals(token, "is", StringComparison.OrdinalIgnoreCase))
+            else if (Engine.ConditionOperatorRegistry.Shared.IsPostfixToken(token))
             {
                 // Postfix existence/emptiness keywords (`exists`, `is empty`, `is not empty`).
                 // Kept distinct from "comparison"/"logical" so they are exempt from the
@@ -341,9 +328,15 @@ internal sealed class ConditionalEvaluator
     }
 
     /// <summary>
-    /// Parses an expression into tokens, handling quoted strings.
+    /// Splits an expression at whitespace outside of string literals (the quotes are dropped), for the
+    /// structural analysis only.
     /// </summary>
-    private List<string> ParseExpression(string expression)
+    /// <remarks>
+    /// This is intentionally not the engine lexer: the typed validation issues are defined on
+    /// whitespace-separated words (e.g. <c>===</c> or <c>&lt;&gt;</c> is one unknown operator, where the lexer
+    /// would split it into known operators). Operator classification uses the registry.
+    /// </remarks>
+    private static List<string> SplitForStructuralAnalysis(string expression)
     {
         expression = Engine.ConditionLexer.NormalizeQuotes(expression);
 
@@ -394,18 +387,15 @@ internal sealed class ConditionalEvaluator
         return tokens;
     }
 
-    private bool IsLogicalOperator(string token)
-    {
-        string lower = token.ToLowerInvariant();
-        return lower == OrOperator || lower == AndOperator;
-    }
+    // Operator classification for the structural analysis comes from the operator registry, so a new
+    // operator is recognized here without further changes. Registry tokens are lower case.
 
-    private bool IsComparisonOperator(string token)
-    {
-        string lower = token.ToLowerInvariant();
-        return lower == EqOperator || lower == EqOperatorDouble || lower == NeOperator ||
-               lower == GtOperator || lower == LtOperator ||
-               lower == GteOperator || lower == LteOperator ||
-               lower == "in" || lower == "contains" || lower == "startswith" || lower == "endswith";
-    }
+    private static bool IsPrefixOperator(string token)
+        => Engine.ConditionOperatorRegistry.Shared.FindPrefix(token.ToLowerInvariant()) != null;
+
+    private static bool IsLogicalOperator(string token)
+        => Engine.ConditionOperatorRegistry.Shared.FindInfix(token.ToLowerInvariant()) is { Precedence: < Engine.OperatorPrecedence.Comparison };
+
+    private static bool IsComparisonOperator(string token)
+        => Engine.ConditionOperatorRegistry.Shared.FindInfix(token.ToLowerInvariant()) is { Precedence: Engine.OperatorPrecedence.Comparison };
 }
