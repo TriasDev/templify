@@ -16,7 +16,11 @@ Conditionals let you show or hide content in your document based on data values.
 - Variable exists and is `true`
 - Variable exists and is not empty/zero/false
 
-**Falsy values** (content is hidden): missing/`null`, `false`, empty or whitespace text, the text `"false"` or `"0"`, **any numeric zero** (`0`, `0.0`, `0.00`, JSON `0.0`, and zero of every numeric type such as `decimal` or `long`), `NaN`, and empty lists. Everything else is truthy.
+**Falsy values** (content is hidden): missing/`null`, `false`, empty or whitespace text, the text `"false"` or `"0"` (any casing, e.g. `"False"`), **any numeric zero** (`0`, `0.0`, `0.00`, JSON `0.0`, and zero of every numeric type such as `decimal` or `long`), `NaN`, and empty lists. Everything else is truthy, including any other text (`"no"` is truthy!).
+
+> **Markers in their own paragraphs:** in the block form, each marker (`{{#if}}`, `{{#elseif}}`, `{{#else}}`, `{{/if}}`) should be alone in its paragraph. A marker paragraph is removed completely, so any other text in it is lost. To change only part of a paragraph, put all markers in that paragraph ([inline conditionals](#inline-conditionals)).
+>
+> Marker keywords are case-insensitive (`{{#IF}}` works), but variable names are not.
 
 **JSON:**
 ```json
@@ -161,6 +165,8 @@ Your account is pending approval.
 - Numbers are compared by value, regardless of how they are stored: `Price = 10` matches `10`, `10.0` and `10.00`, and JSON `10.50` matches `Price = 10.5`
 - A number compared with quoted text compares the text form: `Count = "5"` matches `5` but not `5.0`
 - Comparison is case-sensitive: `"active"` ≠ `"Active"`
+- `true`/`false` compare case-insensitively with text: `IsActive = "True"` matches the boolean `true`
+- An unquoted word that is not a variable is compared as text: `Status = Active` works like `Status = "Active"` when there is no variable named `Active`. Prefer quotes: a variable named `Active` would silently be used instead
 
 ### Inequality (`!=`)
 
@@ -377,18 +383,20 @@ You are eligible to travel internationally.
 {{/if}}
 ```
 
-**Operator precedence:**
-1. Parentheses `()`
-2. `not`
-3. Comparison operators (`=`, `!=`, `>`, `<`, `>=`, `<=`)
-4. `and`
-5. `or`
+**Operator precedence** (loosest to tightest): `or` → `and` → `not` → comparisons (`=`, `==`, `!=`, `>`, `<`, `>=`, `<=`, `in`, `contains`, `startswith`, `endswith`) → `exists` / `is empty` / `is not empty`. Parentheses override everything.
+
+This means:
+- `A or B and C` is `A or (B and C)`
+- `not Status = "Active"` is `not (Status = "Active")`: comparisons are evaluated before `not`
+- `not A and B` is `(not A) and B`
+
+Word operators are case-insensitive (`AND`, `Or`). `&&`, `||`, `===` and `<>` are not supported.
 
 ## Membership, String, and Existence Checks
 
 ### Membership (`in`)
 
-Check whether a value appears in a collection. The right side can be a collection variable, a quoted list literal, or a comma-separated string:
+Check whether a value appears in a collection. The right side can be a collection variable, a list literal in parentheses, or a comma-separated string (items are trimmed, so `"Admin, Editor"` works too):
 
 **JSON:**
 ```json
@@ -485,7 +493,7 @@ Notes: {{Notes}}
 {{/if}}
 ```
 
-A missing variable is treated as empty. A variable that is present but explicitly `null` satisfies both `exists` and `is empty`.
+A missing variable is treated as empty. A variable that is present but explicitly `null` satisfies both `exists` and `is empty`. Numbers and booleans are never empty.
 
 ### Variables Named Like Keywords
 
@@ -497,9 +505,11 @@ A missing variable is treated as empty. A variable that is present but explicitl
 {{/if}}
 ```
 
+`and`, `or`, `not`, `true`, `false` and `null` are always keywords, so a variable with one of these names can **only** be used with brackets. When a developer validates a template with data (`ValidateTemplate`), a keyword used as a variable name that exists in the data produces a `ReservedWordAsVariable` warning.
+
 ### Quotes Inside Text
 
-Use `\"` for a quote and `\\` for a backslash inside a quoted text value:
+Text values use double quotes. Use `\"` for a quote and `\\` for a backslash inside a quoted text value (other backslashes are kept, so `"C:\Temp"` also works). Word's typographic quotes (`“…”`) are converted to straight quotes automatically. Single quotes (`'...'`) are **not** string delimiters in `{{#if}}` (they are in inline `{{(...)}}` expressions):
 
 ```
 {{#if Title = "say \"hi\""}}...{{/if}}
@@ -516,7 +526,7 @@ You can manage content.
 {{/if}}
 ```
 
-**Reminder on precedence:** `and` binds tighter than `or` (`A or B and C` means `A or (B and C)`). Use parentheses whenever you want a different grouping.
+**Reminder on precedence:** `and` binds tighter than `or` (`A or B and C` means `A or (B and C)`), and `not` applies to a whole comparison (`not A = B` means `not (A = B)`). Use parentheses whenever you want a different grouping.
 
 ## Common Patterns
 
@@ -799,6 +809,14 @@ Non-text content that is placed *inside* a branch belongs to that branch: an ima
 footnote reference or complete field between `{{#if}}` and `{{/if}}` is removed when the branch is not shown.
 Bookmarks are always kept.
 
+Inline conditionals support `{{#elseif}}` and `{{#else}}` as well:
+
+```
+Status: {{#if Score >= 90}}excellent{{#elseif Score >= 70}}good{{#else}}needs work{{/if}}
+```
+
+For a single true/false value, an [inline expression](boolean-expressions.md) such as `{{(Score >= 90):yesno}}` is another option; note that inline expressions follow slightly different truthiness rules.
+
 ## Nested Conditionals
 
 You can nest conditionals inside each other:
@@ -1025,10 +1043,10 @@ Geschäftszeiten: 9:00 - 17:00 Uhr MEZ
    - ❌ `{{if Status = "Active"}}` (missing `#`)
    - ❌ `{{elseif Status = "Pending"}}` (missing `#`)
    - ❌ `{{#if Status = "Active"` (missing closing `}}`)
-   - ❌ `{{#if A && B}}`, `{{#if Status eq "x"}}`, `{{#if Name = "open}}` (not valid conditions)
+   - ❌ `{{#if A && B}}`, `{{#if A || B}}`, `{{#if Status eq "x"}}`, `{{#if Name = "open}}` (not valid conditions; use `and`, `or`, `=` and closed quotes)
 
    A condition that cannot be parsed is treated as **false**, and processing reports an `ExpressionFailed` warning (see `ProcessingResult.Warnings`). `ValidateTemplate` reports it as an `InvalidConditionalExpression` error.
-   Structural errors such as a missing `{{/if}}` make processing fail (`IsSuccess = false`, with `ErrorMessage` set).
+   Structural errors such as a missing `{{/if}}` or an `{{#elseif}}` after `{{#else}}` make processing fail (`IsSuccess = false`, with `ErrorMessage` set).
 
 2. **Missing closing tag:**
    - ✅ `{{#if ...}}...{{/if}}`
@@ -1044,11 +1062,15 @@ Geschäftszeiten: 9:00 - 17:00 Uhr MEZ
 
 5. **Quotes around text:**
    - ✅ `{{#if Name = "Alice"}}`
-   - ❌ `{{#if Name = Alice}}` (missing quotes)
+   - ⚠️ `{{#if Name = Alice}}` works only while there is no variable named `Alice` (the unquoted word is then compared as text). Always quote text.
+   - ⚠️ A misspelled variable on the left is compared as its own name: `{{#if Stauts = "Stauts"}}` is true. Check `ProcessingResult`/validation for missing variables.
 
-6. **Comparing wrong types:**
+6. **Comparing numbers stored as text:**
    - ✅ `{{#if Age > 18}}` with JSON: `"Age": 25` (number)
-   - ⚠️ `{{#if Age > 18}}` with JSON: `"Age": "25"` (string - may not work as expected)
+   - ✅ `{{#if Age > 18}}` with JSON: `"Age": "25"` also works: `>`, `<`, `>=`, `<=` read numeric text as a number
+   - ⚠️ `=` compares a number with text by its text form: `Count = "5"` matches `5`, but `Price = "10"` does not match `10.00`. Store numbers as numbers.
+
+7. **Ordering with missing values:** `>`/`<` with a value that is `null` treat it as `0`; a comparison that cannot be done as numbers (for example with plain text) is false.
 
 ### Content Always Shows/Never Shows
 
@@ -1135,7 +1157,7 @@ Make sure each `{{#if}}` has a matching `{{/if}}`:
 1. **Keep conditions simple** - Break complex logic into multiple simpler conditions
 2. **Use meaningful variable names** - `IsEligibleForDiscount` is better than `Flag1`
 3. **Test edge cases** - What happens when values are null, zero, empty, etc.?
-4. **Add comments in Word** - Use Word comments to document complex conditional logic
+4. **Add comments in Word** - Use Word comments to document complex conditional logic (comments are not processed)
 5. **Use else clauses** - Provide feedback for both true and false cases when appropriate
 6. **Use elseif for multiple conditions** - Prefer `{{#elseif}}` over deeply nested `{{#if}}` blocks
 7. **Keep else last** - The `{{#else}}` branch must always be the final branch before `{{/if}}`

@@ -10,7 +10,7 @@ Templify is a tool that takes a Word document template with placeholders (like `
 
 1. **Microsoft Word** (or any app that can edit .docx files)
 2. **A text editor** (Notepad, TextEdit, VS Code, or any editor for JSON files)
-3. **Templify** (either the GUI app or CLI tool)
+3. **Templify** - the Templify GUI application, or an application that uses the Templify library (developers can also use the demo console app, see below)
 
 ## Your First Template in 5 Minutes
 
@@ -59,18 +59,20 @@ Now you'll combine the template with the data to create the final document.
 #### Option A: Using the GUI Application
 
 1. Open the Templify GUI application
-2. Click "Select Template" and choose `welcome-letter.docx`
-3. Click "Select Data" and choose `data.json`
-4. Click "Process Template"
-5. Save the output as `welcome-letter-final.docx`
+2. Next to **Template File**, click **Browse...** and choose `welcome-letter.docx`
+3. Next to **JSON Data**, click **Browse...** and choose `data.json`
+4. Check or change the **Output File** path (for example `welcome-letter-final.docx`)
+5. Click **Process Template**
 
-#### Option B: Using the Command Line
+#### Option B: Using the Command Line (from the source code)
 
-If you have the CLI tool installed, run:
+Templify has no installable `templify` command. If you have the [.NET SDK](https://dotnet.microsoft.com/download) and a copy of the [Templify repository](https://github.com/TriasDev/templify), the demo app processes your own files:
 
 ```bash
-templify process welcome-letter.docx --data data.json --output welcome-letter-final.docx
+dotnet run --project TriasDev.Templify.Demo -- --template welcome-letter.docx --data data.json --output welcome-letter-final.docx
 ```
+
+In most setups, a developer integrates Templify into an application, and you only provide the template and the data.
 
 ### Step 4: View the Result
 
@@ -197,7 +199,8 @@ Your order contains:
 ```
 {Name}           ← Only one curly brace (needs two)
 {{Name}          ← Missing closing braces
-{{ Name }}       ← Spaces inside (remove them)
+{{ Name }}       ← Spaces inside (remove them; it is not replaced)
+{{First Name}}   ← Spaces or hyphens in the name are not allowed
 ```
 
 ### ✅ Correct Placeholder Syntax
