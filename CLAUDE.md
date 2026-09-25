@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is a multi-project solution with 9 projects:
 
 - **TriasDev.Templify** - Core library with template processing logic
-- **TriasDev.Templify.Tests** - xUnit test suite (109+ tests, 100% coverage)
+- **TriasDev.Templify.Tests** - xUnit test suite (~1,750 tests, ~91% line / ~85% branch coverage)
 - **TriasDev.Templify.Benchmarks** - BenchmarkDotNet performance tests
 - **TriasDev.Templify.Converter** - CLI tool for converting Word documents
 - **TriasDev.Templify.Gui** - Avalonia-based GUI application
@@ -398,22 +398,21 @@ FormattingPreserver extracts RunProperties from original runs and applies them t
 ## Testing Strategy
 
 ### Test Organization
-- **Unit Tests:** Individual component testing (70 tests)
-  - ConditionalEvaluator (51 tests for all operators)
-  - Visitors (TemplateElement, PlaceholderVisitor, LoopVisitor, CompositeVisitor)
-  - PropertyPathResolver, ValueResolver
-
-- **Integration Tests:** End-to-end template processing (39 tests)
-  - Basic placeholder replacement
-  - Nested structures
-  - Loop processing
-  - Conditional blocks (including nested conditionals)
-  - Formatting preservation
-  - Table operations
+`TriasDev.Templify.Tests` has about 1,750 tests (on each of net10/net9/net8). Core line coverage is about 91% and branch coverage about 85%. Excluding the source-generated regex code, the figures are about 96% and 91% (as of 2026-09).
+- **Unit tests:** one folder per library namespace (see below). Internal types are used directly through `InternalsVisibleTo`, not through reflection.
+- **Integration tests** (`Integration/`): end-to-end processing of generated Word documents. This covers placeholders, loops, conditionals, tables, headers/footers, text boxes, markdown, culture independence, validation, output schema validity and unicode.
+- **Skipped tests** use `[Fact(Skip = "Bug: #<issue>")]` and document known library bugs. Remove the `Skip` when you fix the bug.
+- **Performance guards** use `[Trait("Category", "Performance")]` with generous limits. Exclude them with `--filter "Category!=Performance"`.
 
 ### Test File Locations
-- Unit tests: `TriasDev.Templify.Tests/Visitors/`, `TriasDev.Templify.Tests/Conditionals/`, etc.
-- Integration tests: `TriasDev.Templify.Tests/Integration/`
+Test folders mirror the library namespaces, and each test namespace matches its folder (`TriasDev.Templify.Tests.<Folder>`):
+- `Conditionals/` (`Conditionals/Engine/` for the expression engine), `Core/`, `Formatting/`, `Loops/`, `Markdown/`, `Placeholders/`, `PropertyPaths/`, `Replacements/`, `Utilities/`, `Visitors/`: unit tests for that namespace
+- `Integration/`: end-to-end tests
+- `Helpers/`: `DocumentBuilder` / `DocumentVerifier`, `TemplateTestHarness` (build → process → verify, `InvariantCulture` by default), `ConditionEngineTestHelper` (`Eval` / `EvalInline`) and `TestBlocks`
+- Root: only `ObsoleteApiTests` (cross-namespace deprecated public API)
+- Naming: `ConditionalEvaluatorTests` tests the internal `ConditionalEvaluator` used by templates. `PublicConditionEvaluatorTests` tests the public standalone `ConditionEvaluator` API.
+- Inside the test project, fully qualify library types (`TriasDev.Templify.Core.X`). A partial name like `Core.X` resolves to the test namespace `TriasDev.Templify.Tests.Core`.
+- Integration tests that assert on numbers or dates must use an explicit culture. Prefer `TemplateTestHarness.Process(...)`. CI runs the suite under de-DE, tr-TR and ar-SA.
 
 ### Writing Tests
 
@@ -524,6 +523,6 @@ For comprehensive information, see:
 This library prioritizes:
 1. **Simplicity** - Focus on common use case (variable replacement, conditionals, loops)
 2. **Maintainability** - Small, composable classes with single responsibilities
-3. **Testability** - Pure functions, dependency injection, 100% test coverage
+3. **Testability** - Pure functions, dependency injection, high test coverage
 4. **Explicit behavior** - No magic, predictable results
 5. **Fail-fast** - Clear error messages, no silent failures

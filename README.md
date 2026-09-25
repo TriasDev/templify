@@ -266,7 +266,7 @@ This repository contains multiple projects organized as a complete solution:
 ```
 templify/
 ├── TriasDev.Templify/          # Core library (net8.0, net9.0, net10.0)
-├── TriasDev.Templify.Tests/    # xUnit test suite (109+ tests, 100% coverage)
+├── TriasDev.Templify.Tests/    # xUnit test suite (~1,750 tests)
 ├── TriasDev.Templify.Gui/      # Cross-platform GUI application (Avalonia)
 ├── TriasDev.Templify.Converter/# CLI tool for document conversion
 ├── TriasDev.Templify.Benchmarks/# Performance benchmarks (BenchmarkDotNet)
