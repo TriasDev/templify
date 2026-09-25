@@ -510,6 +510,30 @@ This is very important!
 
 The markdown syntax (`**bold**`, `*italic*`, `~~strikethrough~~`) is converted to actual formatting in the Word document.
 
+### Inserting Values Without Markdown
+
+Markdown is interpreted in every value by default, so values containing `_`, `*` or `~` may change:
+
+| Value | Rendered with markdown |
+|-------|------------------------|
+| `my_report_final.docx` | `myreportfinal.docx` ("report" in italic) |
+| `2*3*4` | `234` ("3" in italic) |
+
+To insert a value exactly as it is, add the `:raw` format specifier:
+
+```
+File: {{FileName:raw}}
+Formula: {{Formula:raw}}
+```
+
+**Output:**
+```
+File: my_report_final.docx
+Formula: 2*3*4
+```
+
+`:raw` only turns off markdown for that placeholder. Line breaks in the value still work. Developers can also turn markdown off for all placeholders with the `EnableMarkdown = false` option.
+
 ## Line Breaks in Data Values
 
 Newline characters in your data values are automatically converted to line breaks in Word:

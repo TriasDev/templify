@@ -290,156 +290,217 @@ internal static class ConditionalDetector
     }
 
     /// <summary>
-    /// Detects table row conditionals within a table.
-    /// Table row conditionals have {{#if}}, {{#elseif}}, {{#else}}, and {{/if}} markers in separate rows.
+    /// Kind of a conditional marker found at table-row level.
     /// </summary>
-    private static IReadOnlyList<ConditionalBlock> DetectTableRowConditionals(Table table)
+    private enum RowMarkerKind
+    {
+        If,
+        ElseIf,
+        Else,
+        End
+    }
+
+    /// <summary>
+    /// A conditional marker that belongs to a table row (as opposed to one confined to a single cell).
+    /// </summary>
+    private readonly record struct RowMarker(RowMarkerKind Kind, string? Condition);
+
+    /// <summary>
+    /// Matches any conditional marker, in document order. Alternatives are ordered so that
+    /// {{#elseif ...}} is never mistaken for {{#else}} or {{#if ...}}.
+    /// </summary>
+    private static readonly Regex _anyMarkerPattern = new Regex(
+        @"\{\{(?:#elseif\s+(?<elseif>.+?)|(?<else>#else)|#if\s+(?<if>.+?)|(?<end>/if))\}\}",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// Detects table row conditionals within a table.
+    /// </summary>
+    internal static IReadOnlyList<ConditionalBlock> DetectTableRowConditionals(Table table)
+    {
+        return DetectTableRowConditionals(table.Elements<TableRow>().ToList());
+    }
+
+    /// <summary>
+    /// Detects table row conditionals in a sequence of table rows.
+    /// Table row conditionals have their {{#if}}, {{#elseif}}, {{#else}} and {{/if}} markers in separate rows;
+    /// marker rows are removed, and the rows between them are kept or removed as a whole.
+    /// Conditionals confined to a single cell (inline or multi-paragraph) are not row conditionals:
+    /// they are left for cell-level processing.
+    /// </summary>
+    /// <param name="rows">The rows to scan (e.g. all rows of a table, or the cloned rows of a loop iteration).</param>
+    /// <param name="nestingLevel">Current nesting level (0 for top-level, 1+ for nested).</param>
+    internal static IReadOnlyList<ConditionalBlock> DetectTableRowConditionals(
+        IReadOnlyList<TableRow> rows,
+        int nestingLevel = 0)
     {
         List<ConditionalBlock> conditionals = new List<ConditionalBlock>();
-        List<TableRow> rows = table.Elements<TableRow>().ToList();
+        RowMarker?[] markers = rows.Select(GetRowLevelMarker).ToArray();
         int i = 0;
 
         while (i < rows.Count)
         {
-            TableRow row = rows[i];
-            string? text = row.InnerText;
-
-            if (text != null)
+            if (markers[i] is not { Kind: RowMarkerKind.If } ifMarker)
             {
-                Match ifMatch = ConditionalPatterns.IfStart.Match(text);
-                if (ifMatch.Success)
+                i++;
+                continue;
+            }
+
+            string conditionExpression = ifMarker.Condition!;
+
+            // Collect the branch markers at our depth and the matching end marker.
+            List<(int MarkerIndex, string? Condition)> branchMarkers = new List<(int, string?)>
+            {
+                (i, conditionExpression)
+            };
+            int elseIndex = -1;
+            int endIndex = -1;
+            int depth = 1;
+
+            for (int j = i + 1; j < rows.Count && endIndex == -1; j++)
+            {
+                if (markers[j] is not RowMarker marker)
                 {
-                    string conditionExpression = ifMatch.Groups[1].Value.Trim();
+                    continue;
+                }
 
-                    // Find all markers
-                    var markers = FindConditionalMarkersInRows(rows, i);
-
-                    if (markers.EndIndex == -1)
-                    {
-                        throw new InvalidOperationException(
-                            $"Table row conditional start marker '{{{{#if {conditionExpression}}}}}' has no matching '{{{{/if}}}}'.");
-                    }
-
-                    // Build branches
-                    List<ConditionalBranch> branches = new List<ConditionalBranch>();
-
-                    // Determine branch boundaries
-                    List<(int MarkerIndex, string? Condition)> allMarkers = new List<(int, string?)>();
-                    allMarkers.Add((i, conditionExpression)); // if marker
-
-                    foreach (var elseIfMarker in markers.ElseIfMarkers)
-                    {
-                        allMarkers.Add((elseIfMarker.Index, elseIfMarker.Condition));
-                    }
-
-                    if (markers.ElseIndex != -1)
-                    {
-                        allMarkers.Add((markers.ElseIndex, null)); // else marker
-                    }
-
-                    // Create branches from marker boundaries
-                    for (int m = 0; m < allMarkers.Count; m++)
-                    {
-                        int markerIndex = allMarkers[m].MarkerIndex;
-                        string? condition = allMarkers[m].Condition;
-
-                        int contentStart = markerIndex + 1;
-                        int contentEnd = (m + 1 < allMarkers.Count)
-                            ? allMarkers[m + 1].MarkerIndex
-                            : markers.EndIndex;
-
-                        List<OpenXmlElement> contentRows = new List<OpenXmlElement>();
-                        for (int j = contentStart; j < contentEnd; j++)
+                switch (marker.Kind)
+                {
+                    case RowMarkerKind.If:
+                        depth++;
+                        break;
+                    case RowMarkerKind.End:
+                        depth--;
+                        if (depth == 0)
                         {
-                            contentRows.Add(rows[j]);
+                            endIndex = j;
                         }
 
-                        branches.Add(new ConditionalBranch(
-                            condition,
-                            contentRows,
-                            rows[markerIndex]));
-                    }
+                        break;
+                    case RowMarkerKind.ElseIf when depth == 1:
+                        if (elseIndex != -1)
+                        {
+                            throw new InvalidOperationException(
+                                "Invalid conditional structure: '{{#elseif}}' cannot appear after '{{#else}}'. " +
+                                "The '{{#else}}' branch must be the last branch before '{{/if}}'.");
+                        }
 
-                    // Create conditional block
-                    ConditionalBlock conditionalBlock = new ConditionalBlock(
-                        branches,
-                        rows[markers.EndIndex],
-                        isTableRowConditional: true,
-                        nestingLevel: 0);
-
-                    conditionals.Add(conditionalBlock);
-
-                    // Skip past this conditional
-                    i = markers.EndIndex + 1;
-                    continue;
+                        branchMarkers.Add((j, marker.Condition));
+                        break;
+                    case RowMarkerKind.Else when depth == 1 && elseIndex == -1:
+                        elseIndex = j;
+                        branchMarkers.Add((j, null));
+                        break;
                 }
             }
 
-            i++;
+            if (endIndex == -1)
+            {
+                throw new InvalidOperationException(
+                    $"Table row conditional start marker '{{{{#if {conditionExpression}}}}}' has no matching '{{{{/if}}}}'.");
+            }
+
+            List<ConditionalBranch> branches = new List<ConditionalBranch>();
+            for (int m = 0; m < branchMarkers.Count; m++)
+            {
+                int markerIndex = branchMarkers[m].MarkerIndex;
+                int contentEnd = m + 1 < branchMarkers.Count ? branchMarkers[m + 1].MarkerIndex : endIndex;
+
+                List<OpenXmlElement> contentRows = new List<OpenXmlElement>();
+                for (int j = markerIndex + 1; j < contentEnd; j++)
+                {
+                    contentRows.Add(rows[j]);
+                }
+
+                branches.Add(new ConditionalBranch(branchMarkers[m].Condition, contentRows, rows[markerIndex]));
+            }
+
+            conditionals.Add(new ConditionalBlock(
+                branches,
+                rows[endIndex],
+                isTableRowConditional: true,
+                nestingLevel: nestingLevel));
+
+            // Nested table row conditionals inside the branches
+            foreach (ConditionalBranch branch in branches)
+            {
+                if (branch.ContentElements.Count > 0)
+                {
+                    conditionals.AddRange(DetectTableRowConditionals(
+                        branch.ContentElements.Cast<TableRow>().ToList(),
+                        nestingLevel + 1));
+                }
+            }
+
+            i = endIndex + 1;
         }
 
         return conditionals;
     }
 
     /// <summary>
-    /// Finds all conditional markers in table rows.
+    /// Gets the row-level conditional marker of a table row, if any.
     /// </summary>
-    private static ConditionalMarkers FindConditionalMarkersInRows(List<TableRow> rows, int startIndex)
+    /// <remarks>
+    /// Markers that open and close within the same cell (inline or multi-paragraph cell conditionals,
+    /// including their {{#elseif}}/{{#else}}) are cell-level and ignored here. A marker is row-level when it
+    /// is not enclosed by an {{#if}} of the same cell: an {{#if}} left open at the end of its cell, or an
+    /// {{#elseif}}/{{#else}}/{{/if}} that does not belong to an {{#if}} of the same cell.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">The row contains more than one row-level marker.</exception>
+    private static RowMarker? GetRowLevelMarker(TableRow row)
     {
-        int depth = 1;
-        List<(int Index, string Condition)> elseIfMarkers = new List<(int, string)>();
-        int elseIndex = -1;
-        int endIndex = -1;
+        List<RowMarker> rowMarkers = new List<RowMarker>();
 
-        for (int i = startIndex + 1; i < rows.Count; i++)
+        foreach (TableCell cell in row.Elements<TableCell>())
         {
-            string? text = rows[i].InnerText;
-            if (text == null)
+            string text = cell.InnerText;
+            if (text.Length == 0)
             {
                 continue;
             }
 
-            if (ConditionalPatterns.IfStart.IsMatch(text))
-            {
-                depth++;
-            }
-            else if (ConditionalPatterns.IfEnd.IsMatch(text))
-            {
-                depth--;
-                if (depth == 0)
-                {
-                    endIndex = i;
-                    break;
-                }
-            }
-            else if (depth == 1)
-            {
-                // Check for elseif at our depth level
-                Match elseIfMatch = ConditionalPatterns.ElseIf.Match(text);
-                if (elseIfMatch.Success)
-                {
-                    // Validate: elseif cannot appear after else
-                    if (elseIndex != -1)
-                    {
-                        throw new InvalidOperationException(
-                            "Invalid conditional structure: '{{#elseif}}' cannot appear after '{{#else}}'. " +
-                            "The '{{#else}}' branch must be the last branch before '{{/if}}'.");
-                    }
+            Stack<string> openIfs = new Stack<string>();
 
-                    elseIfMarkers.Add((i, elseIfMatch.Groups[1].Value.Trim()));
-                }
-                else if (ConditionalPatterns.Else.IsMatch(text) && elseIndex == -1)
+            foreach (Match match in _anyMarkerPattern.Matches(text))
+            {
+                if (match.Groups["if"].Success)
                 {
-                    elseIndex = i;
+                    openIfs.Push(match.Groups["if"].Value.Trim());
                 }
+                else if (match.Groups["end"].Success)
+                {
+                    if (openIfs.Count > 0)
+                    {
+                        openIfs.Pop();
+                    }
+                    else
+                    {
+                        rowMarkers.Add(new RowMarker(RowMarkerKind.End, null));
+                    }
+                }
+                else if (openIfs.Count == 0)
+                {
+                    rowMarkers.Add(match.Groups["elseif"].Success
+                        ? new RowMarker(RowMarkerKind.ElseIf, match.Groups["elseif"].Value.Trim())
+                        : new RowMarker(RowMarkerKind.Else, null));
+                }
+            }
+
+            // {{#if}} markers still open at the end of the cell continue at row level (outermost first).
+            foreach (string condition in openIfs.Reverse())
+            {
+                rowMarkers.Add(new RowMarker(RowMarkerKind.If, condition));
             }
         }
 
-        return new ConditionalMarkers
+        if (rowMarkers.Count > 1)
         {
-            ElseIfMarkers = elseIfMarkers,
-            ElseIndex = elseIndex,
-            EndIndex = endIndex
-        };
+            throw new InvalidOperationException(
+                "Invalid table row conditional: each '{{#if}}', '{{#elseif}}', '{{#else}}' and '{{/if}}' " +
+                "that spans table rows must be placed in its own row.");
+        }
+
+        return rowMarkers.Count == 1 ? rowMarkers[0] : null;
     }
 }
