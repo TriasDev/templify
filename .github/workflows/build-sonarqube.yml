@@ -20,6 +20,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
       - name: Add summary header
         run: |
           echo "# 🔍 SonarQube Analysis Report" >> $GITHUB_STEP_SUMMARY
@@ -65,7 +69,9 @@ jobs:
           echo "Starting SonarQube analysis..." >> $GITHUB_STEP_SUMMARY
 
           ./.sonar/scanner/dotnet-sonarscanner begin /k:"TriasDev_templify_8a5e67a9-f60c-48a0-9327-7eee6085006d" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="${SONAR_HOST_URL}" /d:sonar.sourceEncoding=UTF-8
-          dotnet build templify.sln
+          # Sonar reports its findings as build warnings; they must not fail the analysis build
+          # (CI builds otherwise treat warnings as errors, see Directory.Build.props).
+          dotnet build templify.sln -p:TreatWarningsAsErrors=false
           ./.sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
 
           echo "✅ **Build:** Completed successfully" >> $GITHUB_STEP_SUMMARY

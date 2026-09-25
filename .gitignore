@@ -315,11 +315,16 @@ opensource.mmd
 # Mac files
 *.DS_Store
 
-# User-specific files
-*.DotSettings.user
+# Claude Code: only the shared project settings are committed
+# (covers settings.local.json, worktrees/ and other local state)
+.claude/*
+!.claude/settings.json
+.claude/worktrees/
+.superpowers/
 
-# Local settings
-/.claude/settings.local.json
+# Local package / publish output
+nupkg/
+TemplifyGuiPackage/
 
 # Security - never commit keys or certificates
 *.key

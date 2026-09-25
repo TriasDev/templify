@@ -1,0 +1,30 @@
+<Project>
+  <!-- Shared build settings for all projects in the solution.
+       Project-specific settings (target frameworks, packaging) stay in the individual .csproj files. -->
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <!-- `latest` (default rule set). `latest-recommended` currently reports ~3,000 warnings
+         (mostly CA1707 underscores in test names, CA1510, CA1822, CA1861); enable it once those are addressed. -->
+    <AnalysisLevel>latest</AnalysisLevel>
+    <!-- Report .editorconfig code-style (IDExxxx) violations during build, not only in `dotnet format`. -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <Deterministic>true</Deterministic>
+    <!-- Nullable warnings are always errors (also locally): they point to real null dereferences. -->
+    <WarningsAsErrors>$(WarningsAsErrors);nullable</WarningsAsErrors>
+  </PropertyGroup>
+
+  <!-- CI builds (GitHub Actions): normalized source paths for reproducible builds. -->
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <!-- Warnings fail CI builds, but do not block local development.
+       NuGet vulnerability audit warnings (NU1900-NU1904) stay warnings so that a newly published
+       advisory does not break unrelated builds; dependency updates are handled by Dependabot. -->
+  <PropertyGroup Condition="'$(ContinuousIntegrationBuild)' == 'true'">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1900;NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
+  </PropertyGroup>
+</Project>
