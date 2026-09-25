@@ -133,7 +133,7 @@ public sealed class PlaceholderVisitorTests
         GlobalEvaluationContext context = new GlobalEvaluationContext(data);
 
         // Act & Assert
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+        MissingVariableException exception = Assert.Throws<MissingVariableException>(() =>
             visitor.VisitPlaceholder(placeholder, paragraph, context));
 
         Assert.Contains("Name", exception.Message);

@@ -1206,6 +1206,13 @@ Result of template processing operation.
 
 ## Error Handling
 
+`ProcessTemplate` reports template problems through the result instead of throwing:
+
+- **Template syntax errors** (e.g. `{{#if}}` without `{{/if}}`, `{{#elseif}}` after `{{#else}}`, invalid loop syntax) and **data errors** (e.g. `{{#foreach}}` over a value that is not a collection) return `IsSuccess = false` with `ErrorMessage` set.
+- **Conditions that cannot be parsed** (e.g. `{{#if A && B}}`) evaluate to false and add an `ExpressionFailed` warning to `Warnings`.
+- Only a **missing variable with `MissingVariableBehavior.ThrowException`** throws (an `InvalidOperationException`).
+- `ArgumentNullException` (and, for the JSON overload, `JsonException`/`ArgumentException`) is thrown for invalid arguments.
+
 ```csharp
 try
 {

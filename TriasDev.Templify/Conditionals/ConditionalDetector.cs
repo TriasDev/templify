@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using TriasDev.Templify.Core;
 using TriasDev.Templify.Utilities;
 
 namespace TriasDev.Templify.Conditionals;
@@ -81,7 +82,8 @@ internal static class ConditionalDetector
 
                     if (markers.EndIndex == -1)
                     {
-                        throw new InvalidOperationException(
+                        throw new TemplateSyntaxException(
+                            ValidationErrorType.UnmatchedConditionalStart,
                             $"Conditional start marker '{{{{#if {conditionExpression}}}}}' has no matching '{{{{/if}}}}'.");
                     }
 
@@ -227,7 +229,8 @@ internal static class ConditionalDetector
                 // Validate: elseif cannot appear after else
                 if (elseIndex != -1)
                 {
-                    throw new InvalidOperationException(
+                    throw new TemplateSyntaxException(
+                        ValidationErrorType.InvalidConditionalExpression,
                         "Invalid conditional structure: '{{#elseif}}' cannot appear after '{{#else}}'. " +
                         "The '{{#else}}' branch must be the last branch before '{{/if}}'.");
                 }
@@ -383,7 +386,8 @@ internal static class ConditionalDetector
                     case RowMarkerKind.ElseIf when depth == 1:
                         if (elseIndex != -1)
                         {
-                            throw new InvalidOperationException(
+                            throw new TemplateSyntaxException(
+                                ValidationErrorType.InvalidConditionalExpression,
                                 "Invalid conditional structure: '{{#elseif}}' cannot appear after '{{#else}}'. " +
                                 "The '{{#else}}' branch must be the last branch before '{{/if}}'.");
                         }
@@ -399,7 +403,8 @@ internal static class ConditionalDetector
 
             if (endIndex == -1)
             {
-                throw new InvalidOperationException(
+                throw new TemplateSyntaxException(
+                    ValidationErrorType.UnmatchedConditionalStart,
                     $"Table row conditional start marker '{{{{#if {conditionExpression}}}}}' has no matching '{{{{/if}}}}'.");
             }
 
@@ -499,7 +504,8 @@ internal static class ConditionalDetector
 
         if (rowMarkers.Count > 1)
         {
-            throw new InvalidOperationException(
+            throw new TemplateSyntaxException(
+                ValidationErrorType.InvalidConditionalExpression,
                 "Invalid table row conditional: each '{{#if}}', '{{#elseif}}', '{{#else}}' and '{{/if}}' " +
                 "that spans table rows must be placed in its own row.");
         }

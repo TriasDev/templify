@@ -92,6 +92,19 @@ public sealed class ProcessingWarning
             "expression");
     }
 
+    /// <summary>
+    /// Creates a warning for a <c>{{#if}}</c>/<c>{{#elseif}}</c> condition that could not be parsed.
+    /// The condition evaluates to <see langword="false"/>.
+    /// </summary>
+    internal static ProcessingWarning ConditionFailed(string expression, string reason)
+    {
+        return new ProcessingWarning(
+            ProcessingWarningType.ExpressionFailed,
+            $"Condition '{expression}' could not be parsed and was treated as false: {reason}",
+            expression,
+            "conditional");
+    }
+
     /// <inheritdoc/>
     public override string ToString()
     {

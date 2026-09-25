@@ -77,7 +77,7 @@ internal sealed class LoopVisitor : ITemplateElementVisitor
         // Ensure it's actually a collection (but not a string, which is IEnumerable<char>)
         if (collectionObj is string || collectionObj is not IEnumerable collection)
         {
-            throw new InvalidOperationException(
+            throw new TemplateDataException(
                 $"Variable '{loop.CollectionName}' is not a collection. Cannot iterate.");
         }
 

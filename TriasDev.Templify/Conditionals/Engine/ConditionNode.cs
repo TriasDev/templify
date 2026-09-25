@@ -19,9 +19,19 @@ internal sealed class LiteralNode : ConditionNode
 /// <summary>A variable reference resolved through the evaluation context (supports dotted/indexed paths).</summary>
 internal sealed class VariableNode : ConditionNode
 {
-    public VariableNode(string path) => Path = path ?? throw new ArgumentNullException(nameof(path));
+    public VariableNode(string path, bool isBareKeyword = false)
+    {
+        Path = path ?? throw new ArgumentNullException(nameof(path));
+        IsBareKeyword = isBareKeyword;
+    }
 
     public string Path { get; }
+
+    /// <summary>
+    /// Gets whether this variable was written as a bare keyword (e.g. <c>Exists</c>) in operand position
+    /// rather than as a plain or bracket-escaped identifier (<c>[Exists]</c>).
+    /// </summary>
+    public bool IsBareKeyword { get; }
 }
 
 /// <summary>A list literal, e.g. <c>("A", "B")</c>. Valid as the right-hand side of <c>in</c>.</summary>

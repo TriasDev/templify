@@ -74,7 +74,7 @@ public sealed class InlineConditionalParserTests
     [Fact]
     public void Parse_ElseIfAfterElse_Throws()
     {
-        Assert.Throws<InvalidOperationException>(
+        Assert.Throws<Core.TemplateSyntaxException>(
             () => InlineConditionalParser.Parse("{{#if A}}1{{#else}}2{{#elseif B}}3{{/if}}"));
     }
 }
