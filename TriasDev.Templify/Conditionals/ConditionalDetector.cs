@@ -265,14 +265,9 @@ internal static class ConditionalDetector
             return ParagraphTextModel.GetText(paragraph);
         }
 
-        if (element is TableRow row)
+        if (element is TableRow or TableCell)
         {
-            return row.InnerText;
-        }
-
-        if (element is TableCell cell)
-        {
-            return cell.InnerText;
+            return TemplateElementText.GetOwnText(element);
         }
 
         return null;
@@ -460,9 +455,10 @@ internal static class ConditionalDetector
     {
         List<RowMarker> rowMarkers = new List<RowMarker>();
 
-        foreach (TableCell cell in row.Elements<TableCell>())
+        // Cells wrapped in cell-level content controls (w:sdt around w:tc) are cells of this row too.
+        foreach (TableCell cell in TemplateElementText.GetRowCells(row))
         {
-            string text = cell.InnerText;
+            string text = TemplateElementText.GetOwnText(cell);
             if (text.Length == 0)
             {
                 continue;
