@@ -24,6 +24,8 @@ if (result.IsSuccess)
 }
 ```
 
+`TextTemplateProcessor` collects the same warnings on `TextProcessingResult.Warnings` / `HasWarnings`.
+
 ## Warning Types
 
 | Type | Description | When Generated |

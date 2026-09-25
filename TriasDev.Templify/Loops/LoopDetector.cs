@@ -20,7 +20,7 @@ internal static class LoopDetector
     // Note: The @? in the regex allows capturing invalid variable names starting with @
     // so we can provide a helpful validation error message instead of silently not matching.
     private static readonly Regex _foreachStartPattern = new Regex(
-        @"\{\{#foreach\s+(?:(@?\w+)\s+in\s+)?([\w.]+)\}\}",
+        @"\{\{#foreach\s+" + IterationVariablePrefixPattern + @"([\w.]+)\}\}",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     /// <summary>
@@ -32,8 +32,17 @@ internal static class LoopDetector
         "in" // Reserved keyword in loop syntax
     };
 
+    /// <summary>Pattern text of the <c>{{/foreach}}</c> end marker.</summary>
+    internal const string ForeachEndPattern = @"\{\{/foreach\}\}";
+
+    /// <summary>
+    /// Pattern text of the optional named iteration variable prefix of a <c>{{#foreach}}</c> marker
+    /// (<c>item in </c>; group: the variable name, which may start with <c>@</c> so it can be rejected).
+    /// </summary>
+    internal const string IterationVariablePrefixPattern = @"(?:(@?\w+)\s+in\s+)?";
+
     private static readonly Regex _foreachEndPattern = new Regex(
-        @"\{\{/foreach\}\}",
+        ForeachEndPattern,
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     private static readonly Regex _emptyStartPattern = new Regex(
@@ -50,7 +59,7 @@ internal static class LoopDetector
     /// <param name="variableName">The variable name to validate.</param>
     /// <param name="collectionName">The collection name for error messages.</param>
     /// <exception cref="InvalidOperationException">Thrown when the variable name is invalid.</exception>
-    private static void ValidateIterationVariableName(string variableName, string collectionName)
+    internal static void ValidateIterationVariableName(string variableName, string collectionName)
     {
         // Check for reserved names (like "in")
         if (_reservedVariableNames.Contains(variableName))

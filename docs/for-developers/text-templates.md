@@ -4,12 +4,17 @@ Templify provides a `TextTemplateProcessor` for processing text templates using 
 
 ## Overview
 
-The `TextTemplateProcessor` class processes plain text templates with the same powerful features available in Word document templates:
-- Placeholder replacement
-- Conditional blocks
-- Loops and iterations
-- Nested structures
+The `TextTemplateProcessor` class processes plain text templates with the same template syntax as Word document templates:
+- Placeholder replacement, including format specifiers (`{{Amount:currency}}`, `{{Flag:yesno}}`, ...)
+- Inline expressions (`{{(Count > 0 and IsActive)}}`)
+- Conditional blocks with `{{#if}}`, `{{#elseif}}` and `{{#else}}`
+- Loops, including named iteration variables (`{{#foreach item in Items}}`)
+- Nested structures (any depth, no limit on the number of blocks)
 - Loop metadata
+- `TextReplacements` applied to replaced values
+- Processing warnings (`TextProcessingResult.Warnings`)
+
+Markers are case-insensitive (`{{#IF}}`, `{{/ForEach}}`), as in Word templates. Word-only features are not available: formatting and markdown (`:raw` is accepted and simply means "no format"), table rows, `UpdateFieldsOnOpen` and `DocumentProperties`.
 
 **Key Benefits:**
 - ✅ Same template syntax as Word documents
@@ -145,6 +150,8 @@ string template = @"
 Hi {{Name}},
 {{#if HasDiscount}}
 Good news! You have a {{DiscountPercent}}% discount available.
+{{#elseif IsNewCustomer}}
+Welcome! Enjoy 10% off your first order.
 {{#else}}
 Shop now and get great deals!
 {{/if}}
@@ -158,16 +165,26 @@ var data = new Dictionary<string, object>
 };
 ```
 
-**Supported Operators:**
+**Supported Operators:** the full condition syntax of Word templates, see [Condition Evaluation](condition-evaluation.md):
 - Comparison: `=`, `!=`, `>`, `<`, `>=`, `<=`
-- Logical: `and`, `or`, `not`
+- Logical: `and`, `or`, `not`, parentheses
+- Membership, string and existence checks: `in`, `contains`, `startswith`, `endswith`, `exists`, `is empty`, `is not empty`
 
 ```csharp
 // Examples:
-"{{#if Status = Active}}"
+"{{#if Status = \"Active\"}}"
 "{{#if Count > 0}}"
 "{{#if IsEnabled and not IsExpired}}"
-"{{#if Score >= 80 or IsPremium}}"
+"{{#if Role in (\"Admin\", \"Editor\")}}"
+"{{#if Notes is not empty}}"
+```
+
+A condition that cannot be parsed (e.g. `{{#if A && B}}`) is treated as false and reported as an `ExpressionFailed` warning.
+
+**Inline expressions** evaluate a condition in place and print the result (combine with a boolean format):
+
+```csharp
+"Active: {{(IsActive and not IsExpired):yesno}}"   // Active: Yes
 ```
 
 ### 3. Loops
@@ -201,6 +218,20 @@ Tasks for today:
 2. Fix bug - Priority: High
 ```
 
+**Named iteration variables** give access to outer loop items in nested loops:
+
+```csharp
+string template = @"
+{{#foreach category in Categories}}
+{{#foreach product in category.Products}}
+- {{category.Name}}: {{product.Name}}
+{{/foreach}}
+{{/foreach}}
+";
+```
+
+A missing collection renders nothing and adds a `MissingLoopCollection` warning (and the name to `MissingVariables`); a `null` collection renders nothing and adds a `NullLoopCollection` warning. Looping over a value that is not a collection (including a string) fails the processing.
+
 ### 4. Loop Metadata
 
 Access loop metadata using special placeholders:
@@ -223,7 +254,7 @@ string template = @"
 
 ### 5. Nested Structures
 
-Combine conditionals and loops at any depth.
+Combine conditionals and loops at any depth. As in Word templates, a conditional is evaluated before its content: loops and placeholders in a branch that is not taken are never evaluated (so they cannot fail or be reported as missing), and conditionals inside a loop are evaluated for each item.
 
 ```csharp
 string template = @"
@@ -287,6 +318,17 @@ var options = new PlaceholderReplacementOptions
 var processor = new TextTemplateProcessor(options);
 ```
 
+### Text Replacements
+
+`TextReplacements` are applied to every replaced value (not to the template text), as in Word templates:
+
+```csharp
+var options = new PlaceholderReplacementOptions
+{
+    TextReplacements = TextReplacements.HtmlEntities   // e.g. "&amp;" -> "&"
+};
+```
+
 ## Result Handling
 
 The `TextProcessingResult` class provides detailed information about the processing:
@@ -305,6 +347,12 @@ if (result.IsSuccess)
     {
         Console.WriteLine($"Warning: Missing variables: {string.Join(", ", result.MissingVariables)}");
     }
+
+    // Non-fatal issues (missing variables/collections, null collections, invalid expressions)
+    foreach (ProcessingWarning warning in result.Warnings)
+    {
+        Console.WriteLine($"[{warning.Type}] {warning.Message}");
+    }
 }
 else
 {
@@ -322,6 +370,8 @@ else
 | `ReplacementCount` | `int` | Number of placeholders replaced |
 | `ErrorMessage` | `string?` | Error message if processing failed |
 | `MissingVariables` | `IReadOnlyList<string>` | List of missing variable names |
+| `Warnings` | `IReadOnlyList<ProcessingWarning>` | Non-fatal issues, same types as for Word templates (see [Processing Warnings](processing-warnings.md)) |
+| `HasWarnings` | `bool` | True if any warnings were collected |
 
 ## Common Use Cases
 
@@ -431,7 +481,7 @@ Reply YES to confirm.
 
 ### Template Syntax Errors
 
-Syntax errors are returned as failure results:
+Syntax errors (unmatched or misnested `{{#if}}`/`{{#foreach}}`, malformed markers, `{{#elseif}}` after `{{#else}}`, invalid iteration variable names) and data errors (looping over a non-collection) are returned as failure results. Closing or branch markers outside any block (e.g. a stray `{{/if}}`) are kept as literal text.
 
 ```csharp
 // Missing closing tag
@@ -499,16 +549,20 @@ var results = await Task.WhenAll(
 - **Conditionals**: ~0.2ms per conditional block
 - **Loops**: ~0.1ms per iteration + nested content processing
 - **Memory**: Minimal allocation, efficient string building
+- **Scaling**: The template is parsed in a single linear scan; there is no limit on the number or nesting of blocks
 
 ## Comparison with Word Templates
 
 | Feature | TextTemplateProcessor | DocumentTemplateProcessor |
 |---------|----------------------|---------------------------|
-| Placeholder syntax | ✅ Same | ✅ Same |
-| Conditionals | ✅ Same | ✅ Same |
-| Loops | ✅ Same | ✅ Same |
+| Placeholder syntax and format specifiers | ✅ Same | ✅ Same |
+| Inline expressions `{{(...)}}` | ✅ Same | ✅ Same |
+| Conditionals (`#if`/`#elseif`/`#else`) | ✅ Same | ✅ Same |
+| Loops (incl. `item in Items`) | ✅ Same | ✅ Same |
 | Nested structures | ✅ Same | ✅ Same |
-| Formatting preservation | ❌ Plain text | ✅ Rich formatting |
+| Warnings | ✅ Same | ✅ Same |
+| `TextReplacements` | ✅ Same | ✅ Same |
+| Formatting preservation / markdown | ❌ Plain text | ✅ Rich formatting |
 | Tables | ❌ N/A | ✅ Supported |
 | Dependencies | ✅ None | OpenXML SDK |
 | Use case | Emails, SMS, text | Reports, contracts, invoices |
