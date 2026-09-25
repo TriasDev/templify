@@ -13,8 +13,8 @@ namespace TriasDev.Templify.Utilities;
 /// <para>
 /// Only the text elements that overlap a range are changed; runs outside the range, their
 /// formatting and all non-text content (hyperlinks, fields, drawings, bookmarks, …) stay untouched.
-/// Simple inline content located strictly inside a replaced range (tabs, breaks, symbols) is
-/// removed together with the text around it.
+/// Inline content located strictly inside a replaced range (tabs, breaks, drawings, complete
+/// fields, …) is removed together with the text around it; bookmarks and comment ranges are kept.
 /// </para>
 /// <para>
 /// Replacement text takes the formatting of the run holding the first replaced character;
@@ -126,13 +126,23 @@ internal static class ParagraphTextRewriter
     }
 
     /// <summary>
-    /// Removes the non-text content strictly inside (start, end) that belongs to the removed text.
+    /// Removes the non-text content strictly inside (start, end) that belongs to the removed text:
+    /// tabs, breaks, symbols, drawings, pictures, embedded objects, note references and math, plus
+    /// complex fields whose begin and end both lie inside the range (as a whole, never partially).
+    /// Bookmarks, comment ranges and other markup are always kept.
     /// </summary>
     private static void RemoveContentInside(ParagraphTextModel model, int start, int end, HashSet<Run> touchedRuns)
     {
+        HashSet<OpenXmlElement> fieldPartsInside = FindFieldPartsInside(model.Anchors, start, end);
+
         foreach (ParagraphContentAnchor anchor in model.Anchors)
         {
-            if (anchor.Offset <= start || anchor.Offset >= end || !IsRemovableInlineContent(anchor.Element))
+            if (anchor.Offset <= start || anchor.Offset >= end)
+            {
+                continue;
+            }
+
+            if (!IsRemovableInlineContent(anchor.Element) && !fieldPartsInside.Contains(anchor.Element))
             {
                 continue;
             }
@@ -147,7 +157,66 @@ internal static class ParagraphTextRewriter
     }
 
     /// <summary>
-    /// Checks whether an element is simple inline content that is removed with the text around it.
+    /// Finds the parts (field characters and instructions) of complex fields that lie entirely
+    /// strictly inside (start, end). Fields crossing the range boundary are not returned, so a
+    /// field is either removed completely or left intact.
+    /// </summary>
+    private static HashSet<OpenXmlElement> FindFieldPartsInside(
+        IReadOnlyList<ParagraphContentAnchor> anchors,
+        int start,
+        int end)
+    {
+        HashSet<OpenXmlElement> result = new HashSet<OpenXmlElement>();
+        Stack<List<ParagraphContentAnchor>> open = new Stack<List<ParagraphContentAnchor>>();
+
+        foreach (ParagraphContentAnchor anchor in anchors)
+        {
+            switch (anchor.Element)
+            {
+                case FieldChar fieldChar when fieldChar.FieldCharType?.Value == FieldCharValues.Begin:
+                    open.Push(new List<ParagraphContentAnchor> { anchor });
+                    break;
+
+                case FieldChar fieldChar when fieldChar.FieldCharType?.Value == FieldCharValues.End:
+                    if (open.Count == 0)
+                    {
+                        break;
+                    }
+
+                    List<ParagraphContentAnchor> field = open.Pop();
+                    field.Add(anchor);
+
+                    if (field[0].Offset > start && anchor.Offset < end)
+                    {
+                        foreach (ParagraphContentAnchor part in field)
+                        {
+                            result.Add(part.Element);
+                        }
+                    }
+
+                    // A nested field is also part of its enclosing field.
+                    if (open.Count > 0)
+                    {
+                        open.Peek().AddRange(field);
+                    }
+
+                    break;
+
+                case FieldChar or FieldCode or DeletedFieldCode:
+                    if (open.Count > 0)
+                    {
+                        open.Peek().Add(anchor);
+                    }
+
+                    break;
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Checks whether an element is inline content that is removed with the text around it.
     /// </summary>
     private static bool IsRemovableInlineContent(OpenXmlElement element) =>
         element is TabChar
@@ -157,7 +226,15 @@ internal static class ParagraphTextRewriter
             or NoBreakHyphen
             or SoftHyphen
             or SymbolChar
-            or LastRenderedPageBreak;
+            or LastRenderedPageBreak
+            or Drawing
+            or Picture
+            or EmbeddedObject
+            or AlternateContent
+            or FootnoteReference
+            or EndnoteReference
+            or DocumentFormat.OpenXml.Math.OfficeMath
+            or DocumentFormat.OpenXml.Math.Paragraph;
 
     private static void SetText(Text element, string text)
     {
