@@ -18,10 +18,8 @@ internal sealed class ConditionLexer
     /// Keywords introduced in 1.7.0. Before 1.7.0 they were ordinary identifiers, so when one of them appears
     /// where an operand is expected (e.g. <c>{{#if Exists}}</c>), the parser treats it as a variable name.
     /// </summary>
-    internal static readonly HashSet<string> OperandFallbackKeywords = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "in", "contains", "startswith", "endswith", "exists", "is", "empty"
-    };
+    internal static readonly FrozenSet<string> OperandFallbackKeywords =
+        new[] { "in", "contains", "startswith", "endswith", "exists", "is", "empty" }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     private readonly bool _allowSingleQuotedStrings;
 

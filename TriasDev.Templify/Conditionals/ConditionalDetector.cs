@@ -13,7 +13,7 @@ namespace TriasDev.Templify.Conditionals;
 /// Detects and parses conditional blocks in Word documents.
 /// Supports {{#if condition}}...{{#elseif condition}}...{{#else}}...{{/if}} syntax.
 /// </summary>
-internal static class ConditionalDetector
+internal static partial class ConditionalDetector
 {
 
     /// <summary>
@@ -247,9 +247,12 @@ internal static class ConditionalDetector
     /// Matches any conditional marker, in document order. Alternatives are ordered so that
     /// {{#elseif ...}} is never mistaken for {{#else}} or {{#if ...}}.
     /// </summary>
-    private static readonly Regex _anyMarkerPattern = new Regex(
+    private static readonly Regex _anyMarkerPattern = AnyMarkerRegex();
+
+    [GeneratedRegex(
         @"\{\{(?:#elseif\s+(?<elseif>.+?)|(?<else>#else)|#if\s+(?<if>.+?)|(?<end>/if))\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex AnyMarkerRegex();
 
     /// <summary>
     /// Detects table row conditionals within a table.

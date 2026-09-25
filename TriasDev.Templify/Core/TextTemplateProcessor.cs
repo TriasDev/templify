@@ -20,30 +20,48 @@ namespace TriasDev.Templify.Core;
 /// Templify template syntax: {{variables}}, {{(expressions)}}, {{#if condition}}...{{#elseif condition}}...{{#else}}...{{/if}},
 /// {{#foreach collection}}...{{/foreach}} and {{#foreach item in collection}}...{{/foreach}}.
 /// </remarks>
-public sealed class TextTemplateProcessor
+public sealed partial class TextTemplateProcessor
 {
+    // Options of the source-generated marker patterns below.
     private const RegexOptions MarkerOptions =
-        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline;
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline;
 
     // Markers are matched at a known "{{" position (\G), using the same patterns as the Word processor.
     // Singleline lets a condition span lines in plain text.
-    private static readonly Regex _ifStart = new(@"\G" + ConditionalPatterns.IfStartPattern, MarkerOptions);
-    private static readonly Regex _elseIf = new(@"\G" + ConditionalPatterns.ElseIfPattern, MarkerOptions);
-    private static readonly Regex _else = new(@"\G" + ConditionalPatterns.ElsePattern, MarkerOptions);
-    private static readonly Regex _ifEnd = new(@"\G" + ConditionalPatterns.IfEndPattern, MarkerOptions);
-    private static readonly Regex _foreachEnd = new(@"\G" + LoopDetector.ForeachEndPattern, MarkerOptions);
+    private static readonly Regex _ifStart = IfStartRegex();
+    private static readonly Regex _elseIf = ElseIfRegex();
+    private static readonly Regex _else = ElseRegex();
+    private static readonly Regex _ifEnd = IfEndRegex();
+    private static readonly Regex _foreachEnd = ForeachEndRegex();
 
     // Same iteration-variable grammar as the Word processor; the collection may be any property path
     // (e.g. Customer.Orders or Groups[0].Items), as text templates have always accepted.
-    private static readonly Regex _foreachStart = new(
-        @"\G\{\{#foreach\s+" + LoopDetector.IterationVariablePrefixPattern + @"([^\s{}]+)\s*\}\}",
-        MarkerOptions);
+    private static readonly Regex _foreachStart = ForeachStartRegex();
 
     // A block marker keyword that did not match its full pattern (e.g. "{{#if X" without "}}").
     // A well-formed {{#elseif}} outside a block is not malformed; it is kept as literal text.
-    private static readonly Regex _malformedMarker = new(
-        @"\G\{\{(#if|#elseif|#foreach)\s",
-        MarkerOptions);
+    private static readonly Regex _malformedMarker = MalformedMarkerRegex();
+
+    [GeneratedRegex(@"\G" + ConditionalPatterns.IfStartPattern, MarkerOptions)]
+    private static partial Regex IfStartRegex();
+
+    [GeneratedRegex(@"\G" + ConditionalPatterns.ElseIfPattern, MarkerOptions)]
+    private static partial Regex ElseIfRegex();
+
+    [GeneratedRegex(@"\G" + ConditionalPatterns.ElsePattern, MarkerOptions)]
+    private static partial Regex ElseRegex();
+
+    [GeneratedRegex(@"\G" + ConditionalPatterns.IfEndPattern, MarkerOptions)]
+    private static partial Regex IfEndRegex();
+
+    [GeneratedRegex(@"\G" + LoopDetector.ForeachEndPattern, MarkerOptions)]
+    private static partial Regex ForeachEndRegex();
+
+    [GeneratedRegex(@"\G\{\{#foreach\s+" + LoopDetector.IterationVariablePrefixPattern + @"([^\s{}]+)\s*\}\}", MarkerOptions)]
+    private static partial Regex ForeachStartRegex();
+
+    [GeneratedRegex(@"\G\{\{(#if|#elseif|#foreach)\s", MarkerOptions)]
+    private static partial Regex MalformedMarkerRegex();
 
     private readonly PlaceholderReplacementOptions _options;
 

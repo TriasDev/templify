@@ -10,11 +10,12 @@ namespace TriasDev.Templify.PropertyPaths;
 /// Represents a parsed property path that can navigate through nested objects, collections, and dictionaries.
 /// Supports mixed notation: Customer.Address.City, Items[0].Name, Settings[Theme], etc.
 /// </summary>
-internal sealed class PropertyPath
+internal sealed partial class PropertyPath
 {
-    private static readonly Regex _pathPattern = new Regex(
-        @"^(\w+)(?:\.(\w+)|\[([^\]]+)\])*$",
-        RegexOptions.Compiled);
+    private static readonly Regex _pathPattern = PathRegex();
+
+    [GeneratedRegex(@"^(\w+)(?:\.(\w+)|\[([^\]]+)\])*$")]
+    private static partial Regex PathRegex();
 
     /// <summary>
     /// Gets the segments that make up this path.

@@ -8,7 +8,7 @@ namespace TriasDev.Templify.Placeholders;
 /// <summary>
 /// Finds and extracts placeholder patterns in document text.
 /// </summary>
-public sealed class PlaceholderFinder
+public sealed partial class PlaceholderFinder
 {
     // Pattern: {{variableName}} or {{variableName:format}} or {{(expression):format}}
     // where variableName can be:
@@ -20,9 +20,10 @@ public sealed class PlaceholderFinder
     // - Current item: . or this (for primitive collections)
     // - Expression: (var1 and var2), (not IsActive), (Count > 0), ((var1 or var2) and var3)
     // Optional format specifier: :checkbox, :yesno, :currency, :number:N2, :date:yyyy-MM-dd, etc.
-    private static readonly Regex _placeholderPattern = new(
-        @"\{\{(\.|this|@?[\w\.\[\]]+|\([^\}]+\))(?::(\w+(?::[^\}]+)?))?\}\}",
-        RegexOptions.Compiled);
+    private static readonly Regex _placeholderPattern = PlaceholderRegex();
+
+    [GeneratedRegex(@"\{\{(\.|this|@?[\w\.\[\]]+|\([^\}]+\))(?::(\w+(?::[^\}]+)?))?\}\}")]
+    private static partial Regex PlaceholderRegex();
 
     /// <summary>
     /// Finds all placeholders in the specified text.

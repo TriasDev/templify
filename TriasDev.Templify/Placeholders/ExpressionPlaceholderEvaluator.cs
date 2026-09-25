@@ -28,8 +28,7 @@ internal static class ExpressionPlaceholderEvaluator
     {
         try
         {
-            IReadOnlyList<ConditionToken> tokens = new ConditionLexer(allowSingleQuotedStrings: true).Tokenize(expression);
-            ConditionNode node = new ConditionParser(ConditionOperatorRegistry.Shared).Parse(tokens);
+            ConditionNode node = ConditionAstCache.InlineExpressions.GetOrParse(expression);
             value = new ConditionEvaluatorCore(context, InlineConditionDialect.Instance).EvaluateBool(node);
             return true;
         }

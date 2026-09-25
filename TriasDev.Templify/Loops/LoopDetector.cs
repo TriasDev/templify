@@ -1,6 +1,7 @@
 // Copyright (c) 2025 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Frozen;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Text.RegularExpressions;
@@ -14,22 +15,18 @@ namespace TriasDev.Templify.Loops;
 /// Supports {{#foreach CollectionName}}...{{/foreach}} syntax
 /// and {{#foreach item in CollectionName}}...{{/foreach}} for named iteration variables.
 /// </summary>
-internal static class LoopDetector
+internal static partial class LoopDetector
 {
     // Note: The @? in the regex allows capturing invalid variable names starting with @
     // so we can provide a helpful validation error message instead of silently not matching.
-    private static readonly Regex _foreachStartPattern = new Regex(
-        @"\{\{#foreach\s+" + IterationVariablePrefixPattern + @"([\w.]+)\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    private static readonly Regex _foreachStartPattern = ForeachStartRegex();
 
     /// <summary>
     /// Reserved variable names that cannot be used as iteration variable names.
     /// These conflict with loop metadata syntax.
     /// </summary>
-    private static readonly HashSet<string> _reservedVariableNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-    {
-        "in" // Reserved keyword in loop syntax
-    };
+    private static readonly FrozenSet<string> _reservedVariableNames =
+        new[] { "in" /* reserved keyword in loop syntax */ }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Pattern text of the <c>{{/foreach}}</c> end marker.</summary>
     internal const string ForeachEndPattern = @"\{\{/foreach\}\}";
@@ -40,9 +37,15 @@ internal static class LoopDetector
     /// </summary>
     internal const string IterationVariablePrefixPattern = @"(?:(@?\w+)\s+in\s+)?";
 
-    private static readonly Regex _foreachEndPattern = new Regex(
-        ForeachEndPattern,
-        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    private static readonly Regex _foreachEndPattern = ForeachEndRegex();
+
+    [GeneratedRegex(
+        @"\{\{#foreach\s+" + IterationVariablePrefixPattern + @"([\w.]+)\}\}",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex ForeachStartRegex();
+
+    [GeneratedRegex(ForeachEndPattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex ForeachEndRegex();
 
     /// <summary>
     /// Validates an iteration variable name and throws if invalid.
