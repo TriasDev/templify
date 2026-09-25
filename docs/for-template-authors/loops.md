@@ -269,7 +269,27 @@ Item #1: Gadget
 Item #2: Doohickey
 ```
 
-**For 1-based numbering, you'll need to adjust in your JSON or just add 1 mentally when reading.**
+For 1-based numbering, use `{{@number}}`.
+
+### `{{@number}}` - Current Number (1-based)
+
+One-based position of the current item (`@index + 1`), for numbered lists:
+
+**Template:**
+```
+{{#foreach Items}}
+{{@number}}. {{Name}}
+{{/foreach}}
+```
+
+**Output:**
+```
+1. Widget
+2. Gadget
+3. Doohickey
+```
+
+`@number` also works in conditions, e.g. `{{#if @number > 1}}...{{/if}}`. In nested loops it refers to the innermost loop, like `@index`.
 
 ### `{{@first}}` - First Item
 

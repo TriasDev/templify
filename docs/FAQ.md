@@ -78,7 +78,7 @@ Or in Visual Studio: `Install-Package TriasDev.Templify`
 - ✅ **Loops**: `{{#foreach Items}}...{{/foreach}}`
 - ✅ **Nested loops**: Loops inside loops (arbitrary depth)
 - ✅ **Table row loops**: Dynamic table generation
-- ✅ **Loop variables**: `@index`, `@first`, `@last`, `@count`
+- ✅ **Loop variables**: `@index`, `@number`, `@first`, `@last`, `@count`
 - ✅ **Formatting preservation**: Bold, italic, colors, fonts maintained
 - ✅ **Comparison operators**: `>`, `<`, `>=`, `<=`, `==`, `!=`
 - ✅ **Logical operators**: `and`, `or`, `not`
@@ -232,6 +232,7 @@ This customer is inactive.
 
 **A:** Inside loops, use these:
 - `{{@index}}` - Current position (0-based)
+- `{{@number}}` - Current position (1-based)
 - `{{@first}}` - True for first item
 - `{{@last}}` - True for last item
 - `{{@count}}` - Total number of items

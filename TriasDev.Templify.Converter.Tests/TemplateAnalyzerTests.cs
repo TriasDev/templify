@@ -55,4 +55,19 @@ public class TemplateAnalyzerTests
         string report = result.GenerateMarkdownReport();
         Assert.Contains("conditionalRemove_a_or", report);
     }
+
+    [Fact]
+    public void AnalyzeTemplate_VariableIndexInsideRepeating_SuggestsLoopNumber()
+    {
+        using TempDirectory dir = new();
+        string path = dir.File("index.docx");
+        Create(path, new OpenXmlElement[]
+        {
+            BlockControl("repeating_items", Para(InlineVariable("index"))),
+        });
+
+        AnalysisResult result = new TemplateAnalyzer().AnalyzeTemplate(path);
+
+        Assert.Equal("{{@number}}", result.Controls.Single(c => c.Tag == "variable_index").TemplifySyntax);
+    }
 }

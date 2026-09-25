@@ -509,6 +509,24 @@ Item 1: Gadget
 Item 2: Doohickey
 ```
 
+### `{{@number}}`
+
+The current item number (starts at 1, i.e. `@index + 1`):
+
+**Template:**
+```
+{{#foreach Items}}
+{{@number}}. {{Name}}
+{{/foreach}}
+```
+
+**Output:**
+```
+1. Widget
+2. Gadget
+3. Doohickey
+```
+
 ### `{{@first}}`
 
 True if this is the first iteration:
@@ -677,6 +695,7 @@ Will output with the indentation preserved.
 | Loop | `{{#foreach ...}}...{{/foreach}}` | `{{#foreach Items}}...{{/foreach}}` |
 | Format | `{{Name:format}}` | `{{Price:currency}}` |
 | Loop Index | `{{@index}}` | `{{@index}}` |
+| Loop Number | `{{@number}}` | `{{@number}}.` |
 | Loop First | `{{@first}}` | `{{#if @first}}...{{/if}}` |
 | Loop Last | `{{@last}}` | `{{#if @last}}...{{/if}}` |
 | Loop Count | `{{@count}}` | `{{@count}}` |
