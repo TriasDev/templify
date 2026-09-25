@@ -33,7 +33,7 @@ No setup required - `.cmd` files are executable by default.
 Run scripts with `./scripts/script-name.sh`:
 
 ```bash
-# From repository root
+# From repository root (or any other directory - see below)
 ./scripts/analyze.sh template.docx
 ./scripts/convert.sh template.docx
 ./scripts/validate.sh template.docx
@@ -45,7 +45,7 @@ Run scripts with `./scripts/script-name.sh`:
 Run scripts with `scripts\script-name.cmd`:
 
 ```cmd
-REM From repository root
+REM From repository root (or any other directory - see below)
 scripts\analyze.cmd template.docx
 scripts\convert.cmd template.docx
 scripts\validate.cmd template.docx
@@ -54,14 +54,24 @@ scripts\clean.cmd template.docx
 
 ### From Any Directory
 
-Add the scripts directory to your PATH or navigate to the repository root first:
+The scripts locate the converter project relative to their own location (`$(dirname "$0")/..` in bash,
+`%~dp0..` in cmd), so they work from any directory. File arguments are resolved relative to **your current
+directory**, not the repository.
 
 ```bash
-# Navigate to repository
-cd /path/to/templify
+# Call the script by path from anywhere
+cd ~/Documents/templates
+/path/to/templify/scripts/convert.sh my-template.docx
 
-# Run script
-./scripts/convert.sh my-template.docx
+# Or add the scripts directory to your PATH
+export PATH="/path/to/templify/scripts:$PATH"
+convert.sh my-template.docx
+```
+
+```cmd
+REM Windows: add the scripts directory to PATH
+set PATH=C:\path\to\templify\scripts;%PATH%
+convert.cmd my-template.docx
 ```
 
 ## Command Examples
@@ -126,16 +136,18 @@ cd /path/to/templify
 **macOS / Linux:**
 ```bash
 for template in templates/*.docx; do
+  # Skip outputs of previous conversions
+  [[ "$template" == *-templify.docx ]] && continue
   echo "Analyzing: $template"
   ./scripts/analyze.sh "$template"
 done
 ```
 
-**Windows:**
+**Windows** (in a `.cmd` file; use `call`, otherwise the batch file stops after the first script call):
 ```cmd
 for %%f in (templates\*.docx) do (
     echo Analyzing: %%f
-    scripts\analyze.cmd "%%f"
+    call scripts\analyze.cmd "%%f"
 )
 ```
 
@@ -147,6 +159,9 @@ for %%f in (templates\*.docx) do (
 # Convert all templates in a directory
 
 for template in old-templates/*.docx; do
+  # Skip outputs of previous conversions (convert writes <name>-templify.docx by default)
+  [[ "$template" == *-templify.docx ]] && continue
+
   basename=$(basename "$template" .docx)
 
   echo "Processing: $basename"
@@ -168,20 +183,19 @@ done
 ```cmd
 @echo off
 REM Convert all templates in a directory
+REM Note: "call" is required - without it the batch file stops after the first script.
 
 for %%f in (old-templates\*.docx) do (
-    set "basename=%%~nf"
-
     echo Processing: %%~nf
 
     REM Analyze
-    scripts\analyze.cmd "%%f" -o "reports\%%~nf-analysis.md"
+    call scripts\analyze.cmd "%%f" -o "reports\%%~nf-analysis.md"
 
     REM Convert
-    scripts\convert.cmd "%%f" -o "new-templates\%%~nf.docx"
+    call scripts\convert.cmd "%%f" -o "new-templates\%%~nf.docx"
 
     REM Validate
-    scripts\validate.cmd "new-templates\%%~nf.docx"
+    call scripts\validate.cmd "new-templates\%%~nf.docx"
 
     echo ---
 )
@@ -219,10 +233,10 @@ For even shorter commands, create shell aliases:
 Add to `~/.bashrc` or `~/.zshrc`:
 
 ```bash
-alias tanalyze='cd /path/to/templify && ./scripts/analyze.sh'
-alias tconvert='cd /path/to/templify && ./scripts/convert.sh'
-alias tvalidate='cd /path/to/templify && ./scripts/validate.sh'
-alias tclean='cd /path/to/templify && ./scripts/clean.sh'
+alias tanalyze='/path/to/templify/scripts/analyze.sh'
+alias tconvert='/path/to/templify/scripts/convert.sh'
+alias tvalidate='/path/to/templify/scripts/validate.sh'
+alias tclean='/path/to/templify/scripts/clean.sh'
 ```
 
 Then use from anywhere:
@@ -237,22 +251,10 @@ tvalidate ~/Documents/my-template-templify.docx
 Add to PowerShell profile (`$PROFILE`):
 
 ```powershell
-function tanalyze {
-    cd C:\path\to\templify
-    scripts\analyze.cmd $args
-}
-function tconvert {
-    cd C:\path\to\templify
-    scripts\convert.cmd $args
-}
-function tvalidate {
-    cd C:\path\to\templify
-    scripts\validate.cmd $args
-}
-function tclean {
-    cd C:\path\to\templify
-    scripts\clean.cmd $args
-}
+function tanalyze { & C:\path\to\templify\scripts\analyze.cmd @args }
+function tconvert { & C:\path\to\templify\scripts\convert.cmd @args }
+function tvalidate { & C:\path\to\templify\scripts\validate.cmd @args }
+function tclean { & C:\path\to\templify\scripts\clean.cmd @args }
 ```
 
 Then use from anywhere:
@@ -273,15 +275,13 @@ chmod +x scripts/*.sh
 
 ### Issue: "Command not found" (macOS/Linux)
 
-**Cause:** Not running from repository root or using wrong path
+**Cause:** The script is not on your PATH, or it was called without a path
 
 **Solution:**
 ```bash
-# Ensure you're in repository root
-cd /path/to/templify
-
-# Use ./ prefix
+# Call it with a path (./ prefix from the repository root, or an absolute path)
 ./scripts/analyze.sh template.docx
+/path/to/templify/scripts/analyze.sh template.docx
 ```
 
 ### Issue: Scripts not working (Windows)
@@ -299,23 +299,21 @@ scripts/analyze.cmd template.docx  REM Won't work
 
 ### Issue: ".NET SDK not found"
 
-**Cause:** .NET 9.0 SDK not installed or not in PATH
+**Cause:** .NET 10 SDK not installed or not in PATH
 
 **Solution:**
-1. Install .NET 9.0 SDK from https://dotnet.microsoft.com/download
+1. Install .NET 10 SDK from https://dotnet.microsoft.com/download
 2. Verify installation: `dotnet --version`
 3. Restart terminal/command prompt
 
 ### Issue: "Project not found"
 
-**Cause:** Running scripts from wrong directory
+**Cause:** The script was copied out of the repository. The scripts expect to live in `scripts/` next to
+`TriasDev.Templify.Converter/`.
 
-**Solution:**
-```bash
-# Scripts must be run from repository root
-cd /path/to/templify
-./scripts/convert.sh template.docx
-```
+**Solution:** Call the scripts in place (or add the repository's `scripts/` directory to your PATH) instead
+of copying them elsewhere. A symlink on your PATH that points to a script is not resolved; add the directory
+to PATH or use an alias instead.
 
 ## Script Contents
 
@@ -323,14 +321,16 @@ Each script is a thin wrapper around the converter CLI:
 
 **Bash scripts (`.sh`):**
 ```bash
-#!/bin/bash
-dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- [command] "$@"
+#!/usr/bin/env bash
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec dotnet run --project "$SCRIPT_DIR/../TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj" -- [command] "$@"
 ```
 
 **Windows scripts (`.cmd`):**
 ```cmd
 @echo off
-dotnet run --project TriasDev.Templify.Converter\TriasDev.Templify.Converter.csproj -- [command] %*
+dotnet run --project "%~dp0..\TriasDev.Templify.Converter\TriasDev.Templify.Converter.csproj" -- [command] %*
+exit /b %ERRORLEVEL%
 ```
 
 All command-line arguments are passed through to the converter unchanged.

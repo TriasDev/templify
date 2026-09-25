@@ -139,7 +139,7 @@ The converter tool helps migrate OpenXMLTemplates documents to Templify format.
 - Bash scripts (`.sh`) for macOS/Linux
 - CMD scripts (`.cmd`) for Windows
 - Reduce verbose `dotnet run` commands to simple calls
-- Must be run from repository root
+- Work from any directory (paths are resolved relative to the script; file arguments relative to the CWD)
 
 **Common Development Tasks:**
 
