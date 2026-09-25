@@ -152,10 +152,7 @@ public sealed class TextBoxContentControlAndNoteTests
                     new() { ["Name"] = "One" },
                     new() { ["Name"] = "Two" },
                 },
-            },
-            // Loop cloning duplicates shape ids (true for any shape or drawing in a loop, not
-            // specific to text boxes), which the validator reports; content is checked below.
-            validate: false);
+            });
 
         Assert.Equal(new[] { "One", "Two" }, TextBoxParagraphTexts(BodyOf(verifier)));
     }
@@ -288,6 +285,25 @@ public sealed class TextBoxContentControlAndNoteTests
 
         List<string> cellTexts = BodyOf(verifier).Descendants<TableCell>().Select(c => c.InnerText).ToList();
         Assert.Equal(new[] { "Plain Alice", "Cell control Alice", "Row control Alice" }, cellTexts);
+    }
+
+    [Fact]
+    public void CellContentControl_ContainingCellLoop_ExpandsInsideCell()
+    {
+        // A loop confined to a cell wrapped in a cell-level content control is a cell loop,
+        // not the start of a table row loop (issue #178).
+        using DocumentVerifier verifier = Process(
+            builder => builder.AddElement(Table(
+                new TableRow(
+                    new TableCell(P("Plain")),
+                    new SdtCell(new SdtProperties(), new SdtContentCell(new TableCell(
+                        P("{{#foreach Items}}"), P("- {{.}}"), P("{{/foreach}}"))))))),
+            new Dictionary<string, object> { ["Items"] = new List<string> { "a", "b" } });
+
+        Table table = Assert.Single(BodyOf(verifier).Elements<Table>());
+        Assert.Single(table.Elements<TableRow>());
+        TableCell cell = table.Descendants<SdtCell>().Single().Descendants<TableCell>().Single();
+        Assert.Equal(new[] { "- a", "- b" }, cell.Elements<Paragraph>().Select(p => p.InnerText));
     }
 
     [Fact]
