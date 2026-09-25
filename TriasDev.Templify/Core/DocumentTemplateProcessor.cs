@@ -130,6 +130,9 @@ public sealed class DocumentTemplateProcessor
                 // they are reviewer notes, not document content)
                 walker.WalkFootnotesAndEndnotes(document, composite, globalContext);
 
+                // Loop cloning copies drawing/shape ids; make them unique again (#178)
+                DrawingIdAllocator.EnsureUniqueIds(document);
+
                 // Apply UpdateFieldsOnOpen setting based on mode
                 bool shouldUpdateFields = _options.UpdateFieldsOnOpen switch
                 {

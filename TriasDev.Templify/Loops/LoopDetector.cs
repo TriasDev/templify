@@ -411,8 +411,10 @@ internal static class LoopDetector
     /// <returns>True if the loop for this collection is fully contained in a single cell.</returns>
     private static bool IsLoopContainedInSingleCell(TableRow row, string collectionName)
     {
-        // Check each cell in the row
-        foreach (TableCell cell in row.Elements<TableCell>())
+        // Check each cell in the row, including cells wrapped in cell-level content controls
+        // (w:sdt around w:tc); cells of nested tables belong to their own rows.
+        foreach (TableCell cell in row.Descendants<TableCell>()
+            .Where(c => c.Ancestors<TableRow>().FirstOrDefault() == row))
         {
             string? cellText = cell.InnerText;
             if (cellText == null)
