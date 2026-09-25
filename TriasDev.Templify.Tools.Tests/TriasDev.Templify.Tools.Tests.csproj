@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TriasDev.Templify.Gui\TriasDev.Templify.Gui.csproj" />
+    <ProjectReference Include="..\TriasDev.Templify.DocumentGenerator\TriasDev.Templify.DocumentGenerator.csproj" />
   </ItemGroup>
 
 </Project>

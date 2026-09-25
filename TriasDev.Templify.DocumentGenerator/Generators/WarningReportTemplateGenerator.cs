@@ -1,3 +1,4 @@
+using System.Globalization;
 using DocumentFormat.OpenXml.Packaging;
 
 namespace TriasDev.Templify.DocumentGenerator.Generators;
@@ -18,7 +19,7 @@ public class WarningReportTemplateGenerator : BaseExampleGenerator
 
         using (var doc = CreateDocument(templatePath))
         {
-            var body = doc.MainDocumentPart!.Document.Body!;
+            var body = doc.MainDocumentPart!.Document!.Body!;
 
             // Title
             AddParagraph(body, "Template Processing Warning Report", isBold: true);
@@ -118,7 +119,7 @@ public class WarningReportTemplateGenerator : BaseExampleGenerator
         // Sample data for testing the template
         return new Dictionary<string, object>
         {
-            ["GeneratedAt"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+            ["GeneratedAt"] = ExampleGenerators.SampleDate.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
             ["TotalWarnings"] = 7,
             ["MissingVariableCount"] = 2,
             ["MissingCollectionCount"] = 2,
