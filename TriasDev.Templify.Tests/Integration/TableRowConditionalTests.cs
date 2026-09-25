@@ -482,7 +482,7 @@ public sealed class TableRowConditionalTests
             new TableCell(Paragraph("{{/if}}")));
 
         // Act & Assert
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
+        TemplateSyntaxException exception = Assert.Throws<TemplateSyntaxException>(
             () => Conditionals.ConditionalDetector.DetectTableRowConditionals(new List<TableRow> { row }));
         Assert.Contains("own row", exception.Message);
     }
@@ -494,7 +494,7 @@ public sealed class TableRowConditionalTests
         List<TableRow> rows = Table("{{#if A}}", "Body").Elements<TableRow>().ToList();
 
         // Act & Assert
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
+        TemplateSyntaxException exception = Assert.Throws<TemplateSyntaxException>(
             () => Conditionals.ConditionalDetector.DetectTableRowConditionals(rows));
         Assert.Contains("has no matching", exception.Message);
     }

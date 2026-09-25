@@ -1,3 +1,7 @@
 #nullable enable
 TriasDev.Templify.Core.PlaceholderReplacementOptions.EnableMarkdown.get -> bool
 TriasDev.Templify.Core.PlaceholderReplacementOptions.EnableMarkdown.init -> void
+TriasDev.Templify.Core.TextProcessingResult.HasWarnings.get -> bool
+TriasDev.Templify.Core.TextProcessingResult.Warnings.get -> System.Collections.Generic.IReadOnlyList<TriasDev.Templify.Core.ProcessingWarning!>!
+TriasDev.Templify.Core.TextProcessingResult.Warnings.init -> void
+TriasDev.Templify.Core.ValidationWarningType.ReservedWordAsVariable = 1 -> TriasDev.Templify.Core.ValidationWarningType

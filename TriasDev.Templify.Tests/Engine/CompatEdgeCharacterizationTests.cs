@@ -47,13 +47,13 @@ public class CompatEdgeCharacterizationTests
             "Category = \"empty\"", new Dictionary<string, object> { ["Category"] = "empty" }));
     }
 
-    // ...but the same word UNQUOTED is parsed as the reserved `empty` keyword, which is not a valid
-    // right-hand operand — so the expression fails to parse and Evaluate returns false. Intentional
-    // change: unquoted reserved words are no longer treated as bareword string literals.
+    // ...and the same word UNQUOTED in operand position is read as an identifier again (#149): the 1.7.0
+    // keywords are only keywords where an operator is expected, so `empty` here is a bareword that falls
+    // back to its own text (as before 1.7.0) when no variable of that name exists.
     [Fact]
-    public void F4_Default_UnquotedReservedWord_IsNotLiteral_IsFalse()
+    public void F4_Default_UnquotedReservedWordInOperandPosition_IsBareword_IsTrue()
     {
-        Assert.False(new ConditionEvaluator().Evaluate(
+        Assert.True(new ConditionEvaluator().Evaluate(
             "Category = empty", new Dictionary<string, object> { ["Category"] = "empty" }));
     }
 }

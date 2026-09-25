@@ -35,6 +35,17 @@ public sealed class TextProcessingResult
     public IReadOnlyList<string> MissingVariables { get; init; } = Array.Empty<string>();
 
     /// <summary>
+    /// Gets the warnings collected during processing.
+    /// Warnings are non-fatal issues such as conditions that could not be parsed.
+    /// </summary>
+    public IReadOnlyList<ProcessingWarning> Warnings { get; init; } = Array.Empty<ProcessingWarning>();
+
+    /// <summary>
+    /// Gets a value indicating whether any warnings were collected during processing.
+    /// </summary>
+    public bool HasWarnings => Warnings.Count > 0;
+
+    /// <summary>
     /// Creates a successful processing result.
     /// </summary>
     /// <param name="processedText">The processed text output.</param>
@@ -52,6 +63,25 @@ public sealed class TextProcessingResult
             ProcessedText = processedText ?? string.Empty,
             ReplacementCount = replacementCount,
             MissingVariables = missingVariables ?? Array.Empty<string>()
+        };
+    }
+
+    /// <summary>
+    /// Creates a successful processing result with warnings.
+    /// </summary>
+    internal static TextProcessingResult Success(
+        string processedText,
+        int replacementCount,
+        IReadOnlyList<string>? missingVariables,
+        IReadOnlyList<ProcessingWarning> warnings)
+    {
+        return new TextProcessingResult
+        {
+            IsSuccess = true,
+            ProcessedText = processedText ?? string.Empty,
+            ReplacementCount = replacementCount,
+            MissingVariables = missingVariables ?? Array.Empty<string>(),
+            Warnings = warnings
         };
     }
 

@@ -31,7 +31,7 @@ if (result.IsSuccess)
 | `MissingVariable` | Variable not found in data | Placeholder like `{{CustomerName}}` when `CustomerName` is not in the data dictionary |
 | `MissingLoopCollection` | Loop collection not found | `{{#foreach Items}}` when `Items` is not in the data dictionary |
 | `NullLoopCollection` | Loop collection is null | `{{#foreach Items}}` when `Items` exists but is `null` |
-| `ExpressionFailed` | Expression parsing or evaluation failed | `{{(Status === "Active")}}` with invalid syntax (use `=` or `==`) |
+| `ExpressionFailed` | Expression parsing or evaluation failed | `{{(Status === "Active")}}` with invalid syntax (use `=` or `==`), or a `{{#if}}`/`{{#elseif}}` condition that cannot be parsed, e.g. `{{#if A && B}}` (context `conditional`; the condition is treated as false) |
 
 ## Warning Properties
 

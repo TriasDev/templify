@@ -1,6 +1,7 @@
 // Copyright (c) 2026 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 
@@ -12,6 +13,15 @@ internal sealed class ConditionLexer
     private static readonly HashSet<string> _wordOperators = new(StringComparer.OrdinalIgnoreCase)
     {
         "and", "or", "not", "in", "contains", "startswith", "endswith", "exists", "is", "empty"
+    };
+
+    /// <summary>
+    /// Keywords introduced in 1.7.0. Before 1.7.0 they were ordinary identifiers, so when one of them appears
+    /// where an operand is expected (e.g. <c>{{#if Exists}}</c>), the parser treats it as a variable name.
+    /// </summary>
+    internal static readonly HashSet<string> OperandFallbackKeywords = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "in", "contains", "startswith", "endswith", "exists", "is", "empty"
     };
 
     private readonly bool _allowSingleQuotedStrings;
@@ -52,18 +62,14 @@ internal sealed class ConditionLexer
 
             if (c == '"' || (_allowSingleQuotedStrings && c == '\''))
             {
-                char quote = c;
-                i++;
-                StringBuilder sb = new();
-                while (i < text.Length && text[i] != quote)
+                int stringStart = i;
+                if (!TryScanString(text, ref i, out string value))
                 {
-                    if (text[i] == '\\' && i + 1 < text.Length && text[i + 1] == quote)
-                    { sb.Append(quote); i += 2; continue; }
-                    sb.Append(text[i]);
-                    i++;
+                    throw new ConditionParseException(
+                        $"Unterminated string literal starting at position {stringStart}.",
+                        isUnterminatedString: true);
                 }
-                i++; // closing quote (if present)
-                tokens.Add(new ConditionToken(ConditionTokenType.String, sb.ToString()));
+                tokens.Add(new ConditionToken(ConditionTokenType.String, value));
                 continue;
             }
 
@@ -96,11 +102,54 @@ internal sealed class ConditionLexer
         return tokens;
     }
 
+    /// <summary>
+    /// Scans a string literal starting at the opening quote at <paramref name="i"/>. Inside the literal,
+    /// <c>\\</c> is an escaped backslash and a backslash followed by the delimiting quote is an escaped quote;
+    /// any other backslash is kept literally (so Windows paths like <c>"C:\Temp"</c> keep working).
+    /// </summary>
+    /// <returns><see langword="false"/> when the closing quote is missing.</returns>
+    private static bool TryScanString(string text, ref int i, out string value)
+    {
+        char quote = text[i];
+        i++;
+        StringBuilder sb = new();
+        while (i < text.Length)
+        {
+            char ch = text[i];
+            if (ch == quote)
+            {
+                i++; // closing quote
+                value = sb.ToString();
+                return true;
+            }
+
+            if (ch == '\\' && i + 1 < text.Length && (text[i + 1] == quote || text[i + 1] == '\\'))
+            {
+                sb.Append(text[i + 1]);
+                i += 2;
+                continue;
+            }
+
+            sb.Append(ch);
+            i++;
+        }
+
+        value = sb.ToString();
+        return false;
+    }
+
     private static ConditionToken ClassifyWord(string word)
     {
+        // Bracketed identifier: "[Empty]" (optionally followed by a path, e.g. "[Empty].Count") is the
+        // escape for a variable whose name collides with a keyword ("in", "is", "empty", "not", "true", ...).
+        if (TryUnescapeBracketedIdentifier(word, out string? escaped))
+        {
+            return new ConditionToken(ConditionTokenType.Identifier, escaped);
+        }
+
         if (_wordOperators.Contains(word))
         {
-            return new ConditionToken(ConditionTokenType.Operator, word.ToLowerInvariant());
+            return new ConditionToken(ConditionTokenType.Operator, word.ToLowerInvariant(), rawText: word);
         }
 
         if (word.Equals("true", StringComparison.OrdinalIgnoreCase))
@@ -124,6 +173,38 @@ internal sealed class ConditionLexer
         }
 
         return new ConditionToken(ConditionTokenType.Identifier, word);
+    }
+
+    private static bool TryUnescapeBracketedIdentifier(string word, [NotNullWhen(true)] out string? identifier)
+    {
+        identifier = null;
+        if (word.Length < 3 || word[0] != '[')
+        {
+            return false;
+        }
+
+        int close = word.IndexOf(']');
+        if (close < 2)
+        {
+            return false;
+        }
+
+        for (int k = 1; k < close; k++)
+        {
+            if (!char.IsLetterOrDigit(word[k]) && word[k] != '_')
+            {
+                return false;
+            }
+        }
+
+        // A bare "[0]" stays as-is (it is not a name).
+        if (char.IsDigit(word[1]))
+        {
+            return false;
+        }
+
+        identifier = word.Substring(1, close - 1) + word.Substring(close + 1);
+        return true;
     }
 
     private static bool TryParseNumber(string word, out object? value)

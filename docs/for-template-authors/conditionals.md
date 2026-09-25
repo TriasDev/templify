@@ -473,6 +473,25 @@ Notes: {{Notes}}
 
 A missing variable is treated as empty. A variable that is present but explicitly `null` satisfies both `exists` and `is empty`.
 
+### Variables Named Like Keywords
+
+`in`, `contains`, `startswith`, `endswith`, `exists`, `is` and `empty` are keywords only where an operator is expected, so `{{#if Exists}}` or `{{#if Empty = "yes"}}` still read the variables `Exists` and `Empty`. To make the intent explicit (and for `And`, `Or`, `Not`, `True`, `False`, `Null`), put the name in square brackets:
+
+```
+{{#if [Empty] = "yes" and not [Not]}}
+...
+{{/if}}
+```
+
+### Quotes Inside Text
+
+Use `\"` for a quote and `\\` for a backslash inside a quoted text value:
+
+```
+{{#if Title = "say \"hi\""}}...{{/if}}
+{{#if Path = "C:\\"}}...{{/if}}
+```
+
 ### Grouping with Parentheses
 
 Use parentheses to control evaluation order, the same as in [boolean expressions](boolean-expressions.md):
@@ -992,6 +1011,10 @@ Geschäftszeiten: 9:00 - 17:00 Uhr MEZ
    - ❌ `{{if Status = "Active"}}` (missing `#`)
    - ❌ `{{elseif Status = "Pending"}}` (missing `#`)
    - ❌ `{{#if Status = "Active"` (missing closing `}}`)
+   - ❌ `{{#if A && B}}`, `{{#if Status eq "x"}}`, `{{#if Name = "open}}` (not valid conditions)
+
+   A condition that cannot be parsed is treated as **false**, and processing reports an `ExpressionFailed` warning (see `ProcessingResult.Warnings`). `ValidateTemplate` reports it as an `InvalidConditionalExpression` error.
+   Structural errors such as a missing `{{/if}}` make processing fail (`IsSuccess = false`, with `ErrorMessage` set).
 
 2. **Missing closing tag:**
    - ✅ `{{#if ...}}...{{/if}}`

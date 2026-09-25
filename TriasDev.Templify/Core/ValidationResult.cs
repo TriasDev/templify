@@ -212,5 +212,12 @@ public enum ValidationWarningType
     /// <summary>
     /// A loop collection is empty, so variables inside the loop could not be validated.
     /// </summary>
-    EmptyLoopCollection
+    EmptyLoopCollection,
+
+    /// <summary>
+    /// A condition uses a bare keyword (e.g. <c>Exists</c>, <c>Empty</c>) as an operand and the data contains a
+    /// variable with that name. It is evaluated as the variable, but the bracketed form (<c>[Exists]</c>) is
+    /// recommended because the word is also an operator.
+    /// </summary>
+    ReservedWordAsVariable
 }

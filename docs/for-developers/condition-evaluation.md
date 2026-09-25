@@ -194,20 +194,41 @@ evaluator.Evaluate("(IsActive or IsTrial) and not IsBanned", data);
 
 ## Reserved Words and Literal Quoting
 
-The operator keywords are **reserved words**. The following names are always parsed as operators, never as variable names or bareword text:
+The operator keywords are **reserved words**:
 
 ```
 and, or, not, in, contains, startswith, endswith, exists, is, empty
 ```
 
-Because these words are reserved, **string literals must be quoted**. Use `= "empty"` rather than `= empty`:
+`and`, `or` and `not` are always operators. The keywords added in 1.7.0 (`in`, `contains`, `startswith`, `endswith`, `exists`, `is`, `empty`) are operators only **where an operator is expected**. Where an operand is expected they are read as a variable name, as before 1.7.0, so existing templates with a variable called `Empty` or `Exists` keep working:
 
 ```csharp
-evaluator.Evaluate("Category = \"empty\"", data);   // compares against the text "empty" -> true when Category is "empty"
-evaluator.Evaluate("Category = empty", data);        // "empty" is the reserved keyword, not a literal -> does not match
+evaluator.Evaluate("Exists", data);                    // variable "Exists"
+evaluator.Evaluate("Notes is empty", data);            // the "is empty" operator
+evaluator.Evaluate("Category = empty", data);          // bareword: variable "empty", or the text "empty" if there is no such variable
 ```
 
-An unquoted reserved word on the right-hand side of a comparison is not a valid operand, so the expression fails to parse and `Evaluate` returns `false`. Always quote literals that could collide with a reserved word.
+To reference a variable whose name is a keyword unambiguously, write it in **square brackets**. This works for every keyword, including `and`, `or`, `not`, `true`, `false` and `null`, and can be followed by a path:
+
+```csharp
+evaluator.Evaluate("[Empty] = \"yes\" and not [Not]", data);
+evaluator.Evaluate("[Exists].Count > 0", data);
+```
+
+`ValidateTemplate(template, data)` reports a `ReservedWordAsVariable` warning when a condition uses a bare keyword as a variable that exists in the data, recommending the bracketed form.
+
+**Quote string literals** that could collide with a keyword (`= "empty"` rather than `= empty`).
+
+### String Literals and Escapes
+
+String literals are enclosed in double quotes (`"..."`; typographic quotes inserted by Word are accepted). Inside a literal, `\"` is a quote and `\\` is a backslash; any other backslash is kept as-is (so `"C:\Temp"` works):
+
+```csharp
+evaluator.Evaluate("Title = \"say \\\"hi\\\"\"", data);   // Title is: say "hi"
+evaluator.Evaluate("Path = \"C:\\\\\"", data);            // Path is: C:\
+```
+
+A literal without a closing quote is a syntax error: `Evaluate` returns `false`, `Validate` reports `UnbalancedQuotes`, and document/text processing emits an `ExpressionFailed` warning.
 
 In inline `{{(...)}}` expressions, **both sides of a comparison are resolved as variables-or-literals**: in `{{(A = B)}}`, both `A` and `B` are looked up in the data and the comparison succeeds when the resolved values are equal. Quote a side (`{{(A = "B")}}`) when you mean the literal text instead of a variable lookup.
 

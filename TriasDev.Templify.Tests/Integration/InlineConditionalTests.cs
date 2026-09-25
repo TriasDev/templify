@@ -630,9 +630,9 @@ public sealed class InlineConditionalTests
     #region Malformed Conditionals
 
     [Fact]
-    public void ProcessTemplate_InlineConditional_UnmatchedIfStart_ThrowsException()
+    public void ProcessTemplate_InlineConditional_UnmatchedIfStart_ReturnsFailure()
     {
-        // Arrange: Unmatched {{#if}} without {{/if}} - should throw
+        // Arrange: Unmatched {{#if}} without {{/if}} - reported as a failed result
         DocumentBuilder builder = new DocumentBuilder();
         builder.AddParagraphWithRuns(
             ("Before ", null),
@@ -650,11 +650,12 @@ public sealed class InlineConditionalTests
         DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
         MemoryStream outputStream = new MemoryStream();
 
-        // Act & Assert - unmatched conditionals throw InvalidOperationException
-        InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() =>
-            processor.ProcessTemplate(templateStream, outputStream, data));
+        // Act - unmatched conditionals are template syntax errors: a failed result, not an exception (#149)
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
 
-        Assert.Contains("no matching", ex.Message);
+        // Assert
+        Assert.False(result.IsSuccess);
+        Assert.Contains("no matching", result.ErrorMessage);
     }
 
     [Fact]

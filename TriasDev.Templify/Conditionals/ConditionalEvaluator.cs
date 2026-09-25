@@ -39,9 +39,8 @@ internal sealed class ConditionalEvaluator
     /// <remarks>
     /// Validation is parser-based so that it accepts exactly what <see cref="Evaluate(string, IEvaluationContext)"/>
     /// accepts (including the operator syntax added by the expression engine, e.g. <c>in</c>, <c>contains</c>,
-    /// <c>exists</c>). Two independent pre-checks that the parser does not naturally surface are kept:
-    /// empty/whitespace expressions and unbalanced quotes (the lexer is permissive about unterminated
-    /// strings, so the parser would not report those). When the parser rejects an expression, a heuristic
+    /// <c>exists</c>). Empty expressions and unterminated string literals are reported as dedicated issue types;
+    /// the unterminated-string check is done by the lexer itself, so escaped quotes are handled identically. When the parser rejects an expression, a heuristic
     /// structural analysis classifies the failure into a typed issue.
     /// </remarks>
     /// <param name="expression">The expression to validate.</param>
@@ -59,23 +58,18 @@ internal sealed class ConditionalEvaluator
             return ConditionValidationResult.Failure(issues);
         }
 
-        // Pre-check (b): Unbalanced quotes. The lexer accepts unterminated strings, so the parser
-        // would NOT catch this — the pre-check must remain.
-        string normalized = NormalizeQuotes(expression);
-        int quoteCount = 0;
-        foreach (char c in normalized)
+        // Pre-check (b): Unbalanced quotes. The lexer reports unterminated string literals and uses the
+        // same escape rules (\" and \\) as evaluation, so validation and evaluation agree.
+        try
         {
-            if (c == '"')
-            {
-                quoteCount++;
-            }
+            _ = new Engine.ConditionLexer().Tokenize(expression);
         }
-
-        if (quoteCount % 2 != 0)
+        catch (Engine.ConditionParseException ex) when (ex.IsUnterminatedString)
         {
             issues.Add(new ConditionValidationIssue(
                 ConditionValidationIssueType.UnbalancedQuotes,
                 "Expression contains unbalanced quotes."));
+            return ConditionValidationResult.Failure(issues);
         }
 
         // Attempt a real parse. Validate must accept everything the parser (and therefore Evaluate)
@@ -112,8 +106,7 @@ internal sealed class ConditionalEvaluator
     {
         try
         {
-            IReadOnlyList<Engine.ConditionToken> tokens = new Engine.ConditionLexer().Tokenize(expression);
-            new Engine.ConditionParser(Engine.ConditionOperatorRegistry.Shared).Parse(tokens);
+            _ = Parse(expression);
             return true;
         }
         catch (Engine.ConditionParseException)
@@ -260,20 +253,78 @@ internal sealed class ConditionalEvaluator
     /// <returns>True if the condition is met, false otherwise</returns>
     public bool Evaluate(string expression, IEvaluationContext context)
     {
+        return Evaluate(expression, context, warningCollector: null);
+    }
+
+    /// <summary>
+    /// Evaluates a conditional expression and reports expressions that cannot be parsed.
+    /// </summary>
+    /// <param name="expression">The expression to evaluate.</param>
+    /// <param name="context">The evaluation context for variable resolution.</param>
+    /// <param name="warningCollector">
+    /// Receives a <see cref="ProcessingWarningType.ExpressionFailed"/> warning when the expression is malformed.
+    /// Malformed expressions still evaluate to <see langword="false"/>.
+    /// </param>
+    internal bool Evaluate(string expression, IEvaluationContext context, IWarningCollector? warningCollector)
+    {
         if (string.IsNullOrWhiteSpace(expression))
         {
+            warningCollector?.AddWarning(ProcessingWarning.ConditionFailed(expression ?? string.Empty, "Expression is empty."));
             return false;
         }
 
+        Engine.ConditionNode node;
         try
         {
-            IReadOnlyList<Engine.ConditionToken> tokens = new Engine.ConditionLexer().Tokenize(expression);
-            Engine.ConditionNode node = new Engine.ConditionParser(Engine.ConditionOperatorRegistry.Shared).Parse(tokens);
-            return new Engine.ConditionEvaluatorCore(context, Engine.DefaultConditionDialect.Instance).EvaluateBool(node);
+            node = Parse(expression);
         }
-        catch (Engine.ConditionParseException)
+        catch (Engine.ConditionParseException ex)
         {
+            warningCollector?.AddWarning(ProcessingWarning.ConditionFailed(expression, ex.Message));
             return false;
+        }
+
+        return new Engine.ConditionEvaluatorCore(context, Engine.DefaultConditionDialect.Instance).EvaluateBool(node);
+    }
+
+    /// <summary>
+    /// Parses a <c>{{#if}}</c>/<c>{{#elseif}}</c> expression into an AST.
+    /// </summary>
+    /// <exception cref="Engine.ConditionParseException">The expression is malformed.</exception>
+    internal static Engine.ConditionNode Parse(string expression)
+    {
+        IReadOnlyList<Engine.ConditionToken> tokens = new Engine.ConditionLexer().Tokenize(expression);
+        return new Engine.ConditionParser(Engine.ConditionOperatorRegistry.Shared).Parse(tokens);
+    }
+
+    /// <summary>
+    /// Collects the variables referenced by a parsed expression (literals, operators and list items are skipped).
+    /// </summary>
+    internal static IEnumerable<Engine.VariableNode> CollectVariables(Engine.ConditionNode node)
+    {
+        switch (node)
+        {
+            case Engine.VariableNode variable:
+                yield return variable;
+                break;
+            case Engine.OperatorNode op:
+                foreach (Engine.ConditionNode operand in op.Operands)
+                {
+                    foreach (Engine.VariableNode v in CollectVariables(operand))
+                    {
+                        yield return v;
+                    }
+                }
+                break;
+            case Engine.ListNode list:
+                foreach (Engine.ConditionNode item in list.Items)
+                {
+                    foreach (Engine.VariableNode v in CollectVariables(item))
+                    {
+                        yield return v;
+                    }
+                }
+                break;
         }
     }
 
@@ -303,6 +354,14 @@ internal sealed class ConditionalEvaluator
         for (int i = 0; i < expression.Length; i++)
         {
             char c = expression[i];
+
+            if (inQuotes && c == '\\' && i + 1 < expression.Length && (expression[i + 1] == '"' || expression[i + 1] == '\\'))
+            {
+                // Same escape rules as the lexer
+                currentToken.Append(expression[i + 1]);
+                i++;
+                continue;
+            }
 
             if (c == '"')
             {

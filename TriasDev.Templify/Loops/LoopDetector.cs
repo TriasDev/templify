@@ -5,6 +5,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Text.RegularExpressions;
+using TriasDev.Templify.Core;
 using TriasDev.Templify.Utilities;
 
 namespace TriasDev.Templify.Loops;
@@ -54,7 +55,8 @@ internal static class LoopDetector
         // Check for reserved names (like "in")
         if (_reservedVariableNames.Contains(variableName))
         {
-            throw new InvalidOperationException(
+            throw new TemplateSyntaxException(
+                ValidationErrorType.InvalidPlaceholderSyntax,
                 $"Invalid iteration variable name '{variableName}' in '{{{{#foreach {variableName} in {collectionName}}}}}'. " +
                 $"'{variableName}' is a reserved keyword.");
         }
@@ -62,7 +64,8 @@ internal static class LoopDetector
         // Check for metadata prefix (@)
         if (variableName.StartsWith("@", StringComparison.Ordinal))
         {
-            throw new InvalidOperationException(
+            throw new TemplateSyntaxException(
+                ValidationErrorType.InvalidPlaceholderSyntax,
                 $"Invalid iteration variable name '{variableName}' in '{{{{#foreach {variableName} in {collectionName}}}}}'. " +
                 $"Iteration variable names cannot start with '@' as this is reserved for loop metadata.");
         }
@@ -132,7 +135,8 @@ internal static class LoopDetector
                     int endIndex = FindMatchingEnd(elements, i);
                     if (endIndex == -1)
                     {
-                        throw new InvalidOperationException(
+                        throw new TemplateSyntaxException(
+                            ValidationErrorType.UnmatchedLoopStart,
                             $"Loop start marker '{{{{#foreach {collectionName}}}}}' has no matching '{{{{/foreach}}}}'.");
                     }
 
@@ -336,7 +340,8 @@ internal static class LoopDetector
                     int endIndex = FindMatchingEndInRows(rows, i);
                     if (endIndex == -1)
                     {
-                        throw new InvalidOperationException(
+                        throw new TemplateSyntaxException(
+                            ValidationErrorType.UnmatchedLoopStart,
                             $"Table row loop start marker '{{{{#foreach {collectionName}}}}}' has no matching '{{{{/foreach}}}}'.");
                     }
 

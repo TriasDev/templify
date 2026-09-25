@@ -3,6 +3,7 @@
 
 using System.Collections;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -64,8 +65,9 @@ internal sealed class TemplateValidator
                 Body body = document.MainDocumentPart.Document.Body;
                 List<OpenXmlElement> elements = body.Elements<OpenXmlElement>().ToList();
 
-                // 1. Validate conditionals and collect variables from conditions
+                // 1. Validate conditionals, their expressions, and collect variables from conditions
                 _ = ValidateConditionals(elements, allPlaceholders, errors);
+                ValidateConditionExpressions(elements, allPlaceholders, errors, warnings, data);
 
                 // 2. Validate loops and collect collection names
                 ValidateLoops(elements, allPlaceholders, errors);
@@ -77,7 +79,7 @@ internal sealed class TemplateValidator
                 FindAllPlaceholders(body, allPlaceholders);
 
                 // 5. Validate headers and footers
-                ValidateHeadersAndFooters(document, allPlaceholders, errors);
+                ValidateHeadersAndFooters(document, allPlaceholders, errors, warnings, data);
 
                 // 6. Check for missing variables if data is provided
                 if (data != null)
@@ -117,22 +119,12 @@ internal sealed class TemplateValidator
         IReadOnlyList<ConditionalBlock> conditionalBlocks = new List<ConditionalBlock>();
         try
         {
+            // Variables referenced by the conditions are collected by ValidateConditionExpressions.
             conditionalBlocks = ConditionalDetector.DetectConditionalsInElements(elements);
-
-            // Extract variables from conditional expressions (exclude string literals)
-            foreach (ConditionalBlock block in conditionalBlocks)
-            {
-                ExtractConditionVariables(block.ConditionExpression, allPlaceholders, excludeLiterals: true);
-            }
         }
-        catch (InvalidOperationException ex)
+        catch (TemplateSyntaxException ex)
         {
-            // Parse error message to determine error type
-            ValidationErrorType errorType = ex.Message.Contains("has no matching")
-                ? ValidationErrorType.UnmatchedConditionalStart
-                : ValidationErrorType.InvalidConditionalExpression;
-
-            errors.Add(ValidationError.Create(errorType, ex.Message));
+            errors.Add(ValidationError.Create(ex.ErrorType, ex.Message));
         }
 
         return conditionalBlocks;
@@ -156,14 +148,9 @@ internal sealed class TemplateValidator
                 allPlaceholders.Add(block.CollectionName);
             }
         }
-        catch (InvalidOperationException ex)
+        catch (TemplateSyntaxException ex)
         {
-            // Parse error message to determine error type
-            ValidationErrorType errorType = ex.Message.Contains("has no matching")
-                ? ValidationErrorType.UnmatchedLoopStart
-                : ValidationErrorType.InvalidPlaceholderSyntax;
-
-            errors.Add(ValidationError.Create(errorType, ex.Message));
+            errors.Add(ValidationError.Create(ex.ErrorType, ex.Message));
         }
     }
 
@@ -196,11 +183,9 @@ internal sealed class TemplateValidator
                     allPlaceholders.Add(block.CollectionName);
                 }
             }
-            catch (InvalidOperationException ex)
+            catch (TemplateSyntaxException ex)
             {
-                errors.Add(ValidationError.Create(
-                    ValidationErrorType.UnmatchedLoopStart,
-                    ex.Message));
+                errors.Add(ValidationError.Create(ex.ErrorType, ex.Message));
             }
         }
     }
@@ -240,57 +225,85 @@ internal sealed class TemplateValidator
         ValidatePlaceholdersInScope(elements, loopStack, data, allPlaceholders, missingVariables, warnings, errors, resolver, warnOnEmptyLoopCollections);
     }
 
-    private static readonly HashSet<string> _operatorKeywords = new HashSet<string>(StringComparer.Ordinal)
-    {
-        "and", "or", "not"
-    };
-
     /// <summary>
-    /// Extracts variable names from a conditional expression.
+    /// Validates every <c>{{#if}}</c>/<c>{{#elseif}}</c> expression (block, inline and table-row conditionals)
+    /// and collects the variables they reference from the parsed expression.
     /// </summary>
-    private static void ExtractConditionVariables(string condition, HashSet<string> placeholders, bool excludeLiterals = false)
+    /// <remarks>
+    /// Variables are taken from the expression's AST, so operators and keywords (<c>in</c>, <c>contains</c>,
+    /// <c>is empty</c>, ...), literals (<c>true</c>, <c>null</c>, numbers, strings) and list items
+    /// (<c>("A", "B")</c>) are never reported as placeholders.
+    /// </remarks>
+    private static void ValidateConditionExpressions(
+        List<OpenXmlElement> elements,
+        HashSet<string> allPlaceholders,
+        List<ValidationError> errors,
+        List<ValidationWarning> warnings,
+        Dictionary<string, object>? data)
     {
-        // Normalize curly/typographic quotes that Word may auto-convert
-        string normalizedCondition = NormalizeQuotes(condition);
+        ConditionalEvaluator evaluator = new ConditionalEvaluator();
+        ValueResolver resolver = new ValueResolver();
+        HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
 
-        IEnumerable<string> parts = normalizedCondition
-            .Split(new[] { ' ', '(', ')', '!', '>', '<', '=', '&', '|' }, StringSplitOptions.RemoveEmptyEntries)
-            .Select(p => p.Trim())
-            .Where(p => !string.IsNullOrWhiteSpace(p) && !_operatorKeywords.Contains(p));
-
-        foreach (string part in parts)
+        foreach (Paragraph paragraph in EnumerateParagraphs(elements))
         {
-            if (excludeLiterals)
+            string text = paragraph.InnerText;
+            if (text.IndexOf("{{#", StringComparison.Ordinal) < 0)
             {
-                // Only add if it's not a string literal (enclosed in quotes)
-                string trimmed = part.Trim('"', '\'');
-                if (trimmed == part)
-                {
-                    placeholders.Add(trimmed);
-                }
+                continue;
             }
-            else
+
+            foreach (Match match in ConditionalPatterns.IfStart.Matches(text).Concat(ConditionalPatterns.ElseIf.Matches(text)))
             {
-                placeholders.Add(part);
+                string expression = match.Groups[1].Value.Trim();
+                if (!seen.Add(expression))
+                {
+                    continue;
+                }
+
+                ConditionValidationResult validation = evaluator.Validate(expression);
+                if (!validation.IsValid)
+                {
+                    string details = string.Join(" ", validation.Issues.Select(i => i.Message));
+                    errors.Add(ValidationError.Create(
+                        ValidationErrorType.InvalidConditionalExpression,
+                        $"Invalid condition '{expression}': {details}",
+                        match.Value));
+                    continue;
+                }
+
+                Conditionals.Engine.ConditionNode node = ConditionalEvaluator.Parse(expression);
+                foreach (Conditionals.Engine.VariableNode variable in ConditionalEvaluator.CollectVariables(node))
+                {
+                    allPlaceholders.Add(variable.Path);
+
+                    if (variable.IsBareKeyword && data != null && resolver.TryResolveValue(data, variable.Path, out _))
+                    {
+                        warnings.Add(ValidationWarning.Create(
+                            ValidationWarningType.ReservedWordAsVariable,
+                            $"Condition '{expression}' uses '{variable.Path}', which is also a keyword, as a variable. " +
+                            $"Write '[{variable.Path}]' to reference the variable unambiguously.",
+                            match.Value));
+                    }
+                }
             }
         }
     }
 
-    /// <summary>
-    /// Normalizes typographic/curly quotes to ASCII quotes.
-    /// Word often auto-converts straight quotes to curly quotes.
-    /// </summary>
-    private static string NormalizeQuotes(string text)
+    private static IEnumerable<Paragraph> EnumerateParagraphs(IEnumerable<OpenXmlElement> elements)
     {
-        return text
-            .Replace('\u201C', '"')  // U+201C Left Double Quotation Mark
-            .Replace('\u201D', '"')  // U+201D Right Double Quotation Mark
-            .Replace('\u201E', '"')  // U+201E Double Low-9 Quotation Mark (German)
-            .Replace('\u201F', '"')  // U+201F Double High-Reversed-9 Quotation Mark
-            .Replace('\u2018', '\'') // U+2018 Left Single Quotation Mark
-            .Replace('\u2019', '\'') // U+2019 Right Single Quotation Mark
-            .Replace('\u201A', '\'') // U+201A Single Low-9 Quotation Mark
-            .Replace('\u201B', '\''); // U+201B Single High-Reversed-9 Quotation Mark
+        foreach (OpenXmlElement element in elements)
+        {
+            if (element is Paragraph paragraph)
+            {
+                yield return paragraph;
+            }
+
+            foreach (Paragraph nested in element.Descendants<Paragraph>())
+            {
+                yield return nested;
+            }
+        }
     }
 
     /// <summary>
@@ -313,7 +326,7 @@ internal sealed class TemplateValidator
         {
             loopBlocks = LoopDetector.DetectLoopsInElements(elements.ToList());
         }
-        catch (InvalidOperationException)
+        catch (TemplateSyntaxException)
         {
             // Loop detection errors are already captured in the main validation
             loopBlocks = Array.Empty<LoopBlock>();
@@ -331,7 +344,7 @@ internal sealed class TemplateValidator
                 IReadOnlyList<LoopBlock> tableLoops = LoopDetector.DetectTableRowLoops(table);
                 tableRowLoops.AddRange(tableLoops);
             }
-            catch (InvalidOperationException)
+            catch (TemplateSyntaxException)
             {
                 // Table loop detection errors are captured elsewhere
             }
@@ -638,11 +651,14 @@ internal sealed class TemplateValidator
     private static void ValidateHeadersAndFooters(
         WordprocessingDocument document,
         HashSet<string> allPlaceholders,
-        List<ValidationError> errors)
+        List<ValidationError> errors,
+        List<ValidationWarning> warnings,
+        Dictionary<string, object>? data)
     {
         foreach (List<OpenXmlElement> elements in GetHeaderFooterElements(document))
         {
             _ = ValidateConditionals(elements, allPlaceholders, errors);
+            ValidateConditionExpressions(elements, allPlaceholders, errors, warnings, data);
             ValidateLoops(elements, allPlaceholders, errors);
             ValidateTableRowLoopsInElements(elements, allPlaceholders, errors);
             FindAllPlaceholdersInElements(elements, allPlaceholders);

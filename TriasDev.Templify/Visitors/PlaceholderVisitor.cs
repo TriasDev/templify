@@ -107,7 +107,9 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
                     break;
 
                 case MissingVariableBehavior.ThrowException:
-                    throw new InvalidOperationException($"Missing variable or invalid expression: {placeholder.VariableName}");
+                    throw new MissingVariableException(
+                        placeholder.VariableName,
+                        $"Missing variable or invalid expression: {placeholder.VariableName}");
 
                 case MissingVariableBehavior.LeaveUnchanged:
                 default:
