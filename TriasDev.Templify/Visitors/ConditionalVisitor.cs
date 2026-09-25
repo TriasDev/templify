@@ -181,7 +181,7 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
     /// <summary>
     /// Not implemented - ConditionalVisitor only processes conditionals.
     /// </summary>
-    public void VisitPlaceholder(PlaceholderMatch placeholder, Paragraph paragraph, IEvaluationContext context)
+    public void VisitPlaceholder(PlaceholderToken placeholder, Paragraph paragraph, IEvaluationContext context)
     {
         // ConditionalVisitor doesn't process placeholders
         // This method is no-op to satisfy the interface

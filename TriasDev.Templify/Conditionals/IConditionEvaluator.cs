@@ -119,6 +119,7 @@ public interface IConditionEvaluator
     /// <returns>A task that resolves to true if the condition is met; otherwise, false.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="expression"/> or <paramref name="data"/> is null.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is canceled.</exception>
+    [Obsolete("Synchronous operation wrapped in a Task; use Evaluate(...). Will be removed in 2.0.")]
     Task<bool> EvaluateAsync(string expression, Dictionary<string, object> data, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -131,6 +132,7 @@ public interface IConditionEvaluator
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="expression"/> or <paramref name="jsonData"/> is null.</exception>
     /// <exception cref="System.Text.Json.JsonException">Thrown when JSON is invalid or root is not an object.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is canceled.</exception>
+    [Obsolete("Synchronous operation wrapped in a Task; use Evaluate(...). Will be removed in 2.0.")]
     Task<bool> EvaluateAsync(string expression, string jsonData, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -142,6 +144,7 @@ public interface IConditionEvaluator
     /// <returns>A task that resolves to true if the condition is met; otherwise, false.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="expression"/> or <paramref name="context"/> is null.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is canceled.</exception>
+    [Obsolete("Synchronous operation wrapped in a Task; use Evaluate(...). Will be removed in 2.0.")]
     Task<bool> EvaluateAsync(string expression, IEvaluationContext context, CancellationToken cancellationToken = default);
 
     #endregion

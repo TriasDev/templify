@@ -17,7 +17,7 @@ namespace TriasDev.Templify.Core;
 /// </remarks>
 public sealed class GlobalEvaluationContext : IEvaluationContext
 {
-    private readonly Dictionary<string, object> _data;
+    private readonly IReadOnlyDictionary<string, object> _data;
     private readonly ValueResolver _valueResolver;
 
     /// <summary>
@@ -26,6 +26,16 @@ public sealed class GlobalEvaluationContext : IEvaluationContext
     /// <param name="data">The root data dictionary containing template variables.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="data"/> is null.</exception>
     public GlobalEvaluationContext(Dictionary<string, object> data)
+        : this((IReadOnlyDictionary<string, object>)data)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GlobalEvaluationContext"/> class over read-only data.
+    /// </summary>
+    /// <param name="data">The root data (not copied; lookups use its own key comparer).</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="data"/> is null.</exception>
+    internal GlobalEvaluationContext(IReadOnlyDictionary<string, object> data)
     {
         _data = data ?? throw new ArgumentNullException(nameof(data));
         _valueResolver = new ValueResolver();

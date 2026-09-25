@@ -1,6 +1,9 @@
 // Copyright (c) 2025 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+// Tests of shipped API that is [Obsolete] since 1.8 (#156); kept until it is removed or made internal in 2.0.
+#pragma warning disable CS0618
+
 using TriasDev.Templify.Core;
 using TriasDev.Templify.Conditionals;
 using TriasDev.Templify.Loops;

@@ -26,17 +26,10 @@ namespace TriasDev.Templify.Visitors;
 /// The walker uses existing detectors for consistency:
 /// - ConditionalDetector for {{#if}}/{{#else}}/{{/if}}
 /// - LoopDetector for {{#foreach}}/{{/foreach}}
-/// - PlaceholderFinder for {{VariableName}}
+/// - PlaceholderScanner for {{VariableName}}
 /// </remarks>
 internal sealed class DocumentWalker
 {
-    private readonly PlaceholderFinder _placeholderFinder;
-
-    public DocumentWalker()
-    {
-        _placeholderFinder = new PlaceholderFinder();
-    }
-
     /// <summary>
     /// Walks through the document body and visits all template elements.
     /// </summary>
@@ -239,13 +232,13 @@ internal sealed class DocumentWalker
                 // Detect placeholders in the paragraph's own text (the coordinate space
                 // the placeholder visitor rewrites in)
                 string text = ParagraphTextModel.GetText(paragraph);
-                IReadOnlyList<PlaceholderMatch> placeholders = _placeholderFinder.FindPlaceholdersAsList(text);
+                IReadOnlyList<PlaceholderToken> placeholders = PlaceholderScanner.FindPlaceholdersAsList(text);
 
                 if (placeholders.Count > 0)
                 {
                     // Visit each placeholder in reverse order (highest index first)
                     // This prevents earlier replacements from invalidating later placeholder indices
-                    foreach (PlaceholderMatch placeholder in placeholders.OrderByDescending(p => p.StartIndex))
+                    foreach (PlaceholderToken placeholder in placeholders.OrderByDescending(p => p.StartIndex))
                     {
                         visitor.VisitPlaceholder(placeholder, paragraph, context);
                     }

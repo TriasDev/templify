@@ -70,7 +70,7 @@ internal interface ITemplateElementVisitor
     /// - Handle missing variables according to configuration
     /// - Preserve formatting where possible
     /// </remarks>
-    void VisitPlaceholder(PlaceholderMatch placeholder, Paragraph paragraph, IEvaluationContext context);
+    void VisitPlaceholder(PlaceholderToken placeholder, Paragraph paragraph, IEvaluationContext context);
 
     /// <summary>
     /// Visits a regular paragraph (no template constructs detected).

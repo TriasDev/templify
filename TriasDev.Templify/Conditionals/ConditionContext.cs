@@ -62,6 +62,7 @@ public sealed class ConditionContext : IConditionContext
     }
 
     /// <inheritdoc/>
+    [Obsolete("Synchronous operation wrapped in a Task; use Evaluate(...). Will be removed in 2.0.")]
     public Task<bool> EvaluateAsync(string expression, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();

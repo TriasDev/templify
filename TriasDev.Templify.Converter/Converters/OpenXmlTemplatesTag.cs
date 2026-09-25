@@ -26,7 +26,11 @@ public sealed class OpenXmlTemplatesTag
     private static readonly Regex _collectionPathPattern = new Regex(
         @"^[\w.]+$", RegexOptions.CultureInvariant);
 
+    // PlaceholderFinder is obsolete (becomes internal in 2.0, #156); the converter still uses its placeholder
+    // grammar so converted tags are exactly what Templify accepts. Revisit when it becomes internal.
+#pragma warning disable CS0618
     private static readonly PlaceholderFinder _placeholderFinder = new PlaceholderFinder();
+#pragma warning restore CS0618
 
     private OpenXmlTemplatesTag(string tag, ControlType type)
     {

@@ -92,6 +92,35 @@ public sealed partial class TextTemplateProcessor
         ArgumentNullException.ThrowIfNull(templateText);
         ArgumentNullException.ThrowIfNull(data);
 
+        return ProcessTemplateCore(templateText, data);
+    }
+
+    /// <summary>
+    /// Processes a text template, replacing placeholders with values from read-only data.
+    /// </summary>
+    /// <param name="templateText">The template text containing placeholders, conditionals, and loops.</param>
+    /// <param name="data">
+    /// Variable names and their replacement values. Not copied: lookups use the dictionary's own key comparer.
+    /// </param>
+    /// <returns>
+    /// A <see cref="TextProcessingResult"/> containing the processed text and metadata; see
+    /// <see cref="ProcessTemplate(string, Dictionary{string, object})"/> for which errors are reported as a failed result.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown only when a variable is missing and <see cref="MissingVariableBehavior.ThrowException"/> is configured.
+    /// </exception>
+    public TextProcessingResult ProcessTemplate(string templateText, IReadOnlyDictionary<string, object?> data)
+    {
+        ArgumentNullException.ThrowIfNull(templateText);
+        ArgumentNullException.ThrowIfNull(data);
+
+        // Values are never dereferenced without a null check; this only reinterprets the annotation.
+        return ProcessTemplateCore(templateText, data!);
+    }
+
+    private TextProcessingResult ProcessTemplateCore(string templateText, IReadOnlyDictionary<string, object> data)
+    {
         try
         {
             List<Node> nodes = Parse(templateText);
@@ -350,8 +379,6 @@ public sealed partial class TextTemplateProcessor
 
         public ConditionalEvaluator Evaluator { get; } = new ConditionalEvaluator();
 
-        public PlaceholderFinder Finder { get; } = new PlaceholderFinder();
-
         public int ReplacementCount { get; set; }
     }
 
@@ -434,7 +461,7 @@ public sealed partial class TextTemplateProcessor
         string text = state.Template.Substring(node.Start, node.End - node.Start);
         int written = 0;
 
-        foreach (PlaceholderMatch placeholder in state.Finder.FindPlaceholders(text))
+        foreach (PlaceholderToken placeholder in PlaceholderScanner.FindPlaceholders(text))
         {
             output.Append(text, written, placeholder.StartIndex - written);
             written = placeholder.StartIndex + placeholder.Length;

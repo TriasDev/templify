@@ -4,13 +4,10 @@
 namespace TriasDev.Templify.Placeholders;
 
 /// <summary>
-/// Represents a placeholder found in the document text.
+/// A placeholder found in text by <see cref="PlaceholderScanner"/>. Internal counterpart of the obsolete
+/// public <c>PlaceholderMatch</c>, with the same shape.
 /// </summary>
-/// <remarks>
-/// Returned by the obsolete <see cref="PlaceholderFinder"/>; will become internal in 2.0.
-/// </remarks>
-[Obsolete("Internal parsing helper; will become internal in 2.0. Use DocumentTemplateProcessor.ValidateTemplate(...) and ValidationResult.AllPlaceholders to list placeholders.")]
-public sealed class PlaceholderMatch
+internal sealed class PlaceholderToken
 {
     /// <summary>
     /// Gets the full placeholder text including delimiters (e.g., "{{VariableName}}" or "{{VariableName:format}}").
@@ -18,8 +15,7 @@ public sealed class PlaceholderMatch
     public string FullMatch { get; init; } = string.Empty;
 
     /// <summary>
-    /// Gets the variable name without delimiters and format specifier (e.g., "VariableName").
-    /// For expressions, this contains the full expression text (e.g., "(var1 and var2)").
+    /// Gets the variable name without delimiters and format specifier. For expressions, the full expression text.
     /// </summary>
     public string VariableName { get; init; } = string.Empty;
 
@@ -31,7 +27,7 @@ public sealed class PlaceholderMatch
     /// <summary>
     /// Gets whether this placeholder contains an expression (starts with parenthesis).
     /// </summary>
-    public bool IsExpression => VariableName.StartsWith("(");
+    public bool IsExpression => VariableName.StartsWith('(');
 
     /// <summary>
     /// Gets the zero-based starting index of the placeholder in the source text.

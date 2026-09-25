@@ -6,6 +6,10 @@ namespace TriasDev.Templify.Visitors;
 /// <summary>
 /// Represents the type of template element detected in the document.
 /// </summary>
+/// <remarks>
+/// This enum is not used by any Templify API. It is obsolete and will be removed in 2.0.
+/// </remarks>
+[Obsolete("Not used by any Templify API; no replacement. Will be removed in 2.0.")]
 public enum TemplateElementType
 {
     /// <summary>

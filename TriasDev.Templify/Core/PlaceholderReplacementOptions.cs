@@ -20,15 +20,29 @@ public sealed class PlaceholderReplacementOptions
 
     /// <summary>
     /// Gets or initializes the culture used for formatting numbers, dates, and other culture-sensitive values.
-    /// Default is <see cref="CultureInfo.CurrentCulture"/>.
+    /// Default is <see cref="CultureInfo.CurrentCulture"/>, captured when the options object is created.
     /// Use <see cref="CultureInfo.InvariantCulture"/> for culture-independent formatting.
     /// </summary>
+    /// <remarks>
+    /// On a server, <see cref="CultureInfo.CurrentCulture"/> is the culture of the process or request thread,
+    /// so the same template and data can produce different output (decimal separators, date formats, month
+    /// names, localized boolean formats) on differently configured machines. Set this property explicitly,
+    /// e.g. <c>CultureInfo.GetCultureInfo("en-US")</c> or <see cref="CultureInfo.InvariantCulture"/>, for
+    /// reproducible output.
+    /// </remarks>
     public CultureInfo Culture { get; init; } = CultureInfo.CurrentCulture;
 
     /// <summary>
     /// Gets or initializes the boolean formatter registry for custom boolean display formats.
     /// If null, a default registry with culture-aware formatters will be created automatically.
     /// </summary>
+    /// <remarks>
+    /// <see cref="Formatting.BooleanFormatterRegistry"/> is not thread-safe for writes: register all custom
+    /// formatters before assigning the registry here, and do not call
+    /// <see cref="Formatting.BooleanFormatterRegistry.Register(string, Formatting.BooleanFormatter)"/> while
+    /// templates that use these options are being processed. A fully registered registry can be shared by
+    /// concurrent processing calls.
+    /// </remarks>
     public BooleanFormatterRegistry? BooleanFormatterRegistry { get; init; }
 
     /// <summary>

@@ -35,7 +35,7 @@ internal sealed class TemplateValidator
     /// <param name="templateStream">Stream containing the template .docx file.</param>
     /// <param name="data">Optional dictionary for checking missing variables. If null, only syntax is validated.</param>
     /// <returns>A validation result with errors, placeholders, and missing variables.</returns>
-    public ValidationResult Validate(Stream templateStream, Dictionary<string, object>? data)
+    public ValidationResult Validate(Stream templateStream, IReadOnlyDictionary<string, object>? data)
     {
         List<ValidationError> errors = new List<ValidationError>();
         List<ValidationWarning> warnings = new List<ValidationWarning>();
@@ -207,7 +207,7 @@ internal sealed class TemplateValidator
     /// </remarks>
     private static void ValidateMissingVariables(
         List<OpenXmlElement> elements,
-        Dictionary<string, object> data,
+        IReadOnlyDictionary<string, object> data,
         HashSet<string> allPlaceholders,
         HashSet<string> missingVariables,
         List<ValidationWarning> warnings,
@@ -239,7 +239,7 @@ internal sealed class TemplateValidator
         HashSet<string> allPlaceholders,
         List<ValidationError> errors,
         List<ValidationWarning> warnings,
-        Dictionary<string, object>? data)
+        IReadOnlyDictionary<string, object>? data)
     {
         ConditionalEvaluator evaluator = new ConditionalEvaluator();
         ValueResolver resolver = new ValueResolver();
@@ -312,7 +312,7 @@ internal sealed class TemplateValidator
     private static void ValidatePlaceholdersInScope(
         IReadOnlyList<OpenXmlElement> elements,
         Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)> loopStack,
-        Dictionary<string, object> data,
+        IReadOnlyDictionary<string, object> data,
         HashSet<string> allPlaceholders,
         HashSet<string> missingVariables,
         List<ValidationWarning> warnings,
@@ -394,7 +394,7 @@ internal sealed class TemplateValidator
     private static void ProcessLoopForValidation(
         LoopBlock loop,
         Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)> loopStack,
-        Dictionary<string, object> data,
+        IReadOnlyDictionary<string, object> data,
         HashSet<string> allPlaceholders,
         HashSet<string> missingVariables,
         List<ValidationWarning> warnings,
@@ -471,7 +471,7 @@ internal sealed class TemplateValidator
     /// </summary>
     private static object? ResolveCollectionFromGlobalScope(
         string collectionName,
-        Dictionary<string, object> data,
+        IReadOnlyDictionary<string, object> data,
         ValueResolver resolver)
     {
         if (resolver.TryResolveValue(data, collectionName, out object? value))
@@ -545,7 +545,7 @@ internal sealed class TemplateValidator
     private static bool CanResolveInScope(
         string placeholder,
         Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)> loopStack,
-        Dictionary<string, object> data,
+        IReadOnlyDictionary<string, object> data,
         ValueResolver resolver)
     {
         // Try loop scopes (innermost first - stack iteration goes from top to bottom)
@@ -653,7 +653,7 @@ internal sealed class TemplateValidator
         HashSet<string> allPlaceholders,
         List<ValidationError> errors,
         List<ValidationWarning> warnings,
-        Dictionary<string, object>? data)
+        IReadOnlyDictionary<string, object>? data)
     {
         foreach (List<OpenXmlElement> elements in GetHeaderFooterElements(document))
         {
@@ -670,7 +670,7 @@ internal sealed class TemplateValidator
     /// </summary>
     private static void ValidateHeaderFooterMissingVariables(
         WordprocessingDocument document,
-        Dictionary<string, object> data,
+        IReadOnlyDictionary<string, object> data,
         HashSet<string> allPlaceholders,
         HashSet<string> missingVariables,
         List<ValidationWarning> warnings,
@@ -692,11 +692,10 @@ internal sealed class TemplateValidator
     /// </summary>
     private static void FindAllPlaceholdersInElements(List<OpenXmlElement> elements, HashSet<string> allPlaceholders)
     {
-        PlaceholderFinder placeholderFinder = new PlaceholderFinder();
         foreach (OpenXmlElement element in elements)
         {
             string text = element.InnerText;
-            IEnumerable<string> foundPlaceholders = placeholderFinder.GetUniqueVariableNames(text);
+            IEnumerable<string> foundPlaceholders = PlaceholderScanner.GetUniqueVariableNames(text);
             foreach (string placeholder in foundPlaceholders)
             {
                 allPlaceholders.Add(placeholder);
@@ -712,7 +711,6 @@ internal sealed class TemplateValidator
         IReadOnlyList<LoopBlock> nestedLoops)
     {
         HashSet<string> placeholders = new HashSet<string>();
-        PlaceholderFinder finder = new PlaceholderFinder();
 
         // Build a set of elements that are inside loops (to exclude)
         HashSet<OpenXmlElement> loopElements = new HashSet<OpenXmlElement>();
@@ -735,7 +733,7 @@ internal sealed class TemplateValidator
             }
 
             string text = element.InnerText;
-            IEnumerable<string> found = finder.GetUniqueVariableNames(text);
+            IEnumerable<string> found = PlaceholderScanner.GetUniqueVariableNames(text);
             foreach (string placeholder in found)
             {
                 placeholders.Add(placeholder);

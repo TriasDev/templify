@@ -380,7 +380,7 @@ public sealed class LoopVisitorTests
     {
         // Arrange
         LoopVisitor visitor = new LoopVisitor(new DocumentWalker(), new MockVisitor(), new WarningCollector());
-        PlaceholderMatch placeholder = new PlaceholderMatch
+        PlaceholderToken placeholder = new PlaceholderToken
         {
             VariableName = "Name",
             FullMatch = "{{Name}}",
@@ -421,7 +421,7 @@ public sealed class LoopVisitorTests
     {
         public List<ConditionalBlock> VisitedConditionals { get; } = new List<ConditionalBlock>();
         public List<LoopBlock> VisitedLoops { get; } = new List<LoopBlock>();
-        public List<PlaceholderMatch> VisitedPlaceholders { get; } = new List<PlaceholderMatch>();
+        public List<PlaceholderToken> VisitedPlaceholders { get; } = new List<PlaceholderToken>();
         public List<Paragraph> VisitedParagraphs { get; } = new List<Paragraph>();
 
         public void VisitConditional(ConditionalBlock conditional, IEvaluationContext context)
@@ -434,7 +434,7 @@ public sealed class LoopVisitorTests
             VisitedLoops.Add(loop);
         }
 
-        public void VisitPlaceholder(PlaceholderMatch placeholder, Paragraph paragraph, IEvaluationContext context)
+        public void VisitPlaceholder(PlaceholderToken placeholder, Paragraph paragraph, IEvaluationContext context)
         {
             VisitedPlaceholders.Add(placeholder);
         }
@@ -462,7 +462,7 @@ public sealed class LoopVisitorTests
             CapturedContexts.Add(context);
         }
 
-        public void VisitPlaceholder(PlaceholderMatch placeholder, Paragraph paragraph, IEvaluationContext context)
+        public void VisitPlaceholder(PlaceholderToken placeholder, Paragraph paragraph, IEvaluationContext context)
         {
             CapturedContexts.Add(context);
         }
