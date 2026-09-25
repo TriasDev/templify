@@ -12,13 +12,13 @@ namespace TriasDev.Templify.Loops;
 /// <remarks>
 /// This context represents a loop iteration scope in template evaluation.
 /// It provides access to:
-/// - Loop metadata (@index, @first, @last, @count)
+/// - Loop metadata (@index, @number, @first, @last, @count)
 /// - Current item properties (for object collections)
 /// - Current item value (for primitive collections, via "." or "this")
 /// - Parent context variables (global or outer loop)
 ///
 /// Resolution order:
-/// 1. Loop metadata variables (@index, @first, @last, @count)
+/// 1. Loop metadata variables (@index, @number, @first, @last, @count)
 /// 2. Current item properties or value
 /// 3. Parent loop context (if nested loop)
 /// 4. Parent evaluation context (typically GlobalEvaluationContext)
@@ -53,7 +53,7 @@ internal sealed class LoopEvaluationContext : IEvaluationContext
     /// </remarks>
     public bool TryResolveVariable(string variableName, out object? value)
     {
-        // Try loop context first (handles @index, @first, @last, @count, current item properties)
+        // Try loop context first (handles @index, @number, @first, @last, @count, current item properties)
         if (_loopContext.TryResolveVariable(variableName, out value))
         {
             return true;

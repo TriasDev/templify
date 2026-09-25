@@ -500,6 +500,7 @@ Total: 4153.10 EUR
 Within a loop, you have access to special metadata variables:
 
 - `{{@index}}` - Zero-based index (0, 1, 2, ...)
+- `{{@number}}` - One-based number (1, 2, 3, ...), i.e. `@index + 1`
 - `{{@first}}` - `True` for the first item, `False` otherwise
 - `{{@last}}` - `True` for the last item, `False` otherwise
 - `{{@count}}` - Total number of items in the collection

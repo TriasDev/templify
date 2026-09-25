@@ -86,4 +86,4 @@ Formatting in headers and footers is preserved during replacement, just as in th
 
 - Use **First Page** headers/footers for cover pages with different branding
 - Combine conditionals with document-level flags (e.g., `IsDraft`, `IsConfidential`) to control header/footer content
-- Loop metadata (`@index`, `@first`, `@last`, `@count`) works in headers and footers
+- Loop metadata (`@index`, `@number`, `@first`, `@last`, `@count`) works in headers and footers
