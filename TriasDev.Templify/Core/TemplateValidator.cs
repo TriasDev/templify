@@ -590,7 +590,7 @@ internal sealed class TemplateValidator
     }
 
     /// <summary>
-    /// Gets all element lists from header and footer parts in the document.
+    /// Gets all element lists from header, footer, footnote and endnote parts in the document.
     /// </summary>
     private static IEnumerable<List<OpenXmlElement>> GetHeaderFooterElements(WordprocessingDocument document)
     {
@@ -614,7 +614,23 @@ internal sealed class TemplateValidator
                 yield return footerPart.Footer.Elements<OpenXmlElement>().ToList();
             }
         }
+
+        // Footnotes and endnotes are processed like headers and footers (separators excluded).
+        IEnumerable<OpenXmlCompositeElement> notes =
+            (document.MainDocumentPart.FootnotesPart?.Footnotes?.Elements<Footnote>()
+                .Where(n => IsNormalNote(n.Type)) ?? Enumerable.Empty<Footnote>())
+            .Cast<OpenXmlCompositeElement>()
+            .Concat(document.MainDocumentPart.EndnotesPart?.Endnotes?.Elements<Endnote>()
+                .Where(n => IsNormalNote(n.Type)) ?? Enumerable.Empty<Endnote>());
+
+        foreach (OpenXmlCompositeElement note in notes)
+        {
+            yield return note.Elements<OpenXmlElement>().ToList();
+        }
     }
+
+    private static bool IsNormalNote(EnumValue<FootnoteEndnoteValues>? type) =>
+        type?.Value is not FootnoteEndnoteValues value || value == FootnoteEndnoteValues.Normal;
 
     /// <summary>
     /// Validates template elements in all headers and footers.

@@ -5,6 +5,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Text.RegularExpressions;
+using TriasDev.Templify.Utilities;
 
 namespace TriasDev.Templify.Loops;
 
@@ -135,6 +136,14 @@ internal static class LoopDetector
                             $"Loop start marker '{{{{#foreach {collectionName}}}}}' has no matching '{{{{/foreach}}}}'.");
                     }
 
+                    // A content control that contains a complete loop is not a loop marker:
+                    // the loop is detected when the walker descends into the control's content.
+                    if (endIndex == i && element is SdtBlock)
+                    {
+                        i++;
+                        continue;
+                    }
+
                     // Get content elements (between start and end markers)
                     List<OpenXmlElement> contentElements = new List<OpenXmlElement>();
                     for (int j = i + 1; j < endIndex; j++)
@@ -225,7 +234,9 @@ internal static class LoopDetector
     {
         if (element is Paragraph paragraph)
         {
-            return paragraph.InnerText;
+            // The paragraph's own text: excludes text boxes (walked as separate containers)
+            // and field instructions.
+            return ParagraphTextModel.GetText(paragraph);
         }
 
         if (element is TableRow row)
