@@ -192,7 +192,11 @@ One of the most powerful features is repeating table rows:
 
 | Product | Price | Stock |
 |---------|-------|-------|
-| {{#foreach Items}}{{Name}} | ${{Price}} | {{Stock}}{{/foreach}} |
+| {{#foreach Items}} | | |
+| {{Name}} | ${{Price}} | {{Stock}} |
+| {{/foreach}} | | |
+
+Put `{{#foreach}}` and `{{/foreach}}` in **their own rows**. The rows between them are repeated for each item and the marker rows are removed. (A loop whose start and end markers are both inside one cell repeats paragraphs inside that cell instead.)
 
 **JSON:**
 ```json
@@ -213,7 +217,9 @@ One of the most powerful features is repeating table rows:
 
 | Item | Quantity | Unit Price | Total |
 |------|----------|------------|-------|
-| {{#foreach LineItems}}{{Description}} | {{Quantity}} | ${{UnitPrice}} | ${{Total}}{{/foreach}} |
+| {{#foreach LineItems}} | | | |
+| {{Description}} | {{Quantity}} | ${{UnitPrice}} | ${{Total}} |
+| {{/foreach}} | | | |
 
 **JSON:**
 ```json
