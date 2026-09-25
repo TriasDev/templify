@@ -7,7 +7,9 @@ using TriasDev.Templify.Loops;
 using TriasDev.Templify.Placeholders;
 using TriasDev.Templify.PropertyPaths;
 using TriasDev.Templify.Utilities;
+using System.Dynamic;
 using System.Reflection;
+using System.Text.Json;
 
 namespace TriasDev.Templify.Tests;
 
@@ -336,6 +338,215 @@ public class PropertyPathResolverTests
         // Assert
         Assert.True(result);
         Assert.Equal("Berlin", value);
+    }
+
+    #endregion
+
+    #region Dictionary Shapes and Key Precedence (#146)
+
+    [Fact]
+    public void TryResolvePath_DictionaryKeyNamedCount_ReturnsKeyValue()
+    {
+        // Arrange
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Order"] = new Dictionary<string, object> { ["Count"] = 42, ["A"] = 1 }
+        };
+
+        // Act
+        bool result = new ValueResolver().TryResolveValue(data, "Order.Count", out object? value);
+
+        // Assert
+        Assert.True(result);
+        Assert.Equal(42, value);
+    }
+
+    [Fact]
+    public void TryResolvePath_DictionaryWithoutCountKey_ReturnsEntryCount()
+    {
+        // Arrange - no "Count" key: falls back to the dictionary's Count property (backward compatible)
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Settings"] = new Dictionary<string, object> { ["A"] = 1, ["B"] = 2, ["C"] = 3 }
+        };
+
+        // Act
+        bool result = new ValueResolver().TryResolveValue(data, "Settings.Count", out object? value);
+
+        // Assert
+        Assert.True(result);
+        Assert.Equal(3, value);
+    }
+
+    [Fact]
+    public void TryResolvePath_JsonKeyNamedValues_ReturnsKeyValue()
+    {
+        // Arrange
+        Dictionary<string, object> data = JsonDataParser.ParseJsonToDataDictionary(
+            "{\"Stats\": {\"Values\": \"abc\", \"Keys\": \"k\", \"Comparer\": \"c\"}}");
+        ValueResolver resolver = new ValueResolver();
+
+        // Act & Assert
+        Assert.True(resolver.TryResolveValue(data, "Stats.Values", out object? values));
+        Assert.Equal("abc", values);
+        Assert.True(resolver.TryResolveValue(data, "Stats.Keys", out object? keys));
+        Assert.Equal("k", keys);
+        Assert.True(resolver.TryResolveValue(data, "Stats.Comparer", out object? comparer));
+        Assert.Equal("c", comparer);
+    }
+
+    [Fact]
+    public void TryResolvePath_ExpandoObject_Nested()
+    {
+        // Arrange
+        dynamic customer = new ExpandoObject();
+        customer.Name = "Alice";
+        dynamic address = new ExpandoObject();
+        address.City = "Berlin";
+        customer.Address = address;
+        Dictionary<string, object> data = new Dictionary<string, object> { ["Customer"] = customer };
+        ValueResolver resolver = new ValueResolver();
+
+        // Act & Assert
+        Assert.True(resolver.TryResolveValue(data, "Customer.Name", out object? name));
+        Assert.Equal("Alice", name);
+        Assert.True(resolver.TryResolveValue(data, "Customer.Address.City", out object? city));
+        Assert.Equal("Berlin", city);
+        Assert.True(resolver.TryResolveValue(data, "Customer[Name]", out object? indexed));
+        Assert.Equal("Alice", indexed);
+        Assert.False(resolver.TryResolveValue(data, "Customer.Missing", out _));
+    }
+
+    [Fact]
+    public void TryResolvePath_IReadOnlyDictionaryOnly_ResolvesKey()
+    {
+        // Arrange
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["M"] = new ReadOnlyOnlyDictionary(new Dictionary<string, object> { ["X"] = "y", ["Count"] = "key" })
+        };
+        ValueResolver resolver = new ValueResolver();
+
+        // Act & Assert
+        Assert.True(resolver.TryResolveValue(data, "M.X", out object? x));
+        Assert.Equal("y", x);
+        Assert.True(resolver.TryResolveValue(data, "M[X]", out object? indexed));
+        Assert.Equal("y", indexed);
+        Assert.True(resolver.TryResolveValue(data, "M.Count", out object? count));
+        Assert.Equal("key", count);
+        Assert.False(resolver.TryResolveValue(data, "M.Missing", out _));
+    }
+
+    [Fact]
+    public void TryResolvePath_IntKeyedDictionary_Indexer()
+    {
+        // Arrange
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Map"] = new Dictionary<int, string> { [1] = "one", [2] = "two" }
+        };
+        ValueResolver resolver = new ValueResolver();
+
+        // Act & Assert
+        Assert.True(resolver.TryResolveValue(data, "Map[1]", out object? one));
+        Assert.Equal("one", one);
+        Assert.False(resolver.TryResolveValue(data, "Map[3]", out _));
+        Assert.False(resolver.TryResolveValue(data, "Map[abc]", out _));
+    }
+
+    [Fact]
+    public void TryResolvePath_EnumKeyedDictionary_Indexer()
+    {
+        // Arrange
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Days"] = new Dictionary<DayOfWeek, string> { [DayOfWeek.Monday] = "Mo" }
+        };
+
+        // Act
+        bool result = new ValueResolver().TryResolveValue(data, "Days[Monday]", out object? value);
+
+        // Assert
+        Assert.True(result);
+        Assert.Equal("Mo", value);
+    }
+
+    [Fact]
+    public void TryResolvePath_ExpandoKeyWithNullValue_ReturnsTrueWithNull()
+    {
+        // Arrange
+        dynamic expando = new ExpandoObject();
+        expando.Street2 = null;
+
+        // Act
+        bool result = TryResolvePath((object)expando, "Street2", out object? value);
+
+        // Assert
+        Assert.True(result);
+        Assert.Null(value);
+    }
+
+    [Fact]
+    public void TryResolvePath_PublicField_ReturnsFieldValue()
+    {
+        // Arrange
+        FieldHolder root = new FieldHolder { Title = "Hello" };
+
+        // Act
+        bool result = TryResolvePath(root, "Title", out object? value);
+
+        // Assert
+        Assert.True(result);
+        Assert.Equal("Hello", value);
+    }
+
+    [Fact]
+    public void TryResolvePath_JsonElementFromDeserialize_ResolvesNestedPaths()
+    {
+        // Arrange
+        Dictionary<string, object> data = JsonSerializer.Deserialize<Dictionary<string, object>>(
+            "{\"Customer\": {\"Name\": \"Alice\", \"Age\": 30, \"Vip\": true, \"Note\": null, " +
+            "\"Orders\": [{\"Id\": \"A-1\"}, {\"Id\": \"A-2\"}]}}")!;
+        ValueResolver resolver = new ValueResolver();
+
+        // Act & Assert
+        Assert.True(resolver.TryResolveValue(data, "Customer.Name", out object? name));
+        Assert.Equal("Alice", name);
+        Assert.True(resolver.TryResolveValue(data, "Customer.Age", out object? age));
+        Assert.Equal(30, age);
+        Assert.True(resolver.TryResolveValue(data, "Customer.Vip", out object? vip));
+        Assert.Equal(true, vip);
+        Assert.True(resolver.TryResolveValue(data, "Customer.Note", out object? note));
+        Assert.Null(note);
+        Assert.True(resolver.TryResolveValue(data, "Customer.Orders[1].Id", out object? id));
+        Assert.Equal("A-2", id);
+        Assert.False(resolver.TryResolveValue(data, "Customer.Missing", out _));
+        Assert.False(resolver.TryResolveValue(data, "Customer.Orders[5]", out _));
+
+        Assert.True(resolver.TryResolveValue(data, "Customer.Orders", out object? orders));
+        List<object> orderList = Assert.IsType<List<object>>(orders);
+        Assert.Equal(2, orderList.Count);
+    }
+
+    public class FieldHolder
+    {
+        public string Title = string.Empty;
+    }
+
+    private sealed class ReadOnlyOnlyDictionary : IReadOnlyDictionary<string, object>
+    {
+        private readonly Dictionary<string, object> _inner;
+
+        public ReadOnlyOnlyDictionary(Dictionary<string, object> inner) => _inner = inner;
+
+        public object this[string key] => _inner[key];
+        public IEnumerable<string> Keys => _inner.Keys;
+        public IEnumerable<object> Values => _inner.Values;
+        public int Count => _inner.Count;
+        public bool ContainsKey(string key) => _inner.ContainsKey(key);
+        public bool TryGetValue(string key, out object value) => _inner.TryGetValue(key, out value!);
+        public IEnumerator<KeyValuePair<string, object>> GetEnumerator() => _inner.GetEnumerator();
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => _inner.GetEnumerator();
     }
 
     #endregion

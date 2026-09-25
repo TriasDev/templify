@@ -488,4 +488,39 @@ public sealed class JsonInputTests
         Assert.Contains("John Doe", text);
         Assert.Contains("{{Age}}", text); // Should remain unchanged
     }
+
+    [Fact]
+    public void ProcessTemplate_WithJsonKeysNamedLikeDictionaryProperties_UsesKeyValues()
+    {
+        // Arrange
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{Stats.Count}}|{{Stats.Values}}|{{Stats.Keys}}|{{Other.Count}}");
+
+        MemoryStream templateStream = builder.ToStream();
+
+        string jsonData = """
+            {
+                "Stats": { "Count": 42, "Values": "abc", "Keys": "k" },
+                "Other": { "A": 1, "B": 2 }
+            }
+            """;
+
+        PlaceholderReplacementOptions options = new PlaceholderReplacementOptions
+        {
+            Culture = CultureInfo.InvariantCulture
+        };
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor(options);
+        MemoryStream outputStream = new MemoryStream();
+
+        // Act
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, jsonData);
+
+        // Assert - existing keys win over dictionary properties; without a "Count" key the entry count is used
+        Assert.True(result.IsSuccess);
+        Assert.Empty(result.MissingVariables);
+
+        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        Assert.Equal("42|abc|k|2", verifier.GetParagraphText(0));
+    }
 }
