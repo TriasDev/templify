@@ -13,4 +13,4 @@ Console.WriteLine();
 BenchmarkSwitcher.FromAssembly(Assembly.GetExecutingAssembly()).Run(args);
 
 Console.WriteLine();
-Console.WriteLine("Benchmarking complete! Results saved to BenchmarkDotNet.Artifacts/results/");
+Console.WriteLine("Benchmarking complete! Results saved to BenchmarkDotNet.Artifacts/results/ (not committed to git).");

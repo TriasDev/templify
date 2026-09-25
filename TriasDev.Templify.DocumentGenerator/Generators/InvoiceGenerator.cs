@@ -1,3 +1,4 @@
+using System.Globalization;
 using DocumentFormat.OpenXml.Packaging;
 
 namespace TriasDev.Templify.DocumentGenerator.Generators;
@@ -17,7 +18,7 @@ public class InvoiceGenerator : BaseExampleGenerator
 
         using (var doc = CreateDocument(templatePath))
         {
-            var body = doc.MainDocumentPart!.Document.Body!;
+            var body = doc.MainDocumentPart!.Document!.Body!;
 
             // Invoice Header
             AddParagraph(body, "INVOICE", isBold: true);
@@ -111,8 +112,8 @@ public class InvoiceGenerator : BaseExampleGenerator
         return new Dictionary<string, object>
         {
             ["InvoiceNumber"] = "INV-2025-001",
-            ["InvoiceDate"] = DateTime.Now.ToString("yyyy-MM-dd"),
-            ["DueDate"] = DateTime.Now.AddDays(30).ToString("yyyy-MM-dd"),
+            ["InvoiceDate"] = ExampleGenerators.SampleDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            ["DueDate"] = ExampleGenerators.SampleDate.AddDays(30).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             ["Company"] = new Dictionary<string, object>
             {
                 ["Name"] = "TriasDev GmbH & Co. KG",
