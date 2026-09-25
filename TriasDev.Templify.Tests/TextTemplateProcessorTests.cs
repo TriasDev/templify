@@ -655,4 +655,34 @@ You have tasks due today:
     }
 
     #endregion
+
+    #region Markdown Opt-Out Tests
+
+    [Fact]
+    public void ProcessTemplate_MarkdownCharacters_AreNeverInterpreted()
+    {
+        // Text templates never apply markdown; values are inserted verbatim.
+        var processor = new TextTemplateProcessor();
+        var data = new Dictionary<string, object> { ["File"] = "my_report_final.docx", ["Formula"] = "2*3*4" };
+
+        TextProcessingResult result = processor.ProcessTemplate("{{File}} {{Formula}}", data);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("my_report_final.docx 2*3*4", result.ProcessedText);
+    }
+
+    [Fact]
+    public void ProcessTemplate_RawFormatSpecifier_InsertsValueUnchanged()
+    {
+        var processor = new TextTemplateProcessor();
+        var data = new Dictionary<string, object> { ["File"] = "my_report_final.docx" };
+
+        TextProcessingResult result = processor.ProcessTemplate("{{File:raw}}", data);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("my_report_final.docx", result.ProcessedText);
+        Assert.Equal(1, result.ReplacementCount);
+    }
+
+    #endregion
 }

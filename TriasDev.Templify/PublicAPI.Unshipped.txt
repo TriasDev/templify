@@ -1,1 +1,3 @@
 #nullable enable
+TriasDev.Templify.Core.PlaceholderReplacementOptions.EnableMarkdown.get -> bool
+TriasDev.Templify.Core.PlaceholderReplacementOptions.EnableMarkdown.init -> void
