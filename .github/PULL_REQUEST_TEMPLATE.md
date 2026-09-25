@@ -34,9 +34,9 @@ Relates to #
 <!-- Describe the tests you ran to verify your changes -->
 
 ### Test Environment
+- [ ] .NET 10
 - [ ] .NET 9
 - [ ] .NET 8
-- [ ] .NET 6
 
 ### Tests Added/Updated
 - [ ] Unit tests added/updated

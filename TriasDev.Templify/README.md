@@ -25,7 +25,7 @@ Templify is built on the Microsoft OpenXML SDK and provides a straightforward AP
 - **Footnotes, text boxes, content controls**: Processed like the document body
 - **Configurable behavior**: Control what happens when variables are missing
 - **No Word required**: Pure OpenXML processing, no COM automation
-- **.NET 9**: Built with modern .NET features
+- **Modern .NET**: Targets net8.0, net9.0 and net10.0
 
 ## Quick Start
 
@@ -1236,8 +1236,10 @@ catch (Exception ex)
 
 ## Requirements
 
-- .NET 9.0 or later
+- .NET 8.0, 9.0 or 10.0 (the package targets `net8.0`, `net9.0` and `net10.0`)
 - DocumentFormat.OpenXml 3.3.0 or later
+
+**Support policy:** we support the .NET versions that are in Microsoft support. Target frameworks that reach end of life are dropped in a minor release, announced in the release notes. net6.0 was dropped in 1.8.0; projects on .NET 6 can stay on 1.7.x.
 
 ## About
 

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Templify** is a .NET 10 library for replacing placeholders in Word documents (.docx) without requiring Microsoft Word. It uses the OpenXML SDK and provides a visitor pattern architecture for processing templates with placeholders (`{{variableName}}`), conditionals, and loops.
 
-**Target Framework:** .NET 10.0
+**Target Frameworks:** net10.0, net9.0, net8.0 (library); tools use net10.0, `TriasDev.Templify.Tests` multi-targets all library TFMs
 **Primary Dependency:** DocumentFormat.OpenXml 3.5.1
 **Test Framework:** xUnit
 
@@ -54,7 +54,8 @@ dotnet build TriasDev.Templify/TriasDev.Templify.csproj
 - `Directory.Build.props` holds shared settings (Nullable, ImplicitUsings, LangVersion, AnalysisLevel, EnforceCodeStyleInBuild). Nullable warnings are always errors; in CI (`GITHUB_ACTIONS=true` → `ContinuousIntegrationBuild`) all warnings are errors. Reproduce locally with `dotnet build templify.sln -c Release -p:ContinuousIntegrationBuild=true`.
 - `Directory.Packages.props` (Central Package Management) holds all NuGet versions; `PackageReference` items have no `Version`.
 - Every project has a committed `packages.lock.json`; CI restores in locked mode. After changing a package, run `dotnet restore templify.sln` and commit the updated lock files.
-- `TriasDev.Templify.Tests` multi-targets `net10.0;net9.0;net8.0` (the library's TFMs except net6.0); run a single one with `--framework net10.0`.
+- The library targets `net10.0;net9.0;net8.0`. Support policy: .NET versions in Microsoft support; EOL TFMs are dropped in a minor release with a release-notes notice (net6.0 dropped in 1.8.0). `TriasDev.Templify/CompatibilitySuppressions.xml` suppresses only the net6.0 TFM removal (PKV006) for package validation; delete it once the baseline is 1.8.0+.
+- `TriasDev.Templify.Tests` multi-targets the library's TFMs (`net10.0;net9.0;net8.0`); run a single one with `--framework net10.0`.
 
 ### Testing
 ```bash
