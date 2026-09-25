@@ -8,6 +8,7 @@ using TriasDev.Templify.Conditionals;
 using TriasDev.Templify.Core;
 using TriasDev.Templify.Loops;
 using TriasDev.Templify.Placeholders;
+using TriasDev.Templify.Utilities;
 
 namespace TriasDev.Templify.Visitors;
 
@@ -179,8 +180,9 @@ internal sealed class DocumentWalker
                     continue;
                 }
 
-                // Detect placeholders in the paragraph
-                string text = paragraph.InnerText;
+                // Detect placeholders in the paragraph's own text (the coordinate space
+                // the placeholder visitor rewrites in)
+                string text = ParagraphTextModel.GetText(paragraph);
                 IReadOnlyList<PlaceholderMatch> placeholders = _placeholderFinder.FindPlaceholdersAsList(text);
 
                 if (placeholders.Count > 0)
