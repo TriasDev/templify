@@ -753,45 +753,39 @@ OpenXML splits text into `Run` elements for formatting. A placeholder like `{{Co
 </w:p>
 ```
 
-### Solution: Paragraph-Level Processing
+### Solution: Shared Paragraph Text Rewriter
 
-1. **Concatenate**: Combine all run texts in a paragraph
-2. **Find**: Locate placeholders in combined text
-3. **Replace**: Perform string replacement
-4. **Reconstruct**: Create new runs with replaced text
-5. **Preserve**: Maintain original formatting of first run
+Placeholder replacement and inline conditionals share one internal component
+(`Utilities/ParagraphTextModel.cs`, `Utilities/ParagraphTextRewriter.cs`):
 
-This approach trades some formatting complexity for correctness.
-
-### Per-Run Optimization (December 2025)
-
-When a placeholder is entirely contained within a single run, the library uses an optimized
-per-run replacement strategy that preserves the run's complete formatting:
+1. **Model**: `ParagraphTextModel.Build(paragraph)` concatenates the paragraph's *own* text:
+   the `w:t` elements of its runs, including runs nested in hyperlinks, simple fields, inline
+   content controls, custom XML and tracked insertions. Field instructions (`w:instrText`),
+   deleted text and nested paragraphs (text boxes) are not part of it. Each text segment knows
+   its `w:t` element, owning run and offset; every non-text element (tab, break, drawing, field
+   character, bookmark, …) is recorded as an anchor at its offset.
+2. **Find**: placeholders and inline conditional markers are located in the model text
+   (`PlaceholderFinder`, `InlineConditionalParser`).
+3. **Rewrite**: `ParagraphTextRewriter.Replace(paragraph, start, end, content)` changes only the
+   text elements overlapping `[start, end)`:
+   - replacement text takes the formatting of the run holding the first replaced character;
+     text after the range keeps its own run and formatting;
+   - `ReplacementContent` describes the new text as pieces (text with optional markdown
+     formatting, line breaks); for non-plain content the first run is split and new runs are
+     inserted in between;
+   - untouched runs and non-text content stay in place; simple inline content strictly inside
+     the range (tabs, breaks, symbols) is removed with it; emptied runs and wrappers are pruned.
 
 ```
-Multi-run case (placeholder spans runs):
-  [Run1: "{{Na"] [Run2: "me}}"]  →  Merge all runs, use first run's formatting
-
-Single-run case (placeholder within one run):
-  [Run: "C{{Value}}"]  →  Replace in-place, preserve ALL run formatting
+[Run1: "Hi {{Na"] [Run2: "me}}!"]  →  [Run1: "Hi Alice"] [Run2: "!"]
+[Run: "C{{Value}}"]                 →  [Run: "CAlice"]  (all run formatting preserved)
 ```
 
-**Why this matters**: The multi-run merge approach extracts formatting from the first run,
-which can lose certain properties like highlight colors and shading that are specific to
-individual runs. The per-run optimization preserves:
+Inline conditionals are resolved by removing ranges only (markers and non-matching branches),
+so the kept text retains its original runs and formatting exactly.
 
-- Highlight colors (yellow, cyan, etc.)
-- Background shading (Shading element with Fill)
-- All other RunProperties (bold, italic, color, font, etc.)
-
-**Implementation** (`PlaceholderVisitor.cs`):
-1. `BuildRunBoundaries()` - Maps character indices to runs
-2. `FindRunsForPlaceholder()` - Detects if placeholder spans single or multiple runs
-3. `ReplacePlaceholderInSingleRun()` - Updates run text in-place, preserving formatting
-4. `ReplaceRunText()` - Simple text replacement while keeping RunProperties
-
-This optimization is transparent to users and automatically applies when placeholders
-are not split across multiple runs (the common case in well-formed templates).
+The model and parser are plain-text based; only the model builder and the rewriter are
+OpenXML-specific, which keeps the door open for other document formats.
 
 ## Value Conversion Strategy
 
