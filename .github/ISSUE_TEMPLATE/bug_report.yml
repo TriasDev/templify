@@ -60,9 +60,9 @@ body:
       label: .NET Version
       description: What version of .NET are you targeting?
       options:
+        - .NET 10
         - .NET 9
         - .NET 8
-        - .NET 6
         - Other
     validations:
       required: true

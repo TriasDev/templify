@@ -265,7 +265,7 @@ This repository contains multiple projects organized as a complete solution:
 
 ```
 templify/
-├── TriasDev.Templify/          # Core library (.NET 6.0+)
+├── TriasDev.Templify/          # Core library (net8.0, net9.0, net10.0)
 ├── TriasDev.Templify.Tests/    # xUnit test suite (109+ tests, 100% coverage)
 ├── TriasDev.Templify.Gui/      # Cross-platform GUI application (Avalonia)
 ├── TriasDev.Templify.Converter/# CLI tool for document conversion
@@ -299,7 +299,7 @@ templify/
 ### Prerequisites
 
 **Prerequisites:**
-- .NET 6.0 SDK or later
+- .NET 10 SDK (see `global.json`)
 - Git
 - Python 3.11+ (for documentation)
 
@@ -340,7 +340,7 @@ mkdocs serve
 The main template processing library. Provides `DocumentTemplateProcessor` for replacing placeholders, evaluating conditionals, and processing loops in Word documents.
 
 **Architecture:** Visitor pattern with context-aware evaluation
-**Target:** .NET 6.0+
+**Target:** net8.0, net9.0, net10.0 ([support policy](#supported-net-versions))
 **Dependencies:** DocumentFormat.OpenXml 3.3.0
 
 📖 [Full Library Documentation](TriasDev.Templify/README.md) | 🏗️ [Architecture Details](TriasDev.Templify/ARCHITECTURE.md) | 📝 [Code Examples](TriasDev.Templify/Examples.md)
@@ -546,7 +546,7 @@ dotnet restore templify.sln
 
 ### Requirements
 
-- **.NET 6.0 SDK** or later
+- **.NET 10 SDK** (see `global.json`)
 - **Visual Studio 2022** (optional, for GUI development) or **Rider**
 - **Git** for version control
 
@@ -570,11 +570,19 @@ This repository includes **CLAUDE.md** with comprehensive guidance for AI coding
 
 ## Requirements
 
-- **.NET 6.0** or later
+- **.NET 8.0, 9.0 or 10.0** (the library targets `net8.0`, `net9.0` and `net10.0`)
 - **DocumentFormat.OpenXml 3.3.0** (automatically restored)
 - **Avalonia 11.3.8** (for GUI project)
 - **xUnit** (for test project)
 - **BenchmarkDotNet** (for benchmarks)
+
+### Supported .NET Versions
+
+The library targets `net8.0`, `net9.0` and `net10.0`.
+
+**Support policy:** we support the .NET versions that are in [Microsoft support](https://dotnet.microsoft.com/platform/support/policy/dotnet-core). Target frameworks that reach end of life are dropped in a minor release, announced in the release notes.
+
+> ⚠️ **net6.0 is no longer supported as of 1.8.0.** Projects that still target .NET 6 can stay on Templify 1.7.x.
 
 ## Architecture Highlights
 
@@ -627,7 +635,7 @@ We welcome contributions from the community! Whether you're fixing bugs, adding 
 
 ### Development Requirements
 
-- .NET 6.0 SDK or later
+- .NET 10 SDK (see `global.json`)
 - All contributions must maintain 100% test coverage
 - Follow existing code style and conventions
 - Update documentation for any new features

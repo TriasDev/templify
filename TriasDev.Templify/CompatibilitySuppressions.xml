@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- https://learn.microsoft.com/dotnet/fundamentals/package-validation/diagnostic-ids -->
+<Suppressions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <!-- Intentional, maintainer-approved (#154): net6.0 (EOL since Nov 2024) is no longer a target framework
+       as of 1.8.0. Consumers on net6.0 stay on 1.7.x. Only the TFM removal is suppressed; all other
+       package validation / API compatibility checks (CP0001, CP0002, ...) stay active.
+       Delete this file when PackageValidationBaselineVersion is bumped to 1.8.0 or later. -->
+  <Suppression>
+    <DiagnosticId>PKV006</DiagnosticId>
+    <Target>net6.0</Target>
+  </Suppression>
+</Suppressions>
