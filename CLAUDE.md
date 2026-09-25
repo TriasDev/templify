@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Target Frameworks:** net10.0, net9.0, net8.0 (library); tools use net10.0, `TriasDev.Templify.Tests` multi-targets all library TFMs
 **Primary Dependency:** DocumentFormat.OpenXml 3.5.1
-**Test Framework:** xUnit
+**Test Framework:** xUnit v3 (`xunit.v3.mtp-off`: test projects are executables, run through VSTest with `dotnet test`; use `TestContext.Current.CancellationToken` for cancellable calls, analyzer xUnit1051)
 
 ## Solution Structure
 
