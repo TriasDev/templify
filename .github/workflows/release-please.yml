@@ -25,7 +25,7 @@ jobs:
 
     steps:
       - id: release
-        uses: googleapis/release-please-action@v5
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
@@ -34,6 +34,9 @@ jobs:
     if: needs.release-please.outputs.release_created == 'true'
     needs: release-please
     runs-on: ubuntu-latest
+    # Configure required reviewers for this environment in the repo settings
+    # to gate NuGet publishing behind a manual approval.
+    environment: nuget
 
     env:
       VERSION: ${{ needs.release-please.outputs.version }}
@@ -56,12 +59,23 @@ jobs:
             --configuration Release \
             -p:Version=${{ env.VERSION }}
 
+      - name: Build tests
+        run: |
+          dotnet build TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj \
+            --configuration Release \
+            -p:Version=${{ env.VERSION }}
+
       - name: Run tests
         run: |
           dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj \
             --configuration Release \
             --no-build \
-            --verbosity normal
+            --verbosity normal \
+            --logger "trx;LogFileName=results.trx" \
+            --results-directory ./test-results
+
+      - name: Verify tests ran
+        run: ./.github/scripts/verify-test-results.sh ./test-results/results.trx
 
       - name: Pack
         run: |
@@ -72,10 +86,12 @@ jobs:
             --output ./artifacts
 
       - name: Push to NuGet
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
           dotnet nuget push ./artifacts/*.nupkg \
             --source https://api.nuget.org/v3/index.json \
-            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --api-key "$NUGET_API_KEY" \
             --skip-duplicate
 
       - name: Upload artifacts

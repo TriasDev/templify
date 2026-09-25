@@ -8,9 +8,15 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # Configure required reviewers for this environment in the repo settings
+    # to gate NuGet publishing behind a manual approval.
+    environment: nuget
     steps:
       - uses: actions/checkout@v7
 
@@ -23,16 +29,27 @@ jobs:
             9.0.x
             10.0.x
 
-      - name: Normalize version
+      - name: Normalize and validate version
         id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          VERSION="${{ github.event.inputs.version }}"
-          VERSION="${VERSION#v}"
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          VERSION="${INPUT_VERSION#v}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Invalid version '$VERSION' (expected semver, e.g. 1.2.3 or 1.2.3-beta.1)"
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Build
         run: |
           dotnet build TriasDev.Templify/TriasDev.Templify.csproj \
+            --configuration Release \
+            -p:Version=${{ steps.version.outputs.VERSION }}
+
+      - name: Build tests
+        run: |
+          dotnet build TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj \
             --configuration Release \
             -p:Version=${{ steps.version.outputs.VERSION }}
 
@@ -41,7 +58,12 @@ jobs:
           dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj \
             --configuration Release \
             --no-build \
-            --verbosity normal
+            --verbosity normal \
+            --logger "trx;LogFileName=results.trx" \
+            --results-directory ./test-results
+
+      - name: Verify tests ran
+        run: ./.github/scripts/verify-test-results.sh ./test-results/results.trx
 
       - name: Pack
         run: |
@@ -52,10 +74,12 @@ jobs:
             --output ./artifacts
 
       - name: Push to NuGet
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
           dotnet nuget push ./artifacts/*.nupkg \
             --source https://api.nuget.org/v3/index.json \
-            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --api-key "$NUGET_API_KEY" \
             --skip-duplicate
 
       - name: Upload artifacts
