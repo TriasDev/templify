@@ -1,7 +1,6 @@
 // Copyright (c) 2025 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System.Reflection;
 using TriasDev.Templify.Core;
 using TriasDev.Templify.Conditionals;
 using TriasDev.Templify.Loops;
@@ -13,28 +12,10 @@ namespace TriasDev.Templify.Tests;
 
 public class ConditionalEvaluatorTests
 {
-    private readonly object _evaluator;
-    private readonly MethodInfo _evaluateMethod;
-    private static readonly Type _evaluatorType = typeof(DocumentTemplateProcessor).Assembly
-        .GetType("TriasDev.Templify.Conditionals.ConditionalEvaluator")!;
-
-    public ConditionalEvaluatorTests()
-    {
-        _evaluator = Activator.CreateInstance(_evaluatorType)!;
-        // Get the Evaluate method that accepts IEvaluationContext
-        _evaluateMethod = _evaluatorType.GetMethod(
-            "Evaluate",
-            BindingFlags.Public | BindingFlags.Instance,
-            null,
-            new[] { typeof(string), typeof(IEvaluationContext) },
-            null)!;
-    }
+    private readonly ConditionalEvaluator _evaluator = new ConditionalEvaluator();
 
     private bool Evaluate(string expression, Dictionary<string, object> data)
-    {
-        GlobalEvaluationContext context = new GlobalEvaluationContext(data);
-        return (bool)_evaluateMethod.Invoke(_evaluator, new object[] { expression, context })!;
-    }
+        => _evaluator.Evaluate(expression, new GlobalEvaluationContext(data));
 
     #region Simple Variable Evaluation
 
@@ -1037,23 +1018,12 @@ public class ConditionalEvaluatorTests
         // Create the evaluation context chain (simulating loop context)
         GlobalEvaluationContext globalContext = new GlobalEvaluationContext(data);
 
-        // Create LoopContext and LoopEvaluationContext using reflection
-        Type loopContextType = typeof(DocumentTemplateProcessor).Assembly
-            .GetType("TriasDev.Templify.Loops.LoopContext")!;
-        Type loopEvalContextType = typeof(DocumentTemplateProcessor).Assembly
-            .GetType("TriasDev.Templify.Loops.LoopEvaluationContext")!;
-
-        object loopContext = Activator.CreateInstance(
-            loopContextType,
-            new object[] { firstItem, 0, 1, "data.assets.items", null!, null! })!;
-
-        IEvaluationContext loopEvalContext = (IEvaluationContext)Activator.CreateInstance(
-            loopEvalContextType,
-            new object[] { loopContext, globalContext })!;
+        LoopContext loopContext = new LoopContext(firstItem, 0, 1, "data.assets.items");
+        IEvaluationContext loopEvalContext = new LoopEvaluationContext(loopContext, globalContext);
 
         // Now evaluate the condition using LoopEvaluationContext
         string path = "config.options.items.feature1.responses.options.items.optionA.enabled";
-        bool result = (bool)_evaluateMethod.Invoke(_evaluator, new object[] { path, loopEvalContext })!;
+        bool result = _evaluator.Evaluate(path, loopEvalContext);
 
         Assert.True(result);
     }

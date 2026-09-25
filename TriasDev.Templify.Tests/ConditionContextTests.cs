@@ -19,7 +19,7 @@ public class ConditionContextTests
     #region CreateConditionContext with Dictionary
 
     [Fact]
-    public void CreateConditionContext_WithDictionary_ReturnsValidContext()
+    public void CreateConditionContext_WithDictionary_EvaluatesAgainstThatData()
     {
         Dictionary<string, object> data = new()
         {
@@ -29,7 +29,8 @@ public class ConditionContextTests
 
         IConditionContext context = _evaluator.CreateConditionContext(data);
 
-        Assert.NotNull(context);
+        Assert.True(context.Evaluate("IsActive and Count = 5"));
+        Assert.False(context.Evaluate("Count > 5"));
     }
 
     [Fact]
@@ -43,13 +44,14 @@ public class ConditionContextTests
     #region CreateConditionContext with JSON
 
     [Fact]
-    public void CreateConditionContext_WithJson_ReturnsValidContext()
+    public void CreateConditionContext_WithJson_EvaluatesAgainstThatData()
     {
         string json = """{"IsActive": true, "Count": 5}""";
 
         IConditionContext context = _evaluator.CreateConditionContext(json);
 
-        Assert.NotNull(context);
+        Assert.True(context.Evaluate("IsActive and Count = 5"));
+        Assert.False(context.Evaluate("Count > 5"));
     }
 
     [Fact]

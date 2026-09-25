@@ -467,7 +467,7 @@ public sealed class TableRowConditionalTests
             .ToList();
 
         // Act
-        IReadOnlyList<Conditionals.ConditionalBlock> conditionals = Conditionals.ConditionalDetector.DetectTableRowConditionals(rows);
+        IReadOnlyList<TriasDev.Templify.Conditionals.ConditionalBlock> conditionals = TriasDev.Templify.Conditionals.ConditionalDetector.DetectTableRowConditionals(rows);
 
         // Assert
         Assert.Empty(conditionals);
@@ -483,7 +483,7 @@ public sealed class TableRowConditionalTests
 
         // Act & Assert
         TemplateSyntaxException exception = Assert.Throws<TemplateSyntaxException>(
-            () => Conditionals.ConditionalDetector.DetectTableRowConditionals(new List<TableRow> { row }));
+            () => TriasDev.Templify.Conditionals.ConditionalDetector.DetectTableRowConditionals(new List<TableRow> { row }));
         Assert.Contains("own row", exception.Message);
     }
 
@@ -495,7 +495,7 @@ public sealed class TableRowConditionalTests
 
         // Act & Assert
         TemplateSyntaxException exception = Assert.Throws<TemplateSyntaxException>(
-            () => Conditionals.ConditionalDetector.DetectTableRowConditionals(rows));
+            () => TriasDev.Templify.Conditionals.ConditionalDetector.DetectTableRowConditionals(rows));
         Assert.Contains("has no matching", exception.Message);
     }
 

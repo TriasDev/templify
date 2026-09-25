@@ -7,30 +7,84 @@ using TriasDev.Templify.Loops;
 using TriasDev.Templify.Placeholders;
 using TriasDev.Templify.PropertyPaths;
 using TriasDev.Templify.Utilities;
-using System.Reflection;
 
 namespace TriasDev.Templify.Tests;
 
 public class ValueResolverTests
 {
-    private static readonly Type _valueResolverType = typeof(DocumentTemplateProcessor).Assembly
-        .GetType("TriasDev.Templify.Placeholders.ValueResolver")!;
-
-    private readonly object _resolver;
-    private readonly MethodInfo _tryResolveMethod;
-
-    public ValueResolverTests()
-    {
-        _resolver = Activator.CreateInstance(_valueResolverType)!;
-        _tryResolveMethod = _valueResolverType.GetMethod("TryResolveValue", BindingFlags.Public | BindingFlags.Instance)!;
-    }
+    private readonly ValueResolver _resolver = new ValueResolver();
 
     private bool TryResolveValue(Dictionary<string, object> data, string variablePath, out object? value)
+        => _resolver.TryResolveValue(data, variablePath, out value);
+
+    [Fact]
+    public void TryResolveValue_NullData_ThrowsArgumentNullException()
     {
-        object[] parameters = new object[] { data, variablePath, null! };
-        bool result = (bool)_tryResolveMethod.Invoke(_resolver, parameters)!;
-        value = parameters[2];
-        return result;
+        Assert.Throws<ArgumentNullException>(() => _resolver.TryResolveValue(null!, "Name", out _));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void TryResolveValue_EmptyOrWhitespacePath_ThrowsArgumentException(string path)
+    {
+        ArgumentException ex = Assert.Throws<ArgumentException>(
+            () => _resolver.TryResolveValue(new Dictionary<string, object>(), path, out _));
+        Assert.Equal("variablePath", ex.ParamName);
+    }
+
+    [Fact]
+    public void TryResolveValue_NullPath_ThrowsArgumentException()
+    {
+        ArgumentException ex = Assert.Throws<ArgumentException>(
+            () => _resolver.TryResolveValue(new Dictionary<string, object>(), null!, out _));
+        Assert.Equal("variablePath", ex.ParamName);
+    }
+
+    [Theory]
+    [InlineData("Customer..Name")]
+    [InlineData("Customer.Items[")]
+    [InlineData("Customer.Items[]")]
+    public void TryResolveValue_MalformedNestedPath_ReturnsFalse(string path)
+    {
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Customer"] = new Dictionary<string, object> { ["Name"] = "Alice", ["Items"] = new List<string> { "x" } }
+        };
+
+        bool result = TryResolveValue(data, path, out object? value);
+
+        Assert.False(result);
+        Assert.Null(value);
+    }
+
+    [Fact]
+    public void TryResolveValue_NestedPathWithMissingRoot_ReturnsFalse()
+    {
+        Dictionary<string, object> data = new Dictionary<string, object> { ["Other"] = "x" };
+
+        bool result = TryResolveValue(data, "Customer.Name", out object? value);
+
+        Assert.False(result);
+        Assert.Null(value);
+    }
+
+    [Fact]
+    public void TryResolveValue_IndexerThenPropertyThenIndexer_RebuildsSubPath()
+    {
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Orders"] = new List<object>
+            {
+                new Dictionary<string, object> { ["Lines"] = new List<string> { "a", "b" } },
+                new Dictionary<string, object> { ["Lines"] = new List<string> { "c", "d" } }
+            }
+        };
+
+        bool result = TryResolveValue(data, "Orders[1].Lines[0]", out object? value);
+
+        Assert.True(result);
+        Assert.Equal("c", value);
     }
 
     [Fact]
