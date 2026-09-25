@@ -9,7 +9,7 @@ namespace TriasDev.Templify.Conditionals.Engine.Operators;
 internal sealed class ExistsOperator : IConditionOperator
 {
     public IReadOnlyList<string> Tokens { get; } = new[] { "exists" };
-    public int Precedence => 5;
+    public int Precedence => OperatorPrecedence.Postfix;
     public OperatorFixity Fixity => OperatorFixity.Postfix;
 
     public bool Evaluate(ConditionEvaluatorCore core, IReadOnlyList<ConditionNode> operands)
@@ -26,7 +26,7 @@ internal sealed class ExistsOperator : IConditionOperator
 internal sealed class IsEmptyOperator : IConditionOperator
 {
     public IReadOnlyList<string> Tokens { get; } = new[] { "is", "empty" };
-    public int Precedence => 5;
+    public int Precedence => OperatorPrecedence.Postfix;
     public OperatorFixity Fixity => OperatorFixity.Postfix;
 
     public bool Evaluate(ConditionEvaluatorCore core, IReadOnlyList<ConditionNode> operands)
@@ -54,7 +54,7 @@ internal sealed class IsEmptyOperator : IConditionOperator
 internal sealed class IsNotEmptyOperator : IConditionOperator
 {
     public IReadOnlyList<string> Tokens { get; } = new[] { "is", "not", "empty" };
-    public int Precedence => 5;
+    public int Precedence => OperatorPrecedence.Postfix;
     public OperatorFixity Fixity => OperatorFixity.Postfix;
 
     public bool Evaluate(ConditionEvaluatorCore core, IReadOnlyList<ConditionNode> operands)

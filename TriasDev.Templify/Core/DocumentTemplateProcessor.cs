@@ -78,8 +78,8 @@ public sealed class DocumentTemplateProcessor
             HashSet<string> missingVariables = new HashSet<string>();
             WarningCollector warningCollector = new WarningCollector();
 
-            // Create placeholder visitor to track replacements
-            PlaceholderVisitor placeholderVisitor = new PlaceholderVisitor(_options, missingVariables, warningCollector);
+            // Conditional, loop and placeholder visitors, walked by one document walker
+            TemplatePipeline pipeline = TemplatePipeline.Create(_options, missingVariables, warningCollector);
 
             // Open document for editing
             using (WordprocessingDocument document = WordprocessingDocument.Open(outputStream, isEditable: true))
@@ -92,39 +92,8 @@ public sealed class DocumentTemplateProcessor
                 // Create global evaluation context
                 GlobalEvaluationContext globalContext = new GlobalEvaluationContext(data);
 
-                // Create visitor instances
-                DocumentWalker walker = new DocumentWalker();
-                ConditionalVisitor conditionalVisitor = new ConditionalVisitor(warningCollector);
-
-                // Create a temporary composite for initial loop visitor creation
-                CompositeVisitor tempComposite = new CompositeVisitor(
-                    conditionalVisitor,
-                    placeholderVisitor
-                );
-
-                // Create loop visitor with temporary composite
-                LoopVisitor loopVisitor = new LoopVisitor(walker, tempComposite, warningCollector);
-
-                // Create the final composite that includes all visitors (including loop)
-                CompositeVisitor composite = new CompositeVisitor(
-                    conditionalVisitor,
-                    loopVisitor,
-                    placeholderVisitor
-                );
-
-                // Update loop visitor to use the final composite as nested visitor
-                // This creates a circular reference that allows unlimited nesting depth
-                loopVisitor.SetNestedVisitor(composite);
-
-                // Walk the document with the composite visitor
-                walker.Walk(document, composite, globalContext);
-
-                // Walk headers and footers with the same visitor pipeline
-                walker.WalkHeadersAndFooters(document, composite, globalContext);
-
-                // Walk footnotes and endnotes (comments are intentionally not processed:
-                // they are reviewer notes, not document content)
-                walker.WalkFootnotesAndEndnotes(document, composite, globalContext);
+                // Body, headers/footers, footnotes/endnotes
+                pipeline.Process(document, globalContext);
 
                 // Loop cloning copies drawing/shape ids; make them unique again (#178)
                 DrawingIdAllocator.EnsureUniqueIds(document);
@@ -154,7 +123,7 @@ public sealed class DocumentTemplateProcessor
 
             // Return success with replacement count and warnings
             return ProcessingResult.Success(
-                replacementCount: placeholderVisitor.ReplacementCount,
+                replacementCount: pipeline.PlaceholderVisitor.ReplacementCount,
                 missingVariables: missingVariables.OrderBy(v => v).ToList(),
                 warnings: warningCollector.GetWarnings());
         }

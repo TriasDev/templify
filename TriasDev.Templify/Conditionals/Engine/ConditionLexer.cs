@@ -1,6 +1,7 @@
 // Copyright (c) 2026 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
@@ -10,10 +11,8 @@ namespace TriasDev.Templify.Conditionals.Engine;
 /// <summary>Converts a condition-expression string into a flat token list.</summary>
 internal sealed class ConditionLexer
 {
-    private static readonly HashSet<string> _wordOperators = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "and", "or", "not", "in", "contains", "startswith", "endswith", "exists", "is", "empty"
-    };
+    /// <summary>Operator keywords (<c>and</c>, <c>in</c>, <c>is</c>, <c>empty</c>, …), taken from the operator registry.</summary>
+    private static readonly FrozenSet<string> _wordOperators = ConditionOperatorRegistry.Shared.WordOperators;
 
     /// <summary>
     /// Keywords introduced in 1.7.0. Before 1.7.0 they were ordinary identifiers, so when one of them appears

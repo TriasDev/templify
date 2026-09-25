@@ -6,7 +6,7 @@ namespace TriasDev.Templify.Conditionals.Engine.Operators;
 internal abstract class ComparisonOperatorBase : IConditionOperator
 {
     public abstract IReadOnlyList<string> Tokens { get; }
-    public int Precedence => 4;
+    public int Precedence => OperatorPrecedence.Comparison;
     public OperatorFixity Fixity => OperatorFixity.Infix;
     public bool Evaluate(ConditionEvaluatorCore core, IReadOnlyList<ConditionNode> operands)
         => Compare(core, core.EvaluateValue(operands[0]), core.EvaluateValue(operands[1]));

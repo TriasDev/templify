@@ -10,7 +10,7 @@ namespace TriasDev.Templify.Conditionals.Engine.Operators;
 internal sealed class InOperator : IConditionOperator
 {
     public IReadOnlyList<string> Tokens { get; } = new[] { "in" };
-    public int Precedence => 4;
+    public int Precedence => OperatorPrecedence.Comparison;
     public OperatorFixity Fixity => OperatorFixity.Infix;
 
     public bool Evaluate(ConditionEvaluatorCore core, IReadOnlyList<ConditionNode> operands)
