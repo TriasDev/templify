@@ -201,7 +201,7 @@ public class ConditionContextTests
         Dictionary<string, object> data = new() { ["IsActive"] = true };
         IConditionContext context = _evaluator.CreateConditionContext(data);
 
-        bool result = await context.EvaluateAsync("IsActive");
+        bool result = await context.EvaluateAsync("IsActive", TestContext.Current.CancellationToken);
 
         Assert.True(result);
     }
@@ -212,8 +212,8 @@ public class ConditionContextTests
         Dictionary<string, object> data = new() { ["Count"] = 10 };
         IConditionContext context = _evaluator.CreateConditionContext(data);
 
-        Assert.True(await context.EvaluateAsync("Count > 5"));
-        Assert.False(await context.EvaluateAsync("Count < 5"));
+        Assert.True(await context.EvaluateAsync("Count > 5", TestContext.Current.CancellationToken));
+        Assert.False(await context.EvaluateAsync("Count < 5", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -222,7 +222,7 @@ public class ConditionContextTests
         Dictionary<string, object> data = new() { ["Key"] = "Value" };
         IConditionContext context = _evaluator.CreateConditionContext(data);
 
-        await Assert.ThrowsAsync<ArgumentNullException>(() => context.EvaluateAsync(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => context.EvaluateAsync(null!, TestContext.Current.CancellationToken));
     }
 
     [Fact]

@@ -573,7 +573,7 @@ This repository includes **CLAUDE.md** with comprehensive guidance for AI coding
 - **.NET 8.0, 9.0 or 10.0** (the library targets `net8.0`, `net9.0` and `net10.0`)
 - **DocumentFormat.OpenXml 3.3.0** (automatically restored)
 - **Avalonia 11.3.8** (for GUI project)
-- **xUnit** (for test project)
+- **xUnit v3** (for test projects)
 - **BenchmarkDotNet** (for benchmarks)
 
 ### Supported .NET Versions
