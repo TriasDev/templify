@@ -146,7 +146,7 @@ public sealed class DocumentTemplateProcessor
                 }
 
                 // Save changes
-                document.MainDocumentPart.Document.Save();
+                document.MainDocumentPart.Document!.Save();
             }
 
             // Return success with replacement count and warnings

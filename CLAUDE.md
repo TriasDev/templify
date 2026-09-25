@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Templify** is a .NET 10 library for replacing placeholders in Word documents (.docx) without requiring Microsoft Word. It uses the OpenXML SDK and provides a visitor pattern architecture for processing templates with placeholders (`{{variableName}}`), conditionals, and loops.
 
 **Target Framework:** .NET 10.0
-**Primary Dependency:** DocumentFormat.OpenXml 3.3.0
+**Primary Dependency:** DocumentFormat.OpenXml 3.5.1
 **Test Framework:** xUnit
 
 ## Solution Structure
@@ -48,6 +48,11 @@ dotnet build templify.sln -c Release
 # Build specific project
 dotnet build TriasDev.Templify/TriasDev.Templify.csproj
 ```
+
+### Build Configuration
+- `global.json` pins the SDK (10.0.100, `rollForward: latestFeature`).
+- `Directory.Build.props` holds shared settings (Nullable, ImplicitUsings, LangVersion, AnalysisLevel, EnforceCodeStyleInBuild). Nullable warnings are always errors; in CI (`GITHUB_ACTIONS=true` → `ContinuousIntegrationBuild`) all warnings are errors. Reproduce locally with `dotnet build templify.sln -c Release -p:ContinuousIntegrationBuild=true`.
+- `Directory.Packages.props` (Central Package Management) holds all NuGet versions; `PackageReference` items have no `Version`.
 
 ### Testing
 ```bash

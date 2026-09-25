@@ -152,7 +152,7 @@ csharp_style_prefer_range_operator = true:suggestion
 csharp_using_directive_placement = outside_namespace:warning
 
 # File header (copyright notice)
-file_header_template = Copyright (c) 2025 TriasDev GmbH & Co. KG\nLicensed under the MIT License. See LICENSE file in the project root for full license information.
+file_header_template = Copyright (c) TriasDev GmbH & Co. KG\nLicensed under the MIT License. See LICENSE file in the project root for full license information.
 
 # .NET diagnostic severity overrides
 # IDE0011: Add braces

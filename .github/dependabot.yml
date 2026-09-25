@@ -39,3 +39,23 @@ updates:
         update-types:
           - "minor"
           - "patch"
+
+  # Python dependencies for the MkDocs documentation site (requirements.txt)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Vienna"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    groups:
+      pip-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
