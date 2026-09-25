@@ -39,6 +39,30 @@ public sealed class PlaceholderReplacementOptions
     public bool EnableNewlineSupport { get; init; } = true;
 
     /// <summary>
+    /// Gets or initializes a value indicating whether markdown syntax in variable values
+    /// should be rendered as Word formatting (bold, italic, strikethrough).
+    /// Default is true.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// When enabled, any value containing <c>*</c>, <c>_</c> or <c>~</c> may be interpreted as markdown:
+    /// <c>**text**</c>/<c>__text__</c> become bold, <c>*text*</c>/<c>_text_</c> italic and
+    /// <c>~~text~~</c> strikethrough, and the markers are removed. This also affects ordinary data
+    /// such as <c>my_report_final.docx</c> (rendered as <c>myreportfinal.docx</c> with "report" in italic)
+    /// or <c>2*3*4</c> (rendered as <c>234</c>).
+    /// </para>
+    /// <para>
+    /// When disabled, values are inserted as plain text. Newline handling
+    /// (<see cref="EnableNewlineSupport"/>) is unaffected.
+    /// </para>
+    /// <para>
+    /// Individual placeholders can opt out of markdown while this option is enabled by using the
+    /// <c>:raw</c> format specifier, e.g. <c>{{FileName:raw}}</c>.
+    /// </para>
+    /// </remarks>
+    public bool EnableMarkdown { get; init; } = true;
+
+    /// <summary>
     /// Gets or initializes a value indicating whether validation should warn about empty loop collections.
     /// When true, empty collections produce a warning indicating that variables inside the loop could not be validated.
     /// When false, empty collections are silently accepted without warnings.

@@ -2,6 +2,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace TriasDev.Templify.Tests.Helpers;
@@ -26,6 +27,18 @@ public sealed class DocumentVerifier : IDisposable
         _document = WordprocessingDocument.Open(_stream, false);
         _body = _document.MainDocumentPart?.Document?.Body
             ?? throw new InvalidOperationException("Document body not found");
+    }
+
+    /// <summary>
+    /// Validates the document against the OpenXML schema and returns the error descriptions.
+    /// An empty list means the document is schema-valid.
+    /// </summary>
+    public List<string> GetValidationErrors()
+    {
+        OpenXmlValidator validator = new OpenXmlValidator();
+        return validator.Validate(_document)
+            .Select(e => $"{e.Path?.XPath}: {e.Description}")
+            .ToList();
     }
 
     /// <summary>
