@@ -2,8 +2,6 @@
 
   <PropertyGroup>
     <TargetFrameworks>net10.0;net9.0;net8.0;net6.0</TargetFrameworks>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
 
     <!-- XML Documentation -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -19,7 +17,7 @@
     <Authors>TriasDev GmbH &amp; Co. KG</Authors>
     <Company>TriasDev GmbH &amp; Co. KG</Company>
     <Description>High-performance templating engine for .NET. Process Word documents (.docx) and plain text templates with the same powerful syntax. Replace placeholders, evaluate conditionals, and process loops without Microsoft Word. Built on OpenXML SDK with 100% test coverage.</Description>
-    <Copyright>Copyright © 2025 TriasDev GmbH &amp; Co. KG</Copyright>
+    <Copyright>Copyright © TriasDev GmbH &amp; Co. KG</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/TriasDev/templify</PackageProjectUrl>
     <RepositoryUrl>https://github.com/TriasDev/templify</RepositoryUrl>
@@ -32,13 +30,19 @@
          Any breaking change fails `dotnet pack`. Bump the baseline after each release. -->
     <EnablePackageValidation>true</EnablePackageValidation>
     <PackageValidationBaselineVersion>1.7.0</PackageValidationBaselineVersion>
+
+    <!-- Symbols and Source Link -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DocumentFormat.OpenXml" Version="3.5.1"/>
+    <PackageReference Include="DocumentFormat.OpenXml" />
     <!-- Tracks the public API in PublicAPI.Shipped.txt / PublicAPI.Unshipped.txt (RS0016/RS0017).
          See CONTRIBUTING.md -> "Public API Compatibility" -->
-    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0">
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

@@ -41,7 +41,7 @@ public class ConditionalConverterTests
         stream.Position = 0;
         using (WordprocessingDocument doc = WordprocessingDocument.Open(stream, true))
         {
-            Body body = doc.MainDocumentPart!.Document.Body!;
+            Body body = doc.MainDocumentPart!.Document!.Body!;
             SdtBlock sdt = body.Elements<SdtBlock>().First();
 
             ConditionalConverter converter = new ConditionalConverter();
@@ -54,7 +54,7 @@ public class ConditionalConverterTests
         stream.Position = 0;
         using (WordprocessingDocument doc = WordprocessingDocument.Open(stream, false))
         {
-            Body body = doc.MainDocumentPart!.Document.Body!;
+            Body body = doc.MainDocumentPart!.Document!.Body!;
             string bodyText = body.InnerText;
 
             // Should generate: {{#if not field}}Content{{/if}}
@@ -92,7 +92,7 @@ public class ConditionalConverterTests
         stream.Position = 0;
         using (WordprocessingDocument doc = WordprocessingDocument.Open(stream, true))
         {
-            Body body = doc.MainDocumentPart!.Document.Body!;
+            Body body = doc.MainDocumentPart!.Document!.Body!;
             SdtBlock sdt = body.Elements<SdtBlock>().First();
 
             ConditionalConverter converter = new ConditionalConverter();
@@ -103,7 +103,7 @@ public class ConditionalConverterTests
         stream.Position = 0;
         using (WordprocessingDocument doc = WordprocessingDocument.Open(stream, false))
         {
-            Body body = doc.MainDocumentPart!.Document.Body!;
+            Body body = doc.MainDocumentPart!.Document!.Body!;
             string bodyText = body.InnerText;
 
             // Should generate: {{#if key = "other"}}Content{{/if}}
@@ -139,7 +139,7 @@ public class ConditionalConverterTests
         stream.Position = 0;
         using (WordprocessingDocument doc = WordprocessingDocument.Open(stream, true))
         {
-            Body body = doc.MainDocumentPart!.Document.Body!;
+            Body body = doc.MainDocumentPart!.Document!.Body!;
             SdtBlock sdt = body.Elements<SdtBlock>().First();
 
             ConditionalConverter converter = new ConditionalConverter();
@@ -150,7 +150,7 @@ public class ConditionalConverterTests
         stream.Position = 0;
         using (WordprocessingDocument doc = WordprocessingDocument.Open(stream, false))
         {
-            Body body = doc.MainDocumentPart!.Document.Body!;
+            Body body = doc.MainDocumentPart!.Document!.Body!;
             string bodyText = body.InnerText;
 
             // Should generate: {{#if key != "other"}}Content{{/if}}
@@ -187,7 +187,7 @@ public class ConditionalConverterTests
         stream.Position = 0;
         using (WordprocessingDocument doc = WordprocessingDocument.Open(stream, true))
         {
-            Body body = doc.MainDocumentPart!.Document.Body!;
+            Body body = doc.MainDocumentPart!.Document!.Body!;
             SdtBlock sdt = body.Elements<SdtBlock>().First();
 
             ConditionalConverter converter = new ConditionalConverter();
@@ -198,7 +198,7 @@ public class ConditionalConverterTests
         stream.Position = 0;
         using (WordprocessingDocument doc = WordprocessingDocument.Open(stream, false))
         {
-            Body body = doc.MainDocumentPart!.Document.Body!;
+            Body body = doc.MainDocumentPart!.Document!.Body!;
             string bodyText = body.InnerText;
 
             // Should generate: {{#if not key = "other"}}Content{{/if}}
@@ -237,7 +237,7 @@ public class ConditionalConverterTests
         stream.Position = 0;
         using (WordprocessingDocument doc = WordprocessingDocument.Open(stream, true))
         {
-            Body body = doc.MainDocumentPart!.Document.Body!;
+            Body body = doc.MainDocumentPart!.Document!.Body!;
             SdtBlock sdt = body.Elements<SdtBlock>().First();
 
             ConditionalConverter converter = new ConditionalConverter();
@@ -248,7 +248,7 @@ public class ConditionalConverterTests
         stream.Position = 0;
         using (WordprocessingDocument doc = WordprocessingDocument.Open(stream, false))
         {
-            Body body = doc.MainDocumentPart!.Document.Body!;
+            Body body = doc.MainDocumentPart!.Document!.Body!;
             string bodyText = body.InnerText;
 
             // Should generate: {{#if count > 5}}Content{{/if}}
@@ -286,7 +286,7 @@ public class ConditionalConverterTests
         stream.Position = 0;
         using (WordprocessingDocument doc = WordprocessingDocument.Open(stream, true))
         {
-            Body body = doc.MainDocumentPart!.Document.Body!;
+            Body body = doc.MainDocumentPart!.Document!.Body!;
             SdtBlock sdt = body.Elements<SdtBlock>().First();
 
             ConditionalConverter converter = new ConditionalConverter();
@@ -297,7 +297,7 @@ public class ConditionalConverterTests
         stream.Position = 0;
         using (WordprocessingDocument doc = WordprocessingDocument.Open(stream, false))
         {
-            Body body = doc.MainDocumentPart!.Document.Body!;
+            Body body = doc.MainDocumentPart!.Document!.Body!;
             string bodyText = body.InnerText;
 
             // Should generate: {{#if field}}Content{{/if}}
@@ -333,7 +333,7 @@ public class ConditionalConverterTests
         stream.Position = 0;
         using (WordprocessingDocument doc = WordprocessingDocument.Open(stream, true))
         {
-            Body body = doc.MainDocumentPart!.Document.Body!;
+            Body body = doc.MainDocumentPart!.Document!.Body!;
             SdtBlock sdt = body.Elements<SdtBlock>().First();
 
             ConditionalConverter converter = new ConditionalConverter();

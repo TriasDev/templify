@@ -21,16 +21,15 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        dotnet-version: ['6.0.x', '8.0.x', '9.0.x', '10.0.x']
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Setup .NET ${{ matrix.dotnet-version }}
+      - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ matrix.dotnet-version }}
+          global-json-file: global.json
 
       - name: Restore dependencies
         run: dotnet restore
@@ -42,7 +41,7 @@ jobs:
         run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage"
 
       - name: Upload coverage to Codecov
-        if: matrix.os == 'ubuntu-latest' && matrix.dotnet-version == '10.0.x'
+        if: matrix.os == 'ubuntu-latest'
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           files: '**/coverage.cobertura.xml'
@@ -58,7 +57,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: global.json
 
       - name: Restore dependencies
         run: dotnet restore
@@ -93,7 +92,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: global.json
 
       - name: Verify culture and time zone apply to .NET
         working-directory: ${{ runner.temp }}
@@ -132,7 +131,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: global.json
 
       - name: Restore dependencies
         run: dotnet restore
@@ -147,7 +146,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: nuget-package
-          path: ./artifacts/*.nupkg
+          path: |
+            ./artifacts/*.nupkg
+            ./artifacts/*.snupkg
           retention-days: 7
 
   # Single aggregate status for branch protection: require only "CI Success"

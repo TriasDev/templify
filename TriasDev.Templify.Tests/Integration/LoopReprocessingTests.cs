@@ -198,7 +198,7 @@ public sealed class LoopReprocessingTests
     private static string BodyText(MemoryStream output)
     {
         using WordprocessingDocument doc = WordprocessingDocument.Open(output, false);
-        return string.Join("|", doc.MainDocumentPart!.Document.Body!
+        return string.Join("|", doc.MainDocumentPart!.Document!.Body!
             .Descendants<Paragraph>()
             .Select(p => p.InnerText));
     }
