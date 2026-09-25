@@ -153,13 +153,7 @@ public class TemplateConverter
                 switch (tag.Type)
                 {
                     case ControlType.Variable:
-                        if (string.Equals(tag.VariablePath, "index", StringComparison.OrdinalIgnoreCase)
-                            && HasRepeatingAncestor(sdt))
-                        {
-                            warnings.Add($"{tagValue}: OpenXMLTemplates 'index' is the 1-based item number; Templify provides the 0-based {{{{@index}}}} — review");
-                        }
-
-                        _variableConverter.Convert(sdt, tag);
+                        _variableConverter.Convert(sdt, tag, GetLoopItemNumberSyntax(sdt, tag));
                         break;
                     case ControlType.Conditional:
                         _conditionalConverter.Convert(sdt, tag, warnings);
@@ -194,6 +188,20 @@ public class TemplateConverter
                 });
             }
         }
+    }
+
+    /// <summary>
+    /// OpenXMLTemplates' <c>variable_index</c> inside a repeating control is the 1-based item
+    /// number, which is Templify's <c>{{@number}}</c> (not the 0-based <c>{{@index}}</c>).
+    /// </summary>
+    /// <returns>The Templify placeholder to use instead of the parsed syntax, or null.</returns>
+    internal static string? GetLoopItemNumberSyntax(SdtElement sdt, OpenXmlTemplatesTag tag)
+    {
+        return tag.Type == ControlType.Variable
+            && string.Equals(tag.VariablePath, "index", StringComparison.OrdinalIgnoreCase)
+            && HasRepeatingAncestor(sdt)
+                ? "{{@number}}"
+                : null;
     }
 
     private static bool HasRepeatingAncestor(SdtElement sdt)
