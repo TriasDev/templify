@@ -50,10 +50,7 @@ internal sealed class CompositeVisitor : ITemplateElementVisitor
 
     public CompositeVisitor(IEnumerable<ITemplateElementVisitor> visitors)
     {
-        if (visitors == null)
-        {
-            throw new ArgumentNullException(nameof(visitors));
-        }
+        ArgumentNullException.ThrowIfNull(visitors);
 
         _visitors = visitors.ToList();
 

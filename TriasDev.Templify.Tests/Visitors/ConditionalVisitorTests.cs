@@ -346,7 +346,6 @@ public sealed class ConditionalVisitorTests
             contentElements: content,
             startMarker: startMarker,
             endMarker: endMarker,
-            isTableRowLoop: false,
-            emptyBlock: null);
+            isTableRowLoop: false);
     }
 }

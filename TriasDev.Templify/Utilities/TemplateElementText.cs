@@ -37,6 +37,14 @@ internal static class TemplateElementText
     }
 
     /// <summary>
+    /// Gets the text in which loop and conditional markers are detected for an element of a
+    /// block container: the own text of paragraphs, table rows and table cells; <see langword="null"/>
+    /// for other elements (tables, content controls, …), which carry no markers of their own.
+    /// </summary>
+    public static string? GetMarkerText(OpenXmlElement element) =>
+        element is Paragraph or TableRow or TableCell ? GetOwnText(element) : null;
+
+    /// <summary>
     /// Gets the cells of a row in document order, including cells wrapped in cell-level
     /// content controls (<c>w:sdt</c> around <c>w:tc</c>); cells of nested tables belong
     /// to their own rows and are not included.

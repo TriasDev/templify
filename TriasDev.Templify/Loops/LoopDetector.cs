@@ -2,7 +2,6 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Text.RegularExpressions;
 using TriasDev.Templify.Core;
@@ -45,14 +44,6 @@ internal static class LoopDetector
         ForeachEndPattern,
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-    private static readonly Regex _emptyStartPattern = new Regex(
-        @"\{\{#empty\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-
-    private static readonly Regex _emptyEndPattern = new Regex(
-        @"\{\{/empty\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-
     /// <summary>
     /// Validates an iteration variable name and throws if invalid.
     /// </summary>
@@ -78,31 +69,6 @@ internal static class LoopDetector
                 $"Invalid iteration variable name '{variableName}' in '{{{{#foreach {variableName} in {collectionName}}}}}'. " +
                 $"Iteration variable names cannot start with '@' as this is reserved for loop metadata.");
         }
-    }
-
-    /// <summary>
-    /// Detects all loop blocks in the document body.
-    /// </summary>
-    public static IReadOnlyList<LoopBlock> DetectLoops(WordprocessingDocument document)
-    {
-        if (document.MainDocumentPart?.Document?.Body == null)
-        {
-            return Array.Empty<LoopBlock>();
-        }
-
-        Body body = document.MainDocumentPart.Document.Body;
-        List<LoopBlock> loops = new List<LoopBlock>();
-
-        // First, detect paragraph-level loops
-        loops.AddRange(DetectLoopsInElements(body.Elements<OpenXmlElement>().ToList()));
-
-        // Second, detect table row loops within tables
-        foreach (Table table in body.Elements<Table>())
-        {
-            loops.AddRange(DetectTableRowLoops(table));
-        }
-
-        return loops;
     }
 
     /// <summary>
@@ -171,8 +137,7 @@ internal static class LoopDetector
                         contentElements,
                         element,
                         elements[endIndex],
-                        isTableRowLoop: false,
-                        emptyBlock: null);
+                        isTableRowLoop: false);
 
                     loops.Add(loopBlock);
 
@@ -241,46 +206,13 @@ internal static class LoopDetector
     }
 
     /// <summary>
-    /// Gets the text content of an element (paragraph, table cell, or structured document tag).
+    /// Gets the marker text of an element: paragraphs, table rows and cells as for conditionals,
+    /// plus content controls (a block content control can hold loop markers).
     /// </summary>
-    private static string? GetElementText(OpenXmlElement element)
-    {
-        if (element is Paragraph paragraph)
-        {
-            // The paragraph's own text: excludes text boxes (walked as separate containers)
-            // and field instructions.
-            return ParagraphTextModel.GetText(paragraph);
-        }
-
-        // Handle SdtElement (Structured Document Tags) which can contain content controls
-        // These can have loop markers and need to be checked
-        if (element is TableRow or TableCell or SdtElement)
-        {
-            return TemplateElementText.GetOwnText(element);
-        }
-
-        // For tables, don't return text - they're handled separately
-        if (element is Table)
-        {
-            return null;
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Checks if an element contains a loop marker.
-    /// </summary>
-    public static bool ContainsLoopMarker(OpenXmlElement element)
-    {
-        string? text = GetElementText(element);
-        if (text == null)
-        {
-            return false;
-        }
-
-        return _foreachStartPattern.IsMatch(text) || _foreachEndPattern.IsMatch(text);
-    }
+    private static string? GetElementText(OpenXmlElement element) =>
+        element is SdtElement
+            ? TemplateElementText.GetOwnText(element)
+            : TemplateElementText.GetMarkerText(element);
 
     /// <summary>
     /// Detects table row loops within a table.
@@ -358,8 +290,7 @@ internal static class LoopDetector
                         contentRows,
                         rows[i],      // Start marker row
                         rows[endIndex], // End marker row
-                        isTableRowLoop: true,
-                        emptyBlock: null);
+                        isTableRowLoop: true);
 
                     loops.Add(loopBlock);
 
