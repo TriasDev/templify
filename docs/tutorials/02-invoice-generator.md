@@ -10,9 +10,9 @@
 
 - Working with collections (lists, arrays)
 - Using loops to repeat content
-- Loop special variables (`@index`, `@first`, `@last`, `@count`)
+- Loop special variables (`@index`, `@number`, `@first`, `@last`, `@count`)
 - Creating dynamic tables with row loops
-- Combining nested data with loops
+- Formatting numbers and dates in the template
 - Building a real-world invoice template
 
 ---
@@ -22,28 +22,30 @@
 Build a complete invoice generator that produces professional invoices like this:
 
 ```
-INVOICE #INV-2025-001                          Date: January 15, 2025
+INVOICE #INV-2025-001                          Date: 15.01.2025
 
-Bill To:                                      Ship To:
-Acme Corporation                              Acme Warehouse
-123 Main Street                               456 Storage Lane
-Springfield, IL 62701                         Springfield, IL 62702
+Bill To:
+Acme Corporation
+123 Main Street
+Springfield, IL 62701
 
 Line Items:
-┌────┬──────────────────────┬─────────┬──────────┬───────────┐
-│ #  │ Description          │ Qty     │ Price    │ Total     │
-├────┼──────────────────────┼─────────┼──────────┼───────────┤
-│ 1  │ Software License     │ 5       │ €499.00  │ €2,495.00 │
-│ 2  │ Support & Maintenance│ 5       │ €99.00   │ €495.00   │
-│ 3  │ Training Package     │ 2       │ €250.00  │ €500.00   │
-└────┴──────────────────────┴─────────┴──────────┴───────────┘
+┌────┬───────────────────────────────┬─────┬──────────┬────────────┐
+│ #  │ Description                   │ Qty │ Price    │ Total      │
+├────┼───────────────────────────────┼─────┼──────────┼────────────┤
+│ 1  │ Software Enterprise License   │ 5   │ 499,00 € │ 2.495,00 € │
+│ 2  │ Support & Maintenance (Annual)│ 5   │ 99,00 €  │ 495,00 €   │
+│ 3  │ Training Package (2 days)     │ 2   │ 250,00 € │ 500,00 €   │
+└────┴───────────────────────────────┴─────┴──────────┴────────────┘
 
-                                              Subtotal: €3,490.00
-                                                   Tax: €663.10
-                                                 Total: €4,153.10
+                                              Subtotal: 3.490,00 €
+                                                   Tax: 663,10 €
+                                                 Total: 4.153,10 €
 
 Payment due within 30 days.
 ```
+
+The numbers use German formatting because the processor is configured with the `de-DE` culture (Step 6).
 
 ---
 
@@ -53,10 +55,10 @@ Before building the invoice, let's understand how loops work.
 
 ### Basic Loop Syntax
 
-**Template**:
+**Template** (each marker in its own paragraph):
 ```
 {{#foreach Items}}
-- {{Name}}
+- {{.}}
 {{/foreach}}
 ```
 
@@ -71,6 +73,11 @@ Before building the invoice, let's understand how loops work.
 - Banana
 - Cherry
 ```
+
+For a collection of simple values such as strings, `{{.}}` (or `{{this}}`) is the current item.
+
+The `{{#foreach}}` and `{{/foreach}}` markers must each be in a paragraph of their own: the paragraphs containing
+the markers are removed from the output, including any other text in them.
 
 ### Loop with Objects
 
@@ -91,12 +98,15 @@ Before building the invoice, let's understand how loops work.
 }
 ```
 
-**Output**:
+**Output** (with an English culture; see [Format Specifiers](../for-template-authors/format-specifiers.md)):
 ```
 Laptop: 999.00 EUR
-Mouse: 29.00m EUR
+Mouse: 29.00 EUR
 Keyboard: 79.00 EUR
 ```
+
+Inside the loop, `{{Name}}` and `{{Price}}` are properties of the current item. Names that the item does not have
+are looked up in the outer data.
 
 ---
 
@@ -107,18 +117,27 @@ Inside loops, you have access to special variables:
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `@index` | Current position (0-based) | 0, 1, 2, ... |
-| `@first` | True for first item | true, false, false, ... |
-| `@last` | True for last item | false, false, true |
-| `@count` | Total number of items | 3, 3, 3, ... |
+| `@number` | Current position (1-based) | 1, 2, 3, ... |
+| `@first` | True for first item | True, False, False |
+| `@last` | True for last item | False, False, True |
+| `@count` | Total number of items | 3, 3, 3 |
 
 **Template Example**:
 ```
 {{#foreach Items}}
-Item {{@index}}: {{Name}}{{#if @last}} (final item){{/if}}
+Item {{@number}} of {{@count}}: {{.}}{{#if @last}} (final item){{/if}}
 {{/foreach}}
-
-Total items: {{@count}}
 ```
+
+**Output**:
+```
+Item 1 of 3: Apple
+Item 2 of 3: Banana
+Item 3 of 3: Cherry (final item)
+```
+
+These variables only exist inside a loop. Outside a loop, `{{@count}}` is a missing variable; to print the
+number of items there, use the collection's `Count` property: `{{Items.Count}}`.
 
 ---
 
@@ -127,7 +146,7 @@ Total items: {{@count}}
 Open Word and create `invoice-template.docx`:
 
 ```
-INVOICE #{{InvoiceNumber}}                    Date: {{InvoiceDate}}
+INVOICE #{{InvoiceNumber}}                    Date: {{InvoiceDate:date:dd.MM.yyyy}}
 
 Bill To:
 {{BillTo.CompanyName}}
@@ -137,23 +156,26 @@ Bill To:
 Line Items:
 ```
 
-Now create a table with this structure:
+Now create a table with this structure. The loop markers go into **their own rows**; Templify repeats the rows
+between them for each item and removes the marker rows:
 
 | # | Description | Quantity | Unit Price | Total |
 |---|-------------|----------|------------|-------|
 | {{#foreach LineItems}} | | | | |
-| {{Position}} | {{Description}} | {{Quantity}} | {{UnitPrice}} | {{LineTotal}} |
+| {{@number}} | {{Description}} | {{Quantity}} | {{UnitPrice:currency}} | {{LineTotal:currency}} |
 | {{/foreach}} | | | | |
 
 After the table, add:
 
 ```
-                                              Subtotal: {{Subtotal}}
-                                                   Tax: {{Tax}}
-                                                 Total: {{Total}}
+                                              Subtotal: {{Subtotal:currency}}
+                                                   Tax: {{Tax:currency}}
+                                                 Total: {{Total:currency}}
 
 {{PaymentTerms}}
 ```
+
+`:currency` and `:date:...` format numbers and dates with the processor's culture, so the data can stay numeric.
 
 ---
 
@@ -162,32 +184,31 @@ After the table, add:
 ```csharp
 public class Invoice
 {
-    public string InvoiceNumber { get; set; }
-    public string InvoiceDate { get; set; }
-    public Address BillTo { get; set; }
-    public List<LineItem> LineItems { get; set; }
-    public string Subtotal { get; set; }
-    public string Tax { get; set; }
-    public string Total { get; set; }
-    public string PaymentTerms { get; set; }
+    public string InvoiceNumber { get; set; } = "";
+    public DateTime InvoiceDate { get; set; }
+    public Address BillTo { get; set; } = new();
+    public List<LineItem> LineItems { get; set; } = new();
+    public decimal Subtotal { get; set; }
+    public decimal Tax { get; set; }
+    public decimal Total { get; set; }
+    public string PaymentTerms { get; set; } = "";
 }
 
 public class Address
 {
-    public string CompanyName { get; set; }
-    public string Street { get; set; }
-    public string City { get; set; }
-    public string State { get; set; }
-    public string Zip { get; set; }
+    public string CompanyName { get; set; } = "";
+    public string Street { get; set; } = "";
+    public string City { get; set; } = "";
+    public string State { get; set; } = "";
+    public string Zip { get; set; } = "";
 }
 
 public class LineItem
 {
-    public int Position { get; set; }
-    public string Description { get; set; }
+    public string Description { get; set; } = "";
     public int Quantity { get; set; }
-    public string UnitPrice { get; set; }
-    public string LineTotal { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal LineTotal => Quantity * UnitPrice;
 }
 ```
 
@@ -195,55 +216,44 @@ public class LineItem
 
 ## Step 5: Generate Invoice Data
 
-```csharp
-public static Invoice CreateSampleInvoice()
-{
-    var lineItems = new List<LineItem>
-    {
-        new LineItem
-        {
-            Position = 1,
-            Description = "Software Enterprise License",
-            Quantity = 5,
-            UnitPrice = "€499.00",
-            LineTotal = "€2,495.00"
-        },
-        new LineItem
-        {
-            Position = 2,
-            Description = "Support & Maintenance (Annual)",
-            Quantity = 5,
-            UnitPrice = "€99.00",
-            LineTotal = "€495.00"
-        },
-        new LineItem
-        {
-            Position = 3,
-            Description = "Training Package (2 days)",
-            Quantity = 2,
-            UnitPrice = "€250.00",
-            LineTotal = "€500.00"
-        }
-    };
+Calculations belong in code; the template only displays the results:
 
-    return new Invoice
+```csharp
+public static class InvoiceFactory
+{
+    private const decimal TaxRate = 0.19m; // 19% VAT
+
+    public static Invoice CreateSampleInvoice()
     {
-        InvoiceNumber = "INV-2025-001",
-        InvoiceDate = DateTime.Now.ToString("MMMM dd, yyyy"),
-        BillTo = new Address
+        var lineItems = new List<LineItem>
         {
-            CompanyName = "Acme Corporation",
-            Street = "123 Main Street",
-            City = "Springfield",
-            State = "IL",
-            Zip = "62701"
-        },
-        LineItems = lineItems,
-        Subtotal = "€3,490.00",
-        Tax = "€663.10",
-        Total = "€4,153.10",
-        PaymentTerms = "Payment due within 30 days. Thank you for your business!"
-    };
+            new LineItem { Description = "Software Enterprise License", Quantity = 5, UnitPrice = 499.00m },
+            new LineItem { Description = "Support & Maintenance (Annual)", Quantity = 5, UnitPrice = 99.00m },
+            new LineItem { Description = "Training Package (2 days)", Quantity = 2, UnitPrice = 250.00m }
+        };
+
+        decimal subtotal = lineItems.Sum(item => item.LineTotal);
+        decimal tax = Math.Round(subtotal * TaxRate, 2);
+
+        return new Invoice
+        {
+            InvoiceNumber = "INV-2025-001",
+            InvoiceDate = new DateTime(2025, 1, 15),
+            BillTo = new Address
+            {
+                CompanyName = "Acme Corporation",
+                Street = "123 Main Street",
+                City = "Springfield",
+                State = "IL",
+                Zip = "62701"
+            },
+            LineItems = lineItems,
+            Subtotal = subtotal,
+            Tax = tax,
+            Total = subtotal + tax,
+            PaymentTerms = "Payment due within 30 days. Thank you for your business!"
+        };
+    }
 }
 ```
 
@@ -252,14 +262,78 @@ public static Invoice CreateSampleInvoice()
 ## Step 6: Process the Invoice
 
 ```csharp
-using TriasDev.Templify;
+using System.Globalization;
+using TriasDev.Templify.Core;
 
-public class Program
+Invoice invoice = InvoiceFactory.CreateSampleInvoice();
+
+var data = new Dictionary<string, object>
 {
-    public static void Main()
-    {
-        var invoice = CreateSampleInvoice();
+    ["InvoiceNumber"] = invoice.InvoiceNumber,
+    ["InvoiceDate"] = invoice.InvoiceDate,
+    ["BillTo"] = invoice.BillTo,
+    ["LineItems"] = invoice.LineItems,
+    ["Subtotal"] = invoice.Subtotal,
+    ["Tax"] = invoice.Tax,
+    ["Total"] = invoice.Total,
+    ["PaymentTerms"] = invoice.PaymentTerms
+};
 
+var processor = new DocumentTemplateProcessor(new PlaceholderReplacementOptions
+{
+    Culture = CultureInfo.GetCultureInfo("de-DE")
+});
+
+using var templateStream = File.OpenRead("invoice-template.docx");
+using var outputStream = File.Create($"invoice-{invoice.InvoiceNumber}.docx");
+
+ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+if (result.IsSuccess)
+{
+    Console.WriteLine($"✓ Invoice {invoice.InvoiceNumber} generated!");
+    Console.WriteLine($"  Line items: {invoice.LineItems.Count}");
+    Console.WriteLine($"  Total: {invoice.Total:C}");
+}
+else
+{
+    Console.WriteLine($"✗ Error: {result.ErrorMessage}");
+}
+```
+
+Place the classes from Step 4 and Step 5 after these statements in `Program.cs` (or in separate files).
+
+---
+
+## Step 7: Formatting Choices
+
+The template decides how values look; the data stays typed:
+
+| Template | Value | Output (`de-DE`) | Output (`en-US`) |
+|----------|-------|------------------|------------------|
+| `{{Total:currency}}` | `4153.10m` | `4.153,10 €` | `$4,153.10` |
+| `{{Total:number:N2}}` | `4153.10m` | `4.153,10` | `4,153.10` |
+| `{{InvoiceDate:date:dd.MM.yyyy}}` | `2025-01-15` | `15.01.2025` | `15.01.2025` |
+| `{{InvoiceDate:date:MMMM d, yyyy}}` | `2025-01-15` | `Januar 15, 2025` | `January 15, 2025` |
+
+Format specifiers only apply to values of the matching type: a value that is already a string (for example
+`"€499.00"`) is inserted as it is. If you need a format that the specifiers cannot express, format the value in
+code and pass the string. See [Format Specifiers](../for-template-authors/format-specifiers.md) for the full list.
+
+---
+
+## Step 8: Batch Invoice Generation
+
+Generate multiple invoices at once. The processor can be reused (and shared between threads):
+
+```csharp
+public static void GenerateInvoices(DocumentTemplateProcessor processor, IEnumerable<Invoice> invoices)
+{
+    Directory.CreateDirectory("invoices");
+    byte[] template = File.ReadAllBytes("invoice-template.docx");
+
+    foreach (Invoice invoice in invoices)
+    {
         var data = new Dictionary<string, object>
         {
             ["InvoiceNumber"] = invoice.InvoiceNumber,
@@ -272,141 +346,17 @@ public class Program
             ["PaymentTerms"] = invoice.PaymentTerms
         };
 
-        var processor = new DocumentTemplateProcessor();
+        // Bytes in, bytes out: the template is read once
+        ProcessingResult result = processor.ProcessTemplate(template, data, out byte[] output);
 
-        using var templateStream = File.OpenRead("invoice-template.docx");
-        using var outputStream = File.Create($"invoice-{invoice.InvoiceNumber}.docx");
-
-        var result = processor.ProcessTemplate(templateStream, outputStream, data);
-
-        if (result.IsSuccessful)
+        if (result.IsSuccess)
         {
-            Console.WriteLine($"✓ Invoice {invoice.InvoiceNumber} generated!");
-            Console.WriteLine($"  Line items: {invoice.LineItems.Count}");
-            Console.WriteLine($"  Total: {invoice.Total}");
+            File.WriteAllBytes($"invoices/invoice-{invoice.InvoiceNumber}.docx", output);
+            Console.WriteLine($"✓ Generated: {invoice.InvoiceNumber}");
         }
         else
         {
-            Console.WriteLine($"✗ Error: {string.Join(", ", result.Errors)}");
-        }
-    }
-}
-```
-
----
-
-## Step 7: Adding Calculations
-
-For real-world use, calculate values in code:
-
-```csharp
-public class InvoiceCalculator
-{
-    public static Invoice CreateInvoice(List<LineItem> items)
-    {
-        decimal subtotal = 0;
-
-        for (int i = 0; i < items.Count; i++)
-        {
-            var item = items[i];
-            item.Position = i + 1;
-
-            // Calculate line total
-            decimal lineTotal = item.QuantityValue * item.UnitPriceValue;
-            item.LineTotal = FormatCurrency(lineTotal);
-
-            subtotal += lineTotal;
-        }
-
-        decimal taxRate = 0.19m; // 19% VAT
-        decimal tax = subtotal * taxRate;
-        decimal total = subtotal + tax;
-
-        return new Invoice
-        {
-            InvoiceNumber = GenerateInvoiceNumber(),
-            InvoiceDate = DateTime.Now.ToString("MMMM dd, yyyy"),
-            LineItems = items,
-            Subtotal = FormatCurrency(subtotal),
-            Tax = FormatCurrency(tax),
-            Total = FormatCurrency(total),
-            PaymentTerms = "Payment due within 30 days."
-        };
-    }
-
-    private static string GenerateInvoiceNumber()
-    {
-        return $"INV-{DateTime.Now:yyyy}-{Random.Shared.Next(1000, 9999)}";
-    }
-
-    private static string FormatCurrency(decimal amount)
-    {
-        return amount.ToString("C", CultureInfo.GetCultureInfo("de-DE")); // €1.234,56
-    }
-}
-
-// Updated LineItem class with decimal properties
-public class LineItem
-{
-    public int Position { get; set; }
-    public string Description { get; set; }
-    public int QuantityValue { get; set; }
-    public decimal UnitPriceValue { get; set; }
-
-    // Formatted strings for template
-    public string Quantity => QuantityValue.ToString();
-    public string UnitPrice { get; set; }
-    public string LineTotal { get; set; }
-}
-```
-
----
-
-## Step 8: Batch Invoice Generation
-
-Generate multiple invoices at once:
-
-```csharp
-public static void GenerateInvoicesForCustomers(List<Customer> customers)
-{
-    var processor = new DocumentTemplateProcessor();
-
-    foreach (var customer in customers)
-    {
-        try
-        {
-            var invoice = CreateInvoiceForCustomer(customer);
-
-            var data = new Dictionary<string, object>
-            {
-                ["InvoiceNumber"] = invoice.InvoiceNumber,
-                ["InvoiceDate"] = invoice.InvoiceDate,
-                ["BillTo"] = invoice.BillTo,
-                ["LineItems"] = invoice.LineItems,
-                ["Subtotal"] = invoice.Subtotal,
-                ["Tax"] = invoice.Tax,
-                ["Total"] = invoice.Total,
-                ["PaymentTerms"] = invoice.PaymentTerms
-            };
-
-            using var templateStream = File.OpenRead("invoice-template.docx");
-            var outputPath = $"invoices/invoice-{invoice.InvoiceNumber}.docx");
-            using var outputStream = File.Create(outputPath);
-
-            var result = processor.ProcessTemplate(templateStream, outputStream, data);
-
-            if (result.IsSuccessful)
-            {
-                Console.WriteLine($"✓ Generated: {invoice.InvoiceNumber}");
-            }
-            else
-            {
-                Console.WriteLine($"✗ Failed: {customer.Name} - {string.Join(", ", result.Errors)}");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"✗ Error for {customer.Name}: {ex.Message}");
+            Console.WriteLine($"✗ Failed: {invoice.InvoiceNumber} - {result.ErrorMessage}");
         }
     }
 }
@@ -418,7 +368,7 @@ public static void GenerateInvoicesForCustomers(List<Customer> customers)
 
 ```csharp
 using System.Globalization;
-using TriasDev.Templify;
+using TriasDev.Templify.Core;
 
 public class InvoiceGenerator
 {
@@ -427,47 +377,48 @@ public class InvoiceGenerator
 
     public InvoiceGenerator(string templatePath)
     {
-        _processor = new DocumentTemplateProcessor();
+        _processor = new DocumentTemplateProcessor(new PlaceholderReplacementOptions
+        {
+            Culture = CultureInfo.GetCultureInfo("de-DE")
+        });
         _templatePath = templatePath;
     }
 
     public bool GenerateInvoice(Invoice invoice, string outputPath)
     {
+        var data = new Dictionary<string, object>
+        {
+            ["InvoiceNumber"] = invoice.InvoiceNumber,
+            ["InvoiceDate"] = invoice.InvoiceDate,
+            ["BillTo"] = invoice.BillTo,
+            ["LineItems"] = invoice.LineItems,
+            ["Subtotal"] = invoice.Subtotal,
+            ["Tax"] = invoice.Tax,
+            ["Total"] = invoice.Total,
+            ["PaymentTerms"] = invoice.PaymentTerms
+        };
+
         try
         {
-            var data = new Dictionary<string, object>
+            // Writes the output file only when processing succeeds
+            ProcessingResult result = _processor.ProcessTemplateFile(_templatePath, outputPath, data);
+
+            if (!result.IsSuccess)
             {
-                ["InvoiceNumber"] = invoice.InvoiceNumber,
-                ["InvoiceDate"] = invoice.InvoiceDate,
-                ["BillTo"] = invoice.BillTo,
-                ["LineItems"] = invoice.LineItems,
-                ["Subtotal"] = invoice.Subtotal,
-                ["Tax"] = invoice.Tax,
-                ["Total"] = invoice.Total,
-                ["PaymentTerms"] = invoice.PaymentTerms
-            };
-
-            using var templateStream = File.OpenRead(_templatePath);
-            using var outputStream = File.Create(outputPath);
-
-            var result = _processor.ProcessTemplate(templateStream, outputStream, data);
-
-            if (!result.IsSuccessful)
-            {
-                Console.WriteLine($"Invoice generation failed: {string.Join(", ", result.Errors)}");
+                Console.WriteLine($"Invoice generation failed: {result.ErrorMessage}");
                 return false;
             }
 
-            if (result.MissingVariables.Any())
+            if (result.MissingVariables.Count > 0)
             {
                 Console.WriteLine($"Warning - missing variables: {string.Join(", ", result.MissingVariables)}");
             }
 
             return true;
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
-            Console.WriteLine($"Error generating invoice: {ex.Message}");
+            Console.WriteLine($"Error reading or writing files: {ex.Message}");
             return false;
         }
     }
@@ -475,11 +426,12 @@ public class InvoiceGenerator
 
 // Usage
 var generator = new InvoiceGenerator("templates/invoice-template.docx");
-var invoice = InvoiceCalculator.CreateInvoice(GetLineItems());
+Invoice invoice = InvoiceFactory.CreateSampleInvoice();
 
+Directory.CreateDirectory("output");
 if (generator.GenerateInvoice(invoice, $"output/invoice-{invoice.InvoiceNumber}.docx"))
 {
-    Console.WriteLine($"✓ Invoice generated successfully!");
+    Console.WriteLine("✓ Invoice generated successfully!");
 }
 ```
 
@@ -489,10 +441,10 @@ if (generator.GenerateInvoice(invoice, $"output/invoice-{invoice.InvoiceNumber}.
 
 ✅ **Collections** - Working with lists and arrays
 ✅ **Loops** - Repeating content with `{{#foreach}}`
-✅ **Loop variables** - Using `@index`, `@first`, `@last`, `@count`
-✅ **Table row loops** - Dynamic table generation
+✅ **Loop variables** - Using `@index`, `@number`, `@first`, `@last`, `@count`
+✅ **Table row loops** - Dynamic table generation with marker rows
 ✅ **Calculations** - Computing values in code
-✅ **Formatting** - Currency and number formatting
+✅ **Formatting** - Currency, number and date format specifiers
 ✅ **Real-world patterns** - Production-ready invoice generation
 ✅ **Batch processing** - Generating multiple documents
 
@@ -500,16 +452,17 @@ if (generator.GenerateInvoice(invoice, $"output/invoice-{invoice.InvoiceNumber}.
 
 ## Next Steps
 
-- **[Tutorial 3: Conditionals & Loops](03-conditionals-and-loops.md)** - Master dynamic content with conditions
-- **[Tutorial 4: Advanced Features](04-advanced-features.md)** - Nested loops, complex expressions, optimization
+- **[Conditionals](../for-template-authors/conditionals.md)** - Show or hide content based on data
+- **[Loops](../for-template-authors/loops.md)** - Nested loops, named iteration variables, table loops in detail
+- **[Boolean Expressions](../for-template-authors/boolean-expressions.md)** - Logic inside placeholders
 
 ---
 
 ## Additional Resources
 
-- [Loop Examples](../../TriasDev.Templify/Examples.md#loops)
-- [Table Examples](../../TriasDev.Templify/Examples.md#tables)
-- [FAQ - Loops](../FAQ.md#loops)
+- [Examples Collection](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/Examples.md) - loops and tables
+- [FAQ - Loops](../FAQ.md#q-how-do-loops-work)
+- [FAQ - Loops in Tables](../FAQ.md#q-how-do-i-use-loops-in-tables)
 
 ---
 

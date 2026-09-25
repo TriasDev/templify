@@ -7,12 +7,12 @@ Common questions and answers about using Templify for Word document templating.
 ## Table of Contents
 
 - [Getting Started](#getting-started)
-- [Features & Capabilities](#features--capabilities)
-- [Syntax & Usage](#syntax--usage)
+- [Features & Capabilities](#features-capabilities)
+- [Syntax & Usage](#syntax-usage)
 - [Performance](#performance)
 - [Troubleshooting](#troubleshooting)
 - [Migration](#migration)
-- [Enterprise & Production](#enterprise--production)
+- [Enterprise & Production](#enterprise-production)
 - [Comparison](#comparison)
 
 ---
@@ -27,7 +27,7 @@ Common questions and answers about using Templify for Word document templating.
 
 **A:**
 - **.NET 8.0 or later** (targets net8.0, net9.0 and net10.0; net6.0 is supported up to Templify 1.7.x)
-- **DocumentFormat.OpenXml 3.3.0** (automatically installed via NuGet)
+- **DocumentFormat.OpenXml 3.5.1** (automatically installed via NuGet)
 - Any platform supported by .NET (Windows, macOS, Linux)
 - **No Microsoft Word installation required**
 
@@ -45,10 +45,10 @@ Or in Visual Studio: `Install-Package TriasDev.Templify`
 ### Q: Where should I start?
 
 **A:** Follow this learning path:
-1. [Quick Start Guide](quick-start.md) (5 minutes)
+1. [Quick Start Guide](for-developers/quick-start.md) (5 minutes)
 2. [Tutorial 1: Hello World](tutorials/01-hello-world.md) (30 min)
 3. [Tutorial 2: Invoice Generator](tutorials/02-invoice-generator.md) (1 hour)
-4. [Full API Documentation](../TriasDev.Templify/README.md)
+4. [Template Syntax](for-template-authors/template-syntax.md) and the [library README](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/README.md)
 
 ### Q: Do I need Microsoft Word installed?
 
@@ -76,8 +76,8 @@ Or in Visual Studio: `Install-Package TriasDev.Templify`
 - ✅ **Array indexing**: `{{Items[0].Name}}`
 - ✅ **Boolean format specifiers**: `{{IsActive:checkbox}}`, `{{IsVerified:yesno}}`
 - ✅ **Boolean expressions**: `{{(Age >= 18 and HasLicense):yesno}}`
-- ✅ **Conditionals**: `{{#if IsActive}}...{{#else}}...{{/if}}`
-- ✅ **Loops**: `{{#foreach Items}}...{{/foreach}}`
+- ✅ **Conditionals**: `{{#if IsActive}}...{{#elseif IsPending}}...{{#else}}...{{/if}}`
+- ✅ **Loops**: `{{#foreach Items}}...{{/foreach}}`, with named iteration variables: `{{#foreach item in Items}}`
 - ✅ **Nested loops**: Loops inside loops (arbitrary depth)
 - ✅ **Table row loops**: Dynamic table generation
 - ✅ **Loop variables**: `@index`, `@number`, `@first`, `@last`, `@count`
@@ -86,9 +86,12 @@ Or in Visual Studio: `Install-Package TriasDev.Templify`
 - ✅ **Logical operators**: `and`, `or`, `not`
 - ✅ **Membership, string, and existence operators**: `in`, `contains`, `startswith`, `endswith`, `exists`, `is empty`, `is not empty`
 - ✅ **Grouping**: parentheses `()` for controlling evaluation order
-- ✅ **Localization**: Format specifiers adapt to cultures (en, de, fr, es, it, pt)
+- ✅ **Number, date and string formats**: `{{Amount:currency}}`, `{{Value:number:N2}}`, `{{Date:date:yyyy-MM-dd}}`, `{{Name:uppercase}}`
+- ✅ **Markdown in values**: `**bold**`, `*italic*`, `~~strike~~` (opt out with `EnableMarkdown = false` or `{{Value:raw}}`)
+- ✅ **Localization**: Boolean formats adapt to the culture (en, de, fr, es, it, pt, nl, pl, ru; `yesno` also ja, zh)
 - ✅ **JSON support**: Use JSON data instead of C# dictionaries
-- ✅ **Type coercion**: Automatic number/date conversions
+- ✅ **Headers, footers, footnotes, endnotes, text boxes and content controls** are processed (comments are not)
+- ✅ **Plain-text templates**: `TextTemplateProcessor` for emails and other text output
 
 ### Q: What is NOT supported?
 
@@ -106,19 +109,22 @@ Or in Visual Studio: `Install-Package TriasDev.Templify`
 ### Q: Can Templify handle large documents?
 
 **A:** **Yes!** Templify is designed for performance:
-- Processes **1,000+ placeholders in ~100ms**
-- Handles documents with **hundreds of pages**
-- Low memory footprint
-- See [Performance Benchmarks](../TriasDev.Templify/PERFORMANCE.md)
+- The whole document is loaded into memory, so it is not suited for documents larger than ~50 MB
+- Processing time grows linearly with the size of the document and the data
+- See the [performance notes](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/PERFORMANCE.md) (a benchmark snapshot)
 
 ### Q: Does Templify support tables?
 
 **A:** **Yes!** Full table support:
 - Replace placeholders in table cells
-- Loop over table rows: `{{#foreach Items}}`
+- Loop over table rows: `{{#foreach Items}}` and `{{/foreach}}` in their own rows
+- Conditional rows: `{{#if ...}}` / `{{/if}}` in their own rows
+- Loops and conditionals inside a single cell
 - Nested tables
-- Conditional rows
 - Formatting preservation
+
+A table whose rows are all removed (an empty row loop or a false row conditional) is removed entirely, because
+Word rejects tables without rows.
 
 ### Q: Can I use Templify for mail merge?
 
@@ -153,12 +159,12 @@ foreach (var recipient in recipients)
 - Simple: `{{Name}}`
 - Nested: `{{User.Email}}`
 - Array: `{{Items[0]}}`
-- With spaces: `{{ Name }}` (spaces ignored)
+- Dictionary key: `{{Settings[Theme]}}` or `{{Settings.Theme}}`
 
 **Rules**:
-- Letters, numbers, underscore, dot, brackets only
-- Case-sensitive
-- No special characters in variable names
+- No spaces inside the braces: `{{ Name }}` is not a placeholder and stays as text
+- Names consist of letters, digits and underscores, joined by dots and `[...]` indexers; keys with spaces or other characters (`{{Settings[My Key]}}`) are not supported
+- Dictionary keys are matched with the dictionary's comparer (case-sensitive for a normal `Dictionary<string, object>` and for JSON data); object properties are matched case-insensitively
 
 ### Q: How do I access nested properties?
 
@@ -201,8 +207,12 @@ This customer is inactive.
 **Supported conditions**:
 - Boolean: `{{#if IsActive}}`
 - Comparison: `{{#if Age > 18}}`
-- Null check: `{{#if Email}}` (true if not null/empty)
-- Combined: `{{#if Age >= 18 && HasLicense}}`
+- Null check: `{{#if Email}}` (false if missing, null, empty, `"0"` or `"false"`)
+- Combined: `{{#if Age >= 18 and HasLicense}}` (use `and`/`or`/`not`; `&&` and `||` are not operators)
+- Chains: `{{#if A}}...{{#elseif B}}...{{#else}}...{{/if}}`
+
+The `{{#if}}`, `{{#else}}` and `{{/if}}` markers can be in their own paragraphs, or all inside one paragraph for
+an inline conditional (`Dear {{#if IsVip}}valued {{/if}}customer`).
 
 ### Q: How do loops work?
 
@@ -224,15 +234,20 @@ This customer is inactive.
 }
 ```
 
-**Output**:
+**Output** (the number format follows `PlaceholderReplacementOptions.Culture`):
 ```
 - Product A: 10.00 EUR
 - Product B: 20.00 EUR
 ```
 
+The `{{#foreach}}` and `{{/foreach}}` markers must each be in their own paragraph: the paragraph that contains a
+marker is removed, together with any other text in it. A loop written inside a single paragraph
+(`{{#foreach Tags}}{{.}}, {{/foreach}}`) is not supported in Word templates. For a collection of simple values,
+use `{{.}}` (or `{{this}}`) for the current item.
+
 ### Q: What are loop special variables?
 
-**A:** Inside loops, use these:
+**A:** Inside loops (only there; outside a loop they are missing variables), use these:
 - `{{@index}}` - Current position (0-based)
 - `{{@number}}` - Current position (1-based)
 - `{{@first}}` - True for first item
@@ -242,20 +257,22 @@ This customer is inactive.
 **Example**:
 ```
 {{#foreach Items}}
-Item {{@index}}: {{Name}}{{#if @last}} (last){{/if}}
+Item {{@number}}: {{Name}}{{#if @last}} (last){{/if}}
 {{/foreach}}
 ```
 
+In nested loops the metadata refers to the innermost loop.
+
 ### Q: Can I nest loops?
 
-**A:** **Yes!** Unlimited nesting:
+**A:** **Yes!** Unlimited nesting. Use named iteration variables to reach the outer item:
 
 ```
-{{#foreach Orders}}
-Order #{{OrderId}}:
-  {{#foreach Items}}
-  - {{Product}}: {{Quantity}} x {{Price}}
-  {{/foreach}}
+{{#foreach order in Orders}}
+Order #{{order.OrderId}}:
+{{#foreach item in order.Items}}
+- {{order.OrderId}} / {{item.Product}}: {{item.Quantity}} x {{item.Price}}
+{{/foreach}}
 {{/foreach}}
 ```
 
@@ -269,7 +286,8 @@ Order #{{OrderId}}:
 | {{Name}} | {{Quantity}} | {{Price}} |
 | {{/foreach}} | | |
 
-Templify will repeat the row for each item.
+Templify repeats the rows between the marker rows for each item and removes the marker rows. The markers must be
+in separate rows: a `{{#foreach}}` whose `{{/foreach}}` is in another cell of the same row fails processing.
 
 ### Q: How do I handle missing variables?
 
@@ -288,7 +306,10 @@ if (result.MissingVariables.Any())
 }
 ```
 
-Missing variables are left as-is: `{{MissingVar}}` remains in output.
+By default missing variables are left as-is: `{{MissingVar}}` remains in output. Set
+`MissingVariableBehavior` to `ReplaceWithEmpty` to remove them, or to `ThrowException` to throw an
+`InvalidOperationException`. `result.Warnings` has one `MissingVariable` warning per occurrence, and
+`ValidateTemplate(template, data)` lists missing variables without processing the document.
 
 ### Q: How do I format boolean values as checkboxes or Yes/No?
 
@@ -340,7 +361,7 @@ See the [Format Specifiers Guide](for-template-authors/format-specifiers.md) for
 
 ### Q: Can I use JSON instead of C# dictionaries?
 
-**A:** **Yes!** While Templify processes C# `Dictionary<string, object>` internally, JSON can be easily converted:
+**A:** **Yes!** Every `ProcessTemplate`/`ProcessTemplateFile` overload has a variant that takes a JSON string:
 
 **JSON Data File** (`data.json`):
 ```json
@@ -356,16 +377,22 @@ See the [Format Specifiers Guide](for-template-authors/format-specifiers.md) for
 
 **C# Code**:
 ```csharp
-using System.Text.Json;
+using TriasDev.Templify.Core;
+using TriasDev.Templify.Utilities;
 
-// Read and deserialize JSON
-string jsonText = File.ReadAllText("data.json");
-var data = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonText);
-
-// Process template
+string json = File.ReadAllText("data.json");
 var processor = new DocumentTemplateProcessor();
-processor.ProcessTemplate(templateStream, outputStream, data);
+
+// Directly
+ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, json);
+
+// Or parse once into a dictionary (nested objects become dictionaries, arrays become lists)
+Dictionary<string, object> data = JsonDataParser.ParseJsonToDataDictionary(json);
 ```
+
+Don't use `JsonSerializer.Deserialize<Dictionary<string, object>>`: it leaves the values as `JsonElement`s.
+Since 1.8.0 nested paths such as `{{Customer.Name}}` resolve through them, but a top-level array fails in
+`{{#foreach Items}}` ("is not a collection") and a JSON `false` counts as true in `{{#if}}`.
 
 JSON is particularly useful for:
 - Business users providing data
@@ -410,6 +437,10 @@ Can proceed: ✓
 - Existence: `exists`, `is empty`, `is not empty`
 - Nested: `((var1 or var2) and var3)`
 
+Inline expressions are stricter than `{{#if}}`: only a boolean `true` counts as true (a string `"true"` or the
+number `1` do not), and single quotes are allowed for strings (`{{(Status = 'Active')}}`). An expression that
+cannot be parsed stays in the output and adds an `ExpressionFailed` warning.
+
 See the [Boolean Expressions Guide](for-template-authors/boolean-expressions.md) for complete documentation.
 
 ### Q: Can I combine expressions with format specifiers?
@@ -447,6 +478,9 @@ Premium member: {{(MembershipLevel >= 3):enabled}}
 **A:** Register custom formatters with the registry:
 
 ```csharp
+using TriasDev.Templify.Core;
+using TriasDev.Templify.Formatting;
+
 var registry = new BooleanFormatterRegistry();
 registry.Register("thumbs", new BooleanFormatter("👍", "👎"));
 registry.Register("traffic", new BooleanFormatter("🟢", "🔴"));
@@ -478,8 +512,7 @@ System status: 🟢
 ```csharp
 var options = new PlaceholderReplacementOptions
 {
-    Culture = new CultureInfo("de-DE"),
-    BooleanFormatterRegistry = new BooleanFormatterRegistry(new CultureInfo("de-DE"))
+    Culture = new CultureInfo("de-DE")   // the built-in boolean formats follow Culture
 };
 var processor = new DocumentTemplateProcessor(options);
 ```
@@ -496,8 +529,15 @@ var processor = new DocumentTemplateProcessor(options);
 - Spanish (es): Sí/No
 - Italian (it): Sì/No
 - Portuguese (pt): Sim/Não
+- Dutch (nl): Ja/Nee
+- Polish (pl): Tak/Nie
+- Russian (ru): Да/Нет
+- Japanese (ja): はい/いいえ
+- Chinese (zh): 是/否
 
-Symbol-based formatters (checkbox, checkmark) are universal.
+`truefalse`, `onoff`, `enabled` and `active` are localized for en, de, fr, es, it, pt, nl, pl and ru (English
+otherwise). Symbol-based formatters (`checkbox`, `checkmark` and its alias `check`) are universal. Pass a
+`BooleanFormatterRegistry` only when you need custom formatters.
 
 ---
 
@@ -505,23 +545,20 @@ Symbol-based formatters (checkbox, checkmark) are universal.
 
 ### Q: How fast is Templify?
 
-**A:** Very fast! Benchmark results:
-- **Simple replacement**: ~0.5ms for 10 placeholders
-- **Complex document**: ~100ms for 1,000 placeholders
-- **Table with loops**: ~50ms for 100 rows
-
-See detailed [Performance Benchmarks](../TriasDev.Templify/PERFORMANCE.md).
+**A:** Typical templates are processed in milliseconds; processing time grows linearly with document and data
+size. See the [performance notes](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/PERFORMANCE.md) for a benchmark snapshot, and run
+`TriasDev.Templify.Benchmarks` for numbers on your hardware.
 
 ### Q: Does Templify cache templates?
 
-**A:** No internal caching. **Best practice**:
+**A:** Templates are not cached (parsed condition expressions are). **Best practice**:
 - For repeated processing, reuse the `DocumentTemplateProcessor` instance
-- Cache template streams in your application if needed
-- Process templates asynchronously for better throughput
+- Keep the template bytes in memory and use `ProcessTemplate(byte[] template, data, out byte[] output)`
+- The API is synchronous; process independent documents in parallel for throughput
 
 ### Q: Can I process templates in parallel?
 
-**A:** **Yes!** `DocumentTemplateProcessor` is thread-safe for reading. Best practice:
+**A:** **Yes!** A `DocumentTemplateProcessor` and its options can be shared by concurrent calls (register custom boolean formatters before sharing the options). Best practice:
 
 ```csharp
 var processor = new DocumentTemplateProcessor();
@@ -542,8 +579,8 @@ Parallel.ForEach(dataList, data =>
 **A:** Tips:
 1. **Reuse processor**: Create once, use many times
 2. **Minimize template complexity**: Fewer loops = faster
-3. **Pre-calculate values**: Don't use complex nested paths
-4. **Use memory streams**: Faster than file I/O
+3. **Pre-calculate values** in your code instead of complex template logic
+4. **Use memory streams or byte arrays**: Faster than file I/O
 5. **Batch processing**: Process multiple templates in parallel
 
 ---
@@ -553,44 +590,44 @@ Parallel.ForEach(dataList, data =>
 ### Q: Why aren't my placeholders being replaced?
 
 **A:** Common causes:
-1. **Typo in placeholder name**: `{{Nmae}}` vs `{{Name}}` (case-sensitive!)
-2. **Data not provided**: Check `result.MissingVariables`
+1. **Typo in placeholder name**: `{{Nmae}}` vs `{{Name}}` (dictionary keys are case-sensitive!)
+2. **Data not provided**: Check `result.MissingVariables` and `result.Warnings`
 3. **Wrong data structure**: Verify nested paths match your object
-4. **Word formatting broke placeholder**: Word sometimes splits `{{Name}}` into multiple runs
+4. **Invalid placeholder syntax**: spaces inside the braces (`{{ Name }}`) or unsupported characters in the name are not recognized as placeholders
 
-**Fix #4**: Select the placeholder in Word and clear formatting (Ctrl+Space), then retype it.
+### Q: Word splits my placeholder into several runs. Is that a problem?
 
-### Q: Why do I get "Placeholder split across runs" warning?
-
-**A:** Word's internal format sometimes splits text. **Fix**:
-1. Select the placeholder in Word
-2. Press **Ctrl+Space** (remove formatting)
-3. Retype the placeholder without formatting changes mid-text
+**A:** No. Word often splits text into runs (spell checking, formatting changes, revisions). Templify processes
+the text of a paragraph as a whole, so `{{Name}}` is found even when it spans several runs. The replacement takes
+the formatting of the run where the placeholder starts.
 
 ### Q: My conditional isn't working. What's wrong?
 
 **A:** Check:
 1. **Condition syntax**: `{{#if IsActive}}` not `{{if IsActive}}`
 2. **Variable exists**: Provide the variable in data
-3. **Type mismatch**: `"true"` (string) is not `true` (boolean)
-4. **Comparison operators**: Use `=` or `==` for equality (both are supported)
-5. **Closing tag**: Must have `{{/if}}`
+3. **Truthiness**: `false`, `0`, `""`, `"0"`, `"false"`, `null` and empty collections are false; other values are true
+4. **Operators**: Use `=` or `==` for equality and `and`/`or`/`not`; `&&`, `||` and `===` make the condition malformed (it evaluates to false and adds an `ExpressionFailed` warning)
+5. **Precedence**: `not` applies to the whole comparison: `not Status = "Active"` means `not (Status = "Active")`
+6. **Quotes**: Quote text values (`Status = "Active"`). An unquoted word is used as text only when no variable of that name exists
+7. **Closing tag**: Must have `{{/if}}`; a missing one fails processing (`IsSuccess == false`)
 
 ### Q: Loop isn't repeating. Why?
 
 **A:** Checklist:
-1. **Collection exists**: Verify data contains the collection
-2. **Collection is enumerable**: Use `List<T>`, `T[]`, or `IEnumerable<T>`
-3. **Closing tag**: Must have `{{/foreach}}`
-4. **Correct variable name**: Case-sensitive!
+1. **Collection exists**: Verify data contains the collection (`MissingLoopCollection` / `NullLoopCollection` warnings)
+2. **Collection is enumerable**: Use `List<T>`, `T[]`, or `IEnumerable<T>`; a string or other scalar fails processing ("is not a collection")
+3. **Markers in their own paragraphs** (or table rows): a paragraph with a marker is removed entirely
+4. **Closing tag**: Must have `{{/foreach}}`
+5. **Correct variable name**: Case-sensitive!
 
 ### Q: Why is my document corrupted after processing?
 
 **A:** Common causes:
-1. **Stream not disposed**: Use `using` statements
-2. **Stream position not reset**: Call `stream.Position = 0` before processing
+1. **Output not flushed**: Dispose (or flush) the output stream before reading the file; use `using` statements
+2. **Reused output stream**: Use a new, empty output stream for each document (the template is copied into it)
 3. **Concurrent access**: Don't share streams between threads
-4. **Template already corrupted**: Validate template with [Converter tool](../TriasDev.Templify.Converter/README.md)
+4. **Template already corrupted**: Validate the template with the [Converter tool](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify.Converter/README.md)
 
 **Validate template**:
 ```bash
@@ -602,35 +639,39 @@ dotnet run --project TriasDev.Templify.Converter -- validate template.docx
 **A:** Steps:
 1. **Check `ProcessingResult`**:
    ```csharp
-   if (!result.IsSuccessful)
+   if (!result.IsSuccess)
    {
-       foreach (var error in result.Errors)
-           Console.WriteLine(error);
+       Console.WriteLine(result.ErrorMessage);
+   }
+
+   foreach (ProcessingWarning warning in result.Warnings)
+   {
+       Console.WriteLine(warning);
    }
    ```
 
-2. **Review missing variables**:
+2. **Validate the template** against your data:
    ```csharp
-   foreach (var missing in result.MissingVariables)
-       Console.WriteLine($"Missing: {missing}");
+   ValidationResult validation = processor.ValidateTemplate(templateStream, data);
+   // validation.Errors, validation.MissingVariables, validation.AllPlaceholders, validation.Warnings
    ```
 
 3. **Simplify template**: Remove complexity until it works, then add back
 
-4. **Check template structure**: Use Converter's analyze command:
-   ```bash
-   dotnet run --project TriasDev.Templify.Converter -- analyze template.docx
-   ```
+4. **Write a warning report**: `File.WriteAllBytes("warnings.docx", result.GetWarningReportBytes());`
 
 ### Q: Can I see what Templify found in my template?
 
-**A:** Yes! Use the Converter tool:
+**A:** Yes! `ValidateTemplate` returns all placeholders and condition variables:
 
-```bash
-dotnet run --project TriasDev.Templify.Converter -- analyze template.docx --output report.md
+```csharp
+using var template = File.OpenRead("template.docx");
+ValidationResult validation = processor.ValidateTemplate(template);
+Console.WriteLine(string.Join(", ", validation.AllPlaceholders));
 ```
 
-Shows all placeholders, conditionals, and loops found.
+The Converter's `analyze` command reports OpenXMLTemplates content controls (for migration), not Templify
+placeholders.
 
 ---
 
@@ -650,19 +691,17 @@ Shows all placeholders, conditionals, and loops found.
 ./scripts/convert.sh old-template.docx
 ```
 
-**Step 3**: Update code:
+**Step 3**: Process the converted template with Templify:
 ```csharp
-// Old: OpenXMLTemplates
-var processor = new TemplateProcessor("template.docx");
-processor.SetValue("variable_Name", "John");
-
-// New: Templify
 var processor = new DocumentTemplateProcessor();
 var data = new Dictionary<string, object> { ["Name"] = "John" };
-processor.ProcessTemplate(templateStream, outputStream, data);
+ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
 ```
 
-See full [Converter Documentation](../TriasDev.Templify.Converter/README.md).
+`convert` only converts OpenXMLTemplates content controls; other content controls are kept unless you pass
+`--unwrap-all-controls`. The CLI exits with 0 on success, 1 when the command failed (for example a control that
+cannot be converted) and 2 for invalid arguments. See the full
+[Converter Documentation](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify.Converter/README.md).
 
 ### Q: What's the mapping from OpenXMLTemplates?
 
@@ -672,6 +711,7 @@ See full [Converter Documentation](../TriasDev.Templify.Converter/README.md).
 | `conditionalRemove_IsActive` | `{{#if IsActive}}...{{/if}}` |
 | `conditionalRemove_Count_gt_0` | `{{#if Count > 0}}...{{/if}}` |
 | `repeating_Items` | `{{#foreach Items}}...{{/foreach}}` |
+| `variable_index` (inside a repeating section) | `{{@number}}` |
 
 ### Q: Can I migrate from manual OpenXML code?
 
@@ -700,7 +740,7 @@ using (var doc = WordprocessingDocument.Open(...))
 
 **After** (Templify):
 ```csharp
-// 3 lines!
+// 2 lines!
 var data = new Dictionary<string, object> { ["Name"] = name };
 processor.ProcessTemplate(templateStream, outputStream, data);
 ```
@@ -714,10 +754,9 @@ processor.ProcessTemplate(templateStream, outputStream, data);
 **A:** **Yes!** Templify is battle-tested in production environments, processing thousands of documents daily.
 
 **Quality indicators**:
-- ✅ 109 tests, 100% code coverage
-- ✅ Battle-tested in enterprise environment
-- ✅ Comprehensive error handling
-- ✅ Performance optimized
+- ✅ Extensive automated test suite, run on Windows, macOS and Linux in CI
+- ✅ Public API guarded by API analyzers and package validation
+- ✅ Consistent error model: template and data errors are returned as a failed `ProcessingResult`
 - ✅ Well-documented
 
 ### Q: What about security?
@@ -725,31 +764,29 @@ processor.ProcessTemplate(templateStream, outputStream, data);
 **A:** Templify is designed with security in mind:
 - ✅ **No code execution**: Templates are data, not code
 - ✅ **No external dependencies**: Only OpenXML SDK
-- ✅ **Input validation**: Validates template structure
+- ✅ **Template validation**: `ValidateTemplate` checks template structure before processing
 - ✅ **No macro execution**: Security by design
-- ✅ **Safe XML processing**: Protection against XXE attacks
-- ✅ **Memory limits**: Protection against zip bombs
+- ✅ **Invalid XML characters** in data values are removed before they are written to the document
 
 **Best practices**:
 - Validate user-uploaded templates before processing
 - Sanitize user input before passing to templates
-- Set resource limits for large-scale processing
+- Set resource limits (size, timeouts) for user-uploaded templates and large-scale processing
 - Keep OpenXML SDK updated
 
 ### Q: What's the license?
 
-**A:** *[License information to be added]* - See LICENSE file in repository.
+**A:** MIT. See the [LICENSE](https://github.com/TriasDev/templify/blob/main/LICENSE) file.
 
 ### Q: Is there commercial support available?
 
-**A:** Templify is maintained by TriasDev GmbH & Co. KG. For enterprise support:
-- 📧 Contact: *[contact information to be added]*
+**A:** Templify is maintained by TriasDev GmbH & Co. KG. Support channels:
 - 💬 Community support: [GitHub Discussions](https://github.com/TriasDev/templify/discussions)
 - 🐛 Bug reports: [GitHub Issues](https://github.com/TriasDev/templify/issues)
 
 ### Q: Can I use Templify in commercial applications?
 
-**A:** **Yes!** Templify can be used in commercial applications. Check the LICENSE file for specific terms.
+**A:** **Yes!** The MIT license allows commercial use.
 
 ### Q: How do I handle errors in production?
 
@@ -760,11 +797,10 @@ try
 {
     var result = processor.ProcessTemplate(templateStream, outputStream, data);
 
-    if (!result.IsSuccessful)
+    if (!result.IsSuccess)
     {
-        // Log errors for investigation
-        _logger.LogError("Template processing failed: {Errors}",
-            string.Join(", ", result.Errors));
+        // Template syntax or data error
+        _logger.LogError("Template processing failed: {Error}", result.ErrorMessage);
 
         // Optionally notify user
         return BadRequest("Document generation failed");
@@ -778,6 +814,12 @@ try
     }
 
     return File(outputStream.ToArray(), "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+}
+catch (InvalidOperationException ex)
+{
+    // Thrown for missing variables when MissingVariableBehavior.ThrowException is configured
+    _logger.LogError(ex, "Missing template variable");
+    return BadRequest("Incomplete data");
 }
 catch (Exception ex)
 {
@@ -798,13 +840,14 @@ sw.Stop();
 _logger.LogInformation(
     "Template processed: {Duration}ms, Placeholders: {Count}, Size: {Size}KB",
     sw.ElapsedMilliseconds,
-    result.PlaceholdersReplaced,
+    result.ReplacementCount,
     outputStream.Length / 1024
 );
 
 // Track in your monitoring system (Application Insights, Prometheus, etc.)
 _metrics.RecordDuration("templify.processing", sw.ElapsedMilliseconds);
-_metrics.RecordCount("templify.placeholders", result.PlaceholdersReplaced);
+_metrics.RecordCount("templify.placeholders", result.ReplacementCount);
+_metrics.RecordCount("templify.warnings", result.Warnings.Count);
 ```
 
 ---
@@ -823,7 +866,7 @@ _metrics.RecordCount("templify.placeholders", result.PlaceholdersReplaced);
 | **Maintenance** | Difficult | Easy |
 | **Non-developer friendly** | No | Yes |
 | **Error-prone** | High | Low |
-| **Performance** | Similar | Optimized |
+| **Performance** | Similar | Similar |
 
 ### Q: Templify vs DocX library?
 
@@ -889,18 +932,14 @@ _metrics.RecordCount("templify.placeholders", result.PlaceholdersReplaced);
 ### Community Support
 - 💬 [GitHub Discussions](https://github.com/TriasDev/templify/discussions) - Ask the community
 - 🐛 [GitHub Issues](https://github.com/TriasDev/templify/issues) - Report bugs
-- 📖 [Full Documentation](../TriasDev.Templify/README.md) - Complete reference
+- 📖 [Library README](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/README.md) - Complete reference
 
 ### Documentation
-- [Quick Start Guide](quick-start.md)
-- [Tutorial Series](tutorials/)
-- [API Reference](../TriasDev.Templify/README.md)
-- [Architecture Guide](../TriasDev.Templify/ARCHITECTURE.md)
-- [Examples Collection](../TriasDev.Templify/Examples.md)
+- [Quick Start Guide](for-developers/quick-start.md)
+- [Tutorial Series](tutorials/index.md)
+- [Architecture Guide](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/ARCHITECTURE.md)
+- [Examples Collection](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/Examples.md)
 
 ### Can't Find Your Answer?
 [Open a discussion](https://github.com/TriasDev/templify/discussions/new) or [create an issue](https://github.com/TriasDev/templify/issues/new) on GitHub.
 
----
-
-**Last Updated**: 2025-01-15

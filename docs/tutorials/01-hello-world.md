@@ -2,7 +2,7 @@
 
 **Duration**: 30 minutes
 **Difficulty**: Beginner
-**Prerequisites**: [Quick Start Guide](../quick-start.md) completed
+**Prerequisites**: [Quick Start Guide](../for-developers/quick-start.md) completed
 
 ---
 
@@ -61,6 +61,7 @@ Save it in your project directory.
 **Important Tips**:
 - Type placeholders in one go without formatting changes
 - Use double curly braces: `{{VariableName}}`
+- No spaces inside the braces (`{{ FirstName }}` is not a placeholder)
 - Variable names are case-sensitive
 - Stick to letters, numbers, and underscores
 
@@ -71,7 +72,7 @@ Save it in your project directory.
 Replace the contents of `Program.cs`:
 
 ```csharp
-using TriasDev.Templify;
+using TriasDev.Templify.Core;
 
 // Create sample data
 var data = new Dictionary<string, object>
@@ -90,12 +91,17 @@ var processor = new DocumentTemplateProcessor();
 using var templateStream = File.OpenRead("hello-template.docx");
 using var outputStream = File.Create("hello-output.docx");
 
-var result = processor.ProcessTemplate(templateStream, outputStream, data);
+ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
 
 // Check the results
+if (!result.IsSuccess)
+{
+    Console.WriteLine($"✗ Processing failed: {result.ErrorMessage}");
+    return;
+}
+
 Console.WriteLine($"✓ Document generated successfully!");
-Console.WriteLine($"  Placeholders replaced: {result.PlaceholdersReplaced}");
-Console.WriteLine($"  Processing time: {result.ProcessingTime.TotalMilliseconds:F2}ms");
+Console.WriteLine($"  Placeholders replaced: {result.ReplacementCount}");
 
 if (result.MissingVariables.Any())
 {
@@ -119,7 +125,6 @@ dotnet run
 ```
 ✓ Document generated successfully!
   Placeholders replaced: 6
-  Processing time: 45.23ms
 ```
 
 Open `hello-output.docx` and verify all placeholders were replaced:
@@ -131,6 +136,9 @@ Welcome to Templify. Today is 2025-01-15 and you are customer #12345.
 Your account status: True
 Your balance: 1250.50 EUR
 ```
+
+Numbers are formatted with the processor's culture (`PlaceholderReplacementOptions.Culture`, the current culture
+by default), so the balance may read `1250,50` on a German system.
 
 **Processed Document Preview:**
 
@@ -178,7 +186,7 @@ using var outputStream2 = File.Create("nested-output.docx");
 
 result = processor.ProcessTemplate(templateStream2, outputStream2, nestedData);
 Console.WriteLine($"\n✓ Nested template processed!");
-Console.WriteLine($"  Placeholders replaced: {result.PlaceholdersReplaced}");
+Console.WriteLine($"  Placeholders replaced: {result.ReplacementCount}");
 ```
 
 **Output document**:
@@ -237,9 +245,14 @@ var objectData = new Dictionary<string, object>
     }
 };
 
-// Process exactly the same way!
-result = processor.ProcessTemplate(templateStream, outputStream, objectData);
+// Process exactly the same way (each run needs a fresh output stream)
+using var templateStream3 = File.OpenRead("nested-template.docx");
+using var outputStream3 = File.Create("object-output.docx");
+result = processor.ProcessTemplate(templateStream3, outputStream3, objectData);
 ```
+
+In a top-level program, put the class declarations at the end of `Program.cs` (after the statements). Property
+names are matched case-insensitively; dictionary keys are case-sensitive.
 
 The template syntax stays the same whether you use dictionaries or objects!
 
@@ -247,26 +260,41 @@ The template syntax stays the same whether you use dictionaries or objects!
 
 ## Step 7: Formatting Data
 
-Templify outputs values as-is, so format them in your code:
+Pass raw values (numbers, dates, booleans) and let the template format them with **format specifiers**:
+
+```
+Date: {{Date:date:MMMM dd, yyyy}}
+Amount: {{Amount:number:N2}}
+Percentage: {{Percentage:number:P0}}
+Price: {{Price:currency}}
+Active: {{IsActive:yesno}}
+Name: {{LastName:uppercase}}
+```
 
 ```csharp
+using System.Globalization;
+
 var formattedData = new Dictionary<string, object>
 {
-    // Format dates
-    ["Date"] = DateTime.Now.ToString("MMMM dd, yyyy"), // "January 15, 2025"
-
-    // Format numbers
-    ["Amount"] = 1234.56m.ToString("N2"), // "1,234.56"
-    ["Percentage"] = (0.15).ToString("P0"), // "15%"
-
-    // Format currencies
-    ["Price"] = 99.99m.ToString("C"), // "$99.99" or "99,99 €" depending on culture
-
-    // Custom formatting
-    ["PhoneNumber"] = "+1 (555) 123-4567",
-    ["ZipCode"] = "12345-6789"
+    ["Date"] = new DateTime(2025, 1, 15),
+    ["Amount"] = 1234.56m,
+    ["Percentage"] = 0.15,
+    ["Price"] = 99.99m,
+    ["IsActive"] = true,
+    ["LastName"] = "Doe"
 };
+
+var enProcessor = new DocumentTemplateProcessor(new PlaceholderReplacementOptions
+{
+    Culture = CultureInfo.GetCultureInfo("en-US")
+});
 ```
+
+With `en-US` this produces `January 15, 2025`, `1,234.56`, `15%`, `$99.99`, `Yes` and `DOE`; with `de-DE` the
+same template gives `Januar 15, 2025`, `1.234,56`, `15 %`, `99,99 €` and `Ja`. Format specifiers only apply to
+values of the matching type (a number stored as a string is not formatted by `:currency`), so you can still
+pre-format values in code when you need full control. See the
+[Format Specifiers](../for-template-authors/format-specifiers.md) guide.
 
 ---
 
@@ -280,15 +308,12 @@ try
     using var templateStream = File.OpenRead("template.docx");
     using var outputStream = File.Create("output.docx");
 
-    var result = processor.ProcessTemplate(templateStream, outputStream, data);
+    ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
 
-    if (!result.IsSuccessful)
+    if (!result.IsSuccess)
     {
-        Console.WriteLine("✗ Processing failed!");
-        foreach (var error in result.Errors)
-        {
-            Console.WriteLine($"  Error: {error}");
-        }
+        // Template syntax or data errors, e.g. an {{#if}} without {{/if}}
+        Console.WriteLine($"✗ Processing failed: {result.ErrorMessage}");
         return;
     }
 
@@ -301,7 +326,12 @@ try
         }
     }
 
-    Console.WriteLine($"✓ Success! Replaced {result.PlaceholdersReplaced} placeholders.");
+    foreach (ProcessingWarning warning in result.Warnings)
+    {
+        Console.WriteLine($"  {warning}");
+    }
+
+    Console.WriteLine($"✓ Success! Replaced {result.ReplacementCount} placeholders.");
 }
 catch (FileNotFoundException ex)
 {
@@ -313,6 +343,10 @@ catch (Exception ex)
 }
 ```
 
+Template and data problems never throw: they come back as `IsSuccess == false`. Exceptions are only thrown for
+I/O errors (like the missing file above), invalid arguments, and missing variables when
+`MissingVariableBehavior.ThrowException` is configured.
+
 ---
 
 ## Complete Example
@@ -320,7 +354,7 @@ catch (Exception ex)
 Here's a complete, production-ready example combining everything:
 
 ```csharp
-using TriasDev.Templify;
+using TriasDev.Templify.Core;
 
 public class Program
 {
@@ -385,11 +419,12 @@ public class Program
 
         var data = new Dictionary<string, object>
         {
-            ["InvoiceDate"] = DateTime.Now.ToString("MMMM dd, yyyy"),
-            ["DueDate"] = DateTime.Now.AddDays(30).ToString("MMMM dd, yyyy"),
-            ["Amount"] = 1234.56m.ToString("C"),
-            ["Tax"] = 123.46m.ToString("C"),
-            ["Total"] = 1358.02m.ToString("C")
+            // Formatted in the template, e.g. {{InvoiceDate:date:MMMM dd, yyyy}} and {{Amount:currency}}
+            ["InvoiceDate"] = DateTime.Now,
+            ["DueDate"] = DateTime.Now.AddDays(30),
+            ["Amount"] = 1234.56m,
+            ["Tax"] = 123.46m,
+            ["Total"] = 1358.02m
         };
 
         ProcessTemplate(processor, "invoice-template.docx", "invoice-output.docx", data);
@@ -406,12 +441,12 @@ public class Program
             using var templateStream = File.OpenRead(templatePath);
             using var outputStream = File.Create(outputPath);
 
-            var result = processor.ProcessTemplate(templateStream, outputStream, data);
+            ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
 
-            if (result.IsSuccessful)
+            if (result.IsSuccess)
             {
                 Console.WriteLine($"  ✓ {outputPath} created");
-                Console.WriteLine($"    Placeholders: {result.PlaceholdersReplaced}");
+                Console.WriteLine($"    Placeholders: {result.ReplacementCount}");
 
                 if (result.MissingVariables.Any())
                 {
@@ -420,7 +455,7 @@ public class Program
             }
             else
             {
-                Console.WriteLine($"  ✗ Failed: {string.Join(", ", result.Errors)}");
+                Console.WriteLine($"  ✗ Failed: {result.ErrorMessage}");
             }
         }
         catch (FileNotFoundException)
@@ -444,7 +479,7 @@ public class Program
 ✅ **Nested data access** using dot notation
 ✅ **Different data types** (strings, numbers, dates, booleans)
 ✅ **Using objects** instead of dictionaries
-✅ **Formatting data** before passing to templates
+✅ **Formatting data** with format specifiers
 ✅ **Error handling** with `ProcessingResult`
 ✅ **Production-ready patterns** for robust code
 
@@ -456,10 +491,10 @@ public class Program
 **Solution**: Check spelling (case-sensitive!), verify data provided, check `MissingVariables` list
 
 ### Issue: "File is corrupted" error
-**Solution**: Make sure to use `using` statements to properly dispose streams
+**Solution**: Make sure to use `using` statements to properly dispose streams, and use a new output stream for every document
 
-### Issue: Word splits placeholder
-**Solution**: Select placeholder in Word, press Ctrl+Space, retype without formatting
+### Issue: Word splits placeholder into several runs
+**Solution**: Nothing to do: Templify reads the paragraph text as a whole, so split runs are handled. If a placeholder is still not replaced, check for spaces inside the braces or a typo
 
 ---
 
@@ -467,18 +502,18 @@ public class Program
 
 Now that you understand the basics, move on to more advanced features:
 
-- **[Tutorial 2: Invoice Generator](02-invoice-generator.md)** - Build a real-world invoice with calculations and loops
-- **[Tutorial 3: Conditionals & Loops](03-conditionals-and-loops.md)** - Dynamic content generation
-- **[Tutorial 4: Advanced Features](04-advanced-features.md)** - Master all of Templify's capabilities
+- **[Tutorial 2: Invoice Generator](02-invoice-generator.md)** - Build a real-world invoice with loops and table rows
+- **[Conditionals](../for-template-authors/conditionals.md)** and **[Loops](../for-template-authors/loops.md)** - Dynamic content generation
+- **[Format Specifiers](../for-template-authors/format-specifiers.md)** and **[Boolean Expressions](../for-template-authors/boolean-expressions.md)** - Formatting and logic in templates
 
 ---
 
 ## Additional Resources
 
-- [Quick Start Guide](../quick-start.md)
+- [Quick Start Guide](../for-developers/quick-start.md)
 - [FAQ](../FAQ.md)
-- [API Reference](../../TriasDev.Templify/README.md)
-- [Examples Collection](../../TriasDev.Templify/Examples.md)
+- [Library README](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/README.md)
+- [Examples Collection](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/Examples.md)
 
 ---
 

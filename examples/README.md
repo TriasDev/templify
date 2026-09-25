@@ -1,121 +1,87 @@
 # Templify Examples
 
-This folder contains downloadable example templates and sample data files that you can use to learn Templify.
+This folder contains example Word templates and the documents Templify produced from them. They are generated
+by the [DocumentGenerator](../TriasDev.Templify.DocumentGenerator/README.md) tool, so they always match the
+current library.
 
 ## Available Examples
 
-Each example folder contains:
+| Example | Template | Output | Shows |
+|---------|----------|--------|-------|
+| Hello World | [templates/hello-world-template.docx](templates/hello-world-template.docx) | [outputs/hello-world-output.docx](outputs/hello-world-output.docx) | Simple placeholders |
+| Invoice | [templates/invoice-template.docx](templates/invoice-template.docx) | [outputs/invoice-output.docx](outputs/invoice-output.docx) | Nested properties, table row loops, number formatting |
+| Conditionals | [templates/conditionals-template.docx](templates/conditionals-template.docx) | [outputs/conditionals-output.docx](outputs/conditionals-output.docx) | If/else blocks, boolean flags, status-based content |
+| Advanced Conditionals | [templates/advanced-conditionals-template.docx](templates/advanced-conditionals-template.docx) | [outputs/advanced-conditionals-output.docx](outputs/advanced-conditionals-output.docx) | `elseif` chains, `in`/`contains`/`startswith`, `exists`/`is empty`, grouping with parentheses |
+| Warning Report | [templates/warning-report-template.docx](templates/warning-report-template.docx) | [outputs/warning-report-output.docx](outputs/warning-report-output.docx) | The template behind `ProcessingResult.GetWarningReport()` |
 
-- **template.docx** - The Word template with Templify placeholders
-- **data.json** - Sample JSON data to fill the template
-- **output.docx** - Pre-generated output showing what the result looks like
-
-## Examples (Coming Soon)
-
-### hello-world/
-A simple introduction demonstrating basic placeholder replacement.
-
-**Features:**
-- Simple placeholders
-- Text replacement
-- Beginner-friendly
-
-### invoice/
-A professional invoice template with line items and calculations.
-
-**Features:**
-- Nested properties (`Customer.Name`, `Customer.Address`)
-- Table row loops for line items
-- Number formatting
-- Multiple sections
-
-### conditionals/
-Demonstrates conditional sections that show/hide based on data.
-
-**Features:**
-- If/else logic
-- Boolean flags
-- Status-based content
-- Multiple conditionals
-
-### nested-loops/
-Shows how to work with hierarchical data.
-
-**Features:**
-- Nested loops (departments → employees)
-- Multi-level data structures
-- Parent context access
+The sample data for each example is defined in code in
+[`TriasDev.Templify.DocumentGenerator/Generators/`](../TriasDev.Templify.DocumentGenerator/Generators/).
 
 ## How to Use These Examples
 
-### 1. Download Files
+### 1. Open a Template
 
-Download both the template and data files from the example folder you want to try.
+Open a file from `templates/` in Word to see the placeholders, conditionals and loops, and compare it with the
+matching file in `outputs/`.
 
-### 2. Process the Template
+### 2. Process It With Your Own Data
 
-**Option A: Using Templify GUI**
+Write a JSON file with the values the template uses, then use one of these options.
 
-1. Open the Templify GUI application
-2. Click "Select Template" and choose the `template.docx` file
-3. Click "Select Data" and choose the `data.json` file
-4. Click "Process Template"
-5. Save the output
-
-**Option B: Using Templify CLI**
+**Option A: Templify GUI**
 
 ```bash
-templify process template.docx --data data.json --output my-output.docx
+dotnet run --project TriasDev.Templify.Gui/TriasDev.Templify.Gui.csproj
 ```
 
-**Option C: Using Code (C#)**
+Select the template (`.docx`), the JSON data file and the output file, then click **Process Template**.
+
+**Option B: Demo console application**
+
+```bash
+dotnet run --project TriasDev.Templify.Demo -- --template examples/templates/hello-world-template.docx --data my-data.json --output my-output.docx
+```
+
+There is no general-purpose `templify` command-line tool; `TriasDev.Templify.Converter` only migrates
+OpenXMLTemplates documents (`analyze`, `convert`, `validate`, `clean`).
+
+**Option C: Code (C#)**
 
 ```csharp
-using TriasDev.Templify;
+using TriasDev.Templify.Core;
 
-var data = JsonDataParser.ParseJsonFile("data.json");
+string json = File.ReadAllText("my-data.json");
 var processor = new DocumentTemplateProcessor();
 
-using var templateStream = File.OpenRead("template.docx");
-using var outputStream = File.Create("my-output.docx");
+ProcessingResult result = processor.ProcessTemplateFile(
+    "examples/templates/hello-world-template.docx",
+    "my-output.docx",
+    json);
 
-var result = processor.ProcessTemplate(templateStream, outputStream, data);
+Console.WriteLine(result.IsSuccess ? "Done" : result.ErrorMessage);
 ```
 
-### 3. Compare with Pre-Generated Output
+To reuse the parsed data, `TriasDev.Templify.Utilities.JsonDataParser.ParseJsonToDataDictionary(json)` turns the
+JSON into a `Dictionary<string, object>`.
 
-Open the included `output.docx` file to see what the expected result looks like.
+### 3. Experiment
 
-### 4. Experiment!
+- **Change the data** - change values, add items to arrays, etc.
+- **Edit the template** - add new placeholders, change formatting
+- **Try different conditional values**
 
-- **Modify the JSON data** - Change values, add items to arrays, etc.
-- **Edit the template** - Add new placeholders, change formatting
-- **Create variations** - Try different conditional values
-- **Learn by doing** - Break things and fix them!
+## Regenerating the Examples
 
-## Creating Your Own Templates
+```bash
+dotnet run --project TriasDev.Templify.DocumentGenerator -- --skip-images
+```
 
-After trying these examples:
-
-1. Start with a simple example (hello-world)
-2. Modify it to match your use case
-3. Gradually add complexity (conditionals, loops)
-4. Refer to the [Template Author Documentation](../docs/for-template-authors/getting-started.md)
-
-## Tips
-
-- **Validate JSON** - Use [jsonlint.com](https://jsonlint.com) to check JSON syntax
-- **Start simple** - Begin with basic placeholders before adding loops/conditionals
-- **Test incrementally** - Make small changes and test frequently
-- **Read the guides** - Check [docs/for-template-authors/](../docs/for-template-authors/) for detailed explanations
+See the [DocumentGenerator README](../TriasDev.Templify.DocumentGenerator/README.md) for options (including the
+preview images in `docs/images/examples/`).
 
 ## Need Help?
 
 - **[Template Author Documentation](../docs/for-template-authors/getting-started.md)** - Complete guide
 - **[Examples Gallery](../docs/for-template-authors/examples-gallery.md)** - Visual examples
 - **[FAQ](../docs/FAQ.md)** - Common questions
-- **[GitHub Issues](https://github.com/triasdev/templify/issues)** - Report problems
-
----
-
-*Examples are automatically generated using the Templify DocumentGenerator tool to ensure accuracy.*
+- **[GitHub Issues](https://github.com/TriasDev/templify/issues)** - Report problems
