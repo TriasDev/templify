@@ -103,6 +103,30 @@ public sealed class ParagraphRewriteCharacterizationTests
     }
 
     [Fact]
+    public void InlineConditional_WithTabsInsideBranch_ConditionTrue_KeepsTabPositions()
+    {
+        Paragraph paragraph = new Paragraph(
+            TextRun("A"),
+            TabRun(),
+            TextRun("{{#if Show}}B"),
+            TabRun(),
+            TextRun("C{{/if}}"),
+            TextRun("D"));
+
+        using DocumentVerifier verifier = new DocumentVerifier(
+            Process(paragraph, new Dictionary<string, object> { ["Show"] = true }));
+
+        string sequence = string.Concat(verifier.GetParagraph(0).Descendants()
+            .Select(e => e switch
+            {
+                Text t => t.Text,
+                TabChar => "\t",
+                _ => string.Empty,
+            }));
+        Assert.Equal("A\tB\tCD", sequence);
+    }
+
+    [Fact]
     public void InlineConditional_WithTabInsideBranch_ConditionFalse_DropsBranchTab()
     {
         Paragraph paragraph = new Paragraph(
