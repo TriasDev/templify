@@ -277,8 +277,17 @@ internal static class LoopDetector
     /// </remarks>
     internal static IReadOnlyList<LoopBlock> DetectTableRowLoops(Table table)
     {
+        return DetectTableRowLoops(table.Elements<TableRow>().ToList());
+    }
+
+    /// <summary>
+    /// Detects table row loops in a sequence of table rows (e.g. all rows of a table,
+    /// or the cloned rows of a loop iteration).
+    /// Loops confined to a single cell are skipped; they are processed when the cell content is walked.
+    /// </summary>
+    internal static IReadOnlyList<LoopBlock> DetectTableRowLoops(IReadOnlyList<TableRow> rows)
+    {
         List<LoopBlock> loops = new List<LoopBlock>();
-        List<TableRow> rows = table.Elements<TableRow>().ToList();
         int i = 0;
 
         while (i < rows.Count)
@@ -355,7 +364,7 @@ internal static class LoopDetector
     /// Finds the matching {{/foreach}} row for a {{#foreach}} at the given row index.
     /// Properly handles nested loops by tracking depth.
     /// </summary>
-    private static int FindMatchingEndInRows(List<TableRow> rows, int startIndex)
+    private static int FindMatchingEndInRows(IReadOnlyList<TableRow> rows, int startIndex)
     {
         int depth = 1;
 
@@ -367,17 +376,14 @@ internal static class LoopDetector
                 continue;
             }
 
-            if (_foreachStartPattern.IsMatch(text))
+            // Use the net marker count so that a loop confined to a single cell of this row
+            // (start and end in the same row) does not change the row-level depth.
+            depth += _foreachStartPattern.Matches(text).Count;
+            depth -= _foreachEndPattern.Matches(text).Count;
+
+            if (depth <= 0)
             {
-                depth++;
-            }
-            else if (_foreachEndPattern.IsMatch(text))
-            {
-                depth--;
-                if (depth == 0)
-                {
-                    return i;
-                }
+                return i;
             }
         }
 
@@ -386,18 +392,14 @@ internal static class LoopDetector
 
     /// <summary>
     /// Checks if a specific loop is contained entirely within a single table cell.
-    /// This happens when both {{#foreach CollectionName}} and {{/foreach}} markers are in the same cell.
+    /// This happens when both {{#foreach CollectionName}} (or {{#foreach item in CollectionName}})
+    /// and {{/foreach}} markers are in the same cell.
     /// </summary>
     /// <param name="row">The table row to check.</param>
     /// <param name="collectionName">The specific collection name to check for.</param>
     /// <returns>True if the loop for this collection is fully contained in a single cell.</returns>
     private static bool IsLoopContainedInSingleCell(TableRow row, string collectionName)
     {
-        // Create a regex pattern for this specific collection
-        Regex specificStartPattern = new Regex(
-            $@"\{{\{{#foreach\s+{Regex.Escape(collectionName)}\}}\}}",
-            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-
         // Check each cell in the row
         foreach (TableCell cell in row.Elements<TableCell>())
         {
@@ -407,14 +409,19 @@ internal static class LoopDetector
                 continue;
             }
 
-            // Check if this cell contains the specific foreach start marker
-            if (specificStartPattern.IsMatch(cellText))
+            MatchCollection startMatches = _foreachStartPattern.Matches(cellText);
+
+            // Check if this cell contains a foreach start marker for this specific collection
+            // (implicit or named iteration variable syntax; group 2 is the collection name)
+            bool containsStartForCollection = startMatches.Any(m =>
+                string.Equals(m.Groups[2].Value, collectionName, StringComparison.OrdinalIgnoreCase));
+
+            if (containsStartForCollection)
             {
                 // Check if the matching end marker is also in this cell
                 // For simplicity, we check if there's at least one {{/foreach}} in the cell
                 // and that the number of starts <= number of ends (meaning this specific loop is closed)
 
-                MatchCollection startMatches = _foreachStartPattern.Matches(cellText);
                 MatchCollection endMatches = _foreachEndPattern.Matches(cellText);
 
                 // If this cell has at least as many end markers as start markers,

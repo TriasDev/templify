@@ -346,15 +346,33 @@ Department: {{Name}}
 
 ### Loops in Tables
 
-Loops can repeat table rows:
+Loops can repeat table rows. Put `{{#foreach}}` and `{{/foreach}}` in **their own rows**, above and below the row(s) to repeat:
 
 **Template (in Word table):**
 
 | Product | Price |
 |---------|-------|
-| {{#foreach Items}}{{Name}} | ${{Price}}{{/foreach}} |
+| {{#foreach Items}} | |
+| {{Name}} | ${{Price}} |
+| {{/foreach}} | |
 
-The row will be repeated for each item.
+The rows between the marker rows are repeated for each item; the marker rows themselves are removed.
+
+> **Note:** The loop markers must not share a row with the content to repeat. A loop whose `{{#foreach}}` and `{{/foreach}}` are both inside **one cell** repeats paragraphs inside that cell instead.
+
+### Conditional Table Rows
+
+Table rows can be shown or hidden with `{{#if}}` / `{{#elseif}}` / `{{#else}}` / `{{/if}}` markers in their own rows:
+
+| Item | Amount |
+|------|--------|
+| Subtotal | {{Subtotal}} |
+| {{#if HasDiscount}} | |
+| Discount | {{Discount}} |
+| {{/if}} | |
+| Total | {{Total}} |
+
+Marker rows are removed; the rows of the matching branch are kept, all other branch rows are removed. Conditional rows also work inside table row loops (evaluated per item). If every row of a table is removed, the table is removed as well.
 
 ---
 
@@ -705,13 +723,18 @@ Eligible to drive
 
 ### Table with Conditional Rows
 
-```
 | Product | Price | Status |
 |---------|-------|--------|
-{{#foreach Products}}
-| {{Name}} | {{Price}} | {{#if InStock}}Available{{#else}}Out of Stock{{/if}} |
-{{/foreach}}
-```
+| {{#foreach Products}} | | |
+| {{#if InStock}} | | |
+| {{Name}} | {{Price}} | Available |
+| {{#else}} | | |
+| {{Name}} | {{Price}} | Out of Stock |
+| {{/if}} | | |
+| {{/foreach}} | | |
+
+For a single differing cell, an inline conditional inside the cell is simpler:
+`| {{Name}} | {{Price}} | {{#if InStock}}Available{{#else}}Out of Stock{{/if}} |`
 
 ---
 

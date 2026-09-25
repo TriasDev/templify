@@ -109,7 +109,7 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
             switch (_options.MissingVariableBehavior)
             {
                 case MissingVariableBehavior.ReplaceWithEmpty:
-                    ReplacePlaceholderInParagraph(paragraph, placeholder, string.Empty);
+                    ReplacePlaceholderInParagraph(paragraph, placeholder, string.Empty, applyMarkdown: false);
                     _replacementCount++;
                     break;
 
@@ -124,11 +124,13 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         }
         else
         {
-            // Variable/expression found - convert to string with optional format and replace
+            // Variable/expression found - convert to string with optional format and replace.
+            // The :raw specifier only disables markdown; the value itself uses default conversion.
+            bool isRaw = IsRawFormat(placeholder.Format);
             string replacementValue = ValueConverter.ConvertToString(
                 value,
                 _options.Culture,
-                placeholder.Format,
+                isRaw ? null : placeholder.Format,
                 _options.BooleanFormatterRegistry);
 
             // Apply text replacements (e.g., HTML entities to Word-compatible text)
@@ -139,7 +141,8 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
             // to prevent OpenXML serialization failures
             replacementValue = XmlCharacterSanitizer.Sanitize(replacementValue)!;
 
-            ReplacePlaceholderInParagraph(paragraph, placeholder, replacementValue);
+            bool applyMarkdown = _options.EnableMarkdown && !isRaw;
+            ReplacePlaceholderInParagraph(paragraph, placeholder, replacementValue, applyMarkdown);
             _replacementCount++;
         }
     }
@@ -179,10 +182,12 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
     /// <param name="paragraph">The paragraph containing the placeholder.</param>
     /// <param name="placeholder">The placeholder to replace.</param>
     /// <param name="replacementValue">The value to replace it with.</param>
+    /// <param name="applyMarkdown">Whether markdown syntax in the value is rendered as formatting.</param>
     private void ReplacePlaceholderInParagraph(
         Paragraph paragraph,
         PlaceholderMatch placeholder,
-        string replacementValue)
+        string replacementValue,
+        bool applyMarkdown)
     {
         // Get all text runs in the paragraph
         List<Run> runs = paragraph.Descendants<Run>().ToList();
@@ -207,7 +212,7 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         if (startRunIndex == endRunIndex && startRunIndex >= 0)
         {
             // Placeholder is within a single run - replace in place, preserving that run's formatting
-            ReplacePlaceholderInSingleRun(runBoundaries[startRunIndex], placeholderStart, placeholderEnd, replacementValue);
+            ReplacePlaceholderInSingleRun(runBoundaries[startRunIndex], placeholderStart, placeholderEnd, replacementValue, applyMarkdown);
         }
         else
         {
@@ -218,7 +223,8 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
                 endRunIndex,
                 placeholderStart,
                 placeholderEnd,
-                replacementValue);
+                replacementValue,
+                applyMarkdown);
         }
     }
 
@@ -286,6 +292,12 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
     }
 
     /// <summary>
+    /// Checks whether the format specifier is <c>raw</c>, which disables markdown for the placeholder.
+    /// </summary>
+    private static bool IsRawFormat(string? format) =>
+        string.Equals(format, "raw", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
     /// Checks if the text contains newline characters.
     /// </summary>
     private static bool ContainsNewlines(string text) =>
@@ -298,7 +310,8 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         (Run Run, int StartIndex, int EndIndex) runInfo,
         int placeholderStart,
         int placeholderEnd,
-        string replacementValue)
+        string replacementValue,
+        bool applyMarkdown)
     {
         Run run = runInfo.Run;
         string runText = run.InnerText;
@@ -313,7 +326,7 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
 
         // Check for newlines and markdown in the replacement value
         bool hasNewlines = _options.EnableNewlineSupport && ContainsNewlines(replacementValue);
-        bool hasMarkdown = MarkdownParser.ContainsMarkdown(replacementValue);
+        bool hasMarkdown = applyMarkdown && MarkdownParser.ContainsMarkdown(replacementValue);
 
         if (hasNewlines && hasMarkdown)
         {
@@ -570,7 +583,8 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         int endRunIndex,
         int placeholderStart,
         int placeholderEnd,
-        string replacementValue)
+        string replacementValue,
+        bool applyMarkdown)
     {
         // Safety check - if we couldn't find the runs, bail out
         if (startRunIndex < 0 || endRunIndex < 0 || startRunIndex > endRunIndex)
@@ -609,7 +623,7 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
 
         // Check for newlines and markdown in the replacement value
         bool hasNewlines = _options.EnableNewlineSupport && ContainsNewlines(replacementValue);
-        bool hasMarkdown = MarkdownParser.ContainsMarkdown(replacementValue);
+        bool hasMarkdown = applyMarkdown && MarkdownParser.ContainsMarkdown(replacementValue);
 
         if (hasNewlines && hasMarkdown)
         {

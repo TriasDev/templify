@@ -169,6 +169,15 @@ var data = new Dictionary<string, object>
 
 The markdown formatting is automatically merged with any existing template formatting (e.g., red text + markdown bold = red bold text).
 
+Because any `*`, `_` or `~` can be read as markdown, ordinary data such as `my_report_final.docx` or `2*3*4` may be reformatted. To insert such values literally:
+
+```csharp
+// Disable markdown for all placeholders
+var options = new PlaceholderReplacementOptions { EnableMarkdown = false };
+```
+
+or opt out for a single placeholder with the `:raw` format specifier: `{{FileName:raw}}`.
+
 ### Line Breaks in Variable Values
 
 Newline characters in variable values are automatically converted to line breaks in Word:
@@ -203,6 +212,7 @@ Control how values are displayed using format specifiers:
 {{OrderDate:date:MMMM d, yyyy}} → January 15, 2024
 {{IsActive:checkbox}}         → ☑ or ☐
 {{IsActive:yesno}}            → Yes or No
+{{FileName:raw}}              → my_report_final.docx (no markdown interpretation)
 ```
 
 All format specifiers are culture-aware:

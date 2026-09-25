@@ -41,6 +41,7 @@ var options = new PlaceholderReplacementOptions
     MissingVariableBehavior = MissingVariableBehavior.ReplaceWithEmpty,
     Culture = CultureInfo.GetCultureInfo("de-DE"),
     EnableNewlineSupport = true,
+    EnableMarkdown = true,
     UpdateFieldsOnOpen = UpdateFieldsOnOpenMode.Auto
 };
 
@@ -54,6 +55,7 @@ var processor = new DocumentTemplateProcessor(options);
 | `MissingVariableBehavior` | enum | `LeaveUnchanged` | How to handle missing variables |
 | `Culture` | `CultureInfo` | `CurrentCulture` | Culture for formatting numbers and dates |
 | `EnableNewlineSupport` | `bool` | `true` | Convert `\n` to Word line breaks |
+| `EnableMarkdown` | `bool` | `true` | Render markdown in values (`**bold**`, `*italic*`, `_italic_`, `~~strike~~`) as Word formatting. Set to `false` to insert values as plain text; newline handling is unaffected. Single placeholders can opt out with `{{Name:raw}}` |
 | `UpdateFieldsOnOpen` | enum | `Never` | When to prompt Word to update fields |
 | `TextReplacements` | dictionary | `null` | Text replacement lookup table |
 | `DocumentProperties` | `DocumentProperties?` | `null` | Metadata properties to set on output document |

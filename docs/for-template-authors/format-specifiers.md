@@ -7,6 +7,7 @@ Format specifiers allow you to control how values are displayed in your generate
 - [Quick Start](#quick-start)
 - [Available Format Specifiers](#available-format-specifiers)
   - [String Formatters](#string-formatters)
+  - [Raw (No Markdown)](#raw)
   - [Boolean Formatters](#boolean-formatters)
   - [Number and Currency Formatters](#number-and-currency-formatters)
   - [Date Formatters](#date-formatters)
@@ -94,6 +95,38 @@ Code: abc-123-xyz
 **Notes:**
 - String formatters only apply to string values. Non-string values are rendered normally.
 - Case conversion respects the configured culture (e.g., Turkish locale handles `I`/`i` correctly).
+
+#### raw
+
+Inserts the value without markdown interpretation. By default, `*`, `_` and `~` in values are read as markdown (bold, italic, strikethrough). Use `:raw` for file names, identifiers, product codes or formulas that contain these characters.
+
+**Example:**
+```
+File: {{FileName:raw}}
+Formula: {{Formula:raw}}
+```
+
+**JSON:**
+```json
+{
+  "FileName": "my_report_final.docx",
+  "Formula": "2*3*4"
+}
+```
+
+**Output:**
+```
+File: my_report_final.docx
+Formula: 2*3*4
+```
+
+Without `:raw`, the output would be `myreportfinal.docx` (with "report" in italic) and `234`.
+
+**Notes:**
+- `:raw` only disables markdown. The value otherwise uses default conversion, and line breaks still work.
+- `:raw` cannot be combined with another format specifier. Use either `:raw` or, for example, `:uppercase`.
+- To disable markdown for all placeholders, developers can set `EnableMarkdown = false` in `PlaceholderReplacementOptions`.
+- Text templates (`TextTemplateProcessor`) never apply markdown, so `:raw` has no visible effect there.
 
 ### Boolean Formatters
 
