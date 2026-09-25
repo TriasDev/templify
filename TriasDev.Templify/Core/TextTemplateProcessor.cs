@@ -284,7 +284,7 @@ public sealed class TextTemplateProcessor
             {
                 // Create loop context
                 LoopContext loopContext = new LoopContext(
-                    currentItem: item ?? new object(),
+                    currentItem: item,
                     index: index,
                     count: items.Count,
                     collectionName: collectionName,

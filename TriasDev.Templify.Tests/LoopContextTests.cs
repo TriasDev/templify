@@ -177,6 +177,100 @@ public class LoopContextTests
         Assert.Null(parameters[1]);
     }
 
+    [Fact]
+    public void CreateContexts_WithNullItem_CreatesContextWithNullCurrentItem()
+    {
+        // Arrange
+        List<string?> items = new List<string?> { "a", null };
+
+        // Act
+        IList contexts = (IList)_createContextsMethod.Invoke(null, new object[] { items, "Items", null!, null! })!;
+
+        // Assert
+        Assert.Equal(2, contexts.Count);
+        Assert.Null(_currentItemProp.GetValue(contexts[1]));
+        Assert.Equal(1, _indexProp.GetValue(contexts[1]));
+    }
+
+    [Fact]
+    public void TryResolveVariable_NullItem_DotResolvesToNull()
+    {
+        // Arrange
+        IList contexts = (IList)_createContextsMethod.Invoke(null, new object[] { new List<string?> { null }, "Items", null!, null! })!;
+
+        // Act
+        object[] parameters = new object[] { ".", "sentinel" };
+        bool success = (bool)_tryResolveVariableMethod.Invoke(contexts[0], parameters)!;
+
+        // Assert
+        Assert.True(success);
+        Assert.Null(parameters[1]);
+    }
+
+    [Fact]
+    public void TryResolveVariable_NullItem_ImplicitPropertyIsNotResolved()
+    {
+        // Arrange: a null item has no properties, so implicit names are left to the parent scope
+        IList contexts = (IList)_createContextsMethod.Invoke(null, new object[] { new List<TestItem?> { null }, "Items", null!, null! })!;
+
+        // Act
+        object[] parameters = new object[] { "Name", null! };
+        bool success = (bool)_tryResolveVariableMethod.Invoke(contexts[0], parameters)!;
+
+        // Assert
+        Assert.False(success);
+    }
+
+    [Fact]
+    public void TryResolveVariable_NullItem_NamedVariablePropertyResolvesToNull()
+    {
+        // Arrange
+        IList contexts = (IList)_createContextsMethod.Invoke(null, new object[] { new List<TestItem?> { null }, "Items", "item", null! })!;
+
+        // Act
+        object[] parameters = new object[] { "item.Name", "sentinel" };
+        bool success = (bool)_tryResolveVariableMethod.Invoke(contexts[0], parameters)!;
+
+        // Assert
+        Assert.True(success);
+        Assert.Null(parameters[1]);
+    }
+
+    [Fact]
+    public void TryResolveVariable_PropertyWithNullValue_ReturnsTrueWithNull()
+    {
+        // Arrange
+        List<Customer> items = new List<Customer> { new Customer { Name = "A", Address = null } };
+        IList contexts = (IList)_createContextsMethod.Invoke(null, new object[] { items, "Customers", null!, null! })!;
+
+        // Act
+        object[] parameters = new object[] { "Address", "sentinel" };
+        bool success = (bool)_tryResolveVariableMethod.Invoke(contexts[0], parameters)!;
+
+        // Assert
+        Assert.True(success);
+        Assert.Null(parameters[1]);
+    }
+
+    [Fact]
+    public void TryResolveVariable_DictionaryItemWithNullValue_ReturnsTrueWithNull()
+    {
+        // Arrange
+        List<Dictionary<string, object?>> items = new List<Dictionary<string, object?>>
+        {
+            new Dictionary<string, object?> { ["Notes"] = null }
+        };
+        IList contexts = (IList)_createContextsMethod.Invoke(null, new object[] { items, "Items", null!, null! })!;
+
+        // Act
+        object[] parameters = new object[] { "Notes", "sentinel" };
+        bool success = (bool)_tryResolveVariableMethod.Invoke(contexts[0], parameters)!;
+
+        // Assert
+        Assert.True(success);
+        Assert.Null(parameters[1]);
+    }
+
     private class TestItem
     {
         public string Name { get; set; } = string.Empty;
