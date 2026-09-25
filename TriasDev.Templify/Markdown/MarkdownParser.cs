@@ -9,7 +9,7 @@ namespace TriasDev.Templify.Markdown;
 /// <summary>
 /// Parses markdown syntax in text and converts it to formatted segments.
 /// </summary>
-internal static class MarkdownParser
+internal static partial class MarkdownParser
 {
     // Regex pattern to match markdown formatting:
     // - ~~text~~ for strikethrough
@@ -17,14 +17,16 @@ internal static class MarkdownParser
     // - **text** or __text__ for bold
     // - *text* or _text_ for italic
     // Character class restrictions ([^~], [^*], [^_]) prevent catastrophic backtracking
-    private static readonly Regex _markdownPattern = new(
+    private static readonly Regex _markdownPattern = MarkdownRegex();
+
+    [GeneratedRegex(
         @"(~~(?<strike>[^~]+?)~~)" +                           // ~~strikethrough~~
         @"|((?<!\*)\*\*\*(?<bolditalic>[^*]+?)\*\*\*(?!\*))" + // ***bold+italic*** (not part of ****)
         @"|(?<!\*)\*\*(?<bold>[^*]+?)\*\*(?!\*)" +             // **bold** (not part of ***)
         @"|__(?<bold2>[^_]+?)__" +                             // __bold__
         @"|(?<![*_])\*(?<italic>[^*]+?)\*(?![*_])" +           // *italic* (not part of ** or _)
-        @"|(?<![*_])_(?<italic2>[^_]+?)_(?![*_])",             // _italic_ (not part of __ or *)
-        RegexOptions.Compiled);
+        @"|(?<![*_])_(?<italic2>[^_]+?)_(?![*_])")]            // _italic_ (not part of __ or *)
+    private static partial Regex MarkdownRegex();
 
     /// <summary>
     /// Parses text containing markdown syntax into a list of formatted segments.

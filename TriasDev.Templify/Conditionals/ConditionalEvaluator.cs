@@ -1,6 +1,7 @@
 // Copyright (c) 2025 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Frozen;
 using System.Text;
 using TriasDev.Templify.Core;
 using TriasDev.Templify.Placeholders;
@@ -16,10 +17,8 @@ internal sealed class ConditionalEvaluator
     /// <summary>
     /// Known operator-like tokens that are common mistakes but not valid operators.
     /// </summary>
-    private static readonly HashSet<string> _knownInvalidOperators = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "===", "<>", "&&", "||"
-    };
+    private static readonly FrozenSet<string> _knownInvalidOperators =
+        new[] { "===", "<>", "&&", "||" }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Validates a conditional expression for syntactic correctness.
@@ -278,11 +277,9 @@ internal sealed class ConditionalEvaluator
     /// Parses a <c>{{#if}}</c>/<c>{{#elseif}}</c> expression into an AST.
     /// </summary>
     /// <exception cref="Engine.ConditionParseException">The expression is malformed.</exception>
+    /// <remarks>Parsed expressions are cached (see <see cref="Engine.ConditionAstCache"/>).</remarks>
     internal static Engine.ConditionNode Parse(string expression)
-    {
-        IReadOnlyList<Engine.ConditionToken> tokens = new Engine.ConditionLexer().Tokenize(expression);
-        return new Engine.ConditionParser(Engine.ConditionOperatorRegistry.Shared).Parse(tokens);
-    }
+        => Engine.ConditionAstCache.Conditions.GetOrParse(expression ?? string.Empty);
 
     /// <summary>
     /// Collects the variables referenced by a parsed expression (literals, operators and list items are skipped).

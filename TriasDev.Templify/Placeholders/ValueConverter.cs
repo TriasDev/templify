@@ -1,6 +1,7 @@
 // Copyright (c) 2025 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Concurrent;
 using System.Globalization;
 using TriasDev.Templify.Formatting;
 using TriasDev.Templify.Utilities;
@@ -12,6 +13,20 @@ namespace TriasDev.Templify.Placeholders;
 /// </summary>
 internal static class ValueConverter
 {
+    /// <summary>
+    /// Default boolean formatter registries, one per language (the built-in formatters depend only on
+    /// <see cref="CultureInfo.TwoLetterISOLanguageName"/>). They are never exposed, so nothing can
+    /// register into them.
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, BooleanFormatterRegistry> _defaultBooleanFormatterRegistries =
+        new(StringComparer.Ordinal);
+
+    private static BooleanFormatterRegistry GetDefaultBooleanFormatterRegistry(CultureInfo culture) =>
+        _defaultBooleanFormatterRegistries.GetOrAdd(
+            culture.TwoLetterISOLanguageName,
+            static (_, c) => new BooleanFormatterRegistry(c),
+            culture);
+
     /// <summary>
     /// Converts an object value to its string representation using the specified culture.
     /// </summary>
@@ -36,7 +51,7 @@ internal static class ValueConverter
         // Handle boolean formatting with format specifier
         if (value is bool boolValue && !string.IsNullOrWhiteSpace(format))
         {
-            var registry = formatterRegistry ?? new BooleanFormatterRegistry(culture);
+            BooleanFormatterRegistry registry = formatterRegistry ?? GetDefaultBooleanFormatterRegistry(culture);
             if (registry.TryFormat(boolValue, format, out string? formattedValue))
             {
                 return formattedValue!;
