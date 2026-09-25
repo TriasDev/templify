@@ -72,6 +72,10 @@ public sealed class ProcessingResult
     /// <summary>
     /// Creates a successful processing result.
     /// </summary>
+    /// <param name="replacementCount">The number of placeholders replaced.</param>
+    /// <param name="missingVariables">Names of variables that were referenced but not found; null for none.</param>
+    /// <param name="warnings">Non-fatal issues encountered during processing; null for none.</param>
+    /// <returns>A result with <see cref="IsSuccess"/> set to <see langword="true"/>.</returns>
     public static ProcessingResult Success(
         int replacementCount,
         IReadOnlyList<string>? missingVariables = null,
@@ -89,6 +93,8 @@ public sealed class ProcessingResult
     /// <summary>
     /// Creates a failed processing result.
     /// </summary>
+    /// <param name="errorMessage">The message describing why processing failed.</param>
+    /// <returns>A result with <see cref="IsSuccess"/> set to <see langword="false"/> and no replacements.</returns>
     public static ProcessingResult Failure(string errorMessage)
     {
         return new ProcessingResult

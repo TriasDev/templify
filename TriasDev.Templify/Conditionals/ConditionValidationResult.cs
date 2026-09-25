@@ -21,6 +21,7 @@ public sealed class ConditionValidationResult
     /// <summary>
     /// Creates a successful validation result with no issues.
     /// </summary>
+    /// <returns>A result with <see cref="IsValid"/> set to <see langword="true"/> and no issues.</returns>
     public static ConditionValidationResult Success()
     {
         return new ConditionValidationResult { IsValid = true };
@@ -30,6 +31,7 @@ public sealed class ConditionValidationResult
     /// Creates a failed validation result with the specified issues.
     /// </summary>
     /// <param name="issues">The validation issues found.</param>
+    /// <returns>A result with <see cref="IsValid"/> set to <see langword="false"/> and the given issues.</returns>
     public static ConditionValidationResult Failure(IReadOnlyList<ConditionValidationIssue> issues)
     {
         return new ConditionValidationResult
