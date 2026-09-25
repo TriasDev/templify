@@ -336,3 +336,10 @@ process-data*.json
 
 # MkDocs generated files
 site/
+
+# BenchmarkDotNet output (regenerate locally, do not commit)
+BenchmarkDotNet.Artifacts/
+
+# Demo output (TriasDev.Templify.Demo writes to ./output by default)
+/output/
+TriasDev.Templify.Demo/output/
