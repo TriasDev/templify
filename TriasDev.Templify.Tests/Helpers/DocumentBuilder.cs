@@ -78,6 +78,64 @@ public sealed class DocumentBuilder
     }
 
     /// <summary>
+    /// Gets the main document part, e.g. to add image, footnote or endnote parts.
+    /// </summary>
+    public MainDocumentPart MainPart => _document.MainDocumentPart!;
+
+    /// <summary>
+    /// Adds a 1x1 PNG image part and returns its relationship id, for use in a drawing's blip.
+    /// </summary>
+    public string AddImagePart()
+    {
+        ImagePart imagePart = MainPart.AddImagePart(ImagePartType.Png);
+        using (MemoryStream png = new MemoryStream(Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==")))
+        {
+            imagePart.FeedData(png);
+        }
+
+        return MainPart.GetIdOfPart(imagePart);
+    }
+
+    /// <summary>
+    /// Creates a minimal, schema-valid inline picture drawing referencing the given image relationship.
+    /// </summary>
+    public static Drawing CreateInlineImage(string relationshipId, uint id = 1)
+    {
+        const long size = 95250L;
+        return new Drawing(
+            new DocumentFormat.OpenXml.Drawing.Wordprocessing.Inline(
+                new DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent { Cx = size, Cy = size },
+                new DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties { Id = id, Name = $"Picture {id}" },
+                new DocumentFormat.OpenXml.Drawing.Graphic(
+                    new DocumentFormat.OpenXml.Drawing.GraphicData(
+                        new DocumentFormat.OpenXml.Drawing.Pictures.Picture(
+                            new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualPictureProperties(
+                                new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualDrawingProperties { Id = 0U, Name = "image.png" },
+                                new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualPictureDrawingProperties()),
+                            new DocumentFormat.OpenXml.Drawing.Pictures.BlipFill(
+                                new DocumentFormat.OpenXml.Drawing.Blip { Embed = relationshipId },
+                                new DocumentFormat.OpenXml.Drawing.Stretch(new DocumentFormat.OpenXml.Drawing.FillRectangle())),
+                            new DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties(
+                                new DocumentFormat.OpenXml.Drawing.Transform2D(
+                                    new DocumentFormat.OpenXml.Drawing.Offset { X = 0L, Y = 0L },
+                                    new DocumentFormat.OpenXml.Drawing.Extents { Cx = size, Cy = size }),
+                                new DocumentFormat.OpenXml.Drawing.PresetGeometry(new DocumentFormat.OpenXml.Drawing.AdjustValueList())
+                                {
+                                    Preset = DocumentFormat.OpenXml.Drawing.ShapeTypeValues.Rectangle,
+                                })))
+                    {
+                        Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture",
+                    }))
+            {
+                DistanceFromTop = 0U,
+                DistanceFromBottom = 0U,
+                DistanceFromLeft = 0U,
+                DistanceFromRight = 0U,
+            });
+    }
+
+    /// <summary>
     /// Appends an arbitrary, fully constructed block-level element (e.g. a paragraph with
     /// hyperlinks, fields or drawings) to the document body.
     /// </summary>

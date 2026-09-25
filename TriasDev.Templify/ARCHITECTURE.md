@@ -773,8 +773,10 @@ Placeholder replacement and inline conditionals share one internal component
    - `ReplacementContent` describes the new text as pieces (text with optional markdown
      formatting, line breaks); for non-plain content the first run is split and new runs are
      inserted in between;
-   - untouched runs and non-text content stay in place; simple inline content strictly inside
-     the range (tabs, breaks, symbols) is removed with it; emptied runs and wrappers are pruned.
+   - untouched runs and non-text content stay in place; inline content strictly inside the
+     range (tabs, breaks, symbols, drawings, note references, complete fields) is removed with it,
+     while bookmarks and comment ranges are always kept; emptied runs and wrappers (e.g. a
+     hyperlink that lost all its text) are pruned.
 
 ```
 [Run1: "Hi {{Na"] [Run2: "me}}!"]  →  [Run1: "Hi Alice"] [Run2: "!"]

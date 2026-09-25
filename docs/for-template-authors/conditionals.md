@@ -750,6 +750,22 @@ No processing fees!
 {{/if}}
 ```
 
+## Inline Conditionals
+
+When `{{#if}}` and `{{/if}}` are in the same paragraph, only that part of the paragraph is affected:
+
+```
+Dear {{#if IsVip}}valued {{/if}}customer,
+```
+
+Only the text of the markers and of the branches that are not shown is removed. Everything else
+in the paragraph stays exactly as it was: the formatting of each piece of text, hyperlinks, fields
+(such as page numbers), tabs, line breaks, images and footnote references.
+
+Non-text content that is placed *inside* a branch belongs to that branch: an image, line break,
+footnote reference or complete field between `{{#if}}` and `{{/if}}` is removed when the branch is not shown.
+Bookmarks are always kept.
+
 ## Nested Conditionals
 
 You can nest conditionals inside each other:

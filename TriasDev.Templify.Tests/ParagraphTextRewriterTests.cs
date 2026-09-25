@@ -182,6 +182,48 @@ public sealed class ParagraphTextRewriterTests
     }
 
     [Fact]
+    public void Remove_FieldCrossingRangeBoundary_KeepsFieldCharacters()
+    {
+        Paragraph paragraph = new Paragraph(
+            TextRun("ab"),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+            new Run(new FieldCode(" PAGE ")),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+            TextRun("12"),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
+            TextRun("cd"));
+
+        // Removes "b1": starts before the field and ends inside its result.
+        ParagraphTextRewriter.Remove(paragraph, new[] { (1, 3) });
+
+        Assert.Equal(3, paragraph.Descendants<FieldChar>().Count());
+        Assert.Single(paragraph.Descendants<FieldCode>());
+        Assert.Equal("a2cd", ParagraphTextModel.GetText(paragraph));
+    }
+
+    [Fact]
+    public void Remove_NestedFieldsInsideRange_RemovesAllFieldParts()
+    {
+        Paragraph paragraph = new Paragraph(
+            TextRun("a["),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+            new Run(new FieldCode(" IF ")),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+            new Run(new FieldCode(" PAGE ")),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+            TextRun("x"),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
+            TextRun("]b"));
+
+        ParagraphTextRewriter.Remove(paragraph, new[] { (1, 4) });
+
+        Assert.Empty(paragraph.Descendants<FieldChar>());
+        Assert.Empty(paragraph.Descendants<FieldCode>());
+        Assert.Equal("[a][b]", Describe(paragraph));
+    }
+
+    [Fact]
     public void Replace_InvalidRange_ReturnsFalse()
     {
         Paragraph paragraph = new Paragraph(TextRun("abc"));
