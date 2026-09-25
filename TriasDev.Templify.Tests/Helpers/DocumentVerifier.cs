@@ -30,6 +30,11 @@ public sealed class DocumentVerifier : IDisposable
     }
 
     /// <summary>
+    /// Gets the underlying (read-only) document, e.g. to inspect footnote, endnote or comment parts.
+    /// </summary>
+    public WordprocessingDocument Document => _document;
+
+    /// <summary>
     /// Validates the document against the OpenXML schema and returns the error descriptions.
     /// An empty list means the document is schema-valid.
     /// </summary>
