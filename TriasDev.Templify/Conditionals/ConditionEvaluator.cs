@@ -94,6 +94,7 @@ public sealed class ConditionEvaluator : IConditionEvaluator
     }
 
     /// <inheritdoc/>
+    [Obsolete("Synchronous operation wrapped in a Task; use Evaluate(...). Will be removed in 2.0.")]
     public Task<bool> EvaluateAsync(string expression, Dictionary<string, object> data, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -101,6 +102,7 @@ public sealed class ConditionEvaluator : IConditionEvaluator
     }
 
     /// <inheritdoc/>
+    [Obsolete("Synchronous operation wrapped in a Task; use Evaluate(...). Will be removed in 2.0.")]
     public Task<bool> EvaluateAsync(string expression, string jsonData, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -108,6 +110,7 @@ public sealed class ConditionEvaluator : IConditionEvaluator
     }
 
     /// <inheritdoc/>
+    [Obsolete("Synchronous operation wrapped in a Task; use Evaluate(...). Will be removed in 2.0.")]
     public Task<bool> EvaluateAsync(string expression, IEvaluationContext context, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();

@@ -64,5 +64,6 @@ public interface IConditionContext
     /// <returns>A task that resolves to true if the condition is met; otherwise, false.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="expression"/> is null.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is canceled.</exception>
+    [Obsolete("Synchronous operation wrapped in a Task; use Evaluate(...). Will be removed in 2.0.")]
     Task<bool> EvaluateAsync(string expression, CancellationToken cancellationToken = default);
 }

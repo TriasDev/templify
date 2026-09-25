@@ -108,7 +108,7 @@ public sealed class DocumentWalkerTests
 
         // Assert
         Assert.Single(visitor.VisitedPlaceholders);
-        PlaceholderMatch placeholder = visitor.VisitedPlaceholders[0];
+        PlaceholderToken placeholder = visitor.VisitedPlaceholders[0];
         Assert.Equal("Name", placeholder.VariableName);
 
         document.Dispose();
@@ -299,7 +299,7 @@ public sealed class DocumentWalkerTests
     {
         public List<ConditionalBlock> VisitedConditionals { get; } = new List<ConditionalBlock>();
         public List<LoopBlock> VisitedLoops { get; } = new List<LoopBlock>();
-        public List<PlaceholderMatch> VisitedPlaceholders { get; } = new List<PlaceholderMatch>();
+        public List<PlaceholderToken> VisitedPlaceholders { get; } = new List<PlaceholderToken>();
         public List<Paragraph> VisitedParagraphs { get; } = new List<Paragraph>();
 
         public void VisitConditional(ConditionalBlock conditional, IEvaluationContext context)
@@ -312,7 +312,7 @@ public sealed class DocumentWalkerTests
             VisitedLoops.Add(loop);
         }
 
-        public void VisitPlaceholder(PlaceholderMatch placeholder, Paragraph paragraph, IEvaluationContext context)
+        public void VisitPlaceholder(PlaceholderToken placeholder, Paragraph paragraph, IEvaluationContext context)
         {
             VisitedPlaceholders.Add(placeholder);
         }
@@ -381,7 +381,7 @@ public sealed class DocumentWalkerTests
             // Not implemented for this test
         }
 
-        public void VisitPlaceholder(PlaceholderMatch placeholder, Paragraph paragraph, IEvaluationContext context)
+        public void VisitPlaceholder(PlaceholderToken placeholder, Paragraph paragraph, IEvaluationContext context)
         {
             // Not implemented for this test
         }

@@ -24,7 +24,7 @@ public sealed class PlaceholderVisitorTests
     {
         // Arrange
         Paragraph paragraph = new Paragraph(new Run(new Text("Hello {{Name}}!")));
-        PlaceholderMatch placeholder = new PlaceholderMatch
+        PlaceholderToken placeholder = new PlaceholderToken
         {
             VariableName = "Name",
             FullMatch = "{{Name}}",
@@ -55,7 +55,7 @@ public sealed class PlaceholderVisitorTests
     {
         // Arrange
         Paragraph paragraph = new Paragraph(new Run(new Text("Hello {{Name}}!")));
-        PlaceholderMatch placeholder = new PlaceholderMatch
+        PlaceholderToken placeholder = new PlaceholderToken
         {
             VariableName = "Name",
             FullMatch = "{{Name}}",
@@ -86,7 +86,7 @@ public sealed class PlaceholderVisitorTests
     {
         // Arrange
         Paragraph paragraph = new Paragraph(new Run(new Text("Hello {{Name}}!")));
-        PlaceholderMatch placeholder = new PlaceholderMatch
+        PlaceholderToken placeholder = new PlaceholderToken
         {
             VariableName = "Name",
             FullMatch = "{{Name}}",
@@ -117,7 +117,7 @@ public sealed class PlaceholderVisitorTests
     {
         // Arrange
         Paragraph paragraph = new Paragraph(new Run(new Text("Hello {{Name}}!")));
-        PlaceholderMatch placeholder = new PlaceholderMatch
+        PlaceholderToken placeholder = new PlaceholderToken
         {
             VariableName = "Name",
             FullMatch = "{{Name}}",
@@ -148,7 +148,7 @@ public sealed class PlaceholderVisitorTests
     {
         // Arrange
         Paragraph paragraph = new Paragraph(new Run(new Text("Count: {{Count}}")));
-        PlaceholderMatch placeholder = new PlaceholderMatch
+        PlaceholderToken placeholder = new PlaceholderToken
         {
             VariableName = "Count",
             FullMatch = "{{Count}}",
@@ -178,7 +178,7 @@ public sealed class PlaceholderVisitorTests
     {
         // Arrange
         Paragraph paragraph = new Paragraph(new Run(new Text("Date: {{Date}}")));
-        PlaceholderMatch placeholder = new PlaceholderMatch
+        PlaceholderToken placeholder = new PlaceholderToken
         {
             VariableName = "Date",
             FullMatch = "{{Date}}",
@@ -209,7 +209,7 @@ public sealed class PlaceholderVisitorTests
     {
         // Arrange
         Paragraph paragraph = new Paragraph(new Run(new Text("Item: {{.}}")));
-        PlaceholderMatch placeholder = new PlaceholderMatch
+        PlaceholderToken placeholder = new PlaceholderToken
         {
             VariableName = ".",
             FullMatch = "{{.}}",
@@ -239,7 +239,7 @@ public sealed class PlaceholderVisitorTests
     {
         // Arrange
         Paragraph paragraph = new Paragraph(new Run(new Text("Index: {{@index}}")));
-        PlaceholderMatch placeholder = new PlaceholderMatch
+        PlaceholderToken placeholder = new PlaceholderToken
         {
             VariableName = "@index",
             FullMatch = "{{@index}}",

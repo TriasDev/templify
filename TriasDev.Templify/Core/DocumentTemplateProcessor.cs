@@ -48,12 +48,18 @@ public sealed class DocumentTemplateProcessor
     /// Processes a Word document template, replacing placeholders with values from the data dictionary.
     /// </summary>
     /// <param name="templateStream">Stream containing the template .docx file. Must be readable.</param>
-    /// <param name="outputStream">Stream to write the processed document. Must be writable.</param>
+    /// <param name="outputStream">
+    /// Stream to write the processed document to. Must be readable, writable and seekable (for example a
+    /// <see cref="MemoryStream"/>, or a <see cref="FileStream"/> opened with <see cref="FileAccess.ReadWrite"/>),
+    /// because the document is edited in place after the template has been copied into it.
+    /// </param>
     /// <param name="data">Dictionary containing variable names and their replacement values.</param>
     /// <returns>
     /// A <see cref="ProcessingResult"/> indicating success or failure and providing metrics. Template syntax
-    /// errors (e.g. unmatched markers) and data errors (e.g. a loop over a non-collection) are reported as a
-    /// failed result with <see cref="ProcessingResult.ErrorMessage"/> set.
+    /// errors (e.g. unmatched markers), data errors (e.g. a loop over a non-collection) and unusable streams
+    /// (a template stream that is not readable, an output stream that is not readable, writable and seekable)
+    /// are reported as a failed result with <see cref="ProcessingResult.ErrorMessage"/> set. Unusable streams
+    /// are detected before anything is written to the output stream.
     /// </returns>
     /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
     /// <exception cref="InvalidOperationException">
@@ -68,10 +74,334 @@ public sealed class DocumentTemplateProcessor
         ArgumentNullException.ThrowIfNull(outputStream);
         ArgumentNullException.ThrowIfNull(data);
 
+        return ProcessTemplateCore(templateStream, outputStream, data);
+    }
+
+    /// <summary>
+    /// Processes a Word document template, replacing placeholders with values from read-only data.
+    /// </summary>
+    /// <param name="templateStream">Stream containing the template .docx file. Must be readable.</param>
+    /// <param name="outputStream">
+    /// Stream to write the processed document to. Must be readable, writable and seekable (for example a
+    /// <see cref="MemoryStream"/>, or a <see cref="FileStream"/> opened with <see cref="FileAccess.ReadWrite"/>).
+    /// </param>
+    /// <param name="data">
+    /// Variable names and their replacement values. Not copied: lookups use the dictionary's own key comparer.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ProcessingResult"/>; see <see cref="ProcessTemplate(Stream, Stream, Dictionary{string, object})"/>
+    /// for which errors are reported as a failed result.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown only when a variable is missing and <see cref="MissingVariableBehavior.ThrowException"/> is configured.
+    /// </exception>
+    public ProcessingResult ProcessTemplate(
+        Stream templateStream,
+        Stream outputStream,
+        IReadOnlyDictionary<string, object?> data)
+    {
+        ArgumentNullException.ThrowIfNull(templateStream);
+        ArgumentNullException.ThrowIfNull(outputStream);
+        ArgumentNullException.ThrowIfNull(data);
+
+        return ProcessTemplateCore(templateStream, outputStream, AsNonNullValues(data));
+    }
+
+    /// <summary>
+    /// Processes a Word document template, replacing placeholders with values from a JSON string.
+    /// </summary>
+    /// <param name="templateStream">Stream containing the template .docx file. Must be readable.</param>
+    /// <param name="outputStream">
+    /// Stream to write the processed document to. Must be readable, writable and seekable (for example a
+    /// <see cref="MemoryStream"/>, or a <see cref="FileStream"/> opened with <see cref="FileAccess.ReadWrite"/>).
+    /// </param>
+    /// <param name="jsonData">JSON string containing variable names and their replacement values. Must be a valid JSON object (not an array).</param>
+    /// <returns>A <see cref="ProcessingResult"/> indicating success or failure and providing metrics.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when jsonData is empty or whitespace.</exception>
+    /// <exception cref="JsonException">Thrown when jsonData is invalid JSON or root is not an object.</exception>
+    public ProcessingResult ProcessTemplate(
+        Stream templateStream,
+        Stream outputStream,
+        string jsonData)
+    {
+        ArgumentNullException.ThrowIfNull(jsonData);
+
+        // JSON parse errors (JsonException, ArgumentException) propagate to the caller unchanged.
+        Dictionary<string, object> data = JsonDataParser.ParseJsonToDataDictionary(jsonData);
+        return ProcessTemplate(templateStream, outputStream, data);
+    }
+
+    /// <summary>
+    /// Processes a Word document template held in memory and returns the processed document as a byte array.
+    /// </summary>
+    /// <param name="template">The template .docx file content. Not modified.</param>
+    /// <param name="data">Dictionary containing variable names and their replacement values.</param>
+    /// <param name="output">
+    /// When this method returns, the processed .docx file content if processing succeeded; otherwise an empty array.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ProcessingResult"/>; see <see cref="ProcessTemplate(Stream, Stream, Dictionary{string, object})"/>
+    /// for which errors are reported as a failed result.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown only when a variable is missing and <see cref="MissingVariableBehavior.ThrowException"/> is configured.
+    /// </exception>
+    public ProcessingResult ProcessTemplate(
+        byte[] template,
+        Dictionary<string, object> data,
+        out byte[] output)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        ArgumentNullException.ThrowIfNull(data);
+
+        return ProcessBytes(template, data, out output);
+    }
+
+    /// <summary>
+    /// Processes a Word document template held in memory, using read-only data, and returns the processed
+    /// document as a byte array.
+    /// </summary>
+    /// <param name="template">The template .docx file content. Not modified.</param>
+    /// <param name="data">
+    /// Variable names and their replacement values. Not copied: lookups use the dictionary's own key comparer.
+    /// </param>
+    /// <param name="output">
+    /// When this method returns, the processed .docx file content if processing succeeded; otherwise an empty array.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ProcessingResult"/>; see <see cref="ProcessTemplate(Stream, Stream, Dictionary{string, object})"/>
+    /// for which errors are reported as a failed result.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown only when a variable is missing and <see cref="MissingVariableBehavior.ThrowException"/> is configured.
+    /// </exception>
+    public ProcessingResult ProcessTemplate(
+        byte[] template,
+        IReadOnlyDictionary<string, object?> data,
+        out byte[] output)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        ArgumentNullException.ThrowIfNull(data);
+
+        return ProcessBytes(template, AsNonNullValues(data), out output);
+    }
+
+    /// <summary>
+    /// Processes a Word document template held in memory, using data from a JSON string, and returns the
+    /// processed document as a byte array.
+    /// </summary>
+    /// <param name="template">The template .docx file content. Not modified.</param>
+    /// <param name="jsonData">JSON string containing variable names and their replacement values. Must be a valid JSON object (not an array).</param>
+    /// <param name="output">
+    /// When this method returns, the processed .docx file content if processing succeeded; otherwise an empty array.
+    /// </param>
+    /// <returns>A <see cref="ProcessingResult"/> indicating success or failure and providing metrics.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when jsonData is empty or whitespace.</exception>
+    /// <exception cref="JsonException">Thrown when jsonData is invalid JSON or root is not an object.</exception>
+    public ProcessingResult ProcessTemplate(
+        byte[] template,
+        string jsonData,
+        out byte[] output)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        ArgumentNullException.ThrowIfNull(jsonData);
+
+        Dictionary<string, object> data = JsonDataParser.ParseJsonToDataDictionary(jsonData);
+        return ProcessBytes(template, data, out output);
+    }
+
+    /// <summary>
+    /// Processes a Word document template file and writes the processed document to a file.
+    /// </summary>
+    /// <param name="templatePath">Path of the template .docx file. Not modified.</param>
+    /// <param name="outputPath">
+    /// Path of the output .docx file. Created or overwritten only when processing succeeds; may be the same
+    /// path as <paramref name="templatePath"/>.
+    /// </param>
+    /// <param name="data">Dictionary containing variable names and their replacement values.</param>
+    /// <returns>
+    /// A <see cref="ProcessingResult"/>; see <see cref="ProcessTemplate(Stream, Stream, Dictionary{string, object})"/>
+    /// for which errors are reported as a failed result.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when a path is empty or whitespace.</exception>
+    /// <exception cref="IOException">
+    /// Thrown when the template file cannot be read or the output file cannot be written (for example
+    /// <see cref="FileNotFoundException"/> or <see cref="DirectoryNotFoundException"/>), as by
+    /// <see cref="File.ReadAllBytes(string)"/> and <see cref="File.WriteAllBytes(string, byte[])"/>.
+    /// </exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when access to a file is denied.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown only when a variable is missing and <see cref="MissingVariableBehavior.ThrowException"/> is configured.
+    /// </exception>
+    public ProcessingResult ProcessTemplateFile(
+        string templatePath,
+        string outputPath,
+        Dictionary<string, object> data)
+    {
+        ValidatePaths(templatePath, outputPath);
+        ArgumentNullException.ThrowIfNull(data);
+
+        return ProcessFile(templatePath, outputPath, data);
+    }
+
+    /// <summary>
+    /// Processes a Word document template file, using read-only data, and writes the processed document to a file.
+    /// </summary>
+    /// <param name="templatePath">Path of the template .docx file. Not modified.</param>
+    /// <param name="outputPath">
+    /// Path of the output .docx file. Created or overwritten only when processing succeeds; may be the same
+    /// path as <paramref name="templatePath"/>.
+    /// </param>
+    /// <param name="data">
+    /// Variable names and their replacement values. Not copied: lookups use the dictionary's own key comparer.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ProcessingResult"/>; see <see cref="ProcessTemplate(Stream, Stream, Dictionary{string, object})"/>
+    /// for which errors are reported as a failed result.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when a path is empty or whitespace.</exception>
+    /// <exception cref="IOException">
+    /// Thrown when the template file cannot be read or the output file cannot be written (for example
+    /// <see cref="FileNotFoundException"/> or <see cref="DirectoryNotFoundException"/>).
+    /// </exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when access to a file is denied.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown only when a variable is missing and <see cref="MissingVariableBehavior.ThrowException"/> is configured.
+    /// </exception>
+    public ProcessingResult ProcessTemplateFile(
+        string templatePath,
+        string outputPath,
+        IReadOnlyDictionary<string, object?> data)
+    {
+        ValidatePaths(templatePath, outputPath);
+        ArgumentNullException.ThrowIfNull(data);
+
+        return ProcessFile(templatePath, outputPath, AsNonNullValues(data));
+    }
+
+    /// <summary>
+    /// Processes a Word document template file, using data from a JSON string, and writes the processed
+    /// document to a file.
+    /// </summary>
+    /// <param name="templatePath">Path of the template .docx file. Not modified.</param>
+    /// <param name="outputPath">
+    /// Path of the output .docx file. Created or overwritten only when processing succeeds; may be the same
+    /// path as <paramref name="templatePath"/>.
+    /// </param>
+    /// <param name="jsonData">JSON string containing variable names and their replacement values. Must be a valid JSON object (not an array).</param>
+    /// <returns>A <see cref="ProcessingResult"/> indicating success or failure and providing metrics.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when a path or jsonData is empty or whitespace.</exception>
+    /// <exception cref="JsonException">Thrown when jsonData is invalid JSON or root is not an object.</exception>
+    /// <exception cref="IOException">
+    /// Thrown when the template file cannot be read or the output file cannot be written (for example
+    /// <see cref="FileNotFoundException"/> or <see cref="DirectoryNotFoundException"/>).
+    /// </exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when access to a file is denied.</exception>
+    public ProcessingResult ProcessTemplateFile(
+        string templatePath,
+        string outputPath,
+        string jsonData)
+    {
+        ValidatePaths(templatePath, outputPath);
+        ArgumentNullException.ThrowIfNull(jsonData);
+
+        Dictionary<string, object> data = JsonDataParser.ParseJsonToDataDictionary(jsonData);
+        return ProcessFile(templatePath, outputPath, data);
+    }
+
+    /// <summary>
+    /// Validates a Word document template for syntax errors (unmatched tags, invalid placeholders).
+    /// Does not check for missing variables since no data is provided.
+    /// </summary>
+    /// <param name="templateStream">Stream containing the template .docx file. Must be readable.</param>
+    /// <returns>A <see cref="ValidationResult"/> containing any errors found and all placeholders.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when templateStream is null.</exception>
+    public ValidationResult ValidateTemplate(Stream templateStream)
+    {
+        ArgumentNullException.ThrowIfNull(templateStream);
+
+        return ValidateTemplateInternal(templateStream, data: null);
+    }
+
+    /// <summary>
+    /// Validates a Word document template for syntax errors and missing variables.
+    /// Checks that all placeholders in the template have corresponding values in the data.
+    /// </summary>
+    /// <param name="templateStream">Stream containing the template .docx file. Must be readable.</param>
+    /// <param name="data">Dictionary containing variable names and their values for validation.</param>
+    /// <returns>A <see cref="ValidationResult"/> containing any errors found, all placeholders, and missing variables.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
+    public ValidationResult ValidateTemplate(Stream templateStream, Dictionary<string, object> data)
+    {
+        ArgumentNullException.ThrowIfNull(templateStream);
+        ArgumentNullException.ThrowIfNull(data);
+
+        return ValidateTemplateInternal(templateStream, data);
+    }
+
+    /// <summary>
+    /// Validates a Word document template for syntax errors and missing variables, using read-only data.
+    /// Checks that all placeholders in the template have corresponding values in the data.
+    /// </summary>
+    /// <param name="templateStream">Stream containing the template .docx file. Must be readable.</param>
+    /// <param name="data">
+    /// Variable names and their values for validation. Not copied: lookups use the dictionary's own key comparer.
+    /// </param>
+    /// <returns>A <see cref="ValidationResult"/> containing any errors found, all placeholders, and missing variables.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
+    public ValidationResult ValidateTemplate(Stream templateStream, IReadOnlyDictionary<string, object?> data)
+    {
+        ArgumentNullException.ThrowIfNull(templateStream);
+        ArgumentNullException.ThrowIfNull(data);
+
+        return ValidateTemplateInternal(templateStream, AsNonNullValues(data));
+    }
+
+    /// <summary>
+    /// Validates a Word document template for syntax errors and optionally checks for missing variables.
+    /// </summary>
+    /// <param name="templateStream">Stream containing the template .docx file.</param>
+    /// <param name="data">Optional data for checking missing variables. If null, only syntax is validated.</param>
+    /// <returns>A validation result with errors, placeholders, and missing variables.</returns>
+    private ValidationResult ValidateTemplateInternal(Stream templateStream, IReadOnlyDictionary<string, object>? data)
+    {
+        TemplateValidator validator = new TemplateValidator(_options);
+        return validator.Validate(templateStream, data);
+    }
+
+    /// <summary>
+    /// Processes the template into the output stream. Arguments are already null-checked.
+    /// </summary>
+    private ProcessingResult ProcessTemplateCore(
+        Stream templateStream,
+        Stream outputStream,
+        IReadOnlyDictionary<string, object> data)
+    {
+        // Unusable streams are checked before anything is written to the output. They stay a failed result
+        // (as in earlier versions, where the copy or OpenXML failed later), now with a clear message.
+        string? streamError = GetStreamError(templateStream, outputStream);
+        if (streamError != null)
+        {
+            return ProcessingResult.Failure(streamError);
+        }
+
         try
         {
             // Copy template to output stream (non-destructive processing)
-            CopyStream(templateStream, outputStream);
+            if (templateStream.CanSeek)
+            {
+                templateStream.Position = 0;
+            }
+
+            templateStream.CopyTo(outputStream);
             outputStream.Position = 0;
 
             // Track missing variables and warnings
@@ -142,91 +472,66 @@ public sealed class DocumentTemplateProcessor
     }
 
     /// <summary>
-    /// Processes a Word document template, replacing placeholders with values from a JSON string.
+    /// Processes an in-memory template into a new byte array.
     /// </summary>
-    /// <param name="templateStream">Stream containing the template .docx file. Must be readable.</param>
-    /// <param name="outputStream">Stream to write the processed document. Must be writable.</param>
-    /// <param name="jsonData">JSON string containing variable names and their replacement values. Must be a valid JSON object (not an array).</param>
-    /// <returns>A <see cref="ProcessingResult"/> indicating success or failure and providing metrics.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
-    /// <exception cref="ArgumentException">Thrown when jsonData is empty or whitespace.</exception>
-    /// <exception cref="JsonException">Thrown when jsonData is invalid JSON or root is not an object.</exception>
-    public ProcessingResult ProcessTemplate(
-        Stream templateStream,
-        Stream outputStream,
-        string jsonData)
+    private ProcessingResult ProcessBytes(byte[] template, IReadOnlyDictionary<string, object> data, out byte[] output)
     {
-        ArgumentNullException.ThrowIfNull(jsonData);
+        using MemoryStream templateStream = new MemoryStream(template, writable: false);
+        using MemoryStream outputStream = new MemoryStream();
 
-        // JSON parse errors (JsonException, ArgumentException) propagate to the caller unchanged.
-        Dictionary<string, object> data = JsonDataParser.ParseJsonToDataDictionary(jsonData);
-        return ProcessTemplate(templateStream, outputStream, data);
+        ProcessingResult result = ProcessTemplateCore(templateStream, outputStream, data);
+        output = result.IsSuccess ? outputStream.ToArray() : Array.Empty<byte>();
+        return result;
     }
 
     /// <summary>
-    /// Validates a Word document template for syntax errors (unmatched tags, invalid placeholders).
-    /// Does not check for missing variables since no data is provided.
+    /// Processes a template file in memory and writes the output file only when processing succeeds,
+    /// so a failed run never leaves a truncated output file behind.
     /// </summary>
-    /// <param name="templateStream">Stream containing the template .docx file. Must be readable.</param>
-    /// <returns>A <see cref="ValidationResult"/> containing any errors found and all placeholders.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when templateStream is null.</exception>
-    public ValidationResult ValidateTemplate(Stream templateStream)
+    private ProcessingResult ProcessFile(string templatePath, string outputPath, IReadOnlyDictionary<string, object> data)
     {
-        ArgumentNullException.ThrowIfNull(templateStream);
-
-        return ValidateTemplateInternal(templateStream, data: null);
-    }
-
-    /// <summary>
-    /// Validates a Word document template for syntax errors and missing variables.
-    /// Checks that all placeholders in the template have corresponding values in the data.
-    /// </summary>
-    /// <param name="templateStream">Stream containing the template .docx file. Must be readable.</param>
-    /// <param name="data">Dictionary containing variable names and their values for validation.</param>
-    /// <returns>A <see cref="ValidationResult"/> containing any errors found, all placeholders, and missing variables.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
-    public ValidationResult ValidateTemplate(Stream templateStream, Dictionary<string, object> data)
-    {
-        ArgumentNullException.ThrowIfNull(templateStream);
-        ArgumentNullException.ThrowIfNull(data);
-
-        return ValidateTemplateInternal(templateStream, data);
-    }
-
-    /// <summary>
-    /// Validates a Word document template for syntax errors and optionally checks for missing variables.
-    /// </summary>
-    /// <param name="templateStream">Stream containing the template .docx file.</param>
-    /// <param name="data">Optional dictionary for checking missing variables. If null, only syntax is validated.</param>
-    /// <returns>A validation result with errors, placeholders, and missing variables.</returns>
-    private ValidationResult ValidateTemplateInternal(Stream templateStream, Dictionary<string, object>? data)
-    {
-        TemplateValidator validator = new TemplateValidator(_options);
-        return validator.Validate(templateStream, data);
-    }
-
-    /// <summary>
-    /// Copies the contents of one stream to another.
-    /// </summary>
-    private static void CopyStream(Stream source, Stream destination)
-    {
-        if (!source.CanRead)
+        byte[] template = File.ReadAllBytes(templatePath);
+        ProcessingResult result = ProcessBytes(template, data, out byte[] output);
+        if (result.IsSuccess)
         {
-            throw new ArgumentException("Source stream must be readable.", nameof(source));
+            File.WriteAllBytes(outputPath, output);
         }
 
-        if (!destination.CanWrite)
+        return result;
+    }
+
+    private static void ValidatePaths(string templatePath, string outputPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(templatePath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
+    }
+
+    /// <summary>
+    /// Returns why the streams cannot be used for processing, or null when they can.
+    /// </summary>
+    private static string? GetStreamError(Stream templateStream, Stream outputStream)
+    {
+        if (!templateStream.CanRead)
         {
-            throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+            return "Invalid template stream: the template stream must be readable.";
         }
 
-        // Reset source position if seekable
-        if (source.CanSeek)
+        if (!outputStream.CanRead || !outputStream.CanWrite || !outputStream.CanSeek)
         {
-            source.Position = 0;
+            return "Invalid output stream: the output stream must be readable, writable and seekable "
+                + "(for example a MemoryStream, or a FileStream opened with FileAccess.ReadWrite).";
         }
 
-        source.CopyTo(destination);
+        return null;
+    }
+
+    /// <summary>
+    /// Views data with nullable values in the shape used internally. Values are never dereferenced
+    /// without a null check, so this only reinterprets the annotation; nothing is copied.
+    /// </summary>
+    private static IReadOnlyDictionary<string, object> AsNonNullValues(IReadOnlyDictionary<string, object?> data)
+    {
+        return data!;
     }
 
     /// <summary>

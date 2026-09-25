@@ -55,7 +55,7 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
     /// <param name="placeholder">The placeholder match to process.</param>
     /// <param name="paragraph">The paragraph containing the placeholder.</param>
     /// <param name="context">The evaluation context for resolving variables.</param>
-    public void VisitPlaceholder(PlaceholderMatch placeholder, Paragraph paragraph, IEvaluationContext context)
+    public void VisitPlaceholder(PlaceholderToken placeholder, Paragraph paragraph, IEvaluationContext context)
     {
         object? value;
         bool resolved;
@@ -158,7 +158,7 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
     /// <param name="applyMarkdown">Whether markdown syntax in the value is rendered as formatting.</param>
     private void ReplacePlaceholderInParagraph(
         Paragraph paragraph,
-        PlaceholderMatch placeholder,
+        PlaceholderToken placeholder,
         string replacementValue,
         bool applyMarkdown)
     {

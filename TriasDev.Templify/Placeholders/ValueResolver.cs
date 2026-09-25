@@ -20,7 +20,7 @@ internal sealed class ValueResolver
     /// <param name="value">The resolved value if found; otherwise, null.</param>
     /// <returns>True if the value was found; otherwise, false.</returns>
     public bool TryResolveValue(
-        Dictionary<string, object> data,
+        IReadOnlyDictionary<string, object> data,
         string variablePath,
         out object? value)
     {

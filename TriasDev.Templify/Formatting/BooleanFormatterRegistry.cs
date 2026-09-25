@@ -8,6 +8,12 @@ namespace TriasDev.Templify.Formatting;
 /// <summary>
 /// Registry for boolean formatters, including built-in and custom formatters.
 /// </summary>
+/// <remarks>
+/// Thread safety: concurrent reads (lookups while templates are processed) are safe, but
+/// <see cref="Register(string, BooleanFormatter)"/> is not synchronized. Register all custom formatters
+/// first, then share the registry (for example through <see cref="Core.PlaceholderReplacementOptions.BooleanFormatterRegistry"/>)
+/// and do not modify it afterwards.
+/// </remarks>
 public sealed class BooleanFormatterRegistry
 {
     private readonly Dictionary<string, BooleanFormatter> _formatters;

@@ -107,7 +107,7 @@ public sealed class CompositeVisitorTests
 
         CompositeVisitor composite = new CompositeVisitor(visitor1, visitor2);
 
-        PlaceholderMatch placeholder = new PlaceholderMatch
+        PlaceholderToken placeholder = new PlaceholderToken
         {
             VariableName = "Name",
             FullMatch = "{{Name}}",
@@ -261,7 +261,7 @@ public sealed class CompositeVisitorTests
     {
         public List<ConditionalBlock> VisitedConditionals { get; } = new List<ConditionalBlock>();
         public List<LoopBlock> VisitedLoops { get; } = new List<LoopBlock>();
-        public List<PlaceholderMatch> VisitedPlaceholders { get; } = new List<PlaceholderMatch>();
+        public List<PlaceholderToken> VisitedPlaceholders { get; } = new List<PlaceholderToken>();
         public List<Paragraph> VisitedParagraphs { get; } = new List<Paragraph>();
 
         public void VisitConditional(ConditionalBlock conditional, IEvaluationContext context)
@@ -274,7 +274,7 @@ public sealed class CompositeVisitorTests
             VisitedLoops.Add(loop);
         }
 
-        public void VisitPlaceholder(PlaceholderMatch placeholder, Paragraph paragraph, IEvaluationContext context)
+        public void VisitPlaceholder(PlaceholderToken placeholder, Paragraph paragraph, IEvaluationContext context)
         {
             VisitedPlaceholders.Add(placeholder);
         }
@@ -306,7 +306,7 @@ public sealed class CompositeVisitorTests
             CallOrder.Add(_id);
         }
 
-        public void VisitPlaceholder(PlaceholderMatch placeholder, Paragraph paragraph, IEvaluationContext context)
+        public void VisitPlaceholder(PlaceholderToken placeholder, Paragraph paragraph, IEvaluationContext context)
         {
             CallOrder.Add(_id);
         }

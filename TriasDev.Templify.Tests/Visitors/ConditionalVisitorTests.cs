@@ -300,7 +300,7 @@ public sealed class ConditionalVisitorTests
     {
         // Arrange
         ConditionalVisitor visitor = new ConditionalVisitor(new WarningCollector());
-        PlaceholderMatch placeholder = new PlaceholderMatch
+        PlaceholderToken placeholder = new PlaceholderToken
         {
             VariableName = "Name",
             FullMatch = "{{Name}}",

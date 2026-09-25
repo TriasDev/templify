@@ -49,7 +49,11 @@ bool Evaluate(string expression, string jsonData);
 bool Evaluate(string expression, IEvaluationContext context);
 ```
 
-#### EvaluateAsync (Asynchronous)
+#### EvaluateAsync (obsolete)
+
+!!! warning "Obsolete since 1.8, removed in 2.0"
+    The `EvaluateAsync` members evaluate synchronously and wrap the result in a completed `Task`. They are
+    marked `[Obsolete]`; use `Evaluate(...)` instead.
 
 ```csharp
 Task<bool> EvaluateAsync(string expression, Dictionary<string, object> data,
@@ -86,9 +90,6 @@ var context = evaluator.CreateConditionContext(data);
 bool r1 = context.Evaluate("IsActive");
 bool r2 = context.Evaluate("Count > 5");
 bool r3 = context.Evaluate("Status = \"Active\" and IsEnabled");
-
-// Async with cancellation support
-bool r4 = await context.EvaluateAsync("IsActive", cancellationToken);
 ```
 
 ### When to Use IConditionContext

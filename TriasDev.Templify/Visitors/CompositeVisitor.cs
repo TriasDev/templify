@@ -85,7 +85,7 @@ internal sealed class CompositeVisitor : ITemplateElementVisitor
     /// <summary>
     /// Dispatches placeholder visit to all child visitors.
     /// </summary>
-    public void VisitPlaceholder(PlaceholderMatch placeholder, Paragraph paragraph, IEvaluationContext context)
+    public void VisitPlaceholder(PlaceholderToken placeholder, Paragraph paragraph, IEvaluationContext context)
     {
         foreach (ITemplateElementVisitor visitor in _visitors)
         {
