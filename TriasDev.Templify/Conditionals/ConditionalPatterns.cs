@@ -11,31 +11,43 @@ namespace TriasDev.Templify.Conditionals;
 /// </summary>
 internal static class ConditionalPatterns
 {
+    /// <summary>Pattern text of <see cref="IfStart"/> (group 1: condition).</summary>
+    internal const string IfStartPattern = @"\{\{#if\s+(.+?)\}\}";
+
+    /// <summary>Pattern text of <see cref="ElseIf"/> (group 1: condition).</summary>
+    internal const string ElseIfPattern = @"\{\{#elseif\s+(.+?)\}\}";
+
+    /// <summary>Pattern text of <see cref="Else"/>.</summary>
+    internal const string ElsePattern = @"\{\{#else\}\}";
+
+    /// <summary>Pattern text of <see cref="IfEnd"/>.</summary>
+    internal const string IfEndPattern = @"\{\{/if\}\}";
+
     /// <summary>
     /// Pattern to match {{#if condition}} markers.
     /// </summary>
     public static readonly Regex IfStart = new(
-        @"\{\{#if\s+(.+?)\}\}",
+        IfStartPattern,
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     /// <summary>
     /// Pattern to match {{#elseif condition}} markers.
     /// </summary>
     public static readonly Regex ElseIf = new(
-        @"\{\{#elseif\s+(.+?)\}\}",
+        ElseIfPattern,
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     /// <summary>
     /// Pattern to match {{#else}} markers.
     /// </summary>
     public static readonly Regex Else = new(
-        @"\{\{#else\}\}",
+        ElsePattern,
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     /// <summary>
     /// Pattern to match {{/if}} markers.
     /// </summary>
     public static readonly Regex IfEnd = new(
-        @"\{\{/if\}\}",
+        IfEndPattern,
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 }
