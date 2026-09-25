@@ -53,8 +53,6 @@ public sealed class LoopTests
         builder.AddParagraph("{{/foreach}}");
         builder.AddParagraph("End of list");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["LineItems"] = new List<LineItem>
@@ -65,23 +63,21 @@ public sealed class LoopTests
             }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         Assert.Equal(5, paragraphs.Count); // "Line Items:" + 3 items + "End of list"
         Assert.Equal("Line Items:", paragraphs[0]);
-        Assert.Contains("1. Software License", paragraphs[1]);
-        Assert.Contains("2. Support Package", paragraphs[2]);
-        Assert.Contains("3. Training", paragraphs[3]);
+        Assert.Equal("1. Software License - Qty: 5 @ 499.00 EUR = 2495.00 EUR", paragraphs[1]);
+        Assert.Equal("2. Support Package - Qty: 5 @ 99.00 EUR = 495.00 EUR", paragraphs[2]);
+        Assert.Equal("3. Training - Qty: 2 @ 250.00 EUR = 500.00 EUR", paragraphs[3]);
         Assert.Equal("End of list", paragraphs[4]);
     }
 
@@ -95,23 +91,19 @@ public sealed class LoopTests
         builder.AddParagraph("- {{.}}");
         builder.AddParagraph("{{/foreach}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Items"] = new List<string> { "Item One", "Item Two", "Item Three" }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         Assert.Equal(4, paragraphs.Count); // "Items:" + 3 items
@@ -131,23 +123,19 @@ public sealed class LoopTests
         builder.AddParagraph("Value: {{this}}");
         builder.AddParagraph("{{/foreach}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Numbers"] = new List<int> { 10, 20, 30 }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         Assert.Equal(4, paragraphs.Count);
@@ -166,23 +154,19 @@ public sealed class LoopTests
         builder.AddParagraph("Item {{@index}}: {{.}} (First: {{@first}}, Last: {{@last}}, Count: {{@count}})");
         builder.AddParagraph("{{/foreach}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Items"] = new List<string> { "Alpha", "Beta", "Gamma" }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         Assert.Equal(3, paragraphs.Count);
@@ -220,8 +204,6 @@ public sealed class LoopTests
         builder.AddParagraph("  {{/foreach}}");
         builder.AddParagraph("{{/foreach}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Orders"] = new List<Order>
@@ -246,16 +228,14 @@ public sealed class LoopTests
             }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         // Order 1
@@ -279,23 +259,19 @@ public sealed class LoopTests
         builder.AddParagraph("{{/foreach}}");
         builder.AddParagraph("After loop");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Items"] = new List<string>() // Empty collection
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         Assert.Equal(2, paragraphs.Count);
@@ -344,8 +320,6 @@ public sealed class LoopTests
             }
         });
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["LineItems"] = new List<LineItem>
@@ -355,16 +329,14 @@ public sealed class LoopTests
             }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<List<string>> tableCells = verifier.GetTableCellTexts(0);
 
         // Header row should remain
@@ -375,12 +347,12 @@ public sealed class LoopTests
         // First data row
         Assert.Equal("1", tableCells[1][0]);
         Assert.Equal("Software License", tableCells[1][1]);
-        Assert.Contains("499", tableCells[1][2]);
+        Assert.Equal("499.00", tableCells[1][2]);
 
         // Second data row
         Assert.Equal("2", tableCells[2][0]);
         Assert.Equal("Support Package", tableCells[2][1]);
-        Assert.Contains("99", tableCells[2][2]);
+        Assert.Equal("99.00", tableCells[2][2]);
     }
 
     [Fact]
@@ -393,24 +365,20 @@ public sealed class LoopTests
         builder.AddParagraph("- {{.}} (Invoice: {{InvoiceNumber}})");
         builder.AddParagraph("{{/foreach}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["InvoiceNumber"] = "INV-2025-001",
             ["Items"] = new List<string> { "Item A", "Item B" }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         Assert.Equal("Invoice: INV-2025-001", paragraphs[0]);
@@ -434,8 +402,6 @@ public sealed class LoopTests
         builder.AddParagraph("    - {{Title}}");
         builder.AddParagraph("  {{/foreach}}");
         builder.AddParagraph("{{/foreach}}");
-
-        MemoryStream templateStream = builder.ToStream();
 
         Dictionary<string, object> data = new Dictionary<string, object>
         {
@@ -461,16 +427,14 @@ public sealed class LoopTests
             }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess, $"Processing should succeed. Error: {result.ErrorMessage}");
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         // Should have: "Categories:" + Category A header + 2 items + "Items:" + Category B header + 1 item + "Items:"
@@ -810,8 +774,6 @@ public sealed class LoopTests
         builder.AddParagraph("{{/foreach}}");  // Close level 2
         builder.AddParagraph("{{/foreach}}");  // Close level 1
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Organisations"] = new List<Dictionary<string, object>>
@@ -850,16 +812,14 @@ public sealed class LoopTests
             }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess, $"Processing should succeed. Error: {result.ErrorMessage}");
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         // Debug output
@@ -894,23 +854,19 @@ public sealed class LoopTests
         builder.AddParagraph("{{#foreach Items}}{{.}}, {{/foreach}}");
         builder.AddParagraph("After loop");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Items"] = new List<string> { "Alpha", "Beta", "Gamma" }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         Assert.Equal(5, paragraphs.Count); // "Before loop" + 3 items + "After loop"
@@ -928,8 +884,6 @@ public sealed class LoopTests
         DocumentBuilder builder = new DocumentBuilder();
         builder.AddParagraph("Organisations: {{#foreach Organisations}}{{Name}} ({{Role}}){{/foreach}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Organisations"] = new List<Dictionary<string, object>>
@@ -939,16 +893,14 @@ public sealed class LoopTests
             }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         // Should have 3 paragraphs: "Organisations: " header + 2 items

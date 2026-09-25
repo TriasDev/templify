@@ -10,6 +10,8 @@ using TriasDev.Templify.Placeholders;
 using TriasDev.Templify.Tests.Helpers;
 using TriasDev.Templify.Visitors;
 
+using static TriasDev.Templify.Tests.Helpers.TestBlocks;
+
 namespace TriasDev.Templify.Tests.Visitors;
 
 /// <summary>
@@ -410,27 +412,7 @@ public sealed class LoopVisitorTests
         Assert.Equal("Regular text", paragraph.InnerText);
     }
 
-    // Helper methods and mock visitors
-
-    private static ConditionalBlock CreateTestConditionalBlock()
-    {
-        Paragraph startMarker = new Paragraph(new Run(new Text("{{#if IsActive}}")));
-        Paragraph endMarker = new Paragraph(new Run(new Text("{{/if}}")));
-        List<OpenXmlElement> ifContent = new List<OpenXmlElement>
-        {
-            new Paragraph(new Run(new Text("Active")))
-        };
-
-        return new ConditionalBlock(
-            conditionExpression: "IsActive",
-            ifContentElements: ifContent,
-            elseContentElements: new List<OpenXmlElement>(),
-            startMarker: startMarker,
-            elseMarker: null,
-            endMarker: endMarker,
-            isTableRowConditional: false,
-            nestingLevel: 0);
-    }
+    // Mock visitors
 
     /// <summary>
     /// Mock visitor that records all visits without processing.

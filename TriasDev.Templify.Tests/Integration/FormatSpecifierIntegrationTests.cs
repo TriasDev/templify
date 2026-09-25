@@ -8,6 +8,8 @@ using TriasDev.Templify.Core;
 using TriasDev.Templify.Formatting;
 using TriasDev.Templify.Tests.Helpers;
 
+using static TriasDev.Templify.Tests.Helpers.TemplateTestHarness;
+
 namespace TriasDev.Templify.Tests.Integration;
 
 /// <summary>
@@ -748,19 +750,6 @@ public class FormatSpecifierIntegrationTests
     #endregion
 
     #region Helper Methods
-
-    /// <summary>
-    /// Creates a DocumentTemplateProcessor with InvariantCulture for predictable test results.
-    /// </summary>
-    private static DocumentTemplateProcessor CreateInvariantProcessor()
-    {
-        var options = new PlaceholderReplacementOptions
-        {
-            Culture = CultureInfo.InvariantCulture,
-            BooleanFormatterRegistry = new BooleanFormatterRegistry(CultureInfo.InvariantCulture)
-        };
-        return new DocumentTemplateProcessor(options);
-    }
 
     /// <summary>
     /// Helper method to process a template and extract the resulting text.

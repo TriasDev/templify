@@ -9,6 +9,8 @@ using TriasDev.Templify.Formatting;
 using TriasDev.Templify.Tests.Helpers;
 using TriasDev.Templify.Utilities;
 
+using static TriasDev.Templify.Tests.Helpers.TemplateTestHarness;
+
 namespace TriasDev.Templify.Tests.Integration;
 
 /// <summary>
@@ -419,20 +421,6 @@ public class ExpressionIntegrationTests
         builder.AddParagraph(paragraph);
         using MemoryStream templateStream = builder.ToStream();
         return ProcessTemplate(templateStream, data, CreateInvariantProcessor());
-    }
-
-
-    /// <summary>
-    /// Creates a DocumentTemplateProcessor with InvariantCulture for predictable test results.
-    /// </summary>
-    private static DocumentTemplateProcessor CreateInvariantProcessor()
-    {
-        var options = new PlaceholderReplacementOptions
-        {
-            Culture = CultureInfo.InvariantCulture,
-            BooleanFormatterRegistry = new BooleanFormatterRegistry(CultureInfo.InvariantCulture)
-        };
-        return new DocumentTemplateProcessor(options);
     }
 
     /// <summary>

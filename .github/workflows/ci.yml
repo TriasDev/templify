@@ -94,6 +94,10 @@ jobs:
           - culture: tr-TR
             locale: tr_TR.UTF-8
             tz: Europe/Istanbul
+          # Arabic decimal separator and Umm al-Qura calendar: catches tests that assume Gregorian dates / "." decimals
+          - culture: ar-SA
+            locale: ar_SA.UTF-8
+            tz: Asia/Riyadh
     env:
       LANG: ${{ matrix.locale }}
       LC_ALL: ${{ matrix.locale }}

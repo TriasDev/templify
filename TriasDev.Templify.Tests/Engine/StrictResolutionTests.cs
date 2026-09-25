@@ -3,18 +3,12 @@
 
 using TriasDev.Templify.Conditionals.Engine;
 using TriasDev.Templify.Core;
+using static TriasDev.Templify.Tests.Helpers.ConditionEngineTestHelper;
 
 namespace TriasDev.Templify.Tests.Engine;
 
 public class StrictResolutionTests
 {
-    private static bool Eval(string expr, Dictionary<string, object> data)
-    {
-        var tokens = new ConditionLexer().Tokenize(expr);
-        ConditionNode node = new ConditionParser(ConditionOperatorRegistry.Shared).Parse(tokens);
-        return new ConditionEvaluatorCore(new GlobalEvaluationContext(data), DefaultConditionDialect.Instance).EvaluateBool(node);
-    }
-
     [Fact]
     public void In_MissingCollection_IsFalse()
         => Assert.False(Eval("Status in Roles", new() { ["Status"] = "X" }));
