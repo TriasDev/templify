@@ -8,6 +8,10 @@
     <!-- XML Documentation -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn> <!-- Suppress missing XML doc warnings -->
+    <!-- RS0026/RS0027: overload design advice for already-shipped API; changing it would be breaking. -->
+    <NoWarn>$(NoWarn);RS0026;RS0027</NoWarn>
+    <!-- RS0016: public symbol not declared in PublicAPI.*.txt; RS0017: declared symbol removed/changed. -->
+    <WarningsAsErrors>$(WarningsAsErrors);RS0016;RS0017</WarningsAsErrors>
 
     <!-- NuGet Package Metadata -->
     <PackageId>TriasDev.Templify</PackageId>
@@ -23,10 +27,21 @@
     <PackageTags>word;docx;template;openxml;document-generation;templating;word-documents;office;dotnet;email;text-templates</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
+
+    <!-- Public API guard: compare the packed API against the last released version.
+         Any breaking change fails `dotnet pack`. Bump the baseline after each release. -->
+    <EnablePackageValidation>true</EnablePackageValidation>
+    <PackageValidationBaselineVersion>1.7.0</PackageValidationBaselineVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="DocumentFormat.OpenXml" Version="3.5.1"/>
+    <!-- Tracks the public API in PublicAPI.Shipped.txt / PublicAPI.Unshipped.txt (RS0016/RS0017).
+         See CONTRIBUTING.md -> "Public API Compatibility" -->
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>

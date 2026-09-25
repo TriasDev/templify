@@ -435,6 +435,15 @@ When adding new features:
 
 ## Important Constraints & Design Decisions
 
+### Public API Compatibility (hard rule)
+The library has external consumers. **Do not change, remove or rename public API** (types, members, signatures, namespaces) as a side effect of a fix or refactoring.
+- Public API is tracked in `TriasDev.Templify/PublicAPI.Shipped.txt` / `PublicAPI.Unshipped.txt`; the build fails on undeclared additions (RS0016) or removals/changes (RS0017). `dotnet pack` validates against the last released package (`PackageValidationBaselineVersion`).
+- New public API → add it to `PublicAPI.Unshipped.txt` deliberately. Prefer `internal` unless the symbol is meant for consumers.
+- Retire API with `[Obsolete]`; remove only in a major version.
+- Behavior changes that alter output of existing templates are also potentially breaking: call them out, and make them opt-in via an option when they are not clearly bug fixes.
+- State the public API impact (none / additive / behavior change / breaking) in every PR.
+- See CONTRIBUTING.md → "Public API Compatibility".
+
 ### Visitor Pattern Circular Reference
 The LoopVisitor needs access to the final composite visitor (which includes itself) to support nested loops. This is achieved via:
 ```csharp

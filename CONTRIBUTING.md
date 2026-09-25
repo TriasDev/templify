@@ -13,6 +13,7 @@ Thank you for your interest in contributing to Templify! We welcome contribution
 - [Development Guidelines](#development-guidelines)
   - [Code Style](#code-style)
   - [Testing Requirements](#testing-requirements)
+  - [Public API Compatibility](#public-api-compatibility)
   - [Commit Message Format](#commit-message-format)
   - [Branch Naming Conventions](#branch-naming-conventions)
 - [Documentation](#documentation)
@@ -399,6 +400,25 @@ public void ProcessTemplate_ValidTemplate_ReplacesPlaceholders()
     Assert.Contains("Hello World!", verifier.GetParagraphText(0));
 }
 ```
+
+### Public API Compatibility
+
+Templify is published on NuGet and used by external consumers. **Public API changes must never happen by accident.** Two automated guards enforce this:
+
+1. **Public API analyzer** (`Microsoft.CodeAnalysis.PublicApiAnalyzers`). Every public symbol of `TriasDev.Templify` is listed in `TriasDev.Templify/PublicAPI.Shipped.txt` (released) or `PublicAPI.Unshipped.txt` (not yet released). The build fails when:
+   - a new public symbol is not declared (**RS0016**). Add it to `PublicAPI.Unshipped.txt`; the IDE code fix does this for you, or run `dotnet format analyzers TriasDev.Templify/TriasDev.Templify.csproj --diagnostics RS0016 --severity info`.
+   - a declared symbol was removed, renamed, or its signature changed (**RS0017**). This is a breaking change; see below.
+2. **Package validation** (`EnablePackageValidation`). `dotnet pack` compares the package against the last released version (`PackageValidationBaselineVersion` in the csproj) for every target framework and fails on binary-breaking changes (**CP0002** and similar).
+
+**Rules:**
+
+- Prefer **additive** changes: new overloads, new types, new options whose default keeps the current behavior.
+- To retire API, mark it `[Obsolete("...")]` first and remove it only in the next **major** version.
+- **Behavior changes count too.** A fix that changes the output of existing templates (formatting, culture handling, truthiness, etc.) must be called out in the PR description and release notes. If it is not clearly a bug fix, make it opt-in via an option.
+- An intentional breaking change requires a major version bump. Use a `feat!:` / `fix!:` commit or a `BREAKING CHANGE:` footer so release-please bumps the major version, and label the PR `breaking-change`.
+- Every PR description states its **public API impact** (none / additive / behavior change / breaking).
+
+**After each release:** move the entries from `PublicAPI.Unshipped.txt` to `PublicAPI.Shipped.txt` and set `PackageValidationBaselineVersion` to the released version.
 
 ### Commit Message Format
 
