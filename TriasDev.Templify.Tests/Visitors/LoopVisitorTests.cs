@@ -35,8 +35,7 @@ public sealed class LoopVisitorTests
             contentElements: new List<OpenXmlElement> { content },
             startMarker: startMarker,
             endMarker: endMarker,
-            isTableRowLoop: false,
-            emptyBlock: null);
+            isTableRowLoop: false);
 
         DocumentWalker walker = new DocumentWalker();
         MockVisitor nestedVisitor = new MockVisitor();
@@ -72,8 +71,7 @@ public sealed class LoopVisitorTests
             contentElements: new List<OpenXmlElement> { content },
             startMarker: startMarker,
             endMarker: endMarker,
-            isTableRowLoop: false,
-            emptyBlock: null);
+            isTableRowLoop: false);
 
         DocumentWalker walker = new DocumentWalker();
         MockVisitor nestedVisitor = new MockVisitor();
@@ -106,8 +104,7 @@ public sealed class LoopVisitorTests
             contentElements: new List<OpenXmlElement> { content },
             startMarker: startMarker,
             endMarker: endMarker,
-            isTableRowLoop: false,
-            emptyBlock: null);
+            isTableRowLoop: false);
 
         DocumentWalker walker = new DocumentWalker();
         MockVisitor nestedVisitor = new MockVisitor();
@@ -143,8 +140,7 @@ public sealed class LoopVisitorTests
             contentElements: new List<OpenXmlElement> { content },
             startMarker: startMarker,
             endMarker: endMarker,
-            isTableRowLoop: false,
-            emptyBlock: null);
+            isTableRowLoop: false);
 
         DocumentWalker walker = new DocumentWalker();
         MockVisitor nestedVisitor = new MockVisitor();
@@ -181,8 +177,7 @@ public sealed class LoopVisitorTests
             contentElements: new List<OpenXmlElement> { content },
             startMarker: startMarker,
             endMarker: endMarker,
-            isTableRowLoop: false,
-            emptyBlock: null);
+            isTableRowLoop: false);
 
         DocumentWalker walker = new DocumentWalker();
         MockVisitor nestedVisitor = new MockVisitor();
@@ -221,8 +216,7 @@ public sealed class LoopVisitorTests
             contentElements: new List<OpenXmlElement> { content1, content2 },
             startMarker: startMarker,
             endMarker: endMarker,
-            isTableRowLoop: false,
-            emptyBlock: null);
+            isTableRowLoop: false);
 
         DocumentWalker walker = new DocumentWalker();
         MockVisitor nestedVisitor = new MockVisitor();
@@ -267,8 +261,7 @@ public sealed class LoopVisitorTests
             contentElements: new List<OpenXmlElement> { content },
             startMarker: startMarker,
             endMarker: endMarker,
-            isTableRowLoop: false,
-            emptyBlock: null);
+            isTableRowLoop: false);
 
         DocumentWalker walker = new DocumentWalker();
         ContextCapturingVisitor nestedVisitor = new ContextCapturingVisitor();
@@ -305,8 +298,7 @@ public sealed class LoopVisitorTests
             contentElements: new List<OpenXmlElement> { content },
             startMarker: startMarker,
             endMarker: endMarker,
-            isTableRowLoop: false,
-            emptyBlock: null);
+            isTableRowLoop: false);
 
         DocumentWalker walker = new DocumentWalker();
         MockVisitor nestedVisitor = new MockVisitor();
@@ -345,8 +337,7 @@ public sealed class LoopVisitorTests
             contentElements: new List<OpenXmlElement> { content },
             startMarker: startMarker,
             endMarker: endMarker,
-            isTableRowLoop: false,
-            emptyBlock: null);
+            isTableRowLoop: false);
 
         DocumentWalker walker = new DocumentWalker();
         MockVisitor nestedVisitor = new MockVisitor();

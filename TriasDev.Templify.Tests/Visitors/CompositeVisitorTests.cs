@@ -290,8 +290,7 @@ public sealed class CompositeVisitorTests
             contentElements: content,
             startMarker: startMarker,
             endMarker: endMarker,
-            isTableRowLoop: false,
-            emptyBlock: null);
+            isTableRowLoop: false);
     }
 
     private class MockVisitor : ITemplateElementVisitor

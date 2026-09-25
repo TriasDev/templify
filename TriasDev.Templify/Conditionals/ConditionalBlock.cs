@@ -112,10 +112,7 @@ internal sealed class ConditionalBlock
         bool isTableRowConditional = false,
         int nestingLevel = 0)
     {
-        if (conditionExpression == null)
-        {
-            throw new ArgumentNullException(nameof(conditionExpression));
-        }
+        ArgumentNullException.ThrowIfNull(conditionExpression);
 
         List<ConditionalBranch> branches = new List<ConditionalBranch>();
 

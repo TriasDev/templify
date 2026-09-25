@@ -151,6 +151,15 @@ csharp_style_prefer_range_operator = true:suggestion
 # 'using' directive preferences
 csharp_using_directive_placement = outside_namespace:warning
 
+# Namespace declarations (all files already use file-scoped namespaces)
+csharp_style_namespace_declarations = file_scoped:warning
+
+# 'var' preferences: explicit types (project convention). Suggestion only: existing 'var' usages
+# (mostly tests and tools) are not rewritten in bulk.
+csharp_style_var_for_built_in_types = false:suggestion
+csharp_style_var_when_type_is_apparent = false:suggestion
+csharp_style_var_elsewhere = false:suggestion
+
 # File header (copyright notice)
 file_header_template = Copyright (c) TriasDev GmbH & Co. KG\nLicensed under the MIT License. See LICENSE file in the project root for full license information.
 

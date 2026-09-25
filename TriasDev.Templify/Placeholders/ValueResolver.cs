@@ -24,10 +24,7 @@ internal sealed class ValueResolver
         string variablePath,
         out object? value)
     {
-        if (data == null)
-        {
-            throw new ArgumentNullException(nameof(data));
-        }
+        ArgumentNullException.ThrowIfNull(data);
 
         if (string.IsNullOrWhiteSpace(variablePath))
         {
@@ -105,23 +102,5 @@ internal sealed class ValueResolver
 
         PropertyPath subPath = PropertyPath.Parse(subPathBuilder.ToString());
         return PropertyPathResolver.TryResolvePath(rootObject, subPath, out value);
-    }
-
-    /// <summary>
-    /// Resolves a value from the data dictionary using the specified variable path.
-    /// Throws an exception if the value is not found.
-    /// </summary>
-    /// <param name="data">The data dictionary containing root-level values.</param>
-    /// <param name="variablePath">The variable path (e.g., "Name" or "Customer.Address.City").</param>
-    /// <returns>The resolved value.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if the value cannot be resolved.</exception>
-    public object ResolveValue(Dictionary<string, object> data, string variablePath)
-    {
-        if (TryResolveValue(data, variablePath, out object? value))
-        {
-            return value!;
-        }
-
-        throw new InvalidOperationException($"Could not resolve variable path: {variablePath}");
     }
 }

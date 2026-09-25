@@ -3,7 +3,6 @@
 
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using TriasDev.Templify.Core;
 using TriasDev.Templify.Utilities;
@@ -28,31 +27,6 @@ internal static class ConditionalDetector
     }
 
     /// <summary>
-    /// Detects all conditional blocks in the document body.
-    /// </summary>
-    public static IReadOnlyList<ConditionalBlock> DetectConditionals(WordprocessingDocument document)
-    {
-        if (document.MainDocumentPart?.Document?.Body == null)
-        {
-            return Array.Empty<ConditionalBlock>();
-        }
-
-        Body body = document.MainDocumentPart.Document.Body;
-        List<ConditionalBlock> conditionals = new List<ConditionalBlock>();
-
-        // First, detect paragraph-level conditionals
-        conditionals.AddRange(DetectConditionalsInElements(body.Elements<OpenXmlElement>().ToList()));
-
-        // Second, detect table row conditionals within tables
-        foreach (Table table in body.Elements<Table>())
-        {
-            conditionals.AddRange(DetectTableRowConditionals(table));
-        }
-
-        return conditionals;
-    }
-
-    /// <summary>
     /// Detects conditional blocks in a collection of elements.
     /// Handles nested conditionals properly by recursively detecting conditionals in all branches.
     /// </summary>
@@ -68,7 +42,7 @@ internal static class ConditionalDetector
         while (i < elements.Count)
         {
             OpenXmlElement element = elements[i];
-            string? text = GetElementText(element);
+            string? text = TemplateElementText.GetMarkerText(element);
 
             if (text != null)
             {
@@ -174,7 +148,7 @@ internal static class ConditionalDetector
         int endIndex = -1;
 
         // First, check if the SAME element contains the closing tag (for same-line conditionals)
-        string? startText = GetElementText(elements[startIndex]);
+        string? startText = TemplateElementText.GetMarkerText(elements[startIndex]);
         if (startText != null)
         {
             // Count all {{#if and {{/if}} occurrences in the same element
@@ -199,7 +173,7 @@ internal static class ConditionalDetector
         // If not found in the same element, search subsequent elements
         for (int i = startIndex + 1; i < elements.Count; i++)
         {
-            string? text = GetElementText(elements[i]);
+            string? text = TemplateElementText.GetMarkerText(elements[i]);
             if (text == null)
             {
                 continue;
@@ -251,43 +225,6 @@ internal static class ConditionalDetector
             ElseIndex = elseIndex,
             EndIndex = endIndex
         };
-    }
-
-    /// <summary>
-    /// Gets the text content of an element (paragraph or table cell).
-    /// </summary>
-    private static string? GetElementText(OpenXmlElement element)
-    {
-        if (element is Paragraph paragraph)
-        {
-            // The paragraph's own text: excludes text boxes (walked as separate containers)
-            // and field instructions.
-            return ParagraphTextModel.GetText(paragraph);
-        }
-
-        if (element is TableRow or TableCell)
-        {
-            return TemplateElementText.GetOwnText(element);
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Checks if an element contains a conditional marker.
-    /// </summary>
-    public static bool ContainsConditionalMarker(OpenXmlElement element)
-    {
-        string? text = GetElementText(element);
-        if (text == null)
-        {
-            return false;
-        }
-
-        return ConditionalPatterns.IfStart.IsMatch(text) ||
-               ConditionalPatterns.ElseIf.IsMatch(text) ||
-               ConditionalPatterns.Else.IsMatch(text) ||
-               ConditionalPatterns.IfEnd.IsMatch(text);
     }
 
     /// <summary>

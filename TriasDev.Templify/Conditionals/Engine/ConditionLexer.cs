@@ -254,10 +254,20 @@ internal sealed class ConditionLexer
     private static bool IsWordChar(char c)
         => char.IsLetterOrDigit(c) || c == '_' || c == '.' || c == '[' || c == ']' || c == '@';
 
-    private static string NormalizeQuotes(string expression)
+    /// <summary>
+    /// Normalizes typographic (curly) quotes to ASCII quotes. Word auto-formats ASCII quotes
+    /// to typographic quotes, which would otherwise break string literals.
+    /// </summary>
+    internal static string NormalizeQuotes(string expression)
     {
         return expression
-            .Replace('“', '"').Replace('”', '"').Replace('„', '"').Replace('‟', '"')
-            .Replace('‘', '\'').Replace('’', '\'').Replace('‚', '\'').Replace('‛', '\'');
+            .Replace('\u201C', '"')  // Left Double Quotation Mark
+            .Replace('\u201D', '"')  // Right Double Quotation Mark
+            .Replace('\u201E', '"')  // Double Low-9 Quotation Mark (German)
+            .Replace('\u201F', '"')  // Double High-Reversed-9 Quotation Mark
+            .Replace('\u2018', '\'') // Left Single Quotation Mark
+            .Replace('\u2019', '\'') // Right Single Quotation Mark
+            .Replace('\u201A', '\'') // Single Low-9 Quotation Mark
+            .Replace('\u201B', '\''); // Single High-Reversed-9 Quotation Mark
     }
 }

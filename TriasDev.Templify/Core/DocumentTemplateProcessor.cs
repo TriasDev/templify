@@ -64,20 +64,9 @@ public sealed class DocumentTemplateProcessor
         Stream outputStream,
         Dictionary<string, object> data)
     {
-        if (templateStream == null)
-        {
-            throw new ArgumentNullException(nameof(templateStream));
-        }
-
-        if (outputStream == null)
-        {
-            throw new ArgumentNullException(nameof(outputStream));
-        }
-
-        if (data == null)
-        {
-            throw new ArgumentNullException(nameof(data));
-        }
+        ArgumentNullException.ThrowIfNull(templateStream);
+        ArgumentNullException.ThrowIfNull(outputStream);
+        ArgumentNullException.ThrowIfNull(data);
 
         try
         {
@@ -198,29 +187,11 @@ public sealed class DocumentTemplateProcessor
         Stream outputStream,
         string jsonData)
     {
-        if (jsonData == null)
-        {
-            throw new ArgumentNullException(nameof(jsonData));
-        }
+        ArgumentNullException.ThrowIfNull(jsonData);
 
-        try
-        {
-            // Parse JSON string to dictionary
-            Dictionary<string, object> data = JsonDataParser.ParseJsonToDataDictionary(jsonData);
-
-            // Delegate to the existing ProcessTemplate method
-            return ProcessTemplate(templateStream, outputStream, data);
-        }
-        catch (JsonException)
-        {
-            // Re-throw JSON exceptions as they provide useful error messages
-            throw;
-        }
-        catch (ArgumentException)
-        {
-            // Re-throw argument exceptions from JSON parsing
-            throw;
-        }
+        // JSON parse errors (JsonException, ArgumentException) propagate to the caller unchanged.
+        Dictionary<string, object> data = JsonDataParser.ParseJsonToDataDictionary(jsonData);
+        return ProcessTemplate(templateStream, outputStream, data);
     }
 
     /// <summary>
@@ -232,10 +203,7 @@ public sealed class DocumentTemplateProcessor
     /// <exception cref="ArgumentNullException">Thrown when templateStream is null.</exception>
     public ValidationResult ValidateTemplate(Stream templateStream)
     {
-        if (templateStream == null)
-        {
-            throw new ArgumentNullException(nameof(templateStream));
-        }
+        ArgumentNullException.ThrowIfNull(templateStream);
 
         return ValidateTemplateInternal(templateStream, data: null);
     }
@@ -250,15 +218,8 @@ public sealed class DocumentTemplateProcessor
     /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
     public ValidationResult ValidateTemplate(Stream templateStream, Dictionary<string, object> data)
     {
-        if (templateStream == null)
-        {
-            throw new ArgumentNullException(nameof(templateStream));
-        }
-
-        if (data == null)
-        {
-            throw new ArgumentNullException(nameof(data));
-        }
+        ArgumentNullException.ThrowIfNull(templateStream);
+        ArgumentNullException.ThrowIfNull(data);
 
         return ValidateTemplateInternal(templateStream, data);
     }

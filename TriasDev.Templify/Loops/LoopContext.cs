@@ -87,10 +87,7 @@ internal sealed class LoopContext
         string? iterationVariableName = null,
         LoopContext? parent = null)
     {
-        if (collection == null)
-        {
-            throw new ArgumentNullException(nameof(collection));
-        }
+        ArgumentNullException.ThrowIfNull(collection);
 
         List<object?> items = new List<object?>();
         foreach (object? item in collection)
