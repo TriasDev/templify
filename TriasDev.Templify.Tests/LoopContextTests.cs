@@ -8,28 +8,11 @@ using TriasDev.Templify.Placeholders;
 using TriasDev.Templify.PropertyPaths;
 using TriasDev.Templify.Utilities;
 using System.Collections;
-using System.Reflection;
 
 namespace TriasDev.Templify.Tests;
 
 public class LoopContextTests
 {
-    private static readonly Type _loopContextType = typeof(DocumentTemplateProcessor).Assembly
-        .GetType("TriasDev.Templify.Loops.LoopContext")!;
-
-    private static readonly MethodInfo _createContextsMethod = _loopContextType
-        .GetMethod("CreateContexts", BindingFlags.Static | BindingFlags.Public)!;
-
-    private static readonly PropertyInfo _currentItemProp = _loopContextType.GetProperty("CurrentItem")!;
-    private static readonly PropertyInfo _indexProp = _loopContextType.GetProperty("Index")!;
-    private static readonly PropertyInfo _countProp = _loopContextType.GetProperty("Count")!;
-    private static readonly PropertyInfo _isFirstProp = _loopContextType.GetProperty("IsFirst")!;
-    private static readonly PropertyInfo _isLastProp = _loopContextType.GetProperty("IsLast")!;
-    private static readonly PropertyInfo _collectionNameProp = _loopContextType.GetProperty("CollectionName")!;
-
-    private static readonly MethodInfo _tryResolveVariableMethod = _loopContextType
-        .GetMethod("TryResolveVariable", BindingFlags.Public | BindingFlags.Instance)!;
-
     [Fact]
     public void CreateContexts_WithSimpleList_CreatesCorrectContexts()
     {
@@ -38,27 +21,26 @@ public class LoopContextTests
         string collectionName = "Items";
 
         // Act
-        object result = _createContextsMethod.Invoke(null, new object[] { items, collectionName, null!, null! })!;
-        IList contexts = (IList)result;
+        IReadOnlyList<LoopContext> contexts = LoopContext.CreateContexts(items, collectionName);
 
         // Assert
         Assert.Equal(3, contexts.Count);
 
         // Check first context
-        object firstContext = contexts[0]!;
-        Assert.Equal("First", _currentItemProp.GetValue(firstContext));
-        Assert.Equal(0, _indexProp.GetValue(firstContext));
-        Assert.Equal(3, _countProp.GetValue(firstContext));
-        Assert.True((bool)_isFirstProp.GetValue(firstContext)!);
-        Assert.False((bool)_isLastProp.GetValue(firstContext)!);
-        Assert.Equal("Items", _collectionNameProp.GetValue(firstContext));
+        LoopContext firstContext = contexts[0];
+        Assert.Equal("First", firstContext.CurrentItem);
+        Assert.Equal(0, firstContext.Index);
+        Assert.Equal(3, firstContext.Count);
+        Assert.True(firstContext.IsFirst);
+        Assert.False(firstContext.IsLast);
+        Assert.Equal("Items", firstContext.CollectionName);
 
         // Check last context
-        object lastContext = contexts[2]!;
-        Assert.Equal("Third", _currentItemProp.GetValue(lastContext));
-        Assert.Equal(2, _indexProp.GetValue(lastContext));
-        Assert.False((bool)_isFirstProp.GetValue(lastContext)!);
-        Assert.True((bool)_isLastProp.GetValue(lastContext)!);
+        LoopContext lastContext = contexts[2];
+        Assert.Equal("Third", lastContext.CurrentItem);
+        Assert.Equal(2, lastContext.Index);
+        Assert.False(lastContext.IsFirst);
+        Assert.True(lastContext.IsLast);
     }
 
     [Fact]
@@ -69,8 +51,7 @@ public class LoopContextTests
         string collectionName = "Items";
 
         // Act
-        object result = _createContextsMethod.Invoke(null, new object[] { items, collectionName, null!, null! })!;
-        IList contexts = (IList)result;
+        IReadOnlyList<LoopContext> contexts = LoopContext.CreateContexts(items, collectionName);
 
         // Assert
         Assert.Empty(contexts);
@@ -81,33 +62,28 @@ public class LoopContextTests
     {
         // Arrange
         List<string> items = new List<string> { "First", "Second" };
-        object result = _createContextsMethod.Invoke(null, new object[] { items, "Items", null!, null! })!;
-        IList contexts = (IList)result;
-        object context = contexts[0]!;
+        IReadOnlyList<LoopContext> contexts = LoopContext.CreateContexts(items, "Items");
+        LoopContext context = contexts[0];
 
         // Act & Assert - @index
-        object[] parameters = new object[] { "@index", null! };
-        bool indexResult = (bool)_tryResolveVariableMethod.Invoke(context, parameters)!;
+        bool indexResult = context.TryResolveVariable("@index", out object? value);
         Assert.True(indexResult);
-        Assert.Equal(0, parameters[1]);
+        Assert.Equal(0, value);
 
         // Act & Assert - @first
-        parameters = new object[] { "@first", null! };
-        bool firstResult = (bool)_tryResolveVariableMethod.Invoke(context, parameters)!;
+        bool firstResult = context.TryResolveVariable("@first", out value);
         Assert.True(firstResult);
-        Assert.True((bool)parameters[1]!);
+        Assert.True((bool)value!);
 
         // Act & Assert - @last
-        parameters = new object[] { "@last", null! };
-        bool lastResult = (bool)_tryResolveVariableMethod.Invoke(context, parameters)!;
+        bool lastResult = context.TryResolveVariable("@last", out value);
         Assert.True(lastResult);
-        Assert.False((bool)parameters[1]!);
+        Assert.False((bool)value!);
 
         // Act & Assert - @count
-        parameters = new object[] { "@count", null! };
-        bool countResult = (bool)_tryResolveVariableMethod.Invoke(context, parameters)!;
+        bool countResult = context.TryResolveVariable("@count", out value);
         Assert.True(countResult);
-        Assert.Equal(2, parameters[1]);
+        Assert.Equal(2, value);
     }
 
     [Fact]
@@ -118,17 +94,15 @@ public class LoopContextTests
         {
             new TestItem { Name = "Item1", Value = 100 }
         };
-        object result = _createContextsMethod.Invoke(null, new object[] { items, "Items", null!, null! })!;
-        IList contexts = (IList)result;
-        object context = contexts[0]!;
+        IReadOnlyList<LoopContext> contexts = LoopContext.CreateContexts(items, "Items");
+        LoopContext context = contexts[0];
 
         // Act
-        object[] parameters = new object[] { "Name", null! };
-        bool success = (bool)_tryResolveVariableMethod.Invoke(context, parameters)!;
+        bool success = context.TryResolveVariable("Name", out object? value);
 
         // Assert
         Assert.True(success);
-        Assert.Equal("Item1", parameters[1]);
+        Assert.Equal("Item1", value);
     }
 
     [Fact]
@@ -143,17 +117,15 @@ public class LoopContextTests
                 Address = new Address { City = "Munich" }
             }
         };
-        object result = _createContextsMethod.Invoke(null, new object[] { items, "Customers", null!, null! })!;
-        IList contexts = (IList)result;
-        object context = contexts[0]!;
+        IReadOnlyList<LoopContext> contexts = LoopContext.CreateContexts(items, "Customers");
+        LoopContext context = contexts[0];
 
         // Act
-        object[] parameters = new object[] { "Address.City", null! };
-        bool success = (bool)_tryResolveVariableMethod.Invoke(context, parameters)!;
+        bool success = context.TryResolveVariable("Address.City", out object? value);
 
         // Assert
         Assert.True(success);
-        Assert.Equal("Munich", parameters[1]);
+        Assert.Equal("Munich", value);
     }
 
     [Fact]
@@ -164,17 +136,15 @@ public class LoopContextTests
         {
             new TestItem { Name = "Item1", Value = 100 }
         };
-        object result = _createContextsMethod.Invoke(null, new object[] { items, "Items", null!, null! })!;
-        IList contexts = (IList)result;
-        object context = contexts[0]!;
+        IReadOnlyList<LoopContext> contexts = LoopContext.CreateContexts(items, "Items");
+        LoopContext context = contexts[0];
 
         // Act
-        object[] parameters = new object[] { "NonExistentProperty", null! };
-        bool success = (bool)_tryResolveVariableMethod.Invoke(context, parameters)!;
+        bool success = context.TryResolveVariable("NonExistentProperty", out object? value);
 
         // Assert
         Assert.False(success);
-        Assert.Null(parameters[1]);
+        Assert.Null(value);
     }
 
     [Fact]
@@ -184,38 +154,36 @@ public class LoopContextTests
         List<string?> items = new List<string?> { "a", null };
 
         // Act
-        IList contexts = (IList)_createContextsMethod.Invoke(null, new object[] { items, "Items", null!, null! })!;
+        IReadOnlyList<LoopContext> contexts = LoopContext.CreateContexts(items, "Items");
 
         // Assert
         Assert.Equal(2, contexts.Count);
-        Assert.Null(_currentItemProp.GetValue(contexts[1]));
-        Assert.Equal(1, _indexProp.GetValue(contexts[1]));
+        Assert.Null(contexts[1].CurrentItem);
+        Assert.Equal(1, contexts[1].Index);
     }
 
     [Fact]
     public void TryResolveVariable_NullItem_DotResolvesToNull()
     {
         // Arrange
-        IList contexts = (IList)_createContextsMethod.Invoke(null, new object[] { new List<string?> { null }, "Items", null!, null! })!;
+        IReadOnlyList<LoopContext> contexts = LoopContext.CreateContexts(new List<string?> { null }, "Items");
 
         // Act
-        object[] parameters = new object[] { ".", "sentinel" };
-        bool success = (bool)_tryResolveVariableMethod.Invoke(contexts[0], parameters)!;
+        bool success = contexts[0].TryResolveVariable(".", out object? value);
 
         // Assert
         Assert.True(success);
-        Assert.Null(parameters[1]);
+        Assert.Null(value);
     }
 
     [Fact]
     public void TryResolveVariable_NullItem_ImplicitPropertyIsNotResolved()
     {
         // Arrange: a null item has no properties, so implicit names are left to the parent scope
-        IList contexts = (IList)_createContextsMethod.Invoke(null, new object[] { new List<TestItem?> { null }, "Items", null!, null! })!;
+        IReadOnlyList<LoopContext> contexts = LoopContext.CreateContexts(new List<TestItem?> { null }, "Items");
 
         // Act
-        object[] parameters = new object[] { "Name", null! };
-        bool success = (bool)_tryResolveVariableMethod.Invoke(contexts[0], parameters)!;
+        bool success = contexts[0].TryResolveVariable("Name", out object? value);
 
         // Assert
         Assert.False(success);
@@ -225,15 +193,14 @@ public class LoopContextTests
     public void TryResolveVariable_NullItem_NamedVariablePropertyResolvesToNull()
     {
         // Arrange
-        IList contexts = (IList)_createContextsMethod.Invoke(null, new object[] { new List<TestItem?> { null }, "Items", "item", null! })!;
+        IReadOnlyList<LoopContext> contexts = LoopContext.CreateContexts(new List<TestItem?> { null }, "Items", "item");
 
         // Act
-        object[] parameters = new object[] { "item.Name", "sentinel" };
-        bool success = (bool)_tryResolveVariableMethod.Invoke(contexts[0], parameters)!;
+        bool success = contexts[0].TryResolveVariable("item.Name", out object? value);
 
         // Assert
         Assert.True(success);
-        Assert.Null(parameters[1]);
+        Assert.Null(value);
     }
 
     [Fact]
@@ -241,15 +208,14 @@ public class LoopContextTests
     {
         // Arrange
         List<Customer> items = new List<Customer> { new Customer { Name = "A", Address = null } };
-        IList contexts = (IList)_createContextsMethod.Invoke(null, new object[] { items, "Customers", null!, null! })!;
+        IReadOnlyList<LoopContext> contexts = LoopContext.CreateContexts(items, "Customers");
 
         // Act
-        object[] parameters = new object[] { "Address", "sentinel" };
-        bool success = (bool)_tryResolveVariableMethod.Invoke(contexts[0], parameters)!;
+        bool success = contexts[0].TryResolveVariable("Address", out object? value);
 
         // Assert
         Assert.True(success);
-        Assert.Null(parameters[1]);
+        Assert.Null(value);
     }
 
     [Fact]
@@ -260,15 +226,14 @@ public class LoopContextTests
         {
             new Dictionary<string, object?> { ["Notes"] = null }
         };
-        IList contexts = (IList)_createContextsMethod.Invoke(null, new object[] { items, "Items", null!, null! })!;
+        IReadOnlyList<LoopContext> contexts = LoopContext.CreateContexts(items, "Items");
 
         // Act
-        object[] parameters = new object[] { "Notes", "sentinel" };
-        bool success = (bool)_tryResolveVariableMethod.Invoke(contexts[0], parameters)!;
+        bool success = contexts[0].TryResolveVariable("Notes", out object? value);
 
         // Assert
         Assert.True(success);
-        Assert.Null(parameters[1]);
+        Assert.Null(value);
     }
 
     private class TestItem

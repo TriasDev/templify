@@ -8,42 +8,17 @@ using TriasDev.Templify.Placeholders;
 using TriasDev.Templify.PropertyPaths;
 using TriasDev.Templify.Utilities;
 using System.Dynamic;
-using System.Reflection;
 using System.Text.Json;
 
 namespace TriasDev.Templify.Tests;
 
 public class PropertyPathResolverTests
 {
-    private static readonly Type _propertyPathType = typeof(DocumentTemplateProcessor).Assembly
-        .GetType("TriasDev.Templify.PropertyPaths.PropertyPath")!;
+    private static object? ResolvePath(object root, string pathString)
+        => PropertyPathResolver.ResolvePath(root, PropertyPath.Parse(pathString));
 
-    private static readonly Type _propertyPathResolverType = typeof(DocumentTemplateProcessor).Assembly
-        .GetType("TriasDev.Templify.PropertyPaths.PropertyPathResolver")!;
-
-    private static readonly MethodInfo _parseMethod = _propertyPathType
-        .GetMethod("Parse", BindingFlags.Static | BindingFlags.Public)!;
-
-    private static readonly MethodInfo _resolvePathMethod = _propertyPathResolverType
-        .GetMethod("ResolvePath", BindingFlags.Public | BindingFlags.Static)!;
-
-    private static readonly MethodInfo _tryResolvePathMethod = _propertyPathResolverType
-        .GetMethod("TryResolvePath", BindingFlags.Public | BindingFlags.Static)!;
-
-    private object? ResolvePath(object root, string pathString)
-    {
-        object path = _parseMethod.Invoke(null, new object[] { pathString })!;
-        return _resolvePathMethod.Invoke(null, new[] { root, path });
-    }
-
-    private bool TryResolvePath(object? root, string pathString, out object? value)
-    {
-        object path = _parseMethod.Invoke(null, new object[] { pathString })!;
-        object?[] parameters = new object?[] { root, path, null };
-        bool result = (bool)_tryResolvePathMethod.Invoke(null, parameters)!;
-        value = parameters[2];
-        return result;
-    }
+    private static bool TryResolvePath(object? root, string pathString, out object? value)
+        => PropertyPathResolver.TryResolvePath(root, PropertyPath.Parse(pathString), out value);
 
     [Fact]
     public void ResolvePath_WithNestedObject_ReturnsCorrectValue()

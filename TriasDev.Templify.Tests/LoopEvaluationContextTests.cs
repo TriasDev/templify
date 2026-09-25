@@ -2,25 +2,26 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using TriasDev.Templify.Core;
-using System.Reflection;
+using TriasDev.Templify.Loops;
 
 namespace TriasDev.Templify.Tests;
 
 public class LoopEvaluationContextTests
 {
     [Fact]
-    public void Constructor_WithValidParameters_Succeeds()
+    public void Constructor_WithValidParameters_ChainsToParentAndSharesRootData()
     {
         // Arrange
-        Dictionary<string, object> data = new Dictionary<string, object>();
+        Dictionary<string, object> data = new Dictionary<string, object> { ["Global"] = 1 };
         GlobalEvaluationContext globalContext = new GlobalEvaluationContext(data);
-        object loopContext = CreateLoopContext("Item1", 0, 3, "Items");
+        LoopContext loopContext = CreateLoopContext("Item1", 0, 3, "Items");
 
         // Act
         IEvaluationContext context = CreateLoopEvaluationContext(loopContext, globalContext);
 
         // Assert
-        Assert.NotNull(context);
+        Assert.Same(globalContext, context.Parent);
+        Assert.Same(data, context.RootData);
     }
 
     [Fact]
@@ -31,17 +32,17 @@ public class LoopEvaluationContextTests
         GlobalEvaluationContext globalContext = new GlobalEvaluationContext(data);
 
         // Act & Assert
-        Assert.Throws<TargetInvocationException>(() => CreateLoopEvaluationContext(null!, globalContext));
+        Assert.Throws<ArgumentNullException>(() => CreateLoopEvaluationContext(null!, globalContext));
     }
 
     [Fact]
     public void Constructor_WithNullParent_ThrowsArgumentNullException()
     {
         // Arrange
-        object loopContext = CreateLoopContext("Item1", 0, 3, "Items");
+        LoopContext loopContext = CreateLoopContext("Item1", 0, 3, "Items");
 
         // Act & Assert
-        Assert.Throws<TargetInvocationException>(() => CreateLoopEvaluationContext(loopContext, null!));
+        Assert.Throws<ArgumentNullException>(() => CreateLoopEvaluationContext(loopContext, null!));
     }
 
     [Fact]
@@ -50,7 +51,7 @@ public class LoopEvaluationContextTests
         // Arrange
         Dictionary<string, object> data = new Dictionary<string, object>();
         GlobalEvaluationContext globalContext = new GlobalEvaluationContext(data);
-        object loopContext = CreateLoopContext("Item1", 2, 5, "Items");
+        LoopContext loopContext = CreateLoopContext("Item1", 2, 5, "Items");
         IEvaluationContext context = CreateLoopEvaluationContext(loopContext, globalContext);
 
         // Act
@@ -67,7 +68,7 @@ public class LoopEvaluationContextTests
         // Arrange
         Dictionary<string, object> data = new Dictionary<string, object>();
         GlobalEvaluationContext globalContext = new GlobalEvaluationContext(data);
-        object loopContext = CreateLoopContext("Item1", 0, 5, "Items");
+        LoopContext loopContext = CreateLoopContext("Item1", 0, 5, "Items");
         IEvaluationContext context = CreateLoopEvaluationContext(loopContext, globalContext);
 
         // Act
@@ -84,7 +85,7 @@ public class LoopEvaluationContextTests
         // Arrange
         Dictionary<string, object> data = new Dictionary<string, object>();
         GlobalEvaluationContext globalContext = new GlobalEvaluationContext(data);
-        object loopContext = CreateLoopContext("Item1", 4, 5, "Items");
+        LoopContext loopContext = CreateLoopContext("Item1", 4, 5, "Items");
         IEvaluationContext context = CreateLoopEvaluationContext(loopContext, globalContext);
 
         // Act
@@ -101,7 +102,7 @@ public class LoopEvaluationContextTests
         // Arrange
         Dictionary<string, object> data = new Dictionary<string, object>();
         GlobalEvaluationContext globalContext = new GlobalEvaluationContext(data);
-        object loopContext = CreateLoopContext("Item1", 2, 5, "Items");
+        LoopContext loopContext = CreateLoopContext("Item1", 2, 5, "Items");
         IEvaluationContext context = CreateLoopEvaluationContext(loopContext, globalContext);
 
         // Act
@@ -118,7 +119,7 @@ public class LoopEvaluationContextTests
         // Arrange
         Dictionary<string, object> data = new Dictionary<string, object>();
         GlobalEvaluationContext globalContext = new GlobalEvaluationContext(data);
-        object loopContext = CreateLoopContext("Apple", 0, 3, "Items");
+        LoopContext loopContext = CreateLoopContext("Apple", 0, 3, "Items");
         IEvaluationContext context = CreateLoopEvaluationContext(loopContext, globalContext);
 
         // Act
@@ -140,7 +141,7 @@ public class LoopEvaluationContextTests
             Name = "Product A",
             Price = 99.99m
         };
-        object loopContext = CreateLoopContext(currentItem, 0, 3, "Products");
+        LoopContext loopContext = CreateLoopContext(currentItem, 0, 3, "Products");
         IEvaluationContext context = CreateLoopEvaluationContext(loopContext, globalContext);
 
         // Act
@@ -161,7 +162,7 @@ public class LoopEvaluationContextTests
             ["Year"] = 2025
         };
         GlobalEvaluationContext globalContext = new GlobalEvaluationContext(data);
-        object loopContext = CreateLoopContext("Item1", 0, 3, "Items");
+        LoopContext loopContext = CreateLoopContext("Item1", 0, 3, "Items");
         IEvaluationContext context = CreateLoopEvaluationContext(loopContext, globalContext);
 
         // Act
@@ -188,7 +189,7 @@ public class LoopEvaluationContextTests
             }
         };
         GlobalEvaluationContext globalContext = new GlobalEvaluationContext(data);
-        object loopContext = CreateLoopContext("Item1", 0, 3, "Items");
+        LoopContext loopContext = CreateLoopContext("Item1", 0, 3, "Items");
         IEvaluationContext context = CreateLoopEvaluationContext(loopContext, globalContext);
 
         // Act
@@ -205,7 +206,7 @@ public class LoopEvaluationContextTests
         // Arrange
         Dictionary<string, object> data = new Dictionary<string, object>();
         GlobalEvaluationContext globalContext = new GlobalEvaluationContext(data);
-        object loopContext = CreateLoopContext("Item1", 0, 3, "Items");
+        LoopContext loopContext = CreateLoopContext("Item1", 0, 3, "Items");
         IEvaluationContext context = CreateLoopEvaluationContext(loopContext, globalContext);
 
         // Act
@@ -222,7 +223,7 @@ public class LoopEvaluationContextTests
         // Arrange
         Dictionary<string, object> data = new Dictionary<string, object>();
         GlobalEvaluationContext globalContext = new GlobalEvaluationContext(data);
-        object loopContext = CreateLoopContext("Item1", 0, 3, "Items");
+        LoopContext loopContext = CreateLoopContext("Item1", 0, 3, "Items");
         IEvaluationContext context = CreateLoopEvaluationContext(loopContext, globalContext);
 
         // Act & Assert
@@ -240,7 +241,7 @@ public class LoopEvaluationContextTests
             ["Age"] = 30
         };
         GlobalEvaluationContext globalContext = new GlobalEvaluationContext(data);
-        object loopContext = CreateLoopContext("Item1", 0, 3, "Items");
+        LoopContext loopContext = CreateLoopContext("Item1", 0, 3, "Items");
         IEvaluationContext context = CreateLoopEvaluationContext(loopContext, globalContext);
 
         // Act
@@ -265,12 +266,12 @@ public class LoopEvaluationContextTests
 
         // Outer loop context
         object outerItem = new { OuterProp = "Outer Value" };
-        object outerLoopContext = CreateLoopContext(outerItem, 0, 2, "OuterItems");
+        LoopContext outerLoopContext = CreateLoopContext(outerItem, 0, 2, "OuterItems");
         IEvaluationContext outerContext = CreateLoopEvaluationContext(outerLoopContext, globalContext);
 
         // Inner loop context
         object innerItem = new { InnerProp = "Inner Value" };
-        object innerLoopContext = CreateLoopContext(innerItem, 1, 3, "InnerItems", outerLoopContext);
+        LoopContext innerLoopContext = CreateLoopContext(innerItem, 1, 3, "InnerItems", outerLoopContext);
         IEvaluationContext innerContext = CreateLoopEvaluationContext(innerLoopContext, outerContext);
 
         // Act & Assert - Inner property
@@ -286,39 +287,14 @@ public class LoopEvaluationContextTests
         Assert.Equal("Global Value", globalValue);
     }
 
-    // Use reflection to access internal LoopContext and LoopEvaluationContext types
-    private static readonly Type _loopContextType = typeof(DocumentTemplateProcessor).Assembly
-        .GetType("TriasDev.Templify.Loops.LoopContext")!;
-
-    private static readonly Type _loopEvaluationContextType = typeof(DocumentTemplateProcessor).Assembly
-        .GetType("TriasDev.Templify.Loops.LoopEvaluationContext")!;
-
-    // Helper method to create LoopContext instances using reflection
-    private static object CreateLoopContext(
+    private static LoopContext CreateLoopContext(
         object currentItem,
         int index,
         int count,
         string collectionName,
-        object? parent = null)
-    {
-        return Activator.CreateInstance(
-            _loopContextType,
-            currentItem,
-            index,
-            count,
-            collectionName,
-            null,  // iterationVariableName
-            parent)!;
-    }
+        LoopContext? parent = null)
+        => new LoopContext(currentItem, index, count, collectionName, iterationVariableName: null, parent);
 
-    // Helper method to create LoopEvaluationContext instances using reflection
-    private static IEvaluationContext CreateLoopEvaluationContext(
-        object loopContext,
-        IEvaluationContext parent)
-    {
-        return (IEvaluationContext)Activator.CreateInstance(
-            _loopEvaluationContextType,
-            loopContext,
-            parent)!;
-    }
+    private static IEvaluationContext CreateLoopEvaluationContext(LoopContext loopContext, IEvaluationContext parent)
+        => new LoopEvaluationContext(loopContext, parent);
 }

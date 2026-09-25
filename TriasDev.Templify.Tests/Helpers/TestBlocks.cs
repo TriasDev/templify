@@ -9,7 +9,8 @@ using TriasDev.Templify.Loops;
 namespace TriasDev.Templify.Tests.Helpers;
 
 /// <summary>
-/// Detached template blocks (markers and content are not part of a document) for visitor unit tests.
+/// Template blocks for visitor unit tests. Without a container, the markers and content are detached.
+/// With a container, they are appended to it in document order, so a test can compare the container's XML.
 /// Import with <c>using static</c>.
 /// </summary>
 internal static class TestBlocks
@@ -17,7 +18,7 @@ internal static class TestBlocks
     /// <summary>
     /// Creates <c>{{#if IsActive}}Active{{/if}}</c> without an else branch.
     /// </summary>
-    public static ConditionalBlock CreateTestConditionalBlock()
+    public static ConditionalBlock CreateTestConditionalBlock(OpenXmlElement? container = null)
     {
         Paragraph startMarker = new Paragraph(new Run(new Text("{{#if IsActive}}")));
         Paragraph endMarker = new Paragraph(new Run(new Text("{{/if}}")));
@@ -25,6 +26,7 @@ internal static class TestBlocks
         {
             new Paragraph(new Run(new Text("Active")))
         };
+        container?.Append(startMarker, ifContent[0], endMarker);
 
         return new ConditionalBlock(
             conditionExpression: "IsActive",
@@ -40,7 +42,7 @@ internal static class TestBlocks
     /// <summary>
     /// Creates <c>{{#foreach Items}}{{.}}{{/foreach}}</c>.
     /// </summary>
-    public static LoopBlock CreateTestLoopBlock()
+    public static LoopBlock CreateTestLoopBlock(OpenXmlElement? container = null)
     {
         Paragraph startMarker = new Paragraph(new Run(new Text("{{#foreach Items}}")));
         Paragraph endMarker = new Paragraph(new Run(new Text("{{/foreach}}")));
@@ -48,6 +50,7 @@ internal static class TestBlocks
         {
             new Paragraph(new Run(new Text("{{.}}")))
         };
+        container?.Append(startMarker, content[0], endMarker);
 
         return new LoopBlock(
             collectionName: "Items",

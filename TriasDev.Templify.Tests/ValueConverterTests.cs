@@ -9,33 +9,16 @@ using TriasDev.Templify.PropertyPaths;
 using TriasDev.Templify.Utilities;
 using TriasDev.Templify.Formatting;
 using System.Globalization;
-using System.Reflection;
 
 namespace TriasDev.Templify.Tests;
 
 public class ValueConverterTests
 {
-    // Use reflection to access the internal static class
-    private static readonly Type _valueConverterType = typeof(DocumentTemplateProcessor).Assembly
-        .GetType("TriasDev.Templify.Placeholders.ValueConverter")!;
-
-    private static readonly MethodInfo _convertToStringMethod = _valueConverterType
-        .GetMethod("ConvertToString", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic,
-            null, new[] { typeof(object), typeof(CultureInfo) }, null)!;
-
-    private static readonly MethodInfo _convertToStringWithFormatMethod = _valueConverterType
-        .GetMethod("ConvertToString", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic,
-            null, new[] { typeof(object), typeof(CultureInfo), typeof(string), typeof(BooleanFormatterRegistry) }, null)!;
-
     private static string ConvertToString(object? value)
-    {
-        return (string)_convertToStringMethod.Invoke(null, new[] { value, CultureInfo.InvariantCulture })!;
-    }
+        => ValueConverter.ConvertToString(value, CultureInfo.InvariantCulture);
 
     private static string ConvertToString(object? value, CultureInfo culture, string? format, BooleanFormatterRegistry? registry)
-    {
-        return (string)_convertToStringWithFormatMethod.Invoke(null, new object?[] { value, culture, format, registry })!;
-    }
+        => ValueConverter.ConvertToString(value, culture, format, registry);
 
     [Fact]
     public void ConvertToString_WithNull_ReturnsEmptyString()

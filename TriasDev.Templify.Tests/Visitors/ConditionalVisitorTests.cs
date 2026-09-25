@@ -285,14 +285,17 @@ public sealed class ConditionalVisitorTests
     {
         // Arrange
         ConditionalVisitor visitor = new ConditionalVisitor(new WarningCollector());
-        LoopBlock loop = CreateTestLoopBlock();
-        GlobalEvaluationContext context = new GlobalEvaluationContext(new Dictionary<string, object>());
+        Body body = new Body();
+        LoopBlock loop = CreateTestLoopBlock(body);
+        string before = body.OuterXml;
+        // Data that would change the block if this visitor handled it
+        GlobalEvaluationContext context = new GlobalEvaluationContext(new Dictionary<string, object> { ["IsActive"] = false, ["Items"] = new List<string> { "A", "B" } });
 
-        // Act (should not throw and should not modify anything)
+        // Act
         visitor.VisitLoop(loop, context);
 
-        // Assert - no exception, no-op completed
-        Assert.NotNull(loop);
+        // Assert - the block is left in place, untouched
+        Assert.Equal(before, body.OuterXml);
     }
 
     [Fact]
@@ -308,13 +311,14 @@ public sealed class ConditionalVisitorTests
             Length = 8
         };
         Paragraph paragraph = new Paragraph(new Run(new Text("{{Name}}")));
-        GlobalEvaluationContext context = new GlobalEvaluationContext(new Dictionary<string, object>());
+        string before = paragraph.OuterXml;
+        GlobalEvaluationContext context = new GlobalEvaluationContext(new Dictionary<string, object> { ["Name"] = "Alice" });
 
-        // Act (should not throw and should not modify anything)
+        // Act
         visitor.VisitPlaceholder(placeholder, paragraph, context);
 
         // Assert - paragraph unchanged
-        Assert.Equal("{{Name}}", paragraph.InnerText);
+        Assert.Equal(before, paragraph.OuterXml);
     }
 
     [Fact]
@@ -323,13 +327,14 @@ public sealed class ConditionalVisitorTests
         // Arrange
         ConditionalVisitor visitor = new ConditionalVisitor(new WarningCollector());
         Paragraph paragraph = new Paragraph(new Run(new Text("Regular text")));
+        string before = paragraph.OuterXml;
         GlobalEvaluationContext context = new GlobalEvaluationContext(new Dictionary<string, object>());
 
-        // Act (should not throw and should not modify anything)
+        // Act
         visitor.VisitParagraph(paragraph, context);
 
         // Assert - paragraph unchanged
-        Assert.Equal("Regular text", paragraph.InnerText);
+        Assert.Equal(before, paragraph.OuterXml);
     }
 }
 

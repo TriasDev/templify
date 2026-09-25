@@ -204,7 +204,6 @@ public class ConditionEvaluatorTests
 
         IEvaluationContext context = _evaluator.CreateContext(data);
 
-        Assert.NotNull(context);
         Assert.True(context.TryResolveVariable("Name", out object? name));
         Assert.Equal("Test", name);
         Assert.True(context.TryResolveVariable("Count", out object? count));
@@ -218,7 +217,6 @@ public class ConditionEvaluatorTests
 
         IEvaluationContext context = _evaluator.CreateContext(json);
 
-        Assert.NotNull(context);
         Assert.True(context.TryResolveVariable("Name", out object? name));
         Assert.Equal("Test", name);
     }
@@ -257,18 +255,6 @@ public class ConditionEvaluatorTests
         Assert.True(_evaluator.Evaluate("IsEnabled", context));
         Assert.True(_evaluator.Evaluate("Count > 5", context));
         Assert.True(_evaluator.Evaluate("IsEnabled and Count > 5", context));
-    }
-
-    #endregion
-
-    #region Interface Implementation
-
-    [Fact]
-    public void ConditionEvaluator_ImplementsIConditionEvaluator()
-    {
-        IConditionEvaluator evaluator = new ConditionEvaluator();
-
-        Assert.NotNull(evaluator);
     }
 
     #endregion

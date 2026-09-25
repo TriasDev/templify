@@ -8,7 +8,7 @@ namespace TriasDev.Templify.Tests;
 public class GlobalEvaluationContextTests
 {
     [Fact]
-    public void Constructor_WithValidData_Succeeds()
+    public void Constructor_WithValidData_ExposesDataAsRootWithoutParent()
     {
         // Arrange
         Dictionary<string, object> data = new Dictionary<string, object>
@@ -20,7 +20,8 @@ public class GlobalEvaluationContextTests
         GlobalEvaluationContext context = new GlobalEvaluationContext(data);
 
         // Assert
-        Assert.NotNull(context);
+        Assert.Same(data, context.RootData);
+        Assert.Null(context.Parent);
     }
 
     [Fact]
