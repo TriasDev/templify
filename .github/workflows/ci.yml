@@ -7,6 +7,13 @@ on:
     branches: [ main, develop ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build-and-test:
     name: Build and Test
@@ -36,7 +43,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: matrix.os == 'ubuntu-latest' && matrix.dotnet-version == '10.0.x'
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           files: '**/coverage.cobertura.xml'
           fail_ci_if_error: false
@@ -87,3 +94,23 @@ jobs:
           name: nuget-package
           path: ./artifacts/*.nupkg
           retention-days: 7
+
+  # Single aggregate status for branch protection: require only "CI Success"
+  # so matrix changes don't require updating the protection rules.
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [build-and-test, lint, pack]
+    steps:
+      - name: Check job results
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Job results: $RESULTS"
+          for r in $RESULTS; do
+            if [ "$r" != "success" ]; then
+              echo "::error::At least one required job did not succeed ($r)"
+              exit 1
+            fi
+          done
