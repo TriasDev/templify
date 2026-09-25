@@ -76,7 +76,7 @@ templify/
 │       ├── invoice-output.docx
 │       └── conditionals-output.docx
 │
-└── docfx_project/images/examples/
+└── docs/images/examples/
     ├── templates/                          # Template screenshots
     │   ├── hello-world-template.png
     │   ├── invoice-template.png
@@ -157,11 +157,11 @@ Generated Images:
 
 📍 Location:
   Documents: /path/to/examples/templates
-  Images:    /path/to/docfx_project/images/examples
+  Images:    /path/to/docs/images/examples
 
 💡 Usage in documentation:
-  ![Template](../../images/examples/templates/hello-world-template.png)
-  ![Output](../../images/examples/outputs/hello-world-output.png)
+  ![Template](../images/examples/templates/hello-world-template.png)
+  ![Output](../images/examples/outputs/hello-world-output.png)
 
 ✓ All done!
 ```
@@ -239,10 +239,10 @@ STIRLING_PDF_API_KEY=your-api-key-here
 This example demonstrates basic placeholder replacement.
 
 **Template Structure:**
-![Hello World Template](../../images/examples/templates/hello-world-template.png)
+![Hello World Template](../images/examples/templates/hello-world-template.png)
 
 **Processed Output:**
-![Hello World Output](../../images/examples/outputs/hello-world-output.png)
+![Hello World Output](../images/examples/outputs/hello-world-output.png)
 
 **Template Code:**
 ```

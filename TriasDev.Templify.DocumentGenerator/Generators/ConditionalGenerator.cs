@@ -1,3 +1,4 @@
+using System.Globalization;
 using DocumentFormat.OpenXml.Packaging;
 
 namespace TriasDev.Templify.DocumentGenerator.Generators;
@@ -17,7 +18,7 @@ public class ConditionalGenerator : BaseExampleGenerator
 
         using (var doc = CreateDocument(templatePath))
         {
-            var body = doc.MainDocumentPart!.Document.Body!;
+            var body = doc.MainDocumentPart!.Document!.Body!;
 
             // Title
             AddParagraph(body, "Order Confirmation", isBold: true);
@@ -102,7 +103,7 @@ public class ConditionalGenerator : BaseExampleGenerator
         return new Dictionary<string, object>
         {
             ["OrderNumber"] = "ORD-2025-12345",
-            ["OrderDate"] = DateTime.Now.ToString("yyyy-MM-dd"),
+            ["OrderDate"] = ExampleGenerators.SampleDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             ["CustomerName"] = "Jane Smith",
 
             // Premium customer status
@@ -111,7 +112,7 @@ public class ConditionalGenerator : BaseExampleGenerator
             // Order status
             ["Status"] = "Shipped",
             ["TrackingNumber"] = "1Z999AA10123456784",
-            ["ExpectedShipDate"] = DateTime.Now.AddDays(2).ToString("yyyy-MM-dd"),
+            ["ExpectedShipDate"] = ExampleGenerators.SampleDate.AddDays(2).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
 
             // Delivery options
             ["ExpressDelivery"] = true,
