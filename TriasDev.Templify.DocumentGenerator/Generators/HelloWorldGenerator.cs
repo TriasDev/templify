@@ -1,3 +1,4 @@
+using System.Globalization;
 using DocumentFormat.OpenXml.Packaging;
 
 namespace TriasDev.Templify.DocumentGenerator.Generators;
@@ -17,7 +18,7 @@ public class HelloWorldGenerator : BaseExampleGenerator
 
         using (var doc = CreateDocument(templatePath))
         {
-            var body = doc.MainDocumentPart!.Document.Body!;
+            var body = doc.MainDocumentPart!.Document!.Body!;
 
             // Title
             AddParagraph(body, "Hello World Template", isBold: true);
@@ -53,7 +54,7 @@ public class HelloWorldGenerator : BaseExampleGenerator
         {
             ["FirstName"] = "John",
             ["LastName"] = "Doe",
-            ["Date"] = DateTime.Now.ToString("yyyy-MM-dd"),
+            ["Date"] = ExampleGenerators.SampleDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             ["CustomerNumber"] = 12345,
             ["IsActive"] = true,
             ["Balance"] = 1250.50m,

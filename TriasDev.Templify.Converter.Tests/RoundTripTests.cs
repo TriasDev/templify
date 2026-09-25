@@ -241,23 +241,16 @@ public class RoundTripTests
             Assert.Equal(new[] { "Alwaysrow", "{{#if show_row}}", "Hiddenrow", "{{/if}}" }, TableRowTexts(stream));
         }
 
-        Assert.Contains(result.Warnings, w => w.Contains("#145"));
+        Assert.True(result.Success, string.Join(Environment.NewLine, result.Errors));
 
-        // Until the core supports table-row conditionals (#145) the dry run reports an error
-        // instead of claiming success; once supported, the output must render correctly.
-        if (result.Success)
-        {
-            using FileStream template = File.OpenRead(output);
-            using MemoryStream processed = new();
-            ProcessingResult processing = new DocumentTemplateProcessor().ProcessTemplate(
-                template, processed, new Dictionary<string, object> { ["show_row"] = false });
-            Assert.True(processing.IsSuccess, processing.ErrorMessage);
-            Assert.Equal(new[] { "Alwaysrow" }, TableRowTexts(processed));
-        }
-        else
-        {
-            Assert.Contains(result.Errors, e => e.Contains("show_row"));
-        }
+        using FileStream template = File.OpenRead(output);
+        using MemoryStream processed = new();
+        ProcessingResult processing = new DocumentTemplateProcessor().ProcessTemplate(
+            template, processed, new Dictionary<string, object> { ["show_row"] = false });
+        Assert.True(processing.IsSuccess, processing.ErrorMessage);
+        Assert.Empty(processing.Warnings);
+        Assert.Equal(new[] { "Alwaysrow" }, TableRowTexts(processed));
+        Assert.Empty(SchemaErrors(processed));
     }
 
     [Fact]

@@ -37,13 +37,6 @@ public class ConditionalConverter
             throw new ControlConversionException(string.Join("; ", tag.Errors));
         }
 
-        if (sdt is SdtRow)
-        {
-            warnings.Add(
-                $"{tag.Tag}: row-level conditional converted to separate {{{{#if}}}}/{{{{/if}}}} marker rows; " +
-                "this needs Templify table-row conditional support (see TriasDev/templify#145)");
-        }
-
         if (sdt is SdtCell)
         {
             warnings.Add(

@@ -21,7 +21,7 @@ This is a multi-project solution with 9 projects:
 - **TriasDev.Templify.Gui** - Avalonia-based GUI application
 - **TriasDev.Templify.Demo** - Demo console application
 - **TriasDev.Templify.DocumentGenerator** - Generates the example templates/outputs used in the documentation
-- **TriasDev.Templify.Tools.Tests** - xUnit tests for the tools/apps (GUI ViewModel and services, run headless)
+- **TriasDev.Templify.Tools.Tests** - xUnit tests for the tools/apps (GUI ViewModel/services headless, DocumentGenerator smoke tests)
 - **TriasDev.Templify.Converter.Tests** - xUnit tests for the Converter CLI (round trips through the core, file safety, CLI parsing)
 
 ## Development Workflow
@@ -88,10 +88,18 @@ dotnet run --project TriasDev.Templify.Benchmarks/TriasDev.Templify.Benchmarks.c
 dotnet run --project TriasDev.Templify.Benchmarks/TriasDev.Templify.Benchmarks.csproj -c Release -- --filter *PlaceholderBenchmarks*
 ```
 
+Benchmarks throw if `ProcessTemplate` fails (`BenchmarkGuard`), so failures cannot look fast. `ConditionEngineBenchmarks`
+covers the condition engine (`in`, `contains`, `exists`, `is empty`, grouping, `elseif`). BenchmarkDotNet output
+(`BenchmarkDotNet.Artifacts/`) is not committed; `PERFORMANCE.md` holds a historical snapshot.
+
 ### Running Applications
 ```bash
-# Run demo application
+# Run demo application (writes to ./output; process your own files with --template/--data)
 dotnet run --project TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj
+dotnet run --project TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj -- --template my.docx --data my.json
+
+# Regenerate documentation examples (examples/, docs/images/examples/)
+dotnet run --project TriasDev.Templify.DocumentGenerator -- --skip-images
 
 # Run converter CLI (full command)
 dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- [command] [arguments]

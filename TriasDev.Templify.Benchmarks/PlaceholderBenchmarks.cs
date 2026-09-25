@@ -78,7 +78,7 @@ public class PlaceholderBenchmarks
         template.Position = 0;
         DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
         using MemoryStream output = new MemoryStream();
-        processor.ProcessTemplate(template, output, data);
+        BenchmarkGuard.EnsureSuccess(processor.ProcessTemplate(template, output, data));
     }
 
     private static Dictionary<string, object> CreateData(int count)

@@ -174,7 +174,7 @@ nothing is lost; convert them manually.
 | Inline (inside a paragraph) | Markers are inserted as runs in the same paragraph (`Text {{#if X}}more{{/if}}`) |
 | Block (paragraphs, tables) | Markers get their own paragraphs before and after the content |
 | Repeating table row(s) (`SdtRow`) | Separate marker rows `{{#foreach X}}` / `{{/foreach}}` around the rows (Templify table row loop) |
-| Conditional table row(s) | Separate marker rows `{{#if X}}` / `{{/if}}` (needs Templify table-row conditional support, see #145) |
+| Conditional table row(s) (`SdtRow`) | Separate marker rows `{{#if X}}` / `{{/if}}` around the rows (Templify table row conditional) |
 | Conditional table cell | Markers around the cell content; the cell itself is kept (warning) |
 | Inline repeating / repeating cell | **Not convertible** (Templify loops repeat paragraphs or rows) — reported as error |
 
@@ -647,8 +647,6 @@ Tag prefixes are case-insensitive (as in OpenXMLTemplates); operators must be lo
 - **`variable_index`** inside a repeating control is the 1-based item number in OpenXMLTemplates. It is converted to
   `{{index}}` with a warning; consider `{{@index}}` (0-based) in Templify.
 - **Inline repeating controls and repeating cells** cannot be converted (see the table above).
-- **Row-level conditionals** are converted to separate marker rows; processing them requires Templify's table-row
-  conditional support (#145). Until then the dry run reports an error for such templates.
 - **Footnotes/endnotes** are converted, but the Templify core currently does not replace placeholders in them.
 - **Other content control replacers** of OpenXMLTemplates (dropdowns, etc.) are not converted; they are kept.
 
