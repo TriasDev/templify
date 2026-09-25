@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Templify** is a .NET 10 library for replacing placeholders in Word documents (.docx) without requiring Microsoft Word. It uses the OpenXML SDK and provides a visitor pattern architecture for processing templates with placeholders (`{{variableName}}`), conditionals, and loops.
+**Templify** is a .NET library (net8.0/net9.0/net10.0) for replacing placeholders in Word documents (.docx) without requiring Microsoft Word. It uses the OpenXML SDK and provides a visitor pattern architecture for processing templates with placeholders (`{{variableName}}`), conditionals, and loops.
 
 **Target Frameworks:** net10.0, net9.0, net8.0 (library); tools use net10.0, `TriasDev.Templify.Tests` multi-targets all library TFMs
 **Primary Dependency:** DocumentFormat.OpenXml 3.5.1
@@ -190,66 +190,83 @@ cat template-templify-conversion-report.md
 
 ## Architecture & Code Organization
 
-### Current Architecture: Visitor Pattern (Post-Phase 2 Refactoring)
+See `TriasDev.Templify/ARCHITECTURE.md` for the full description. Summary:
 
-The library uses a **visitor pattern** for processing Word documents, enabling:
-- Conditionals inside loops
-- Nested loops (arbitrary depth)
-- Table row loops
-- Clean, extensible architecture with no code duplication
+### Visitor Pattern Pipeline
+
+The library walks the Word document once per story part and dispatches template constructs to visitors, which enables
+conditionals inside loops, nested loops (arbitrary depth), table row loops/conditionals and a single code path for
+body, headers/footers and notes.
 
 **Key architectural components:**
 
-1. **DocumentTemplateProcessor** (Core/DocumentTemplateProcessor.cs:16)
-   - Main entry point for template processing
-   - Orchestrates visitor creation and document walking
-   - Creates GlobalEvaluationContext from data dictionary
-   - Handles circular visitor references for nested processing
+1. **DocumentTemplateProcessor** (Core/DocumentTemplateProcessor.cs)
+   - Public entry point: `ProcessTemplate` (Stream/Stream, byte[]/out byte[]), `ProcessTemplateFile`, `ValidateTemplate`;
+     data as `Dictionary<string, object>`, `IReadOnlyDictionary<string, object?>` or a JSON string
+   - Checks streams (template readable; output readable, writable, seekable), copies the template to the output
+   - Creates the `TemplatePipeline` and `GlobalEvaluationContext`, then runs post-processing
+     (`DrawingIdAllocator`, `UpdateFieldsOnOpen`, `DocumentProperties`)
 
-2. **DocumentWalker** (Visitors/DocumentWalker.cs)
-   - Unified document traversal engine
-   - Walks document tree (body, tables, rows, cells, headers, footers)
-   - Detects template elements (conditionals, loops, placeholders)
-   - Dispatches to appropriate visitors
+2. **TemplatePipeline** (Visitors/TemplatePipeline.cs)
+   - Factory for the visitor graph (conditional + loop + placeholder in a `CompositeVisitor`) and the `DocumentWalker`
+   - Wires the circular LoopVisitor reference (see below)
+   - `Process()` = `Walk` (body) → `WalkHeadersAndFooters` → `WalkFootnotesAndEndnotes`
 
-3. **Visitor Implementations:**
-   - **ConditionalVisitor** (Visitors/ConditionalVisitor.cs) - Evaluates conditions, removes branches
-   - **LoopVisitor** (Visitors/LoopVisitor.cs) - Resolves collections, clones content, creates LoopContext
-   - **PlaceholderVisitor** (Visitors/PlaceholderVisitor.cs) - Resolves variables, replaces text
-   - **CompositeVisitor** (Visitors/CompositeVisitor.cs) - Delegates to multiple visitors
+3. **DocumentWalker** (Visitors/DocumentWalker.cs)
+   - Walks body, tables/rows/cells (row-aware loop and conditional detection), content controls
+     (`SdtBlock`/`SdtRow`/`SdtCell`), text boxes, headers/footers, footnotes/endnotes. Comments are not processed.
+   - Per element list: conditionals (deepest first, skipping those inside loops) → loops → placeholders
+   - Removes tables whose rows were all removed
 
-4. **Evaluation Context Hierarchy:**
+4. **Visitors:**
+   - **ConditionalVisitor** - Evaluates conditions, removes branches (block and inline conditionals)
+   - **LoopVisitor** - Resolves collections, clones content, walks clones with a `LoopEvaluationContext`
+   - **PlaceholderVisitor** - Resolves variables and inline `{{(expr)}}` expressions, replaces text
+   - **CompositeVisitor** - Delegates to multiple visitors
+
+5. **Condition engine** (Conditionals/Engine/)
+   - `ConditionLexer` → `ConditionParser` (Pratt parser, AST in `ConditionNode`) → `ConditionEvaluatorCore`
+   - `ConditionOperatorRegistry` + `Operators/` (one class per operator, single source of truth); `OperatorPrecedence`
+   - `ConditionDialect`: `DefaultConditionDialect` (`{{#if}}`, text, `ConditionEvaluator`) vs `InlineConditionDialect` (`{{(...)}}`)
+   - `ConditionAstCache` - process-wide bounded cache of parsed ASTs
+
+6. **Evaluation contexts:**
    - **IEvaluationContext** (Core/IEvaluationContext.cs) - Interface for variable resolution
    - **GlobalEvaluationContext** (Core/GlobalEvaluationContext.cs) - Root data dictionary
-   - **LoopEvaluationContext** (Loops/LoopEvaluationContext.cs) - Loop-scoped variables with parent chain
+   - **LoopEvaluationContext** (Loops/LoopEvaluationContext.cs) - Loop-scoped variables, then parent context
+   - **LoopContext** (Loops/LoopContext.cs) - Current item, loop metadata, named iteration variable
 
-5. **Supporting Components:**
-   - **PropertyPathResolver** (PropertyPaths/) - Navigates nested data structures (dot notation, array indexing)
-   - **ConditionalEvaluator** (Conditionals/ConditionalEvaluator.cs) - Evaluates conditional expressions
-   - **FormattingPreserver** (Utilities/FormattingPreserver.cs) - Preserves text formatting (bold, italic, fonts)
+7. **Supporting components:**
+   - **PropertyPathResolver** (PropertyPaths/) - Nested paths: properties, dictionaries, lists, `ExpandoObject`, `JsonElement`
+   - **ValueConverter** (Placeholders/) + **BooleanFormatterRegistry** (Formatting/) - Value → text with format specifiers
+   - **ParagraphTextModel / ParagraphTextRewriter / ReplacementContent** (Utilities/) - Paragraph text across runs, in-place range rewriting, newlines and markdown pieces
+   - **FormattingPreserver** (Utilities/) - Clones run properties, applies markdown formatting in schema order
+   - **TextTemplateProcessor** (Core/) - Same syntax for plain text
+   - **TemplateValidator** (Core/) - `ValidateTemplate` implementation
+   - **WarningCollector / WarningReportGenerator** (Core/) - Processing warnings and the warning report document
 
 ### Processing Flow
 
 ```
 1. DocumentTemplateProcessor.ProcessTemplate()
+   ├─▶ Check streams, copy template → output
+   ├─▶ TemplatePipeline.Create(options, missingVariables, warningCollector)
    ├─▶ Create GlobalEvaluationContext(data)
-   ├─▶ Create DocumentWalker
-   ├─▶ Create visitor composite (conditional + loop + placeholder)
-   ├─▶ walker.Walk(document, composite, globalContext)
-   │   ├─▶ Step 1: Detect & visit conditionals (deepest first)
-   │   ├─▶ Step 2: Detect & visit loops
-   │   └─▶ Step 3: Visit paragraphs for placeholders
-   └─▶ walker.WalkHeadersAndFooters(document, composite, globalContext)
-       └─▶ Same 3-step processing for each header/footer part
+   ├─▶ pipeline.Process(document, globalContext)
+   │   ├─▶ walker.Walk (body), WalkHeadersAndFooters, WalkFootnotesAndEndnotes
+   │   │   ├─▶ Step 1: Detect & visit conditionals (deepest first)
+   │   │   ├─▶ Step 2: Detect & visit loops
+   │   │   └─▶ Step 3: Visit paragraphs for placeholders
+   ├─▶ DrawingIdAllocator.EnsureUniqueIds(document)
+   └─▶ UpdateFieldsOnOpen / DocumentProperties, save, return ProcessingResult
 
 2. When LoopVisitor processes a loop:
-   ├─▶ Resolve collection from context
+   ├─▶ Resolve collection from context (missing/null → warning + remove; non-collection → Failure)
    ├─▶ For each item:
-   │   ├─▶ Create LoopContext(item, index, count, parent)
+   │   ├─▶ Create LoopContext(item, index, count, ...)
    │   ├─▶ Create LoopEvaluationContext(loopContext, parentContext)
-   │   ├─▶ Clone content elements
+   │   ├─▶ Clone content elements, insert them
    │   └─▶ walker.WalkElements(clonedElements, nestedVisitor, loopEvalContext)
-   │       └─▶ Processes nested conditionals, loops, placeholders
    └─▶ Remove original loop block
 ```
 
@@ -257,62 +274,84 @@ The library uses a **visitor pattern** for processing Word documents, enabling:
 
 **Core Processing:**
 - `Core/DocumentTemplateProcessor.cs` - Main entry point
-- `Core/PlaceholderReplacementOptions.cs` - Configuration
-- `Core/ProcessingResult.cs` - Result wrapper
-- `Core/IEvaluationContext.cs` - Context interface
+- `Core/TextTemplateProcessor.cs` / `Core/TextProcessingResult.cs` - Plain text templates
+- `Core/PlaceholderReplacementOptions.cs` - Configuration (`MissingVariableBehavior`, `Culture`, `BooleanFormatterRegistry`, `EnableNewlineSupport`, `EnableMarkdown`, `WarnOnEmptyLoopCollections`, `TextReplacements`, `UpdateFieldsOnOpen`, `DocumentProperties`)
+- `Core/ProcessingResult.cs` - Result (`IsSuccess`, `ErrorMessage`, `ReplacementCount`, `MissingVariables`, `Warnings`, `HasWarnings`, `GetWarningReport()`)
+- `Core/ProcessingWarning.cs`, `Core/IWarningCollector.cs`, `Core/WarningReportGenerator.cs` - Warnings
+- `Core/TemplateValidator.cs`, `Core/ValidationResult.cs` - Template validation
+- `Core/TemplateExceptions.cs` - Internal typed exceptions (`MissingVariableException`, `TemplateSyntaxException`, `TemplateDataException`)
+- `Core/IEvaluationContext.cs`, `Core/GlobalEvaluationContext.cs` - Contexts
 
 **Visitors (Visitor Pattern):**
+- `Visitors/TemplatePipeline.cs` - Visitor graph factory
 - `Visitors/DocumentWalker.cs` - Document traversal
 - `Visitors/ITemplateElementVisitor.cs` - Visitor interface
 - `Visitors/ConditionalVisitor.cs` - Conditional processing
 - `Visitors/LoopVisitor.cs` - Loop processing
 - `Visitors/PlaceholderVisitor.cs` - Placeholder replacement
 - `Visitors/CompositeVisitor.cs` - Visitor composition
+- `Visitors/TemplateElementHelper.cs` - Cloning and safe removal of elements
 
 **Conditionals:**
-- `Conditionals/ConditionalBlock.cs` - Data structure for if/else blocks
-- `Conditionals/ConditionalDetector.cs` - Finds conditional blocks
-- `Conditionals/ConditionalEvaluator.cs` - Evaluates expressions with operators
-- `Conditionals/IConditionEvaluator.cs` - Public interface for standalone condition evaluation
-- `Conditionals/ConditionEvaluator.cs` - Public implementation of standalone evaluator
-- `Conditionals/IConditionContext.cs` - Public interface for batch evaluation context
-- `Conditionals/ConditionContext.cs` - Public implementation of batch evaluation context
+- `Conditionals/ConditionalBlock.cs`, `ConditionalBranch.cs` - Data structures for if/elseif/else blocks
+- `Conditionals/ConditionalDetector.cs` - Finds block and table-row conditionals
+- `Conditionals/InlineConditionalParser.cs` - Finds conditionals within one paragraph/text
+- `Conditionals/ConditionalPatterns.cs` - Shared marker regexes
+- `Conditionals/ConditionalEvaluator.cs` - Internal facade: evaluation with warnings, parser-based validation
+- `Conditionals/IConditionEvaluator.cs`, `ConditionEvaluator.cs` - Public standalone evaluator
+- `Conditionals/IConditionContext.cs`, `ConditionContext.cs` - Public batch evaluation context
+- `Conditionals/ConditionValidationResult.cs`, `ConditionValidationIssue.cs` - Public validation results
+- `Conditionals/Engine/` - Lexer, parser, AST, operator registry, operators, dialects, AST cache
 
 **Loops:**
 - `Loops/LoopBlock.cs` - Data structure for loop blocks
-- `Loops/LoopDetector.cs` - Finds foreach blocks
-- `Loops/LoopContext.cs` - Loop iteration state
+- `Loops/LoopDetector.cs` - Finds foreach blocks (paragraph and table-row loops)
+- `Loops/LoopContext.cs` - Loop iteration state and metadata
 - `Loops/LoopEvaluationContext.cs` - Loop-scoped variable resolution
 
 **Placeholders:**
-- `Placeholders/PlaceholderFinder.cs` - Pattern matching for {{placeholders}}
+- `Placeholders/PlaceholderScanner.cs` / `PlaceholderToken.cs` - Pattern matching for {{placeholders}} (internal)
+- `Placeholders/PlaceholderFinder.cs` / `PlaceholderMatch.cs` - Obsolete public wrappers (internal in 2.0)
+- `Placeholders/ExpressionPlaceholderEvaluator.cs` - Inline `{{(expr)}}` evaluation
 - `Placeholders/ValueResolver.cs` - Variable lookup
-- `Placeholders/ValueConverter.cs` - Type conversion to strings
+- `Placeholders/ValueConverter.cs` - Type conversion and format specifiers
 
 **Property Paths:**
 - `PropertyPaths/PropertyPath.cs` - Parsed property path representation
 - `PropertyPaths/PropertyPathSegment.cs` - Path segment types
-- `PropertyPaths/PropertyPathResolver.cs` - Resolves nested paths (Customer.Address.City, Items[0])
+- `PropertyPaths/PropertyPathResolver.cs` - Resolves nested paths (Customer.Address.City, Items[0], JsonElement)
 
-**Markdown:**
-- `Markdown/MarkdownSegment.cs` - Data structure for text + formatting flags
-- `Markdown/MarkdownParser.cs` - Parses markdown syntax into segments
+**Formatting / Replacements / Markdown:**
+- `Formatting/BooleanFormatter.cs`, `BooleanFormatterRegistry.cs` - Boolean format specifiers (culture-aware)
+- `Replacements/TextReplacements.cs` - Text replacement tables (e.g. `HtmlEntities`)
+- `Markdown/MarkdownSegment.cs`, `MarkdownParser.cs` - Markdown parsing
 
 **Utilities:**
-- `Utilities/FormattingPreserver.cs` - Preserves OpenXML formatting and applies markdown formatting
-- `Utilities/JsonDataParser.cs` - Parses JSON to data dictionary
+- `Utilities/ParagraphTextModel.cs` - A paragraph's own text and its segments
+- `Utilities/ParagraphTextRewriter.cs` - In-place replacement/removal of text ranges
+- `Utilities/ReplacementContent.cs` - Replacement text as pieces (markdown, line breaks)
+- `Utilities/TemplateElementText.cs` - Marker text of block elements
+- `Utilities/FormattingPreserver.cs` - Run property cloning and markdown formatting
+- `Utilities/JsonDataParser.cs` - Parses JSON to a data dictionary
+- `Utilities/NumericValue.cs` - Numeric normalization/comparison across CLR types and JSON numbers
+- `Utilities/XmlCharacterSanitizer.cs` - Removes XML-invalid characters from values
+- `Utilities/DrawingIdAllocator.cs` - Makes drawing ids unique after loop cloning
 
 ## Key Implementation Details
 
 ### Placeholder Syntax
-- Simple: `{{VariableName}}`
+- Simple: `{{VariableName}}` (no spaces inside the braces; names are letters, digits, `_`)
 - Nested: `{{Customer.Address.City}}`
 - Array indexing: `{{Items[0].Name}}`
-- Dictionary: `{{Settings[Theme]}}` or `{{Settings.Theme}}`
+- Dictionary: `{{Settings[Theme]}}` or `{{Settings.Theme}}` (keys without spaces)
+- Current item in loops: `{{.}}` or `{{this}}`
+- Inline expression: `{{(Count > 0)}}`, `{{(IsActive and IsVerified):yesno}}`
+- Boolean format: `{{Flag:yesno}}`, `:checkbox`, `:checkmark`/`:check`, `:truefalse`, `:onoff`, `:enabled`, `:active`
 - Currency format: `{{Amount:currency}}`
 - Number format: `{{Value:number:N2}}`, `{{Rate:number:F3}}`, `{{Pct:number:P}}`
 - String format: `{{Name:uppercase}}`, `{{Code:lowercase}}`
 - Date format: `{{OrderDate:date:yyyy-MM-dd}}`, `{{Date:date:MMMM d, yyyy}}`
+- No markdown for one value: `{{FileName:raw}}`
 
 ### Conditional Syntax
 ```
@@ -320,11 +359,35 @@ The library uses a **visitor pattern** for processing Word documents, enabling:
 {{#if Status = "Active"}}...{{#else}}...{{/if}}
 {{#if Count > 0 and IsEnabled}}...{{/if}}
 {{#if Status = "Active"}}...{{#elseif Status = "Pending"}}...{{#else}}...{{/if}}
+{{#if Role in ("Admin", "Owner")}}...{{/if}}
+{{#if (A or B) and not C}}...{{/if}}
 ```
 
-**Operators:** `=`, `!=`, `>`, `<`, `>=`, `<=`, `and`, `or`, `not`
+**Operators:**
+- Comparison: `=`, `==`, `!=`, `>`, `<`, `>=`, `<=`
+- Logical: `and`, `or`, `not` (no `&&` / `||`)
+- Membership: `in` (list literal `(a, b)`, collection, or comma-separated string)
+- String: `contains`, `startswith`, `endswith` (ordinal, case-sensitive; `contains` on a collection = membership)
+- Existence: `exists`, `is empty`, `is not empty` (postfix)
+- Grouping with parentheses
+
+**Precedence** (loosest → tightest): `or` (1) < `and` (2) < `not` (3) < comparisons / `in` / string operators (4) <
+postfix `exists` / `is empty` (5). So `not A = B` means `not (A = B)`.
+
+**Semantics:**
+- Unresolved comparison operands are bareword string literals (`Status = Active` works; `Missing = "Missing"` is true).
+- `{{#if}}` truthiness: null, `false`, `"false"`, `"0"`, blank strings, numeric zero, NaN and empty collections are false.
+- Numbers compare numerically across types (`10 = 10.00m`); strings are ordinal and case-sensitive.
+- Keywords added in 1.7.0 (`in`, `is`, `empty`, `exists`, `contains`, `startswith`, `endswith`) are variables when
+  used as operands; `[Name]` escapes any keyword (also `and`/`or`/`not`/`true`/`false`/`null`).
+- Inline `{{(...)}}` uses a stricter dialect: only `true` is truthy, `object.Equals` for non-numeric equality,
+  single-quoted strings allowed.
+- Typographic quotes are normalized; `\"` and `\\` are escapes inside string literals.
 
 **Elseif chains:** Multiple conditions can be chained using `{{#elseif condition}}`. The `{{#else}}` branch must be last.
+
+**Placement:** block conditionals have markers in their own paragraphs (or table rows); inline conditionals can sit
+inside one paragraph.
 
 ### Loop Syntax
 ```
@@ -346,11 +409,20 @@ The library uses a **visitor pattern** for processing Word documents, enabling:
 {{/foreach}}
 ```
 
-**Loop metadata:** `{{@index}}` (0-based), `{{@number}}` (1-based), `{{@first}}`, `{{@last}}`, `{{@count}}`
+**Loop metadata:** `{{@index}}` (0-based), `{{@number}}` (1-based), `{{@first}}`, `{{@last}}`, `{{@count}}` (innermost loop only)
+
+**Rules:**
+- Loop markers are block-level: each in its own paragraph; in tables, `{{#foreach}}` and `{{/foreach}}` in their own rows
+  (the marker rows are removed). Markers in one cell loop over that cell's paragraphs.
+- Missing/null collection: loop removed with a warning; a non-collection (including a string) is a Failure.
+- Null items are allowed: `{{.}}` / `{{item.X}}` render empty; implicit names on a null item resolve from outer scopes.
+  A property that exists with a null value does not fall through to outer scopes.
+- `in` and names starting with `@` are invalid iteration variable names.
 
 ### Markdown Syntax
 
-Variable values support markdown formatting for dynamic text styling:
+Variable values support markdown formatting for dynamic text styling (Word documents only, `EnableMarkdown` defaults to
+`true`; `:raw` disables it per placeholder):
 
 ```csharp
 var data = new Dictionary<string, object>
@@ -366,34 +438,27 @@ var data = new Dictionary<string, object>
 - `***text***` → Bold + Italic
 
 **Implementation notes:**
-- MarkdownParser detects and parses markdown syntax into MarkdownSegment objects
-- PlaceholderVisitor checks for markdown using `MarkdownParser.ContainsMarkdown()`
-- When markdown detected, creates multiple Run elements (one per segment) instead of single Run
-- FormattingPreserver.ApplyMarkdownFormatting() merges markdown formatting with template formatting
+- `MarkdownParser.Parse()` returns `List<MarkdownSegment>` with text + formatting flags
+- `ReplacementContent.FromValue()` turns a value into pieces (markdown segments, line breaks)
+- `ParagraphTextRewriter` writes one run per piece; `FormattingPreserver.ApplyMarkdownFormatting()` merges markdown
+  formatting into the template run's properties (red template + markdown bold = red bold text)
 - Malformed markdown (unclosed markers) renders as plain text
-
-**Architecture:**
-- `MarkdownParser.Parse()` returns List<MarkdownSegment> with text + formatting flags
-- `UpdateParagraphTextWithMarkdown()` in PlaceholderVisitor generates Run elements for each segment
-- Formatting is merged, not replaced: red template + markdown bold = red bold text
 
 ### Text Processing Strategy
 
-OpenXML splits text into `Run` elements for formatting. A placeholder like `{{CompanyName}}` might be split across multiple runs. The solution:
+OpenXML splits text into `Run` elements for formatting. A placeholder like `{{CompanyName}}` might be split across
+multiple runs. The solution:
 
-1. Concatenate all run texts in a paragraph
-2. Find placeholders in combined text
-3. Perform string replacement
-4. Reconstruct runs with replaced text
-5. Preserve original formatting from first run
+1. `ParagraphTextModel` builds the paragraph's own text (excluding text boxes) and maps offsets to text elements
+2. `PlaceholderScanner` finds placeholders in that text
+3. `ParagraphTextRewriter` rewrites only the text elements overlapping each placeholder range, last placeholder first
+4. The replacement takes the formatting of the run holding the placeholder's first character; other runs, hyperlinks,
+   fields, drawings and bookmarks are untouched
 
 ### Formatting Preservation
 
-FormattingPreserver extracts RunProperties from original runs and applies them to replacement text:
-- Bold, italic, underline
-- Font family, size, color
-- Paragraph styles (Heading 1, Normal, etc.)
-- List formatting (bullets, numbering)
+Replacement text keeps the run formatting of the template (bold, italic, underline, font, size, color); paragraph
+properties (styles, list numbering) are not touched.
 
 ## Testing Strategy
 
@@ -430,10 +495,14 @@ When adding new features:
 - Context objects are immutable per iteration
 
 ### Error Handling
-- Use `ProcessingResult` for success/failure
+- Template syntax errors (unmatched markers, `{{#elseif}}` after `{{#else}}`, invalid iteration variables), data errors
+  (loop over a non-collection) and OpenXML errors → `ProcessingResult.Failure` ("Processing failed: ...")
+- Only a missing variable with `MissingVariableBehavior.ThrowException` throws (plain `InvalidOperationException`);
+  internally `Core/TemplateExceptions.cs` types errors, classify by type, never by message
+- Malformed conditions → false + `ExpressionFailed` warning; malformed inline expressions → `ExpressionFailed` + `MissingVariable`
 - Invalid placeholder syntax is ignored (treated as text)
 - Missing variables: configurable via `MissingVariableBehavior`
-- OpenXML errors: caught and wrapped in ProcessingResult
+- Invalid JSON in the JSON overloads throws `JsonException` before processing
 
 ### Null Safety
 - Nullable reference types enabled (`<Nullable>enable</Nullable>`)
@@ -465,9 +534,10 @@ The library has external consumers. **Do not change, remove or rename public API
 ### Visitor Pattern Circular Reference
 The LoopVisitor needs access to the final composite visitor (which includes itself) to support nested loops. This is achieved via:
 ```csharp
+// In TemplatePipeline.Create(options, missingVariables, warningCollector):
 // Create temporary composite without loop
 CompositeVisitor tempComposite = new CompositeVisitor(conditionalVisitor, placeholderVisitor);
-LoopVisitor loopVisitor = new LoopVisitor(walker, tempComposite);
+LoopVisitor loopVisitor = new LoopVisitor(walker, tempComposite, warningCollector);
 
 // Create final composite with loop
 CompositeVisitor composite = new CompositeVisitor(conditionalVisitor, loopVisitor, placeholderVisitor);
@@ -485,7 +555,8 @@ This order allows conditionals inside loops and loops with conditionals.
 
 ### Performance Trade-offs
 - Loads entire document into memory (not suitable for documents >50MB)
-- Rebuilds paragraph runs (simpler, more reliable than partial updates)
+- Rewrites only the text elements a replacement overlaps (`ParagraphTextRewriter`)
+- Parsed condition ASTs are cached process-wide (`ConditionAstCache`); default boolean formatters are cached per language
 - Linear search through elements (O(n))
 
 ### InternalsVisibleTo
@@ -497,7 +568,7 @@ The test project has access to internal members via `<InternalsVisibleTo Include
 If placeholder replacement fails, check if the placeholder is split across runs. The paragraph-level processing should handle this, but verify by examining the OpenXML structure.
 
 ### Formatting Lost
-FormattingPreserver extracts properties from the first run. If formatting varies within a placeholder, only the first run's formatting is applied. This is intentional.
+The replacement takes the formatting of the run holding the placeholder's first character. If formatting varies within a placeholder, only that run's formatting is applied. This is intentional.
 
 ### Nested Loops Not Working
 Ensure LoopVisitor has the correct nested visitor set via `SetNestedVisitor()`. The circular reference is required for nested processing.
@@ -511,12 +582,13 @@ Check `MissingVariableBehavior` in options:
 ## Additional Documentation
 
 For comprehensive information, see:
-- **ARCHITECTURE.md** - Detailed design, visitor pattern flow, legacy architecture
-- **README.md** - User-facing documentation, API reference, examples
-- **Examples.md** - Extensive code samples and use cases
-- **PERFORMANCE.md** - Performance characteristics and benchmarks
-- **TODO.md** - Feature roadmap and implementation status
-- **REFACTORING.md** - Refactoring history and decisions
+- **TriasDev.Templify/ARCHITECTURE.md** - Current design: pipeline, walker, visitors, condition engine, error model
+- **README.md** (root) and **TriasDev.Templify/README.md** (NuGet readme) - User-facing overview, API reference
+- **TriasDev.Templify/Examples.md** - Extensive code samples and use cases
+- **TriasDev.Templify/PERFORMANCE.md** - Historical benchmark snapshot
+- **docs/** - Documentation site (MkDocs, `mkdocs.yml`; build with `pip install -r requirements.txt && mkdocs build --strict`)
+- **docs/archive/** - Historical planning documents (TODO, REFACTORING, DOCUMENTATION_PLAN/SYSTEM), not maintained, not published
+- **CONTRIBUTING.md** - Contribution workflow, release-please, public API rules
 
 ## Design Philosophy
 

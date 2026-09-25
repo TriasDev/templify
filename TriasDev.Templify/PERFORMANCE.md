@@ -1,5 +1,12 @@
 # Templify - Performance Report
 
+> **Historical snapshot.** These numbers were measured on 2025-11-09 with the pre-1.0.0 code base (visitor pattern, .NET 9,
+> BenchmarkDotNet 0.15.6) and have not been re-measured since. Later releases changed the condition engine (1.7.0),
+> the text rewriting and caching (1.8.0) and the target frameworks, so treat the figures as orders of magnitude, not as
+> current results. To measure the current code, run the benchmarks yourself:
+> `dotnet run --project TriasDev.Templify.Benchmarks/TriasDev.Templify.Benchmarks.csproj -c Release`
+> (BenchmarkDotNet output is written to `BenchmarkDotNet.Artifacts/` and is not committed).
+
 **Date**: 2025-11-09
 **Version**: Post-Phase 2 (Visitor Pattern Implementation)
 **Test Environment**: macOS Sequoia 15.6.1, Apple M1 Max (10 cores), .NET 9.0
@@ -157,7 +164,7 @@ For typical document generation workloads:
 
 ## Comparison to Phase 1 Baseline
 
-**Phase 1 Target** (from REFACTORING.md):
+**Phase 1 Target** (from the refactoring plan, now archived in `docs/archive/REFACTORING.md`):
 - Processing Time: ~150 ms (for 50-page document with 500 placeholders)
 - Memory: ~20 MB
 

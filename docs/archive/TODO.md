@@ -1,3 +1,5 @@
+> Historical document, not maintained. Kept for reference only; it does not describe the current state of Templify.
+
 # Templify TODO
 
 ## Test Statistics

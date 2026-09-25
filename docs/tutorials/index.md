@@ -51,12 +51,12 @@ We recommend following the tutorials in order:
 
 After completing the tutorials, explore:
 
-- **[Template Author Guides](../for-template-authors/)** - In-depth feature documentation
+- **[Template Author Guides](../for-template-authors/getting-started.md)** - In-depth feature documentation
+- **[Developer Quick Start](../for-developers/quick-start.md)** - API reference and configuration
 - **[FAQ](../FAQ.md)** - Common questions and solutions
-- **[Quick Start](../quick-start.md)** - Quick reference guide
 
 ## Need Help?
 
 - Check the [FAQ](../FAQ.md) for common issues
-- Browse [template author guides](../for-template-authors/) for specific topics
+- Browse the [template syntax reference](../for-template-authors/template-syntax.md) for specific topics
 - Open an [issue on GitHub](https://github.com/triasdev/templify/issues) if you're stuck
