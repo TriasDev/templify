@@ -74,7 +74,7 @@ public class TemplateAnalyzer
             Tag = tagValue,
             Type = tag.Type,
             VariablePath = tag.VariablePath,
-            TemplifySyntax = tag.TemplifySyntax ?? "(manual conversion required)",
+            TemplifySyntax = TemplateConverter.GetLoopItemNumberSyntax(sdt, tag) ?? tag.TemplifySyntax ?? "(manual conversion required)",
             HasNestedControls = sdt.Descendants<SdtElement>().Any(),
             InTable = sdt.Ancestors<Table>().Any(),
             InTableRow = sdt is SdtRow || sdt.Ancestors<TableRow>().Any(),

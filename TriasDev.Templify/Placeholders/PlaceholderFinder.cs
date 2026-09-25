@@ -16,7 +16,7 @@ public sealed class PlaceholderFinder
     // - Nested with dots: Customer.Address.City
     // - Nested with brackets: Items[0], Settings[Theme]
     // - Mixed: Orders[0].Customer.Name
-    // - Loop metadata: @index, @first, @last, @count
+    // - Loop metadata: @index, @number, @first, @last, @count
     // - Current item: . or this (for primitive collections)
     // - Expression: (var1 and var2), (not IsActive), (Count > 0), ((var1 or var2) and var3)
     // Optional format specifier: :checkbox, :yesno, :currency, :number:N2, :date:yyyy-MM-dd, etc.

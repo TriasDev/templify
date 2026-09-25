@@ -115,7 +115,7 @@ internal sealed class LoopContext
     /// <remarks>
     /// <para>Variable resolution follows this precedence order (first match wins):</para>
     /// <list type="number">
-    /// <item><description>Loop metadata (@index, @first, @last, @count)</description></item>
+    /// <item><description>Loop metadata (@index, @number, @first, @last, @count)</description></item>
     /// <item><description>Named iteration variable direct reference (e.g., {{item}} when using "item in Items")</description></item>
     /// <item><description>Named iteration variable property access (e.g., {{item.Name}})</description></item>
     /// <item><description>Current item property (implicit syntax, e.g., {{Name}})</description></item>
@@ -182,6 +182,10 @@ internal sealed class LoopContext
         {
             case "@index":
                 value = Index;
+                return true;
+            case "@number":
+                // 1-based position, for numbered lists ("1.", "2.", ...)
+                value = Index + 1;
                 return true;
             case "@first":
                 value = IsFirst;

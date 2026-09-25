@@ -645,7 +645,8 @@ Tag prefixes are case-insensitive (as in OpenXMLTemplates); operators must be lo
 - **Separators:** `repeating_X_separator_, _lastSeparator_and ` arguments have no Templify equivalent; they are
   dropped and reported as warnings.
 - **`variable_index`** inside a repeating control is the 1-based item number in OpenXMLTemplates. It is converted to
-  `{{index}}` with a warning; consider `{{@index}}` (0-based) in Templify.
+  Templify's 1-based `{{@number}}` loop metadata (not the 0-based `{{@index}}`). Outside a repeating control it stays
+  a normal `{{index}}` variable.
 - **Inline repeating controls and repeating cells** cannot be converted (see the table above).
 - **Footnotes/endnotes** are converted, but the Templify core currently does not replace placeholders in them.
 - **Other content control replacers** of OpenXMLTemplates (dropdowns, etc.) are not converted; they are kept.

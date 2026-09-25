@@ -208,6 +208,7 @@ Access loop metadata using special placeholders:
 | Placeholder | Description | Example |
 |-------------|-------------|---------|
 | `{{@index}}` | Zero-based index | 0, 1, 2, ... |
+| `{{@number}}` | One-based number (`@index + 1`) | 1, 2, 3, ... |
 | `{{@first}}` | True if first item | True, False |
 | `{{@last}}` | True if last item | False, True |
 | `{{@count}}` | Total item count | 3 |

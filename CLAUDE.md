@@ -343,7 +343,7 @@ The library uses a **visitor pattern** for processing Word documents, enabling:
 {{/foreach}}
 ```
 
-**Loop metadata:** `{{@index}}`, `{{@first}}`, `{{@last}}`, `{{@count}}`
+**Loop metadata:** `{{@index}}` (0-based), `{{@number}}` (1-based), `{{@first}}`, `{{@last}}`, `{{@count}}`
 
 ### Markdown Syntax
 

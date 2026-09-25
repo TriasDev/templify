@@ -117,6 +117,46 @@ public class RoundTripTests
     }
 
     [Fact]
+    public void Convert_VariableIndexInsideRepeating_MapsToOneBasedNumber()
+    {
+        using TempDirectory dir = new();
+        string input = dir.File("index.docx");
+        string output = dir.File("index-out.docx");
+        Create(input, new OpenXmlElement[]
+        {
+            BlockControl("repeating_items", Para(InlineVariable("index"), TextRun(". "), InlineVariable("name"))),
+            Para(TextRun("Outside: "), InlineVariable("index")),
+        });
+
+        ConversionResult result = new TemplateConverter().ConvertTemplate(input, output);
+
+        Assert.True(result.Success, string.Join(Environment.NewLine, result.Errors));
+        Assert.DoesNotContain(result.Warnings, w => w.Contains("index"));
+        List<string> converted = BodyParagraphs(output);
+        Assert.Contains("{{@number}}. {{name}}", converted);
+        Assert.Contains("Outside: {{index}}", converted);
+
+        Dictionary<string, object> data = new()
+        {
+            ["index"] = "top",
+            ["items"] = new List<object>
+            {
+                new Dictionary<string, object> { ["name"] = "A" },
+                new Dictionary<string, object> { ["name"] = "B" },
+                new Dictionary<string, object> { ["name"] = "C" },
+            },
+        };
+
+        using FileStream template = File.OpenRead(output);
+        using MemoryStream processed = new();
+        ProcessingResult processing = new DocumentTemplateProcessor().ProcessTemplate(template, processed, data);
+
+        Assert.True(processing.IsSuccess, processing.ErrorMessage);
+        List<string> paragraphs = BodyParagraphs(processed);
+        Assert.Equal(new[] { "1. A", "2. B", "3. C", "Outside: top" }, paragraphs);
+    }
+
+    [Fact]
     public void Convert_RepeatingRow_ProducesValidTableRowLoopMarkers()
     {
         using TempDirectory dir = new();

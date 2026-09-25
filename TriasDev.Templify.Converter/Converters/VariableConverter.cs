@@ -30,7 +30,7 @@ public class VariableConverter
         return true;
     }
 
-    internal void Convert(SdtElement sdt, OpenXmlTemplatesTag tag)
+    internal void Convert(SdtElement sdt, OpenXmlTemplatesTag tag, string? placeholderOverride = null)
     {
         if (!tag.IsConvertible || tag.TemplifySyntax == null)
         {
@@ -42,7 +42,7 @@ public class VariableConverter
             throw new ControlConversionException("A variable control that wraps a whole table row cannot be converted to a placeholder");
         }
 
-        if (!OpenXmlHelpers.ReplaceContentControlText(sdt, tag.TemplifySyntax))
+        if (!OpenXmlHelpers.ReplaceContentControlText(sdt, placeholderOverride ?? tag.TemplifySyntax))
         {
             throw new ControlConversionException("The control has no content that can hold a placeholder");
         }
