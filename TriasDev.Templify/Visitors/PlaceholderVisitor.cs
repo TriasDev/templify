@@ -63,29 +63,7 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         // Check if this is an expression
         if (placeholder.IsExpression)
         {
-            try
-            {
-                IReadOnlyList<Conditionals.Engine.ConditionToken> tokens =
-                    new Conditionals.Engine.ConditionLexer(allowSingleQuotedStrings: true).Tokenize(placeholder.VariableName);
-                Conditionals.Engine.ConditionNode node =
-                    new Conditionals.Engine.ConditionParser(Conditionals.Engine.ConditionOperatorRegistry.Shared).Parse(tokens);
-                bool result = new Conditionals.Engine.ConditionEvaluatorCore(context, Conditionals.Engine.InlineConditionDialect.Instance)
-                    .EvaluateBool(node);
-                value = result;
-                resolved = true;
-            }
-            catch (Conditionals.Engine.ConditionParseException ex)
-            {
-                _warningCollector.AddWarning(ProcessingWarning.ExpressionFailed(placeholder.VariableName, ex.Message));
-                resolved = false;
-                value = null;
-            }
-            catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or InvalidCastException)
-            {
-                _warningCollector.AddWarning(ProcessingWarning.ExpressionFailed(placeholder.VariableName, ex.Message));
-                resolved = false;
-                value = null;
-            }
+            resolved = ExpressionPlaceholderEvaluator.TryEvaluate(placeholder.VariableName, context, _warningCollector, out value);
         }
         else
         {
