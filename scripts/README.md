@@ -100,6 +100,15 @@ cd /path/to/templify
 ./scripts/convert.sh templates/invoice.docx -o output/invoice-new.docx
 ```
 
+**Also unwrap non-OpenXMLTemplates content controls (TOC, check boxes, ...):**
+```bash
+./scripts/convert.sh templates/invoice.docx --unwrap-all-controls
+```
+
+By default only OpenXMLTemplates controls are converted and all other content controls are kept.
+`convert` exits with code `1` if any control could not be converted (see the conversion report), and with
+code `2` for invalid arguments (unknown options, `--output` without a path, ...).
+
 ### Validate Command
 
 **Basic usage:**

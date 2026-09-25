@@ -6,7 +6,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using TriasDev.Templify.Converter.Converters;
 
-namespace TriasDev.Templify.Tests;
+namespace TriasDev.Templify.Converter.Tests;
 
 /// <summary>
 /// Tests for the ConditionalConverter class.
