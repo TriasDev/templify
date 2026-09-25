@@ -2,6 +2,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using DocumentFormat.OpenXml.Wordprocessing;
+using TriasDev.Templify.Converter.Models;
 
 namespace TriasDev.Templify.Converter.Converters;
 
@@ -15,26 +16,37 @@ public class VariableConverter
     /// </summary>
     /// <param name="sdt">The content control element.</param>
     /// <param name="tag">The tag value (e.g., "variable_process.name").</param>
-    /// <returns>True if conversion was successful.</returns>
+    /// <returns>True if conversion was successful; false if the tag is not a variable tag.</returns>
+    /// <exception cref="ControlConversionException">The control cannot be converted automatically.</exception>
     public bool Convert(SdtElement sdt, string tag)
     {
-        if (!tag.StartsWith("variable_"))
+        OpenXmlTemplatesTag parsed = OpenXmlTemplatesTag.Parse(tag);
+        if (parsed.Type != ControlType.Variable)
         {
             return false;
         }
 
-        // Extract variable path: "variable_process.name" -> "process.name"
-        string variablePath = tag.Substring("variable_".Length);
-
-        // Generate Templify placeholder
-        string placeholder = $"{{{{{variablePath}}}}}";
-
-        // Replace content with placeholder (no highlighting for variables)
-        OpenXmlHelpers.ReplaceContentControlText(sdt, placeholder, highlightColor: null);
-
-        // Unwrap the content control
-        OpenXmlHelpers.UnwrapContentControl(sdt);
-
+        Convert(sdt, parsed);
         return true;
+    }
+
+    internal void Convert(SdtElement sdt, OpenXmlTemplatesTag tag)
+    {
+        if (!tag.IsConvertible || tag.TemplifySyntax == null)
+        {
+            throw new ControlConversionException(string.Join("; ", tag.Errors));
+        }
+
+        if (sdt is SdtRow)
+        {
+            throw new ControlConversionException("A variable control that wraps a whole table row cannot be converted to a placeholder");
+        }
+
+        if (!OpenXmlHelpers.ReplaceContentControlText(sdt, tag.TemplifySyntax))
+        {
+            throw new ControlConversionException("The control has no content that can hold a placeholder");
+        }
+
+        OpenXmlHelpers.UnwrapContentControl(sdt);
     }
 }

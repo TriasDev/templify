@@ -12,6 +12,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="TriasDev.Templify.Converter.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\TriasDev.Templify\TriasDev.Templify.csproj" />
   </ItemGroup>
 
