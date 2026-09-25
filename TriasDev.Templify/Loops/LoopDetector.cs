@@ -252,21 +252,11 @@ internal static class LoopDetector
             return ParagraphTextModel.GetText(paragraph);
         }
 
-        if (element is TableRow row)
-        {
-            return row.InnerText;
-        }
-
-        if (element is TableCell cell)
-        {
-            return cell.InnerText;
-        }
-
         // Handle SdtElement (Structured Document Tags) which can contain content controls
         // These can have loop markers and need to be checked
-        if (element is DocumentFormat.OpenXml.Wordprocessing.SdtElement sdt)
+        if (element is TableRow or TableCell or SdtElement)
         {
-            return sdt.InnerText;
+            return TemplateElementText.GetOwnText(element);
         }
 
         // For tables, don't return text - they're handled separately
@@ -317,7 +307,7 @@ internal static class LoopDetector
         while (i < rows.Count)
         {
             TableRow row = rows[i];
-            string? text = row.InnerText;
+            string? text = TemplateElementText.GetOwnText(row);
 
             if (text != null)
             {
@@ -395,7 +385,7 @@ internal static class LoopDetector
 
         for (int i = startIndex + 1; i < rows.Count; i++)
         {
-            string? text = rows[i].InnerText;
+            string? text = TemplateElementText.GetOwnText(rows[i]);
             if (text == null)
             {
                 continue;
@@ -427,10 +417,9 @@ internal static class LoopDetector
     {
         // Check each cell in the row, including cells wrapped in cell-level content controls
         // (w:sdt around w:tc); cells of nested tables belong to their own rows.
-        foreach (TableCell cell in row.Descendants<TableCell>()
-            .Where(c => c.Ancestors<TableRow>().FirstOrDefault() == row))
+        foreach (TableCell cell in TemplateElementText.GetRowCells(row))
         {
-            string? cellText = cell.InnerText;
+            string? cellText = TemplateElementText.GetOwnText(cell);
             if (cellText == null)
             {
                 continue;
