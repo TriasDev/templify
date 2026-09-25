@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using TriasDev.Templify.Formatting;
+using TriasDev.Templify.Utilities;
 
 namespace TriasDev.Templify.Placeholders;
 
@@ -88,7 +89,7 @@ internal static class ValueConverter
 
     private static bool IsNumeric(object? value)
     {
-        return value is decimal or double or float or int or long;
+        return NumericValue.IsNumericType(value);
     }
 
     private static bool TryFormatNumber(object value, CultureInfo culture, string format, out string? result)

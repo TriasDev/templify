@@ -89,6 +89,47 @@ public sealed class CultureIndependenceTests
 
     [Theory]
     [MemberData(nameof(Cultures))]
+    public void Evaluate_NumericEqualityAcrossTypes_IsCultureIndependent(string culture)
+    {
+        using CultureScope scope = new CultureScope(culture);
+        ConditionEvaluator evaluator = new ConditionEvaluator();
+
+        Assert.True(evaluator.Evaluate("Price = 10", new Dictionary<string, object> { ["Price"] = 10.00m }));
+        Assert.True(evaluator.Evaluate("Price = 10.5", "{\"Price\": 10.50}"));
+        Assert.True(evaluator.Evaluate("Rate in (1.5, 2.0)", "{\"Rate\": 2.0}"));
+        Assert.True(evaluator.Evaluate("Price = 1.5", new Dictionary<string, object> { ["Price"] = 1.5f }));
+        Assert.True(evaluator.Evaluate("Codes contains 2.5", new Dictionary<string, object> { ["Codes"] = new List<decimal> { 2.50m } }));
+    }
+
+    [Theory]
+    [MemberData(nameof(Cultures))]
+    public void Evaluate_NumericZeroTruthiness_IsCultureIndependent(string culture)
+    {
+        using CultureScope scope = new CultureScope(culture);
+        ConditionEvaluator evaluator = new ConditionEvaluator();
+
+        Assert.False(evaluator.Evaluate("Total", new Dictionary<string, object> { ["Total"] = 0.00m }));
+        Assert.False(evaluator.Evaluate("Total", "{\"Total\": 0.0}"));
+        Assert.True(evaluator.Evaluate("Total", new Dictionary<string, object> { ["Total"] = 0.5m }));
+    }
+
+    [Theory]
+    [MemberData(nameof(Cultures))]
+    public void ProcessTemplate_InlineExpressionAcrossNumericTypes_IsCultureIndependent(string culture)
+    {
+        using CultureScope scope = new CultureScope(culture);
+
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{(Price > 5.5)}}");
+        builder.AddParagraph("{{(Price = 10.5)}}");
+
+        List<string> texts = Process(builder, new Dictionary<string, object> { ["Price"] = 10.50m });
+
+        Assert.Equal(new[] { "True", "True" }, texts);
+    }
+
+    [Theory]
+    [MemberData(nameof(Cultures))]
     public void ProcessTemplate_UppercaseKeywords_AreRecognized(string culture)
     {
         using CultureScope scope = new CultureScope(culture);

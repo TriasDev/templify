@@ -2,6 +2,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Globalization;
+using TriasDev.Templify.Utilities;
 
 namespace TriasDev.Templify.Conditionals.Engine;
 
@@ -9,11 +10,16 @@ namespace TriasDev.Templify.Conditionals.Engine;
 /// Dialect-independent value helpers (equality, string coercion) used directly by the
 /// <c>in</c> operator and the string operators, and by <see cref="DefaultConditionDialect"/>'s
 /// <c>AreEqual</c> implementation. This class does NOT govern <c>=</c>/<c>!=</c> in the Inline
-/// dialect, which compares operands via <c>object.Equals</c> instead.
+/// dialect, which compares operands via <c>object.Equals</c> (numbers numerically) instead.
 /// </summary>
 internal static class ConditionValueOps
 {
-    /// <summary>Compares two values for equality (bool-aware, case-insensitive booleans, ordinal otherwise).</summary>
+    /// <summary>
+    /// Compares two values for equality: bool-aware (case-insensitive booleans), numeric across
+    /// numeric types when both operands are numbers (<c>10 = 10.00m</c>, see
+    /// <see cref="NumericValue"/>), ordinal string comparison otherwise (so a number compared with
+    /// a string compares the number's invariant string form).
+    /// </summary>
     public static bool AreEqual(object? left, object? right)
     {
         if (left == null && right == null)
@@ -29,6 +35,11 @@ internal static class ConditionValueOps
         if (left is bool || right is bool || IsBooleanLiteral(left) || IsBooleanLiteral(right))
         {
             return string.Equals(left.ToString(), right.ToString(), StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (NumericValue.TryFrom(left, out NumericValue ln) && NumericValue.TryFrom(right, out NumericValue rn))
+        {
+            return ln.NumericEquals(rn);
         }
 
         return ToStr(left) == ToStr(right);

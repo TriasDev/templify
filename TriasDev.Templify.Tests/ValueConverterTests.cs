@@ -502,6 +502,25 @@ public class ValueConverterTests
     }
 
     [Fact]
+    public void Number_ShortValue_IsFormatted()
+    {
+        Assert.Equal("5.00", ConvertToString((short)5, CultureInfo.InvariantCulture, "number:N2", null));
+    }
+
+    [Theory]
+    [MemberData(nameof(AllIntegerPrimitives))]
+    public void ConvertToString_AllNumericPrimitives_ApplyNumberAndCurrencyFormat(object value)
+    {
+        Assert.Equal("7.00", ConvertToString(value, CultureInfo.InvariantCulture, "number:N2", null));
+        Assert.Equal("$7.00", ConvertToString(value, new CultureInfo("en-US"), "currency", null));
+    }
+
+    public static TheoryData<object> AllIntegerPrimitives => new()
+    {
+        (byte)7, (sbyte)7, (short)7, (ushort)7, 7, 7u, 7L, 7ul, 7f, 7d, 7m,
+    };
+
+    [Fact]
     public void ConvertToString_WithNumberFormatN0_ReturnsFormattedNumber()
     {
         // Act
