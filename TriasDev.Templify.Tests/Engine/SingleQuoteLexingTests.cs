@@ -3,35 +3,32 @@
 
 using TriasDev.Templify.Conditionals.Engine;
 using TriasDev.Templify.Core;
+using static TriasDev.Templify.Tests.Helpers.ConditionEngineTestHelper;
 
 namespace TriasDev.Templify.Tests.Engine;
 
 public class SingleQuoteLexingTests
 {
-    private static bool Eval(string expr, Dictionary<string, object> data)
-    {
-        IReadOnlyList<ConditionToken> tokens = new ConditionLexer(allowSingleQuotedStrings: true).Tokenize(expr);
-        ConditionNode node = new ConditionParser(ConditionOperatorRegistry.Shared).Parse(tokens);
-        return new ConditionEvaluatorCore(new GlobalEvaluationContext(data), InlineConditionDialect.Instance).EvaluateBool(node);
-    }
+    private static bool EvalSingleQuoted(string expression, Dictionary<string, object> data)
+        => EvalInline(expression, data, allowSingleQuotedStrings: true);
 
     [Fact]
     public void InlinePath_SingleQuotedString_MatchesTrue()
-        => Assert.True(Eval("(Status = 'Active')", new() { ["Status"] = "Active" }));
+        => Assert.True(EvalSingleQuoted("(Status = 'Active')", new() { ["Status"] = "Active" }));
 
     [Fact]
     public void InlinePath_SingleQuotedString_MatchesFalse()
-        => Assert.False(Eval("(Status = 'Active')", new() { ["Status"] = "Inactive" }));
+        => Assert.False(EvalSingleQuoted("(Status = 'Active')", new() { ["Status"] = "Inactive" }));
 
     [Fact]
     public void InlinePath_MixedQuoteStyles_BothWork()
-        => Assert.True(Eval(
+        => Assert.True(EvalSingleQuoted(
             "(A = 'x' or B = \"y\")",
             new() { ["A"] = "x", ["B"] = "z" }));
 
     [Fact]
     public void InlinePath_MixedQuoteStyles_OtherBranch_BothWork()
-        => Assert.True(Eval(
+        => Assert.True(EvalSingleQuoted(
             "(A = 'x' or B = \"y\")",
             new() { ["A"] = "notx", ["B"] = "y" }));
 

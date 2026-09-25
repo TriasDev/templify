@@ -25,8 +25,6 @@ public sealed class ConditionalInLoopTests
         builder.AddParagraph("{{/if}}");
         builder.AddParagraph("{{/foreach}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Orders"] = new List<Order>
@@ -37,16 +35,14 @@ public sealed class ConditionalInLoopTests
             }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         Assert.Equal(3, verifier.GetParagraphCount());
         Assert.Equal("Standard", verifier.GetParagraphText(0));
         Assert.Equal("High Value", verifier.GetParagraphText(1));
@@ -66,23 +62,19 @@ public sealed class ConditionalInLoopTests
         builder.AddParagraph("{{/if}}");
         builder.AddParagraph("{{/foreach}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Items"] = new List<string> { "Apple", "Banana", "Cherry" }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         Assert.Equal(3, verifier.GetParagraphCount());
         Assert.Equal("First: Apple", verifier.GetParagraphText(0));
         Assert.Equal("Item: Banana", verifier.GetParagraphText(1));
@@ -102,23 +94,19 @@ public sealed class ConditionalInLoopTests
         builder.AddParagraph("{{/if}}");
         builder.AddParagraph("{{/foreach}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Items"] = new List<string> { "Red", "Green", "Blue" }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         Assert.Equal(3, verifier.GetParagraphCount());
         Assert.Equal("Item: Red", verifier.GetParagraphText(0));
         Assert.Equal("Item: Green", verifier.GetParagraphText(1));
@@ -138,23 +126,19 @@ public sealed class ConditionalInLoopTests
         builder.AddParagraph("{{/if}}");
         builder.AddParagraph("{{/foreach}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Items"] = new List<string> { "First", "Second", "Third" }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         Assert.Equal(3, verifier.GetParagraphCount());
         Assert.Equal("First", verifier.GetParagraphText(0));
         Assert.Equal("→ Second", verifier.GetParagraphText(1));
@@ -176,8 +160,6 @@ public sealed class ConditionalInLoopTests
         builder.AddParagraph("{{/if}}");
         builder.AddParagraph("{{/foreach}}");
         builder.AddParagraph("{{/foreach}}");
-
-        MemoryStream templateStream = builder.ToStream();
 
         Dictionary<string, object> data = new Dictionary<string, object>
         {
@@ -206,16 +188,14 @@ public sealed class ConditionalInLoopTests
             }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         // Electronics category
@@ -244,8 +224,6 @@ public sealed class ConditionalInLoopTests
         builder.AddParagraph("{{/if}}");
         builder.AddParagraph("{{/foreach}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Products"] = new List<ProductWithAvailability>
@@ -256,16 +234,14 @@ public sealed class ConditionalInLoopTests
             }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         Assert.Equal(3, verifier.GetParagraphCount());
         Assert.Equal("Laptop", verifier.GetParagraphText(0));
         Assert.Equal("Mouse - In Stock & Affordable", verifier.GetParagraphText(1));
@@ -287,23 +263,19 @@ public sealed class ConditionalInLoopTests
         builder.AddParagraph("{{/foreach}}");
         builder.AddParagraph("End");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Items"] = new List<string>()
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         Assert.Equal(2, verifier.GetParagraphCount());
         Assert.Equal("Start", verifier.GetParagraphText(0));
         Assert.Equal("End", verifier.GetParagraphText(1));
@@ -322,23 +294,19 @@ public sealed class ConditionalInLoopTests
         builder.AddParagraph("{{/if}}");
         builder.AddParagraph("{{/foreach}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Items"] = new List<string> { "Single" }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         Assert.Equal(1, verifier.GetParagraphCount());
         Assert.Equal("Only: Single", verifier.GetParagraphText(0));
     }
@@ -367,8 +335,6 @@ public sealed class ConditionalInLoopTests
         builder.AddParagraph("NO");
         builder.AddParagraph("{{/if}}");
         builder.AddParagraph("{{/foreach}}");
-
-        MemoryStream templateStream = builder.ToStream();
 
         // Global interview does NOT have settings.isEnabled
         // But each loop item has its own interview WITH settings.isEnabled = true
@@ -414,16 +380,14 @@ public sealed class ConditionalInLoopTests
             }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         // Both items should show "YES" because their interview.settings.isEnabled is true
@@ -444,8 +408,6 @@ public sealed class ConditionalInLoopTests
         builder.AddParagraph("{{#foreach items}}");
         builder.AddParagraph("{{#if data.active}}Active{{#else}}Inactive{{/if}} - {{name}}");
         builder.AddParagraph("{{/foreach}}");
-
-        MemoryStream templateStream = builder.ToStream();
 
         // Global data does NOT have data.active, but loop items DO
         Dictionary<string, object> data = new Dictionary<string, object>
@@ -476,16 +438,14 @@ public sealed class ConditionalInLoopTests
             }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         Assert.Equal(2, paragraphs.Count);
@@ -508,8 +468,6 @@ public sealed class ConditionalInLoopTests
         builder.AddParagraph("{{#if isPremium}}★ {{title}}{{#else}}{{title}}{{/if}}");
         builder.AddParagraph("{{/foreach}}");
         builder.AddParagraph("{{/foreach}}");
-
-        MemoryStream templateStream = builder.ToStream();
 
         Dictionary<string, object> data = new Dictionary<string, object>
         {
@@ -537,16 +495,14 @@ public sealed class ConditionalInLoopTests
             }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         // Premium category items get stars
@@ -576,8 +532,6 @@ public sealed class ConditionalInLoopTests
         builder.AddParagraph("{{/foreach}}");
         builder.AddParagraph("{{/foreach}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["showPrices"] = true, // Global setting
@@ -595,16 +549,14 @@ public sealed class ConditionalInLoopTests
             }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         Assert.Contains("Order: ORD-001", paragraphs);
@@ -623,8 +575,6 @@ public sealed class ConditionalInLoopTests
         builder.AddParagraph("{{#foreach assets}}");
         builder.AddParagraph("{{#if interview.availableItemsByKey.items.question1.answers.yes.selected}}Ja{{#else}}Nein{{/if}}");
         builder.AddParagraph("{{/foreach}}");
-
-        MemoryStream templateStream = builder.ToStream();
 
         Dictionary<string, object> data = new Dictionary<string, object>
         {
@@ -693,16 +643,14 @@ public sealed class ConditionalInLoopTests
             }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         Assert.Equal(2, paragraphs.Count);

@@ -49,8 +49,6 @@ public sealed class TableTests
             }
         });
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["ProductName"] = "Software License",
@@ -58,17 +56,15 @@ public sealed class TableTests
             ["Status"] = "Active"
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
         Assert.Equal(3, result.ReplacementCount);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         Assert.Equal(1, verifier.GetTableCount());
 
         // Verify header row unchanged
@@ -78,7 +74,7 @@ public sealed class TableTests
 
         // Verify data row replaced
         Assert.Equal("Software License", verifier.GetTableCellText(0, 1, 0));
-        Assert.Contains("999", verifier.GetTableCellText(0, 1, 1));
+        Assert.Equal("999.00", verifier.GetTableCellText(0, 1, 1));
         Assert.Equal("Active", verifier.GetTableCellText(0, 1, 2));
     }
 
@@ -103,8 +99,6 @@ public sealed class TableTests
             }
         });
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Name1"] = "Company",
@@ -113,17 +107,15 @@ public sealed class TableTests
             ["Value2"] = "Munich"
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
         Assert.Equal(4, result.ReplacementCount);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
 
         // Row 1
         Assert.Equal("Company", verifier.GetTableCellText(0, 1, 0));
@@ -163,8 +155,6 @@ public sealed class TableTests
             }
         });
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Title"] = "Bold Title",
@@ -173,17 +163,15 @@ public sealed class TableTests
             ["Content2"] = "Normal Text 2"
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
         Assert.Equal(4, result.ReplacementCount);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
 
         // Verify content
         Assert.Equal("Bold Title", verifier.GetTableCellText(0, 0, 0));
@@ -214,8 +202,6 @@ public sealed class TableTests
             }
         });
 
-        MemoryStream templateStream = builder.ToStream();
-
         var customerData = new
         {
             Name = "TriasDev GmbH & Co. KG",
@@ -231,17 +217,15 @@ public sealed class TableTests
             ["Customer"] = customerData
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
         Assert.Equal(2, result.ReplacementCount);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         Assert.Equal("TriasDev GmbH & Co. KG", verifier.GetTableCellText(0, 1, 0));
         Assert.Equal("Munich", verifier.GetTableCellText(0, 1, 1));
     }
@@ -262,8 +246,6 @@ public sealed class TableTests
         builder.AddTable(1, 2, (row, col) =>
             col == 0 ? "{{Table2Col1}}" : "{{Table2Col2}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Table1Col1"] = "First Table A",
@@ -272,17 +254,15 @@ public sealed class TableTests
             ["Table2Col2"] = "Second Table B"
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
         Assert.Equal(4, result.ReplacementCount);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         Assert.Equal(2, verifier.GetTableCount());
 
         // First table

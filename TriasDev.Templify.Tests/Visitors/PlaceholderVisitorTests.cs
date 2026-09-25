@@ -1,12 +1,15 @@
 // Copyright (c) 2025 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Globalization;
 using DocumentFormat.OpenXml.Wordprocessing;
 using TriasDev.Templify.Conditionals;
 using TriasDev.Templify.Core;
 using TriasDev.Templify.Loops;
 using TriasDev.Templify.Placeholders;
 using TriasDev.Templify.Visitors;
+
+using static TriasDev.Templify.Tests.Helpers.TestBlocks;
 
 namespace TriasDev.Templify.Tests.Visitors;
 
@@ -183,7 +186,7 @@ public sealed class PlaceholderVisitorTests
             Length = 8
         };
 
-        PlaceholderReplacementOptions options = new PlaceholderReplacementOptions();
+        PlaceholderReplacementOptions options = new PlaceholderReplacementOptions { Culture = CultureInfo.InvariantCulture };
         HashSet<string> missingVariables = new HashSet<string>();
         PlaceholderVisitor visitor = new PlaceholderVisitor(options, missingVariables, new WarningCollector());
 
@@ -198,13 +201,7 @@ public sealed class PlaceholderVisitorTests
         visitor.VisitPlaceholder(placeholder, paragraph, context);
 
         // Assert
-        Assert.Contains("2025", paragraph.InnerText);
-        Assert.Contains("11", paragraph.InnerText);
-        // Day can be "9" or "09" depending on culture
-        Assert.True(
-            paragraph.InnerText.Contains("9") || paragraph.InnerText.Contains("09"),
-            $"Expected date to contain day '9' or '09', but got: {paragraph.InnerText}"
-        );
+        Assert.Equal($"Date: {testDate.ToString(CultureInfo.InvariantCulture)}", paragraph.InnerText);
     }
 
     [Fact]
@@ -319,45 +316,5 @@ public sealed class PlaceholderVisitorTests
 
         // Assert - paragraph unchanged
         Assert.Equal("Regular text", paragraph.InnerText);
-    }
-
-    // Helper methods
-
-    private static ConditionalBlock CreateTestConditionalBlock()
-    {
-        Paragraph startMarker = new Paragraph(new Run(new Text("{{#if IsActive}}")));
-        Paragraph endMarker = new Paragraph(new Run(new Text("{{/if}}")));
-        List<DocumentFormat.OpenXml.OpenXmlElement> ifContent = new List<DocumentFormat.OpenXml.OpenXmlElement>
-        {
-            new Paragraph(new Run(new Text("Active")))
-        };
-
-        return new ConditionalBlock(
-            conditionExpression: "IsActive",
-            ifContentElements: ifContent,
-            elseContentElements: new List<DocumentFormat.OpenXml.OpenXmlElement>(),
-            startMarker: startMarker,
-            elseMarker: null,
-            endMarker: endMarker,
-            isTableRowConditional: false,
-            nestingLevel: 0);
-    }
-
-    private static LoopBlock CreateTestLoopBlock()
-    {
-        Paragraph startMarker = new Paragraph(new Run(new Text("{{#foreach Items}}")));
-        Paragraph endMarker = new Paragraph(new Run(new Text("{{/foreach}}")));
-        List<DocumentFormat.OpenXml.OpenXmlElement> content = new List<DocumentFormat.OpenXml.OpenXmlElement>
-        {
-            new Paragraph(new Run(new Text("{{.}}")))
-        };
-
-        return new LoopBlock(
-            collectionName: "Items",
-            iterationVariableName: null,
-            contentElements: content,
-            startMarker: startMarker,
-            endMarker: endMarker,
-            isTableRowLoop: false);
     }
 }

@@ -4,6 +4,7 @@
 using TriasDev.Templify.Conditionals;
 using TriasDev.Templify.Conditionals.Engine;
 using TriasDev.Templify.Core;
+using static TriasDev.Templify.Tests.Helpers.ConditionEngineTestHelper;
 
 namespace TriasDev.Templify.Tests.Engine;
 
@@ -14,14 +15,6 @@ namespace TriasDev.Templify.Tests.Engine;
 /// </summary>
 public class CompatEdgeCharacterizationTests
 {
-    private static bool EvalInline(string expr, Dictionary<string, object> data)
-    {
-        IReadOnlyList<ConditionToken> tokens = new ConditionLexer().Tokenize(expr);
-        ConditionNode node = new ConditionParser(ConditionOperatorRegistry.Shared).Parse(tokens);
-        return new ConditionEvaluatorCore(new GlobalEvaluationContext(data), InlineConditionDialect.Instance)
-            .EvaluateBool(node);
-    }
-
     // F2: In the inline dialect a variable-to-variable comparison now resolves the RHS as a variable
     // (rather than treating it as an opaque literal). This is an intentional change from the legacy engine.
     [Fact]

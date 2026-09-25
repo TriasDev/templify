@@ -48,8 +48,6 @@ public sealed class NamedIterationVariableIntegrationTests
         builder.AddParagraph("- {{product.Name}}: {{product.Price}} EUR");
         builder.AddParagraph("{{/foreach}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Products"] = new List<Product>
@@ -59,24 +57,20 @@ public sealed class NamedIterationVariableIntegrationTests
             }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         Assert.Equal(3, paragraphs.Count);
         Assert.Equal("Products:", paragraphs[0]);
-        Assert.Contains("Widget", paragraphs[1]);
-        Assert.Matches(@"19[.,]99", paragraphs[1]); // Handle locale differences (period or comma)
-        Assert.Contains("Gadget", paragraphs[2]);
-        Assert.Matches(@"29[.,]99", paragraphs[2]); // Handle locale differences (period or comma)
+        Assert.Equal("- Widget: 19.99 EUR", paragraphs[1]);
+        Assert.Equal("- Gadget: 29.99 EUR", paragraphs[2]);
     }
 
     [Fact]
@@ -90,8 +84,6 @@ public sealed class NamedIterationVariableIntegrationTests
         builder.AddParagraph("  - {{category.Name}}: {{product.Name}} ({{product.Price}} EUR)");
         builder.AddParagraph("{{/foreach}}");
         builder.AddParagraph("{{/foreach}}");
-
-        MemoryStream templateStream = builder.ToStream();
 
         Dictionary<string, object> data = new Dictionary<string, object>
         {
@@ -117,24 +109,22 @@ public sealed class NamedIterationVariableIntegrationTests
             }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         // Expected: Category header + products for Electronics, Category header + products for Books
         Assert.Contains(paragraphs, p => p.Contains("Category: Electronics"));
-        Assert.Contains(paragraphs, p => p.Contains("Electronics: Phone"));
-        Assert.Contains(paragraphs, p => p.Contains("Electronics: Tablet"));
+        Assert.Contains(paragraphs, p => p.Contains("Electronics: Phone (599.00 EUR)"));
+        Assert.Contains(paragraphs, p => p.Contains("Electronics: Tablet (399.00 EUR)"));
         Assert.Contains(paragraphs, p => p.Contains("Category: Books"));
-        Assert.Contains(paragraphs, p => p.Contains("Books: C# Guide"));
+        Assert.Contains(paragraphs, p => p.Contains("Books: C# Guide (49.99 EUR)"));
     }
 
     [Fact]
@@ -146,8 +136,6 @@ public sealed class NamedIterationVariableIntegrationTests
         builder.AddParagraph("Named: {{product.Name}}, Implicit: {{Name}}");
         builder.AddParagraph("{{/foreach}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Products"] = new List<Product>
@@ -156,16 +144,14 @@ public sealed class NamedIterationVariableIntegrationTests
             }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         Assert.Single(paragraphs);
@@ -182,8 +168,6 @@ public sealed class NamedIterationVariableIntegrationTests
         builder.AddParagraph("{{Name}}: {{Price}} EUR");
         builder.AddParagraph("{{/foreach}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Products"] = new List<Product>
@@ -193,21 +177,19 @@ public sealed class NamedIterationVariableIntegrationTests
             }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         Assert.Equal(2, paragraphs.Count);
-        Assert.Contains("Widget", paragraphs[0]);
-        Assert.Contains("Gadget", paragraphs[1]);
+        Assert.Equal("Widget: 19.99 EUR", paragraphs[0]);
+        Assert.Equal("Gadget: 29.99 EUR", paragraphs[1]);
     }
 
     [Fact]
@@ -219,23 +201,19 @@ public sealed class NamedIterationVariableIntegrationTests
         builder.AddParagraph("- {{name}}");
         builder.AddParagraph("{{/foreach}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Names"] = new List<string> { "Alice", "Bob", "Charlie" }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         Assert.Equal(3, paragraphs.Count);
@@ -257,8 +235,6 @@ public sealed class NamedIterationVariableIntegrationTests
         builder.AddParagraph("{{/foreach}}");
         builder.AddParagraph("{{/foreach}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["CompanyName"] = "Acme Corp",
@@ -275,16 +251,14 @@ public sealed class NamedIterationVariableIntegrationTests
             }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         Assert.Contains(paragraphs, p => p == "Company: Acme Corp");
@@ -304,8 +278,6 @@ public sealed class NamedIterationVariableIntegrationTests
         builder.AddParagraph("{{/foreach}}");
         builder.AddParagraph("{{/foreach}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Categories"] = new List<Category>
@@ -321,16 +293,14 @@ public sealed class NamedIterationVariableIntegrationTests
             }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         Assert.Contains(paragraphs, p => p.Contains("Electronics:"));
@@ -346,8 +316,6 @@ public sealed class NamedIterationVariableIntegrationTests
         builder.AddParagraph("{{@index}}: {{item.Name}}{{#if @last}} (last){{/if}}");
         builder.AddParagraph("{{/foreach}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Items"] = new List<Product>
@@ -358,16 +326,14 @@ public sealed class NamedIterationVariableIntegrationTests
             }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         Assert.Equal(3, paragraphs.Count);
@@ -389,24 +355,20 @@ public sealed class NamedIterationVariableIntegrationTests
         builder.AddParagraph("{{/foreach}}");
         builder.AddParagraph("{{/foreach}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Outer"] = new List<string> { "A" },
             ["Inner"] = new List<string> { "X", "Y" }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         List<string> paragraphs = verifier.GetAllParagraphTexts();
 
         // Inner loop shadows outer - {{item}} in inner loop resolves to inner value
@@ -426,18 +388,14 @@ public sealed class NamedIterationVariableIntegrationTests
         builder.AddParagraph("{{in}}");
         builder.AddParagraph("{{/foreach}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Items"] = new List<string> { "A", "B" }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act: invalid loop syntax is reported as a failed result, not thrown (#149)
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.False(result.IsSuccess);
@@ -453,18 +411,14 @@ public sealed class NamedIterationVariableIntegrationTests
         builder.AddParagraph("{{@item}}");
         builder.AddParagraph("{{/foreach}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Items"] = new List<string> { "A", "B" }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act: invalid loop syntax is reported as a failed result, not thrown (#149)
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.False(result.IsSuccess);
@@ -486,26 +440,22 @@ public sealed class NamedIterationVariableIntegrationTests
         builder.AddParagraph("{{item.Name}}:{{item.Notes}}");
         builder.AddParagraph("{{/foreach}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Notes"] = "GLOBAL",
             ["Items"] = new List<NoteItem> { new NoteItem { Name = "A", Notes = null } }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess, result.ErrorMessage);
         Assert.Empty(result.MissingVariables);
         Assert.DoesNotContain(result.Warnings, w => w.Type == ProcessingWarningType.MissingVariable);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         Assert.Equal(new[] { "A:" }, verifier.GetAllParagraphTexts());
     }
 
@@ -518,24 +468,20 @@ public sealed class NamedIterationVariableIntegrationTests
         builder.AddParagraph("{{@index}}:[{{item.Name}}]");
         builder.AddParagraph("{{/foreach}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Items"] = new List<NoteItem?> { new NoteItem { Name = "A" }, null }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess, result.ErrorMessage);
         Assert.Empty(result.MissingVariables);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         Assert.Equal(new[] { "0:[A]", "1:[]" }, verifier.GetAllParagraphTexts());
     }
 }

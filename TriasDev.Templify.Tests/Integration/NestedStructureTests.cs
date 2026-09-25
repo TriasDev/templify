@@ -47,8 +47,6 @@ public sealed class NestedStructureTests
         builder.AddParagraph("City: {{Customer.Address.City}}");
         builder.AddParagraph("Street: {{Customer.Address.Street}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Customer"] = new Customer
@@ -63,18 +61,16 @@ public sealed class NestedStructureTests
             }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
         Assert.Equal(3, result.ReplacementCount);
         Assert.Empty(result.MissingVariables);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         Assert.Equal(3, verifier.GetParagraphCount());
         Assert.Equal("Customer: TriasDev GmbH & Co. KG", verifier.GetParagraphText(0));
         Assert.Equal("City: Munich", verifier.GetParagraphText(1));
@@ -90,24 +86,20 @@ public sealed class NestedStructureTests
         builder.AddParagraph("Second: {{Items[1]}}");
         builder.AddParagraph("Third: {{Items[2]}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Items"] = new List<string> { "License", "Support", "Training" }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
         Assert.Equal(3, result.ReplacementCount);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         Assert.Equal("First: License", verifier.GetParagraphText(0));
         Assert.Equal("Second: Support", verifier.GetParagraphText(1));
         Assert.Equal("Third: Training", verifier.GetParagraphText(2));
@@ -121,8 +113,6 @@ public sealed class NestedStructureTests
         builder.AddParagraph("Order 1: {{Orders[0].Id}} - {{Orders[0].Amount}}");
         builder.AddParagraph("Order 2: {{Orders[1].Id}} - {{Orders[1].Amount}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Orders"] = new List<Order>
@@ -132,24 +122,22 @@ public sealed class NestedStructureTests
             }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
         Assert.Equal(4, result.ReplacementCount);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         string text1 = verifier.GetParagraphText(0);
         Assert.Contains("ORD-001", text1);
-        Assert.Contains("999", text1);
+        Assert.Equal("Order 1: ORD-001 - 999.00", text1);
 
         string text2 = verifier.GetParagraphText(1);
         Assert.Contains("ORD-002", text2);
-        Assert.Contains("1500", text2);
+        Assert.Equal("Order 2: ORD-002 - 1500.00", text2);
     }
 
     [Fact]
@@ -161,8 +149,6 @@ public sealed class NestedStructureTests
         builder.AddParagraph("Language (dot): {{Settings.Language}}");
         builder.AddParagraph("Currency (bracket): {{Settings[Currency]}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Settings"] = new Dictionary<string, string>
@@ -173,17 +159,15 @@ public sealed class NestedStructureTests
             }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
         Assert.Equal(3, result.ReplacementCount);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         Assert.Equal("Theme (bracket): Dark", verifier.GetParagraphText(0));
         Assert.Equal("Language (dot): German", verifier.GetParagraphText(1));
         Assert.Equal("Currency (bracket): EUR", verifier.GetParagraphText(2));
@@ -198,8 +182,6 @@ public sealed class NestedStructureTests
         builder.AddParagraph("Customer: {{Orders[0].Customer.Name}}");
         builder.AddParagraph("City: {{Orders[0].Customer.Address.City}}");
         builder.AddParagraph("Postal: {{Orders[0].Customer.Address.PostalCode}}");
-
-        MemoryStream templateStream = builder.ToStream();
 
         Dictionary<string, object> data = new Dictionary<string, object>
         {
@@ -223,17 +205,15 @@ public sealed class NestedStructureTests
             }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
         Assert.Equal(4, result.ReplacementCount);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         Assert.Equal("Order ID: ORD-2025-001", verifier.GetParagraphText(0));
         Assert.Equal("Customer: TriasDev GmbH & Co. KG", verifier.GetParagraphText(1));
         Assert.Equal("City: Munich", verifier.GetParagraphText(2));
@@ -247,25 +227,21 @@ public sealed class NestedStructureTests
         DocumentBuilder builder = new DocumentBuilder();
         builder.AddParagraph("Value: {{Customer.Name}}");
 
-        MemoryStream templateStream = builder.ToStream();
-
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             ["Customer.Name"] = "Direct Value",  // Direct key takes precedence
             ["Customer"] = new Customer { Name = "Nested Value" }
         };
 
-        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
-        MemoryStream outputStream = new MemoryStream();
-
         // Act
-        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, data);
+        ProcessingResult result = run.Result;
 
         // Assert
         Assert.True(result.IsSuccess);
         Assert.Equal(1, result.ReplacementCount);
 
-        using DocumentVerifier verifier = new DocumentVerifier(outputStream);
+        DocumentVerifier verifier = run.Verifier;
         Assert.Equal("Value: Direct Value", verifier.GetParagraphText(0));
     }
 

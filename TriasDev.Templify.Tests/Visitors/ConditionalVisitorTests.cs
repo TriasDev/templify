@@ -10,6 +10,8 @@ using TriasDev.Templify.Placeholders;
 using TriasDev.Templify.Tests.Helpers;
 using TriasDev.Templify.Visitors;
 
+using static TriasDev.Templify.Tests.Helpers.TestBlocks;
+
 namespace TriasDev.Templify.Tests.Visitors;
 
 /// <summary>
@@ -329,23 +331,5 @@ public sealed class ConditionalVisitorTests
         // Assert - paragraph unchanged
         Assert.Equal("Regular text", paragraph.InnerText);
     }
-
-    // Helper method to create test loop block
-    private static LoopBlock CreateTestLoopBlock()
-    {
-        Paragraph startMarker = new Paragraph(new Run(new Text("{{#foreach Items}}")));
-        Paragraph endMarker = new Paragraph(new Run(new Text("{{/foreach}}")));
-        List<OpenXmlElement> content = new List<OpenXmlElement>
-        {
-            new Paragraph(new Run(new Text("{{.}}")))
-        };
-
-        return new LoopBlock(
-            collectionName: "Items",
-            iterationVariableName: null,
-            contentElements: content,
-            startMarker: startMarker,
-            endMarker: endMarker,
-            isTableRowLoop: false);
-    }
 }
+

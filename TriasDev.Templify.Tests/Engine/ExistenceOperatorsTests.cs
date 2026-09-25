@@ -4,18 +4,12 @@
 using System.Collections;
 using TriasDev.Templify.Conditionals.Engine;
 using TriasDev.Templify.Core;
+using static TriasDev.Templify.Tests.Helpers.ConditionEngineTestHelper;
 
 namespace TriasDev.Templify.Tests.Engine;
 
 public class ExistenceOperatorsTests
 {
-    private static bool Eval(string expr, Dictionary<string, object> data)
-    {
-        var tokens = new ConditionLexer().Tokenize(expr);
-        ConditionNode node = new ConditionParser(ConditionOperatorRegistry.Shared).Parse(tokens);
-        return new ConditionEvaluatorCore(new GlobalEvaluationContext(data), DefaultConditionDialect.Instance).EvaluateBool(node);
-    }
-
     [Fact]
     public void Exists_PresentVariable_IsTrue()
         => Assert.True(Eval("Notes exists", new() { ["Notes"] = "x" }));
