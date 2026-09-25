@@ -11,6 +11,26 @@ namespace TriasDev.Templify.Converter.Validators;
 /// </summary>
 public class DocumentValidator
 {
+    private readonly TextWriter _out;
+    private readonly TextWriter _error;
+
+    /// <summary>
+    /// Create a validator that reports to the console (errors to stderr).
+    /// </summary>
+    public DocumentValidator()
+        : this(Console.Out, Console.Error)
+    {
+    }
+
+    /// <summary>
+    /// Create a validator that reports to the given writers.
+    /// </summary>
+    public DocumentValidator(TextWriter output, TextWriter error)
+    {
+        _out = output ?? throw new ArgumentNullException(nameof(output));
+        _error = error ?? throw new ArgumentNullException(nameof(error));
+    }
+
     /// <summary>
     /// Validate a Word document.
     /// </summary>
@@ -20,80 +40,77 @@ public class DocumentValidator
     {
         if (!File.Exists(documentPath))
         {
-            Console.WriteLine($"ERROR: File not found: {documentPath}");
+            _error.WriteLine($"ERROR: File not found: {documentPath}");
             return false;
         }
 
+        WordprocessingDocument document;
         try
         {
-            using WordprocessingDocument document = WordprocessingDocument.Open(documentPath, false);
+            document = WordprocessingDocument.Open(documentPath, false);
+        }
+        catch (Exception ex)
+        {
+            _error.WriteLine($"ERROR: Failed to open document: {ex.Message}");
+            return false;
+        }
 
-            Console.WriteLine($"Validating document: {documentPath}");
-            Console.WriteLine();
+        using (document)
+        {
+            _out.WriteLine($"Validating document: {documentPath}");
+            _out.WriteLine();
 
-            // Check basic structure
             if (document.MainDocumentPart == null)
             {
-                Console.WriteLine("ERROR: Document has no main document part");
+                _error.WriteLine("ERROR: Document has no main document part");
                 return false;
             }
 
             if (document.MainDocumentPart.Document == null)
             {
-                Console.WriteLine("ERROR: Document has no body");
+                _error.WriteLine("ERROR: Main document part has no document element");
                 return false;
             }
 
-            Console.WriteLine("✓ Document structure is valid");
-            Console.WriteLine();
+            if (document.MainDocumentPart.Document.Body == null)
+            {
+                _error.WriteLine("ERROR: Document has no body");
+                return false;
+            }
 
-            // Validate using OpenXML SDK validator
-            OpenXmlValidator validator = new OpenXmlValidator();
-            List<ValidationErrorInfo> errors = validator.Validate(document).ToList();
+            _out.WriteLine("✓ Document structure is valid");
+            _out.WriteLine();
 
+            List<ValidationErrorInfo> errors = new OpenXmlValidator().Validate(document).ToList();
             if (errors.Count == 0)
             {
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("✓ Document is valid! No errors found.");
-                Console.ResetColor();
+                _out.WriteLine("✓ Document is valid! No errors found.");
                 return true;
             }
-            else
+
+            _error.WriteLine($"✗ Found {errors.Count} validation errors:");
+            _error.WriteLine();
+
+            int displayCount = Math.Min(errors.Count, 20);
+            for (int i = 0; i < displayCount; i++)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"✗ Found {errors.Count} validation errors:");
-                Console.ResetColor();
-                Console.WriteLine();
-
-                int displayCount = Math.Min(errors.Count, 20);
-                for (int i = 0; i < displayCount; i++)
+                ValidationErrorInfo error = errors[i];
+                _error.WriteLine($"Error {i + 1}:");
+                _error.WriteLine($"  Type: {error.ErrorType}");
+                _error.WriteLine($"  Description: {error.Description}");
+                if (error.Path?.XPath != null)
                 {
-                    ValidationErrorInfo error = errors[i];
-                    Console.WriteLine($"Error {i + 1}:");
-                    Console.WriteLine($"  Type: {error.ErrorType}");
-                    Console.WriteLine($"  Description: {error.Description}");
-                    if (error.Node != null)
-                    {
-                        Console.WriteLine($"  Location: {error.Path?.XPath}");
-                    }
-                    Console.WriteLine();
+                    _error.WriteLine($"  Location: {error.Path.XPath}");
                 }
 
-                if (errors.Count > 20)
-                {
-                    Console.WriteLine($"... and {errors.Count - 20} more errors");
-                }
-
-                return false;
+                _error.WriteLine();
             }
-        }
-        catch (Exception ex)
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"ERROR: Failed to open document: {ex.Message}");
-            Console.ResetColor();
-            Console.WriteLine();
-            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+
+            if (errors.Count > 20)
+            {
+                _error.WriteLine($"... and {errors.Count - 20} more errors");
+            }
+
             return false;
         }
     }

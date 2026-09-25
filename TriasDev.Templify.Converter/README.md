@@ -14,7 +14,7 @@ The Templify Converter is a command-line tool designed to help migrate Word docu
 
 ## Prerequisites
 
-- **.NET 9.0 SDK** or later
+- **.NET 10 SDK** or later
 - Repository cloned locally
 
 ## Quick Start
@@ -52,6 +52,14 @@ chmod +x scripts/*.sh
 See [scripts/README.md](../scripts/README.md) for complete script documentation.
 
 ## Commands Reference
+
+**Argument rules (all commands):** options may appear before or after the input path; `--output <path>` and
+`--output=<path>` are equivalent; unknown options, a missing option value, a repeated option or an extra
+positional argument are rejected with exit code `2`; `--` ends option parsing. `--verbose` / `-v` prints stack
+traces for unexpected errors (otherwise only the message is shown). Errors are written to stderr.
+
+**Exit codes:** `0` success, `1` the command failed (e.g. a control could not be converted, invalid document,
+I/O error), `2` invalid arguments.
 
 ### 📊 analyze - Template Analysis
 
@@ -114,24 +122,35 @@ dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csp
 ```
 
 **Parameters:**
-- `<template-path>` (required) - Path to the Word template file to convert
-- `--output <path>` or `-o <path>` (optional) - Custom path for the converted template
+- `<template-path>` (required) - Path to the Word template file to convert. It is never modified.
+- `--output <path>` / `-o <path>` / `--output=<path>` (optional) - Custom path for the converted template
   - Default: `<template-name>-templify.docx` in the same directory
+- `--unwrap-all-controls` (optional) - Also unwrap every content control that is *not* an OpenXMLTemplates
+  control (table of contents, citations, check boxes, controls with unknown tags, ...).
+  - Default: **off** — only `variable_*`, `conditionalRemove_*` and `repeating_*` controls are converted;
+    all other content controls are kept unchanged and listed as warnings.
+- `--verbose` / `-v` (optional) - Print stack traces for unexpected errors
+
+**What gets processed:** the document body, all headers and footers, footnotes and endnotes.
 
 **Output:**
 - Converted Word document with Templify syntax
 - Console summary with conversion statistics
-- Markdown conversion report
-- Warnings for any failed conversions
-- Count of removed SDT elements
+- Markdown conversion report (`<output-name>-conversion-report.md`)
+- Warnings for conversions that should be reviewed, errors for controls that could not be converted
+
+**Exit code:** `0` when every OpenXMLTemplates control was converted, `1` when at least one control could not
+be converted (or the converted template fails Templify's own validation / a dry run), `2` for invalid arguments.
+Controls that cannot be converted are **left in the document unchanged** (still as content controls) so
+nothing is lost; convert them manually.
 
 **Example:**
 ```bash
 # Convert with default output location
 ./scripts/convert.sh templates/invoice-template.docx
 
-# Convert with custom output path
-./scripts/convert.sh templates/invoice-template.docx --output output/invoice-new.docx
+# Convert with custom output path (options may come before or after the input)
+./scripts/convert.sh --output output/invoice-new.docx templates/invoice-template.docx
 ```
 
 **Conversion Mappings:**
@@ -143,23 +162,24 @@ dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csp
 | `conditionalRemove_IsActive` | `{{#if IsActive}}...{{/if}}` |
 | `conditionalRemove_Status_eq_Active` | `{{#if Status = "Active"}}...{{/if}}` |
 | `conditionalRemove_Count_gt_0` | `{{#if Count > 0}}...{{/if}}` |
+| `conditionalRemove_A_and_B` | `{{#if A and B}}...{{/if}}` |
+| `conditionalRemove_A_or_B_and_C` | `{{#if (A or B) and C}}...{{/if}}` |
+| `conditionalRemove_A_not` | `{{#if not A}}...{{/if}}` |
 | `repeating_LineItems` | `{{#foreach LineItems}}...{{/foreach}}` |
 
-**What Gets Converted:**
-- Variable controls → Simple placeholders
-- Conditional controls → If/else blocks (preserves else branches)
-- Repeating controls → Foreach loops
-- Complex conditionals → Templify conditional expressions
-- All formatting preserved
-- SDT wrappers removed
+**Where the markers go:**
 
-**Conversion Report:**
-- Summary statistics
-- Controls converted by type
-- Warnings for manual review
-- List of affected variables/collections
+| Control kind | Result |
+|--------------|--------|
+| Inline (inside a paragraph) | Markers are inserted as runs in the same paragraph (`Text {{#if X}}more{{/if}}`) |
+| Block (paragraphs, tables) | Markers get their own paragraphs before and after the content |
+| Repeating table row(s) (`SdtRow`) | Separate marker rows `{{#foreach X}}` / `{{/foreach}}` around the rows (Templify table row loop) |
+| Conditional table row(s) (`SdtRow`) | Separate marker rows `{{#if X}}` / `{{/if}}` around the rows (Templify table row conditional) |
+| Conditional table cell | Markers around the cell content; the cell itself is kept (warning) |
+| Inline repeating / repeating cell | **Not convertible** (Templify loops repeat paragraphs or rows) — reported as error |
 
----
+Formatting and all content inside a control (runs, hyperlinks, fields, bookmarks, ...) is preserved.
+Word's "placeholder text" style is removed from converted variables.
 
 ### ✅ validate - Document Validation
 
@@ -232,7 +252,11 @@ dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csp
 - Prepare documents for manual placeholder insertion
 - Clean up partially converted templates
 
-**Warning:** In-place cleaning modifies the original file. Create a backup first or use `--output` to preserve the original.
+The body, headers, footers, footnotes and endnotes are cleaned. The document is always processed on a
+temporary copy that replaces the target only after it was written successfully, so an error (or a full disk)
+never destroys the original file.
+
+**Note:** In-place cleaning replaces the original file with the cleaned version. Use `--output` to keep the original.
 
 ---
 
@@ -554,7 +578,8 @@ chmod +x scripts/convert.sh
 
 **Solution:**
 1. Review the specific conditional in the analysis report
-2. Check if operator is supported (eq, ne, gt, lt, gte, lte, and, or, not)
+2. Check the error in the conversion report: the converter reports every tag it cannot translate into valid
+   Templify syntax (supported operators: eq, ne, gt, lt, gte, lte, and, or, not)
 3. Manually create the conditional in Templify syntax after conversion
 4. Refer to [Templify conditional documentation](../TriasDev.Templify/README.md#conditional-blocks)
 
@@ -573,6 +598,8 @@ chmod +x scripts/convert.sh
 
 ### Supported OpenXMLTemplates Tag Formats
 
+Tag prefixes are case-insensitive (as in OpenXMLTemplates); operators must be lowercase.
+
 **Variable Tags:**
 - `variable_SimpleName` → `{{SimpleName}}`
 - `variable_Nested.Path.Name` → `{{Nested.Path.Name}}`
@@ -584,25 +611,55 @@ chmod +x scripts/convert.sh
 - `conditionalRemove_Count_gt_0` → `{{#if Count > 0}}...{{/if}}`
 - `conditionalRemove_A_and_B` → `{{#if A and B}}...{{/if}}`
 - `conditionalRemove_X_or_Y` → `{{#if X or Y}}...{{/if}}`
+- `conditionalRemove_X_eq_a_or_Y` → `{{#if X = "a" or Y}}...{{/if}}`
+- `conditionalRemove_A_and_B_not` → `{{#if not (A and B)}}...{{/if}}`
 
 **Repeating Tags:**
 - `repeating_CollectionName` → `{{#foreach CollectionName}}...{{/foreach}}`
 - `repeating_Nested.Collection` → `{{#foreach Nested.Collection}}...{{/foreach}}`
+- Variables inside a repeating control are relative to the item, exactly as in Templify loops.
 
-### Operators Supported
+### How conditions are translated
 
-- **Equality:** `eq` → `=`, `ne` → `!=`
-- **Comparison:** `gt` → `>`, `lt` → `<`, `gte` → `>=`, `lte` → `<=`
-- **Logical:** `and`, `or`, `not`
+- **Operators:** `eq` → `=`, `ne` → `!=`, `gt` → `>`, `lt` → `<`, `gte` → `>=`, `lte` → `<=`, `and`, `or`, `not`.
+- **Left-to-right evaluation:** OpenXMLTemplates evaluates the arguments strictly from left to right and a
+  trailing `not` negates everything before it. The converter adds parentheses where Templify's precedence
+  (`not` > `and` > `or`) would change the meaning: `a_or_b_and_c` → `(a or b) and c`.
+- **Names with underscores:** the tag is split only at the known operator tokens, so `conditionalRemove_is_active`
+  becomes `{{#if is_active}}` (not `{{#if is}}`). Because OpenXMLTemplates itself splits every tag on `_`
+  and would have read only `is`, such names are listed as warnings to review.
+- **Values:** numbers (culture-invariant, e.g. `1.5`) are emitted unquoted, everything else as a quoted string.
+- **Validation:** every generated condition is checked with Templify's `ConditionEvaluator.Validate()`. A tag that
+  cannot be translated into valid syntax (e.g. `a_or` without an operand, or a comparison that does not directly
+  follow the first variable such as `a_or_b_eq_1`) is reported as an error and the control is kept for manual
+  conversion — the converter never writes a broken `{{#if}}`.
+- `analyze` and `convert` use the same tag parser and condition builder, so the syntax suggested in the analysis
+  report is exactly what `convert` produces.
 
 ### Limitations
 
-- **Complex expressions:** Very complex conditionals may require manual review
-- **Custom operators:** Non-standard operators not supported
-- **Nested conditionals:** Some deeply nested structures may need manual adjustment
-- **SDT corruption:** Already corrupted documents may not convert cleanly
+- **Comparison operands:** OpenXMLTemplates resolves the operand of `eq`/`gt`/`lt` as a variable name when such a
+  variable exists, otherwise as a literal. The converter always emits a literal (`Status = "Active"`).
+- **Truthiness:** converted conditions use Templify's truthiness rules, which differ from OpenXMLTemplates in edge
+  cases (e.g. OpenXMLTemplates treats the integer `2` as false).
+- **Separators:** `repeating_X_separator_, _lastSeparator_and ` arguments have no Templify equivalent; they are
+  dropped and reported as warnings.
+- **`variable_index`** inside a repeating control is the 1-based item number in OpenXMLTemplates. It is converted to
+  `{{index}}` with a warning; consider `{{@index}}` (0-based) in Templify.
+- **Inline repeating controls and repeating cells** cannot be converted (see the table above).
+- **Footnotes/endnotes** are converted, but the Templify core currently does not replace placeholders in them.
+- **Other content control replacers** of OpenXMLTemplates (dropdowns, etc.) are not converted; they are kept.
 
----
+### File safety
+
+`convert` and `clean` never write to the input file directly. The document is copied to a temporary file in the
+output directory, modified there, and then moved over the target in one step (`File.Move(overwrite: true)`).
+If anything fails, the input and any existing output are unchanged. Input and output paths are compared after
+normalization (`Path.GetFullPath`), so `./doc.docx` and `doc.docx` are recognised as the same file.
+
+Earlier versions re-packed the ZIP archive after saving to "fix permissions". That step was a no-op (the ZIP entries
+written by the OpenXML SDK already carry regular `0644` permissions and current timestamps) and it deleted the file
+before rebuilding it, risking data loss; it has been removed.
 
 ## Related Documentation
 

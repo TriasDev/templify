@@ -46,7 +46,8 @@ public class ConversionResult
     public List<ControlInfo> FailedConversions { get; set; } = new();
 
     /// <summary>
-    /// Number of SDT elements cleaned up after conversion.
+    /// Number of additional (non-OpenXMLTemplates) SDT elements unwrapped after conversion
+    /// (only with <c>--unwrap-all-controls</c>).
     /// </summary>
     public int CleanedSdtElements { get; set; }
 
@@ -118,12 +119,12 @@ public class ConversionResult
         {
             sb.AppendLine("## Failed Conversions (Require Manual Review)");
             sb.AppendLine();
-            sb.AppendLine("| Tag | Type | Reason |");
-            sb.AppendLine("|-----|------|--------|");
+            sb.AppendLine("| Tag | Type | Location | Reason |");
+            sb.AppendLine("|-----|------|----------|--------|");
             foreach (ControlInfo control in FailedConversions)
             {
-                string reason = string.Join(", ", control.Notes);
-                sb.AppendLine($"| `{control.Tag}` | {control.Type} | {reason} |");
+                string reason = string.Join("; ", control.Notes);
+                sb.AppendLine($"| `{control.Tag}` | {control.Type} | {control.Location} | {reason} |");
             }
             sb.AppendLine();
         }

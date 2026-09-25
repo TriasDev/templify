@@ -61,14 +61,9 @@ public class AnalysisResult
             .Where(p => !string.IsNullOrEmpty(p))
             .ToHashSet();
 
-        // Identify complex controls
+        // Identify controls that need a human (errors, ambiguous conversions, unsupported layouts)
         ComplexControls = Controls
-            .Where(c =>
-                c.HasNestedControls ||
-                c.Operators.Count > 1 ||
-                c.Operators.Contains("or") ||
-                c.Operators.Contains("and") ||
-                (c.Type == ControlType.Conditional && c.InTableRow))
+            .Where(c => c.RequiresManualReview)
             .ToList();
 
         // Generate warnings
@@ -81,6 +76,12 @@ public class AnalysisResult
         if (nestedCount > 0)
         {
             Warnings.Add($"Found {nestedCount} controls with nested controls");
+        }
+
+        int unknownCount = Controls.Count(c => c.Type == ControlType.Unknown);
+        if (unknownCount > 0)
+        {
+            Warnings.Add($"Found {unknownCount} content controls that are not OpenXMLTemplates controls (kept as-is by convert)");
         }
 
         int tableCount = Controls.Count(c => c.InTable);
@@ -137,12 +138,12 @@ public class AnalysisResult
         {
             sb.AppendLine("## Complex Controls (Manual Review Required)");
             sb.AppendLine();
-            sb.AppendLine("| Tag | Type | Reason |");
-            sb.AppendLine("|-----|------|--------|");
+            sb.AppendLine("| Tag | Type | Location | Reason |");
+            sb.AppendLine("|-----|------|----------|--------|");
             foreach (ControlInfo control in ComplexControls)
             {
-                string reason = string.Join(", ", control.Notes);
-                sb.AppendLine($"| `{control.Tag}` | {control.Type} | {reason} |");
+                string reason = string.Join("; ", control.Notes);
+                sb.AppendLine($"| `{control.Tag}` | {control.Type} | {control.Location} | {reason} |");
             }
             sb.AppendLine();
         }
