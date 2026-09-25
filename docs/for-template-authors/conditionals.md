@@ -787,6 +787,27 @@ You can nest conditionals inside each other:
 
 **Best Practice:** Limit nesting to 2-3 levels deep to keep templates readable.
 
+## Conditional Table Rows
+
+To show or hide whole table rows, put each marker (`{{#if}}`, `{{#elseif}}`, `{{#else}}`, `{{/if}}`) in **its own row**:
+
+| Item | Amount |
+|------|--------|
+| Subtotal | {{Subtotal}} |
+| {{#if HasDiscount}} | |
+| Discount | {{Discount}} |
+| {{#else}} | |
+| No discount applied | |
+| {{/if}} | |
+| Total | {{Total}} |
+
+- The marker rows are always removed.
+- The rows of the first matching branch are kept; the rows of all other branches are removed.
+- Conditional rows can be nested and can be used inside table row loops, where they are evaluated for each item.
+- If every row of a table is removed, the whole table is removed.
+
+A conditional whose start and end markers are inside **one cell** (inline or on separate paragraphs) only affects the content of that cell.
+
 ## Conditionals with Loops
 
 You can use conditionals inside loops:

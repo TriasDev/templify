@@ -122,34 +122,27 @@ internal sealed class DocumentWalker
         // This affects whether we skip removed elements
         bool isDocumentWalk = elements.Any(e => e.Parent != null);
 
+        // The cloned content of a table row loop is a list of rows. Rows need row-aware detection:
+        // markers confined to a single cell are cell-level constructs, not row-level blocks.
+        List<TableRow>? rows = elements.Count > 0 && elements.All(e => e is TableRow)
+            ? elements.Cast<TableRow>().ToList()
+            : null;
+
         // Pre-detect loops to know which elements are inside loop blocks
         // This is needed to filter out conditionals that are inside loops
-        IReadOnlyList<LoopBlock> loops = LoopDetector.DetectLoopsInElements(elements);
+        IReadOnlyList<LoopBlock> loops = rows != null
+            ? LoopDetector.DetectTableRowLoops(rows)
+            : LoopDetector.DetectLoopsInElements(elements);
         HashSet<OpenXmlElement> elementsInsideLoops = GetElementsInsideLoops(loops);
 
         // Step 1: Detect and visit conditionals
         // Conditionals are processed first because they can contain loops
         // BUT: conditionals inside loops must be skipped - they will be processed
         // when the loop is expanded with LoopEvaluationContext
-        IReadOnlyList<ConditionalBlock> conditionals = ConditionalDetector.DetectConditionalsInElements(elements);
-        foreach (ConditionalBlock conditional in conditionals.OrderByDescending(c => c.NestingLevel))
-        {
-            // Skip if already removed by nested conditional processing
-            // Only check Parent if walking an actual document (not cloned content)
-            if (isDocumentWalk && (conditional.StartMarker.Parent == null || conditional.EndMarker.Parent == null))
-            {
-                continue;
-            }
-
-            // Skip conditionals that are inside loop blocks
-            // They will be processed when the loop expands with the correct context
-            if (elementsInsideLoops.Contains(conditional.StartMarker))
-            {
-                continue;
-            }
-
-            visitor.VisitConditional(conditional, context);
-        }
+        IReadOnlyList<ConditionalBlock> conditionals = rows != null
+            ? ConditionalDetector.DetectTableRowConditionals(rows)
+            : ConditionalDetector.DetectConditionalsInElements(elements);
+        VisitConditionals(conditionals, elementsInsideLoops, isDocumentWalk, visitor, context);
 
         // Step 2: Detect and visit loops
         // Note: After conditionals are processed, some elements may have been removed
@@ -240,10 +233,19 @@ internal sealed class DocumentWalker
         // syntax (template injection) and duplicate warnings. See issue #140.
         List<TableRow> originalRows = table.Elements<TableRow>().ToList();
 
-        // Step 1: Detect and process table row loops
-        // Table row loops have markers in separate rows (e.g., row 1: {{#foreach Items}}, row 3: {{/foreach}})
-        // These must be detected at the table level before walking individual cells
-        IReadOnlyList<LoopBlock> tableRowLoops = LoopDetector.DetectTableRowLoops(table);
+        // Table row loops and conditionals have markers in separate rows
+        // (e.g., row 1: {{#foreach Items}} / {{#if Show}}, row 3: {{/foreach}} / {{/if}}).
+        // They must be detected at the table level before walking individual cells.
+        // Loops are pre-detected so that conditionals inside loop rows can be skipped here:
+        // they are processed when the loop expands, with the loop's evaluation context.
+        IReadOnlyList<LoopBlock> tableRowLoops = LoopDetector.DetectTableRowLoops(originalRows);
+        HashSet<OpenXmlElement> rowsInsideLoops = GetElementsInsideLoops(tableRowLoops);
+
+        // Step 1: Detect and process table row conditionals (deepest first, before loops)
+        IReadOnlyList<ConditionalBlock> tableRowConditionals = ConditionalDetector.DetectTableRowConditionals(originalRows);
+        VisitConditionals(tableRowConditionals, rowsInsideLoops, isDocumentWalk: true, visitor, context);
+
+        // Step 2: Process table row loops
         foreach (LoopBlock loop in tableRowLoops)
         {
             // Skip if already removed by nested loop processing
@@ -255,8 +257,8 @@ internal sealed class DocumentWalker
             visitor.VisitLoop(loop, context);
         }
 
-        // Step 2: Walk remaining rows and cells
-        // After table row loops are processed, walk the remaining original cells
+        // Step 3: Walk remaining rows and cells
+        // After table row conditionals and loops are processed, walk the remaining original cells
         foreach (TableRow row in originalRows)
         {
             // Skip if row was removed by loop processing (loop markers and loop content rows)
@@ -272,7 +274,7 @@ internal sealed class DocumentWalker
                 WalkElements(cellElements, visitor, context);
             }
 
-            // Step 3: Process row-level paragraphs (malformed structure, but handle gracefully)
+            // Process row-level paragraphs (malformed structure, but handle gracefully)
             // Some templates may have paragraphs as direct children of rows instead of cells
             // This can happen when SDT controls wrapping cells are unwrapped incorrectly
             List<Paragraph> rowLevelParagraphs = row.Elements<Paragraph>().ToList();
@@ -287,6 +289,77 @@ internal sealed class DocumentWalker
                 // Visit placeholder in the paragraph
                 visitor.VisitParagraph(paragraph, context);
             }
+        }
+
+        // Step 4: A table whose rows were all removed (false row conditionals, empty row loops)
+        // is not a valid table - Word rejects a <w:tbl> without <w:tr>. Remove it entirely.
+        if (originalRows.Count > 0 && !table.Elements<TableRow>().Any())
+        {
+            RemoveEmptyTable(table);
+        }
+    }
+
+    /// <summary>
+    /// Visits conditional blocks from deepest to shallowest nesting level.
+    /// </summary>
+    /// <param name="conditionals">The detected conditional blocks.</param>
+    /// <param name="elementsInsideLoops">Elements inside loop blocks; conditionals starting there are skipped.</param>
+    /// <param name="isDocumentWalk">Whether the elements are attached to a document (enables removed-element checks).</param>
+    /// <param name="visitor">The visitor to dispatch to.</param>
+    /// <param name="context">The evaluation context.</param>
+    private static void VisitConditionals(
+        IReadOnlyList<ConditionalBlock> conditionals,
+        HashSet<OpenXmlElement> elementsInsideLoops,
+        bool isDocumentWalk,
+        ITemplateElementVisitor visitor,
+        IEvaluationContext context)
+    {
+        foreach (ConditionalBlock conditional in conditionals.OrderByDescending(c => c.NestingLevel))
+        {
+            // Skip if already removed by nested conditional processing
+            // Only check Parent if walking an actual document (not cloned content)
+            if (isDocumentWalk && (conditional.StartMarker.Parent == null || conditional.EndMarker.Parent == null))
+            {
+                continue;
+            }
+
+            // Skip conditionals that are inside loop blocks
+            // They will be processed when the loop expands with the correct context
+            if (elementsInsideLoops.Contains(conditional.StartMarker))
+            {
+                continue;
+            }
+
+            visitor.VisitConditional(conditional, context);
+        }
+    }
+
+    /// <summary>
+    /// Removes a table that has no rows left, keeping its container valid.
+    /// </summary>
+    /// <remarks>
+    /// A table cell, header or footer must contain at least one block-level element
+    /// (and a cell must end with a paragraph, ECMA-376 §17.4.66); an empty paragraph is
+    /// appended where removing the table would violate that.
+    /// </remarks>
+    private static void RemoveEmptyTable(Table table)
+    {
+        OpenXmlElement? parent = table.Parent;
+        if (parent == null)
+        {
+            return;
+        }
+
+        table.Remove();
+
+        switch (parent)
+        {
+            case TableCell cell when cell.LastChild is not Paragraph:
+                cell.AppendChild(new Paragraph());
+                break;
+            case Header or Footer when !parent.Elements<Paragraph>().Any() && !parent.Elements<Table>().Any():
+                parent.AppendChild(new Paragraph());
+                break;
         }
     }
 
