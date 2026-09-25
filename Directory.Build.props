@@ -13,11 +13,15 @@
     <Deterministic>true</Deterministic>
     <!-- Nullable warnings are always errors (also locally): they point to real null dereferences. -->
     <WarningsAsErrors>$(WarningsAsErrors);nullable</WarningsAsErrors>
+    <!-- packages.lock.json per project: reproducible restores and the NuGet cache key in CI. -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
 
   <!-- CI builds (GitHub Actions): normalized source paths for reproducible builds. -->
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    <!-- Fail the restore if packages.lock.json is out of date (run `dotnet restore` locally and commit). -->
+    <RestoreLockedMode>true</RestoreLockedMode>
   </PropertyGroup>
 
   <!-- Warnings fail CI builds, but do not block local development.

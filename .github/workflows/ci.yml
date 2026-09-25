@@ -18,7 +18,11 @@ jobs:
   build-and-test:
     name: Build and Test
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      id-token: write # Codecov OIDC upload
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
@@ -26,10 +30,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
+      # SDK from global.json; the 8.0/9.0 runtimes run TriasDev.Templify.Tests
+      # against the library's net8.0/net9.0 builds (the test project multi-targets).
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
+          dotnet-version: |
+            8.0.x
+            9.0.x
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
 
       - name: Restore dependencies
         run: dotnet restore
@@ -38,14 +49,15 @@ jobs:
         run: dotnet build --no-restore --configuration Release
 
       - name: Run tests
-        run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage"
+        run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./TestResults
 
       - name: Upload coverage to Codecov
         if: matrix.os == 'ubuntu-latest'
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
-          files: '**/coverage.cobertura.xml'
-          fail_ci_if_error: false
+          use_oidc: true
+          directory: ./TestResults
+          fail_ci_if_error: ${{ github.event_name == 'push' }}
 
   lint:
     name: Code Quality
@@ -58,6 +70,8 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
 
       - name: Restore dependencies
         run: dotnet restore
@@ -93,6 +107,8 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
 
       - name: Verify culture and time zone apply to .NET
         working-directory: ${{ runner.temp }}
@@ -117,8 +133,9 @@ jobs:
       - name: Build
         run: dotnet build --no-restore --configuration Release
 
+      # net10.0 only; the other target frameworks run in build-and-test.
       - name: Run tests
-        run: dotnet test --no-build --configuration Release
+        run: dotnet test --no-build --configuration Release --framework net10.0
 
   pack:
     name: Pack NuGet
@@ -132,6 +149,8 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
 
       - name: Restore dependencies
         run: dotnet restore

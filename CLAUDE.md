@@ -53,6 +53,8 @@ dotnet build TriasDev.Templify/TriasDev.Templify.csproj
 - `global.json` pins the SDK (10.0.100, `rollForward: latestFeature`).
 - `Directory.Build.props` holds shared settings (Nullable, ImplicitUsings, LangVersion, AnalysisLevel, EnforceCodeStyleInBuild). Nullable warnings are always errors; in CI (`GITHUB_ACTIONS=true` → `ContinuousIntegrationBuild`) all warnings are errors. Reproduce locally with `dotnet build templify.sln -c Release -p:ContinuousIntegrationBuild=true`.
 - `Directory.Packages.props` (Central Package Management) holds all NuGet versions; `PackageReference` items have no `Version`.
+- Every project has a committed `packages.lock.json`; CI restores in locked mode. After changing a package, run `dotnet restore templify.sln` and commit the updated lock files.
+- `TriasDev.Templify.Tests` multi-targets `net10.0;net9.0;net8.0` (the library's TFMs except net6.0); run a single one with `--framework net10.0`.
 
 ### Testing
 ```bash

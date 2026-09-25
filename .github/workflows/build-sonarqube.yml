@@ -15,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      # Pinned scanner version: bump deliberately (also invalidates the scanner cache).
+      SONAR_SCANNER_VERSION: 11.3.0
 
     steps:
       - uses: actions/checkout@v7
@@ -43,15 +45,14 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ./.sonar/scanner
-          key: ${{ runner.os }}-sonar-scanner
-          restore-keys: ${{ runner.os }}-sonar-scanner
+          key: ${{ runner.os }}-sonar-scanner-${{ env.SONAR_SCANNER_VERSION }}
       - name: Install SonarQube scanner
         if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
         run: |
           echo "## 📦 Installing SonarQube Scanner" >> $GITHUB_STEP_SUMMARY
           echo "Installing dotnet-sonarscanner tool..." >> $GITHUB_STEP_SUMMARY
           mkdir -p ./.sonar/scanner
-          dotnet tool update dotnet-sonarscanner --tool-path ./.sonar/scanner
+          dotnet tool update dotnet-sonarscanner --version "$SONAR_SCANNER_VERSION" --tool-path ./.sonar/scanner
           echo "✅ SonarQube scanner installed successfully" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
       - name: Cache status summary
