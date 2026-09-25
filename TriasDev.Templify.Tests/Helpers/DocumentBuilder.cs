@@ -78,6 +78,16 @@ public sealed class DocumentBuilder
     }
 
     /// <summary>
+    /// Appends an arbitrary, fully constructed block-level element (e.g. a paragraph with
+    /// hyperlinks, fields or drawings) to the document body.
+    /// </summary>
+    public DocumentBuilder AddElement(OpenXmlElement element)
+    {
+        _body.Append(element);
+        return this;
+    }
+
+    /// <summary>
     /// Adds a bullet list item with the specified text.
     /// </summary>
     public DocumentBuilder AddBulletListItem(string text, int level = 0, RunProperties? formatting = null)
