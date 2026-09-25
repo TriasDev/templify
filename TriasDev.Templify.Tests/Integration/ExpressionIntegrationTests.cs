@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using TriasDev.Templify.Core;
 using TriasDev.Templify.Formatting;
 using TriasDev.Templify.Tests.Helpers;
+using TriasDev.Templify.Utilities;
 
 namespace TriasDev.Templify.Tests.Integration;
 
@@ -391,7 +392,35 @@ public class ExpressionIntegrationTests
         Assert.Contains("Count: 42", result);
     }
 
+    [Fact]
+    public void Inline_Expression_DecimalGreaterThanInt()
+    {
+        Assert.Equal("True", ProcessSingleExpression("{{(Price > 5)}}", new Dictionary<string, object> { ["Price"] = 10.5m }));
+    }
+
+    [Fact]
+    public void Inline_Expression_LongEqualsInt()
+    {
+        Assert.Equal("True", ProcessSingleExpression("{{(Id = 5)}}", new Dictionary<string, object> { ["Id"] = 5L }));
+    }
+
+    [Fact]
+    public void Inline_Expression_JsonDecimalGreaterThanInt()
+    {
+        Dictionary<string, object> data = JsonDataParser.ParseJsonToDataDictionary("{\"Price\": 10.5}");
+        Assert.Equal("True", ProcessSingleExpression("{{(Price > 5)}}", data));
+    }
+
     #region Helper Methods
+
+    private static string ProcessSingleExpression(string paragraph, Dictionary<string, object> data)
+    {
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph(paragraph);
+        using MemoryStream templateStream = builder.ToStream();
+        return ProcessTemplate(templateStream, data, CreateInvariantProcessor());
+    }
+
 
     /// <summary>
     /// Creates a DocumentTemplateProcessor with InvariantCulture for predictable test results.

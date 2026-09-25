@@ -200,6 +200,8 @@ Account locked: True
 
 Checks if two values are equal. Both `==` and `=` are supported.
 
+Numbers are compared by value across numeric types, so `{{(Id = 5)}}` is `True` when `Id` is `5L` and `{{(Price > 5)}}` is `True` when `Price` is the decimal `10.5` or JSON `10.5`. Note that inline expressions only treat the boolean `true` as truthy: a bare number or the text `"true"` used on its own (e.g. `{{(Count)}}`) is `False` here, unlike in `{{#if}}`.
+
 **Template:**
 ```
 Status is active: {{(Status == "active")}}
@@ -389,6 +391,8 @@ Priority: Yes
 ```
 
 These comparisons are **case-sensitive**, like `=` and `==`.
+
+When the left side is a list, `contains` checks **membership** (`{{(Tags contains "urgent")}}` is `True` when `Tags` is `["urgent", "new"]`), exactly like `"urgent" in Tags`. `startswith` / `endswith` on a list are always `False`.
 
 ### Existence (exists, is empty, is not empty)
 

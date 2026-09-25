@@ -26,4 +26,23 @@ public class ConditionValueOpsTests
     [Fact]
     public void AreEqual_OneNull_ReturnsFalse()
         => Assert.False(ConditionValueOps.AreEqual(null, "x"));
+
+    [Fact]
+    public void AreEqual_DecimalAndInt_SameValue_ReturnsTrue()
+        => Assert.True(ConditionValueOps.AreEqual(10.00m, 10));
+
+    [Fact]
+    public void AreEqual_LongAndDouble_SameValue_ReturnsTrue()
+        => Assert.True(ConditionValueOps.AreEqual(2L, 2.0));
+
+    [Fact]
+    public void AreEqual_NumberAndNumericString_ComparesStringForm()
+    {
+        Assert.True(ConditionValueOps.AreEqual(5, "5"));
+        Assert.False(ConditionValueOps.AreEqual(5.0m, "5"));
+    }
+
+    [Fact]
+    public void AreEqual_NaN_ReturnsFalse()
+        => Assert.False(ConditionValueOps.AreEqual(double.NaN, double.NaN));
 }

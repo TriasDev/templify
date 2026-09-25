@@ -133,7 +133,7 @@ Complete list of all supported operators, one example each.
 | `or` | Logical OR | `IsAdmin or IsModerator` |
 | `not` | Logical NOT | `not IsDeleted` |
 | `in` | Membership check | `Role in Roles` |
-| `contains` | Substring check | `Description contains "urgent"` |
+| `contains` | Substring check (membership on collections) | `Description contains "urgent"` |
 | `startswith` | Prefix check | `Code startswith "US-"` |
 | `endswith` | Suffix check | `FileName endswith ".pdf"` |
 | `exists` | Variable is present | `Notes exists` |
@@ -165,6 +165,8 @@ evaluator.Evaluate("Description contains \"urgent\"", data);
 evaluator.Evaluate("Code startswith \"US-\"", data);
 evaluator.Evaluate("FileName endswith \".pdf\"", data);
 ```
+
+When the left operand is a collection (any non-string `IEnumerable`, including JSON arrays), `contains` is a **membership** test using the same element equality as `in` (`Tags contains "urgent"` ≡ `"urgent" in Tags`). `startswith`/`endswith` on a collection evaluate to `false`. A collection is never matched through its `ToString()` (type name).
 
 ### Existence and Emptiness: `exists`, `is empty`, `is not empty`
 
@@ -238,7 +240,7 @@ In inline `{{(...)}}` expressions, **both sides of a comparison are resolved as 
 
 ```csharp
 evaluator.Evaluate("IsActive", data);     // Boolean check (truthy)
-evaluator.Evaluate("Count", data);        // Truthy check (non-zero, non-null)
+evaluator.Evaluate("Count", data);        // Truthy check (non-zero of any numeric type, non-null)
 ```
 
 ### Boolean Comparisons
@@ -256,6 +258,18 @@ evaluator.Evaluate("Count > 5", data);
 evaluator.Evaluate("Status = \"Active\"", data);
 evaluator.Evaluate("Price <= 99.99", data);
 ```
+
+### Numeric Semantics
+
+Numbers are normalized before they are compared, so all CLR numeric primitives (`byte`, `sbyte`, `short`, `ushort`, `int`, `uint`, `long`, `ulong`, `float`, `double`, `decimal`) and JSON numbers behave the same:
+
+- **Equality** (`=`, `==`, `!=`, `in` elements, `contains` on collections) is numeric when both sides are numbers: `Price = 10` is true for `10.00m`, JSON `10.50` equals `10.5`, `5L = 5`. Integers and `decimal` compare exactly; `float`/`double` are compared through `decimal` (rounded to the type's significant digits, so `0.1` equals `0.1m`), falling back to `double` outside the `decimal` range.
+- A number compared with a **string** keeps string semantics: the number's invariant string form is compared ordinally (`Count = "5"` matches `5`, not `5.0`).
+- **Ordering** (`>`, `<`, `>=`, `<=`) is numeric across types; numeric strings are parsed with the invariant culture.
+- **Truthiness:** any numeric zero (`0`, `0L`, `0m`, `0.0`, `-0.0`, JSON `0.0`, ...) is `false`.
+- **NaN** equals nothing (not even NaN), is not ordered (`NaN > 5` and `NaN < 5` are both false) and is falsy. Infinities compare as expected.
+
+The same numeric equality and ordering apply to inline `{{(...)}}` expressions; their truthiness rules (only boolean `true` is truthy) are unchanged.
 
 ### Nested Properties
 

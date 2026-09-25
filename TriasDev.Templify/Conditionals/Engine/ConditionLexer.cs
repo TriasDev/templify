@@ -209,6 +209,13 @@ internal sealed class ConditionLexer
 
     private static bool TryParseNumber(string word, out object? value)
     {
+        // Words without any digit ("NaN", "Infinity", "-Infinity") are identifiers, not numbers.
+        if (!word.Any(c => c is >= '0' and <= '9'))
+        {
+            value = null;
+            return false;
+        }
+
         if (!word.Contains('.') && int.TryParse(word, NumberStyles.Integer, CultureInfo.InvariantCulture, out int iv))
         {
             value = iv;
