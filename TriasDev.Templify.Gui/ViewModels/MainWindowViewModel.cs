@@ -2,8 +2,8 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -20,6 +20,13 @@ public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly ITemplifyService _templifyService;
     private readonly IFileDialogService _fileDialogService;
+    private readonly IFileLauncher _fileLauncher;
+
+    /// <summary>
+    /// True once the user explicitly picked an output file; the default output path
+    /// is then no longer derived from the template path.
+    /// </summary>
+    private bool _outputPathChosenByUser;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ValidateTemplateCommand))]
@@ -35,12 +42,30 @@ public partial class MainWindowViewModel : ViewModelBase
     [NotifyCanExecuteChangedFor(nameof(OpenOutputFileCommand))]
     private string? _outputPath;
 
+    /// <summary>
+    /// Informational message about the output file (e.g. that an existing file will be overwritten).
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasOutputNotice))]
+    private string? _outputNotice;
+
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ValidateTemplateCommand))]
     [NotifyCanExecuteChangedFor(nameof(ProcessTemplateCommand))]
+    [NotifyCanExecuteChangedFor(nameof(BrowseTemplateCommand))]
+    [NotifyCanExecuteChangedFor(nameof(BrowseJsonCommand))]
+    [NotifyCanExecuteChangedFor(nameof(BrowseOutputCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ClearCommand))]
+    [NotifyCanExecuteChangedFor(nameof(OpenOutputFileCommand))]
+    [NotifyCanExecuteChangedFor(nameof(GenerateWarningReportCommand))]
+    [NotifyPropertyChangedFor(nameof(IsProgressIndeterminate))]
     private bool _isProcessing;
 
+    /// <summary>
+    /// Progress of the current operation in the range 0..1.
+    /// </summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsProgressIndeterminate))]
     private double _progress;
 
     [ObservableProperty]
@@ -60,14 +85,7 @@ public partial class MainWindowViewModel : ViewModelBase
     /// <summary>
     /// Available cultures for formatting.
     /// </summary>
-    public ObservableCollection<CultureOption> AvailableCultures { get; } = new(
-    [
-        new CultureOption("Invariant", CultureInfo.InvariantCulture),
-        new CultureOption("English (US)", new CultureInfo("en-US")),
-        new CultureOption("German (DE)", new CultureInfo("de-DE")),
-        new CultureOption("French (FR)", new CultureInfo("fr-FR")),
-        new CultureOption("Spanish (ES)", new CultureInfo("es-ES")),
-    ]);
+    public ObservableCollection<CultureOption> AvailableCultures { get; } = new(CreateCultureOptions());
 
     /// <summary>
     /// Gets or sets the selected culture for formatting.
@@ -82,16 +100,37 @@ public partial class MainWindowViewModel : ViewModelBase
     [NotifyCanExecuteChangedFor(nameof(GenerateWarningReportCommand))]
     private UiProcessingResult? _lastProcessingResult;
 
+    /// <summary>
+    /// Path of the most recently saved warning report, if any.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(OpenWarningReportCommand))]
+    private string? _lastWarningReportPath;
+
     public MainWindowViewModel(
         ITemplifyService templifyService,
-        IFileDialogService fileDialogService)
+        IFileDialogService fileDialogService,
+        IFileLauncher fileLauncher)
     {
         _templifyService = templifyService;
         _fileDialogService = fileDialogService;
+        _fileLauncher = fileLauncher;
         _selectedCulture = AvailableCultures[0];
     }
 
-    [RelayCommand]
+    /// <summary>
+    /// True while an operation runs that has not reported any progress yet.
+    /// </summary>
+    public bool IsProgressIndeterminate => IsProcessing && Progress <= 0;
+
+    /// <summary>
+    /// Whether <see cref="OutputNotice"/> contains a message.
+    /// </summary>
+    public bool HasOutputNotice => !string.IsNullOrEmpty(OutputNotice);
+
+    partial void OnOutputPathChanged(string? value) => UpdateOutputNotice();
+
+    [RelayCommand(CanExecute = nameof(CanBrowse))]
     private async Task BrowseTemplateAsync()
     {
         string? selectedFile = await _fileDialogService.OpenTemplateFileAsync();
@@ -102,7 +141,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanBrowse))]
     private async Task BrowseJsonAsync()
     {
         string? selectedFile = await _fileDialogService.OpenJsonFileAsync();
@@ -113,16 +152,20 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanBrowse))]
     private async Task BrowseOutputAsync()
     {
         string defaultName = GenerateOutputFileName();
         string? selectedFile = await _fileDialogService.SaveOutputFileAsync(defaultName);
         if (selectedFile != null)
         {
+            // The native save dialog already asks for overwrite confirmation.
+            _outputPathChosenByUser = true;
             OutputPath = selectedFile;
         }
     }
+
+    private bool CanBrowse() => !IsProcessing;
 
     [RelayCommand(CanExecute = nameof(CanValidate))]
     private async Task ValidateTemplateAsync()
@@ -203,10 +246,27 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
+        if (TemplifyService.PathsAreEqual(TemplatePath, OutputPath))
+        {
+            Results.Clear();
+            Results.Add("✗ The output file must be different from the template file. Choose another output file.");
+            StatusMessage = "Invalid output file";
+            return;
+        }
+
+        if (TemplifyService.PathsAreEqual(JsonPath, OutputPath))
+        {
+            Results.Clear();
+            Results.Add("✗ The output file must be different from the JSON data file. Choose another output file.");
+            StatusMessage = "Invalid output file";
+            return;
+        }
+
         IsProcessing = true;
         StatusMessage = "Processing template...";
         Results.Clear();
         Progress = 0;
+        LastWarningReportPath = null;
 
         try
         {
@@ -261,6 +321,10 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             IsProcessing = false;
             Progress = 0;
+
+            // The output file may have been created (or replaced) by this run.
+            OpenOutputFileCommand.NotifyCanExecuteChanged();
+            UpdateOutputNotice();
         }
     }
 
@@ -280,11 +344,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         try
         {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = OutputPath,
-                UseShellExecute = true
-            });
+            _fileLauncher.Open(OutputPath);
         }
         catch (Exception ex)
         {
@@ -292,11 +352,12 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    private bool CanOpenOutput() => !string.IsNullOrEmpty(OutputPath) && File.Exists(OutputPath);
+    private bool CanOpenOutput() => !IsProcessing && !string.IsNullOrEmpty(OutputPath) && File.Exists(OutputPath);
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanClear))]
     private void Clear()
     {
+        _outputPathChosenByUser = false;
         TemplatePath = null;
         JsonPath = null;
         OutputPath = null;
@@ -304,8 +365,11 @@ public partial class MainWindowViewModel : ViewModelBase
         StatusMessage = "Ready";
         Progress = 0;
         LastProcessingResult = null;
+        LastWarningReportPath = null;
         SelectedCulture = AvailableCultures[0];
     }
+
+    private bool CanClear() => !IsProcessing;
 
     [RelayCommand(CanExecute = nameof(CanGenerateWarningReport))]
     private async Task GenerateWarningReportAsync()
@@ -314,6 +378,8 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             return;
         }
+
+        UiProcessingResult processingResult = LastProcessingResult;
 
         try
         {
@@ -332,34 +398,59 @@ public partial class MainWindowViewModel : ViewModelBase
                 return; // User cancelled
             }
 
-            // Generate and save the report
-            byte[] reportBytes = LastProcessingResult.Processing.GetWarningReportBytes();
+            IsProcessing = true;
+            StatusMessage = "Generating warning report...";
+
+            // Report generation builds a Word document; keep it off the UI thread.
+            byte[] reportBytes = await Task.Run(() => processingResult.Processing.GetWarningReportBytes());
             await File.WriteAllBytesAsync(savePath, reportBytes);
 
+            LastWarningReportPath = savePath;
             Results.Add($"✓ Warning report saved to: {savePath}");
+            Results.Add("  (Use 'Open Warning Report' to view it)");
             StatusMessage = "Warning report generated";
-
-            // Offer to open the report
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = savePath,
-                UseShellExecute = true
-            });
         }
         catch (Exception ex)
         {
             Results.Add($"✗ Failed to generate warning report: {ex.Message}");
+            StatusMessage = "Warning report failed";
+        }
+        finally
+        {
+            IsProcessing = false;
         }
     }
 
     private bool CanGenerateWarningReport() =>
+        !IsProcessing &&
         LastProcessingResult != null &&
         LastProcessingResult.Success &&
         LastProcessingResult.Processing.HasWarnings;
 
+    [RelayCommand(CanExecute = nameof(CanOpenWarningReport))]
+    private void OpenWarningReport()
+    {
+        if (string.IsNullOrEmpty(LastWarningReportPath))
+        {
+            return;
+        }
+
+        try
+        {
+            _fileLauncher.Open(LastWarningReportPath);
+        }
+        catch (Exception ex)
+        {
+            Results.Add($"✗ Failed to open warning report: {ex.Message}");
+        }
+    }
+
+    private bool CanOpenWarningReport() => !string.IsNullOrEmpty(LastWarningReportPath);
+
     private void UpdateOutputPath()
     {
-        if (string.IsNullOrEmpty(TemplatePath))
+        // Never override an output file the user picked explicitly.
+        if (_outputPathChosenByUser || string.IsNullOrEmpty(TemplatePath))
         {
             return;
         }
@@ -367,6 +458,13 @@ public partial class MainWindowViewModel : ViewModelBase
         string dir = Path.GetDirectoryName(TemplatePath) ?? ".";
         string filename = GenerateOutputFileName();
         OutputPath = Path.Combine(dir, filename);
+    }
+
+    private void UpdateOutputNotice()
+    {
+        OutputNotice = !string.IsNullOrEmpty(OutputPath) && File.Exists(OutputPath)
+            ? "⚠ The output file already exists and will be overwritten."
+            : null;
     }
 
     private string GenerateOutputFileName()
@@ -378,6 +476,37 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         return "output.docx";
+    }
+
+    /// <summary>
+    /// Builds the culture list. Cultures that are unavailable (e.g. when running with
+    /// invariant globalization) are skipped instead of crashing the application.
+    /// </summary>
+    private static List<CultureOption> CreateCultureOptions()
+    {
+        List<CultureOption> options = [new CultureOption("Invariant", CultureInfo.InvariantCulture)];
+
+        (string DisplayName, string Name)[] candidates =
+        [
+            ("English (US)", "en-US"),
+            ("German (DE)", "de-DE"),
+            ("French (FR)", "fr-FR"),
+            ("Spanish (ES)", "es-ES"),
+        ];
+
+        foreach ((string displayName, string name) in candidates)
+        {
+            try
+            {
+                options.Add(new CultureOption(displayName, CultureInfo.GetCultureInfo(name)));
+            }
+            catch (CultureNotFoundException)
+            {
+                // Culture data is not available on this system; skip it.
+            }
+        }
+
+        return options;
     }
 
     private static string TruncateMessage(string message, int maxLength)

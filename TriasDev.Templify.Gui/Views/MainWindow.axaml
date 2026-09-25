@@ -12,10 +12,10 @@
         MinWidth="600" MinHeight="500">
 
     <Design.DataContext>
-        <vm:MainWindowViewModel/>
+        <vm:DesignMainWindowViewModel/>
     </Design.DataContext>
 
-    <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,*,Auto">
+    <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,*,Auto">
 
         <!-- Title -->
         <TextBlock Grid.Row="0"
@@ -63,8 +63,15 @@
                     Command="{Binding BrowseOutputCommand}"/>
         </Grid>
 
+        <!-- Output file notice (e.g. existing file will be overwritten) -->
+        <TextBlock Grid.Row="4"
+                   Text="{Binding OutputNotice}"
+                   IsVisible="{Binding HasOutputNotice}"
+                   Foreground="{DynamicResource SystemControlErrorTextForegroundBrush}"
+                   Margin="110,0,0,10"/>
+
         <!-- Options Section -->
-        <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="20" Margin="0,0,0,20">
+        <StackPanel Grid.Row="5" Orientation="Horizontal" Spacing="20" Margin="0,0,0,20">
             <CheckBox Content="Enable HTML Entity Replacement"
                       IsChecked="{Binding EnableHtmlEntityReplacement}"
                       ToolTip.Tip="Convert HTML entities like &lt;br&gt;, &amp;nbsp;, &amp;lt;, etc. to Word equivalents"/>
@@ -78,7 +85,7 @@
         </StackPanel>
 
         <!-- Action Buttons -->
-        <StackPanel Grid.Row="5" Orientation="Horizontal" Spacing="10" Margin="0,0,0,20">
+        <StackPanel Grid.Row="6" Orientation="Horizontal" Spacing="10" Margin="0,0,0,20">
             <Button Content="Validate Template"
                     Command="{Binding ValidateTemplateCommand}"
                     Width="150"/>
@@ -88,18 +95,20 @@
         </StackPanel>
 
         <!-- Status and Progress -->
-        <StackPanel Grid.Row="6" Margin="0,0,0,10">
+        <StackPanel Grid.Row="7" Margin="0,0,0,10">
             <TextBlock Text="{Binding StatusMessage}"
                        FontWeight="SemiBold"
                        Margin="0,0,0,5"/>
             <ProgressBar Value="{Binding Progress}"
-                         IsIndeterminate="{Binding IsProcessing}"
+                         Minimum="0"
+                         Maximum="1"
+                         IsIndeterminate="{Binding IsProgressIndeterminate}"
                          IsVisible="{Binding IsProcessing}"
                          Height="4"/>
         </StackPanel>
 
         <!-- Results Display -->
-        <Border Grid.Row="7"
+        <Border Grid.Row="8"
                 BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                 BorderThickness="1"
                 Padding="10"
@@ -118,11 +127,15 @@
         </Border>
 
         <!-- Bottom Action Buttons -->
-        <StackPanel Grid.Row="8" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+        <StackPanel Grid.Row="9" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
             <Button Content="Generate Warning Report"
                     Command="{Binding GenerateWarningReportCommand}"
                     ToolTip.Tip="Generate a Word document containing all processing warnings"
                     Width="170"/>
+            <Button Content="Open Warning Report"
+                    Command="{Binding OpenWarningReportCommand}"
+                    ToolTip.Tip="Open the last saved warning report"
+                    Width="160"/>
             <Button Content="Open Output File"
                     Command="{Binding OpenOutputFileCommand}"
                     Width="130"/>

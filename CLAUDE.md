@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Solution Structure
 
-This is a multi-project solution with 6 projects:
+This is a multi-project solution with 9 projects:
 
 - **TriasDev.Templify** - Core library with template processing logic
 - **TriasDev.Templify.Tests** - xUnit test suite (109+ tests, 100% coverage)
@@ -20,6 +20,9 @@ This is a multi-project solution with 6 projects:
 - **TriasDev.Templify.Converter** - CLI tool for converting Word documents
 - **TriasDev.Templify.Gui** - Avalonia-based GUI application
 - **TriasDev.Templify.Demo** - Demo console application
+- **TriasDev.Templify.DocumentGenerator** - Generates the example templates/outputs used in the documentation
+- **TriasDev.Templify.Tools.Tests** - xUnit tests for the tools/apps (GUI ViewModel and services, run headless)
+- **TriasDev.Templify.Converter.Tests** - xUnit tests for the Converter CLI (round trips through the core, file safety, CLI parsing)
 
 ## Development Workflow
 

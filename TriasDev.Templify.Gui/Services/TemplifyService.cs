@@ -75,6 +75,20 @@ public class TemplifyService : ITemplifyService
                 OutputPath = outputPath
             };
 
+            if (PathsAreEqual(templatePath, outputPath))
+            {
+                result.Processing = ProcessingResult.Failure(
+                    "The output file must be different from the template file.");
+                return result;
+            }
+
+            // Write to a temporary file next to the output and only move it into place on success,
+            // so that a failed run never leaves an empty or partial document behind.
+            string outputDirectory = Path.GetDirectoryName(Path.GetFullPath(outputPath)) ?? ".";
+            string tempPath = Path.Combine(
+                outputDirectory,
+                $".{Path.GetFileName(outputPath)}.{Guid.NewGuid():N}.tmp");
+
             try
             {
                 progress?.Report(0.1);
@@ -103,11 +117,18 @@ public class TemplifyService : ITemplifyService
 
                 progress?.Report(0.5);
 
-                // Process template
+                // Process template into the temporary file
                 using (FileStream templateStream = File.OpenRead(templatePath))
-                using (FileStream outputStream = File.Create(outputPath))
+                using (FileStream outputStream = File.Create(tempPath))
                 {
                     result.Processing = processor.ProcessTemplate(templateStream, outputStream, data);
+                }
+
+                progress?.Report(0.9);
+
+                if (result.Processing.IsSuccess)
+                {
+                    File.Move(tempPath, outputPath, overwrite: true);
                 }
 
                 progress?.Report(1.0);
@@ -117,8 +138,55 @@ public class TemplifyService : ITemplifyService
                 result.Processing = ProcessingResult.Failure(ex.Message);
                 progress?.Report(1.0);
             }
+            finally
+            {
+                TryDelete(tempPath);
+            }
 
             return result;
         });
+    }
+
+    /// <summary>
+    /// Returns true if both paths point to the same file (compared case-insensitively,
+    /// since the default file systems on Windows and macOS are case-insensitive).
+    /// </summary>
+    internal static bool PathsAreEqual(string? first, string? second)
+    {
+        if (string.IsNullOrWhiteSpace(first) || string.IsNullOrWhiteSpace(second))
+        {
+            return false;
+        }
+
+        try
+        {
+            return string.Equals(
+                Path.GetFullPath(first),
+                Path.GetFullPath(second),
+                StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return false;
+        }
+    }
+
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (IOException)
+        {
+            // Best effort cleanup of the temporary file.
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Best effort cleanup of the temporary file.
+        }
     }
 }
