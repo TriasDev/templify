@@ -553,7 +553,7 @@ Update documentation when you:
 - **[docs/FAQ.md](docs/FAQ.md)** - Frequently asked questions
 
 **XML Documentation:**
-- All public APIs must have XML documentation comments
+- All public APIs must have XML documentation comments (enforced: a missing comment is warning CS1591 in `TriasDev.Templify`, an error in CI builds)
 - XML comments are automatically generated into `.xml` files for IntelliSense
 - Run `dotnet build` to verify XML comment validity
 

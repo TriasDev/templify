@@ -7,7 +7,6 @@
 
     <!-- XML Documentation -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);1591</NoWarn> <!-- Suppress missing XML doc warnings -->
     <!-- RS0026/RS0027: overload design advice for already-shipped API; changing it would be breaking. -->
     <NoWarn>$(NoWarn);RS0026;RS0027</NoWarn>
     <!-- RS0016: public symbol not declared in PublicAPI.*.txt; RS0017: declared symbol removed/changed. -->

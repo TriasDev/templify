@@ -47,6 +47,8 @@ public sealed class ProcessingWarning
     /// <summary>
     /// Creates a warning for a missing variable in a placeholder.
     /// </summary>
+    /// <param name="variableName">The name of the variable that could not be resolved.</param>
+    /// <returns>A <see cref="ProcessingWarningType.MissingVariable"/> warning.</returns>
     public static ProcessingWarning MissingVariable(string variableName)
     {
         return new ProcessingWarning(
@@ -59,6 +61,8 @@ public sealed class ProcessingWarning
     /// <summary>
     /// Creates a warning for a missing loop collection.
     /// </summary>
+    /// <param name="collectionName">The name of the collection that could not be resolved.</param>
+    /// <returns>A <see cref="ProcessingWarningType.MissingLoopCollection"/> warning.</returns>
     public static ProcessingWarning MissingLoopCollection(string collectionName)
     {
         return new ProcessingWarning(
@@ -71,6 +75,8 @@ public sealed class ProcessingWarning
     /// <summary>
     /// Creates a warning for a null loop collection.
     /// </summary>
+    /// <param name="collectionName">The name of the collection whose value is null.</param>
+    /// <returns>A <see cref="ProcessingWarningType.NullLoopCollection"/> warning.</returns>
     public static ProcessingWarning NullLoopCollection(string collectionName)
     {
         return new ProcessingWarning(
@@ -83,6 +89,9 @@ public sealed class ProcessingWarning
     /// <summary>
     /// Creates a warning for a failed expression evaluation.
     /// </summary>
+    /// <param name="expression">The expression that could not be evaluated.</param>
+    /// <param name="reason">Why the evaluation failed.</param>
+    /// <returns>A <see cref="ProcessingWarningType.ExpressionFailed"/> warning.</returns>
     public static ProcessingWarning ExpressionFailed(string expression, string reason)
     {
         return new ProcessingWarning(
