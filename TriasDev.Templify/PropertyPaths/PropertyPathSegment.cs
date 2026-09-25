@@ -1,6 +1,8 @@
 // Copyright (c) 2025 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Globalization;
+
 namespace TriasDev.Templify.PropertyPaths;
 
 /// <summary>
@@ -33,7 +35,7 @@ internal sealed class PropertyPathSegment
         Name = name;
         IsIndexer = isIndexer;
 
-        if (isIndexer && int.TryParse(name, out int index))
+        if (isIndexer && int.TryParse(name, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index))
         {
             Index = index;
         }

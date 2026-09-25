@@ -16,26 +16,26 @@ internal static class ConditionalPatterns
     /// </summary>
     public static readonly Regex IfStart = new(
         @"\{\{#if\s+(.+?)\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     /// <summary>
     /// Pattern to match {{#elseif condition}} markers.
     /// </summary>
     public static readonly Regex ElseIf = new(
         @"\{\{#elseif\s+(.+?)\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     /// <summary>
     /// Pattern to match {{#else}} markers.
     /// </summary>
     public static readonly Regex Else = new(
         @"\{\{#else\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     /// <summary>
     /// Pattern to match {{/if}} markers.
     /// </summary>
     public static readonly Regex IfEnd = new(
         @"\{\{/if\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 }

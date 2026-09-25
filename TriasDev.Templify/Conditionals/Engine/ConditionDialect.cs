@@ -56,13 +56,59 @@ internal sealed class DefaultConditionDialect : ConditionDialect
     public override bool TryCompare(object? left, object? right, out int cmp)
     {
         cmp = 0;
-        if (double.TryParse(left?.ToString() ?? "0", NumberStyles.Float, CultureInfo.InvariantCulture, out double l)
-            && double.TryParse(right?.ToString() ?? "0", NumberStyles.Float, CultureInfo.InvariantCulture, out double r))
+
+        // Compare exact numeric types (integers, decimal) as decimal to avoid double rounding.
+        if (TryGetExactDecimal(left, out decimal ld) && TryGetExactDecimal(right, out decimal rd))
+        {
+            cmp = ld.CompareTo(rd);
+            return true;
+        }
+
+        if (TryGetDouble(left, out double l) && TryGetDouble(right, out double r))
         {
             cmp = l.CompareTo(r);
             return true;
         }
         return false;
+    }
+
+    /// <summary>Null (treated as 0), integer types and decimal convert exactly to decimal.</summary>
+    private static bool TryGetExactDecimal(object? value, out decimal result)
+    {
+        switch (value)
+        {
+            case null:
+                result = 0m;
+                return true;
+            case decimal or int or long or short or byte or sbyte or ushort or uint or ulong:
+                result = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+                return true;
+            default:
+                result = 0m;
+                return false;
+        }
+    }
+
+    /// <summary>
+    /// Converts a value to double without round-tripping numeric CLR values through the current
+    /// culture: numeric types are converted directly, strings (and any other value's string form)
+    /// are parsed with <see cref="CultureInfo.InvariantCulture"/>.
+    /// </summary>
+    private static bool TryGetDouble(object? value, out double result)
+    {
+        switch (value)
+        {
+            case null:
+                result = 0d;
+                return true;
+            case double or float or decimal or int or long or short or byte or sbyte or ushort or uint or ulong:
+                result = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+                return true;
+            case string s:
+                return double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out result);
+            default:
+                return double.TryParse(value.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out result);
+        }
     }
 }
 

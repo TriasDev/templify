@@ -66,6 +66,61 @@ jobs:
       - name: Check formatting
         run: dotnet format --verify-no-changes --no-restore
 
+  # Runs the test suite under non-English cultures and UTC+ time zones to catch
+  # culture/time-zone dependent behavior (e.g. "99,99" vs "99.99", Turkish-I, DateTime.MinValue).
+  culture-tests:
+    name: Culture Tests (${{ matrix.culture }}, ${{ matrix.tz }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - culture: de-DE
+            locale: de_DE.UTF-8
+            tz: Europe/Berlin
+          - culture: tr-TR
+            locale: tr_TR.UTF-8
+            tz: Europe/Istanbul
+    env:
+      LANG: ${{ matrix.locale }}
+      LC_ALL: ${{ matrix.locale }}
+      TZ: ${{ matrix.tz }}
+      DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: '0'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Verify culture and time zone apply to .NET
+        working-directory: ${{ runner.temp }}
+        run: |
+          cat > culture-check.cs <<'EOF'
+          using System.Globalization;
+
+          string expected = args[0];
+          Console.WriteLine($"CurrentCulture={CultureInfo.CurrentCulture.Name} TimeZone={TimeZoneInfo.Local.Id} UtcOffset={TimeZoneInfo.Local.GetUtcOffset(DateTime.UtcNow)} Sample={99.99m}");
+          if (CultureInfo.CurrentCulture.Name != expected)
+          {
+              Console.Error.WriteLine($"Expected culture {expected} but got '{CultureInfo.CurrentCulture.Name}'");
+              return 1;
+          }
+          return 0;
+          EOF
+          dotnet run culture-check.cs -- "${{ matrix.culture }}"
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Run tests
+        run: dotnet test --no-build --configuration Release
+
   pack:
     name: Pack NuGet
     runs-on: ubuntu-latest
@@ -101,7 +156,7 @@ jobs:
     name: CI Success
     runs-on: ubuntu-latest
     if: always()
-    needs: [build-and-test, lint, pack]
+    needs: [build-and-test, lint, culture-tests, pack]
     steps:
       - name: Check job results
         env:

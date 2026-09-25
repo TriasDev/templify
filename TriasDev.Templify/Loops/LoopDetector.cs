@@ -19,7 +19,7 @@ internal static class LoopDetector
     // so we can provide a helpful validation error message instead of silently not matching.
     private static readonly Regex _foreachStartPattern = new Regex(
         @"\{\{#foreach\s+(?:(@?\w+)\s+in\s+)?([\w.]+)\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     /// <summary>
     /// Reserved variable names that cannot be used as iteration variable names.
@@ -32,15 +32,15 @@ internal static class LoopDetector
 
     private static readonly Regex _foreachEndPattern = new Regex(
         @"\{\{/foreach\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     private static readonly Regex _emptyStartPattern = new Regex(
         @"\{\{#empty\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     private static readonly Regex _emptyEndPattern = new Regex(
         @"\{\{/empty\}\}",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     /// <summary>
     /// Validates an iteration variable name and throws if invalid.
@@ -396,7 +396,7 @@ internal static class LoopDetector
         // Create a regex pattern for this specific collection
         Regex specificStartPattern = new Regex(
             $@"\{{\{{#foreach\s+{Regex.Escape(collectionName)}\}}\}}",
-            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         // Check each cell in the row
         foreach (TableCell cell in row.Elements<TableCell>())
