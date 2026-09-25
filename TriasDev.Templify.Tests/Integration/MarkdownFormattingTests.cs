@@ -1,6 +1,7 @@
 // Copyright (c) 2025 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Globalization;
 using DocumentFormat.OpenXml.Wordprocessing;
 using TriasDev.Templify.Core;
 using TriasDev.Templify.Tests.Helpers;
@@ -56,6 +57,8 @@ public sealed class MarkdownFormattingTests
         RunProperties? props2 = runs[1].RunProperties;
         Assert.NotNull(props2);
         Assert.NotNull(props2.GetFirstChild<Bold>());
+
+        Assert.Empty(verifier.GetValidationErrors());
     }
 
     [Fact]
@@ -269,6 +272,8 @@ public sealed class MarkdownFormattingTests
         Color? color = props.GetFirstChild<Color>();
         Assert.NotNull(color);
         Assert.Equal("FF0000", color.Val?.Value);
+
+        Assert.Empty(verifier.GetValidationErrors());
     }
 
     [Fact]
@@ -474,5 +479,248 @@ public sealed class MarkdownFormattingTests
         Run? strikeRun = runs3.FirstOrDefault(r => r.InnerText == "strike");
         Assert.NotNull(strikeRun);
         Assert.NotNull(strikeRun.RunProperties?.GetFirstChild<Strike>());
+    }
+
+    [Fact]
+    public void ProcessTemplate_SnakeCaseValue_DefaultOptions_StillAppliesMarkdown()
+    {
+        // Default EnableMarkdown = true keeps the existing behavior: underscores are emphasis markers.
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("File: {{File}}");
+
+        ProcessingResult result = Process(builder, new Dictionary<string, object> { ["File"] = "my_report_final.docx" }, null, out MemoryStream output);
+
+        Assert.True(result.IsSuccess);
+        using DocumentVerifier verifier = new DocumentVerifier(output);
+        Assert.Equal("File: myreportfinal.docx", verifier.GetParagraphText(0));
+        Run? italicRun = verifier.GetRuns(0).FirstOrDefault(r => r.InnerText == "report");
+        Assert.NotNull(italicRun);
+        Assert.NotNull(italicRun.RunProperties?.GetFirstChild<Italic>());
+        Assert.Empty(verifier.GetValidationErrors());
+    }
+
+    [Fact]
+    public void ProcessTemplate_SnakeCaseValue_MarkdownDisabled_IsNotMangled()
+    {
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("File: {{File}}");
+
+        ProcessingResult result = Process(
+            builder,
+            new Dictionary<string, object> { ["File"] = "my_report_final.docx" },
+            new PlaceholderReplacementOptions { EnableMarkdown = false },
+            out MemoryStream output);
+
+        Assert.True(result.IsSuccess);
+        using DocumentVerifier verifier = new DocumentVerifier(output);
+        Assert.Equal("File: my_report_final.docx", verifier.GetParagraphText(0));
+        Assert.Single(verifier.GetRuns(0));
+    }
+
+    [Fact]
+    public void ProcessTemplate_ArithmeticValue_MarkdownDisabled_IsNotMangled()
+    {
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{Formula}}");
+
+        ProcessingResult result = Process(
+            builder,
+            new Dictionary<string, object> { ["Formula"] = "2*3*4" },
+            new PlaceholderReplacementOptions { EnableMarkdown = false },
+            out MemoryStream output);
+
+        Assert.True(result.IsSuccess);
+        using DocumentVerifier verifier = new DocumentVerifier(output);
+        Assert.Equal("2*3*4", verifier.GetParagraphText(0));
+    }
+
+    [Fact]
+    public void ProcessTemplate_SnakeCaseValue_RawFormat_IsNotMangled()
+    {
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("File: {{File:raw}}");
+
+        ProcessingResult result = Process(builder, new Dictionary<string, object> { ["File"] = "my_report_final.docx" }, null, out MemoryStream output);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.ReplacementCount);
+        using DocumentVerifier verifier = new DocumentVerifier(output);
+        Assert.Equal("File: my_report_final.docx", verifier.GetParagraphText(0));
+        Assert.Single(verifier.GetRuns(0));
+    }
+
+    [Fact]
+    public void ProcessTemplate_ArithmeticValue_RawFormat_IsNotMangled()
+    {
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{Formula:raw}}");
+
+        ProcessingResult result = Process(builder, new Dictionary<string, object> { ["Formula"] = "2*3*4" }, null, out MemoryStream output);
+
+        Assert.True(result.IsSuccess);
+        using DocumentVerifier verifier = new DocumentVerifier(output);
+        Assert.Equal("2*3*4", verifier.GetParagraphText(0));
+    }
+
+    [Fact]
+    public void ProcessTemplate_RawFormat_OnlyAffectsThatPlaceholder()
+    {
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{Code:raw}} {{Message}}");
+
+        ProcessingResult result = Process(
+            builder,
+            new Dictionary<string, object> { ["Code"] = "A_B_C", ["Message"] = "**bold**" },
+            null,
+            out MemoryStream output);
+
+        Assert.True(result.IsSuccess);
+        using DocumentVerifier verifier = new DocumentVerifier(output);
+        Assert.Equal("A_B_C bold", verifier.GetParagraphText(0));
+        Run? boldRun = verifier.GetRuns(0).FirstOrDefault(r => r.InnerText == "bold");
+        Assert.NotNull(boldRun);
+        Assert.NotNull(boldRun.RunProperties?.GetFirstChild<Bold>());
+    }
+
+    [Fact]
+    public void ProcessTemplate_RawFormat_NonStringValue_UsesDefaultConversion()
+    {
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{Flag:raw}} {{Count:raw}}");
+
+        ProcessingResult result = Process(
+            builder,
+            new Dictionary<string, object> { ["Flag"] = true, ["Count"] = 42 },
+            new PlaceholderReplacementOptions { Culture = CultureInfo.InvariantCulture },
+            out MemoryStream output);
+
+        Assert.True(result.IsSuccess);
+        using DocumentVerifier verifier = new DocumentVerifier(output);
+        Assert.Equal("True 42", verifier.GetParagraphText(0));
+    }
+
+    [Theory]
+    [InlineData(true, false, true)]
+    [InlineData(false, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(false, true, false)]
+    public void ProcessTemplate_SplitRunPlaceholder_RespectsEnableMarkdownAndRaw(bool enableMarkdown, bool useRaw, bool expectMarkdown)
+    {
+        // The placeholder is split across two runs; the first run carries color + size.
+        string placeholder = useRaw ? "{{Msg:raw}}" : "{{Msg}}";
+        int split = placeholder.Length / 2;
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraphWithRuns(
+            ("Before ", null),
+            (placeholder[..split], DocumentBuilder.CreateFormatting(color: "FF0000", fontSize: "28")),
+            (placeholder[split..], null),
+            (" after", null));
+
+        ProcessingResult result = Process(
+            builder,
+            new Dictionary<string, object> { ["Msg"] = "a_b_c **x**" },
+            new PlaceholderReplacementOptions { EnableMarkdown = enableMarkdown },
+            out MemoryStream output);
+
+        Assert.True(result.IsSuccess);
+        using DocumentVerifier verifier = new DocumentVerifier(output);
+        List<Run> runs = verifier.GetRuns(0);
+        if (expectMarkdown)
+        {
+            Assert.Equal("Before abc x after", verifier.GetParagraphText(0));
+            Run? boldRun = runs.FirstOrDefault(r => r.InnerText == "x");
+            Assert.NotNull(boldRun);
+            Assert.NotNull(boldRun.RunProperties?.GetFirstChild<Bold>());
+            Assert.Equal("FF0000", boldRun.RunProperties?.GetFirstChild<Color>()?.Val?.Value);
+        }
+        else
+        {
+            Assert.Equal("Before a_b_c **x** after", verifier.GetParagraphText(0));
+            Assert.DoesNotContain(runs, r => r.RunProperties?.GetFirstChild<Bold>() != null);
+            Assert.DoesNotContain(runs, r => r.RunProperties?.GetFirstChild<Italic>() != null);
+        }
+
+        Assert.Empty(verifier.GetValidationErrors());
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    [InlineData(false, true)]
+    public void ProcessTemplate_MarkdownAndNewlines_RespectsEnableMarkdown(bool enableMarkdown, bool splitRuns)
+    {
+        DocumentBuilder builder = new DocumentBuilder();
+        RunProperties red = DocumentBuilder.CreateFormatting(color: "FF0000", fontSize: "28");
+        if (splitRuns)
+        {
+            builder.AddParagraphWithRuns(("{{Mes", red), ("sage}}", null));
+        }
+        else
+        {
+            builder.AddParagraph("{{Message}}", red);
+        }
+
+        ProcessingResult result = Process(
+            builder,
+            new Dictionary<string, object> { ["Message"] = "Line **one**\nline_two_x" },
+            new PlaceholderReplacementOptions { EnableMarkdown = enableMarkdown },
+            out MemoryStream output);
+
+        Assert.True(result.IsSuccess);
+        using DocumentVerifier verifier = new DocumentVerifier(output);
+        Paragraph paragraph = verifier.GetParagraph(0);
+
+        // Newline handling is independent of markdown: exactly one line break either way
+        Assert.Single(paragraph.Descendants<Break>());
+
+        string text = string.Concat(paragraph.Descendants<Text>().Select(t => t.Text));
+        List<Run> runs = paragraph.Descendants<Run>().ToList();
+        if (enableMarkdown)
+        {
+            Assert.Equal("Line onelinetwox", text);
+            Assert.Contains(runs, r => r.InnerText == "one" && r.RunProperties?.GetFirstChild<Bold>() != null);
+            Assert.Contains(runs, r => r.InnerText == "two" && r.RunProperties?.GetFirstChild<Italic>() != null);
+        }
+        else
+        {
+            Assert.Equal("Line **one**line_two_x", text);
+            Assert.DoesNotContain(runs, r => r.RunProperties?.GetFirstChild<Bold>() != null);
+            Assert.DoesNotContain(runs, r => r.RunProperties?.GetFirstChild<Italic>() != null);
+        }
+
+        Assert.All(runs.Where(r => r.Descendants<Text>().Any()), r =>
+            Assert.Equal("FF0000", r.RunProperties?.GetFirstChild<Color>()?.Val?.Value));
+        Assert.Empty(verifier.GetValidationErrors());
+    }
+
+    [Fact]
+    public void ProcessTemplate_BoldAppendedAfterColor_IsSchemaValid()
+    {
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{Msg}}", DocumentBuilder.CreateFormatting(color: "FF0000", fontSize: "28"));
+
+        ProcessingResult result = Process(builder, new Dictionary<string, object> { ["Msg"] = "**bold** *italic* ~~strike~~ ***both***" }, null, out MemoryStream output);
+
+        Assert.True(result.IsSuccess);
+        using DocumentVerifier verifier = new DocumentVerifier(output);
+        Assert.Empty(verifier.GetValidationErrors());
+
+        Run boldRun = verifier.GetRuns(0).First(r => r.InnerText == "bold");
+        Assert.NotNull(boldRun.RunProperties?.GetFirstChild<Bold>());
+        Assert.Equal("FF0000", boldRun.RunProperties?.GetFirstChild<Color>()?.Val?.Value);
+        Assert.Equal("28", boldRun.RunProperties?.GetFirstChild<FontSize>()?.Val?.Value);
+    }
+
+    private static ProcessingResult Process(
+        DocumentBuilder builder,
+        Dictionary<string, object> data,
+        PlaceholderReplacementOptions? options,
+        out MemoryStream output)
+    {
+        MemoryStream templateStream = builder.ToStream();
+        output = new MemoryStream();
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor(options ?? new PlaceholderReplacementOptions());
+        return processor.ProcessTemplate(templateStream, output, data);
     }
 }

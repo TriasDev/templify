@@ -89,12 +89,16 @@ internal static class FormattingPreserver
         // Create new properties if none exist, or use existing ones (caller should have cloned)
         RunProperties properties = baseProperties ?? new RunProperties();
 
+        // Note: the typed setters (properties.Bold etc.) insert the element at its schema-defined
+        // position within w:rPr. Appending would place w:b/w:i/w:strike after w:color/w:sz,
+        // which violates the CT_RPr sequence and fails OpenXmlValidator.
+
         // Apply bold formatting
         if (isBold)
         {
             // Remove existing Bold element if present to avoid duplicates
             properties.RemoveAllChildren<Bold>();
-            properties.Append(new Bold());
+            properties.Bold = new Bold();
         }
 
         // Apply italic formatting
@@ -102,7 +106,7 @@ internal static class FormattingPreserver
         {
             // Remove existing Italic element if present to avoid duplicates
             properties.RemoveAllChildren<Italic>();
-            properties.Append(new Italic());
+            properties.Italic = new Italic();
         }
 
         // Apply strikethrough formatting
@@ -110,7 +114,7 @@ internal static class FormattingPreserver
         {
             // Remove existing Strike element if present to avoid duplicates
             properties.RemoveAllChildren<Strike>();
-            properties.Append(new Strike());
+            properties.Strike = new Strike();
         }
 
         return properties;
