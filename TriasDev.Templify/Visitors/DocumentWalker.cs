@@ -234,6 +234,12 @@ internal sealed class DocumentWalker
         ITemplateElementVisitor visitor,
         IEvaluationContext context)
     {
+        // Snapshot the rows before loop expansion. Rows produced by a table row loop are
+        // already walked by the LoopVisitor with the loop's evaluation context; walking them
+        // again here (with this outer context) would re-process data values as template
+        // syntax (template injection) and duplicate warnings. See issue #140.
+        List<TableRow> originalRows = table.Elements<TableRow>().ToList();
+
         // Step 1: Detect and process table row loops
         // Table row loops have markers in separate rows (e.g., row 1: {{#foreach Items}}, row 3: {{/foreach}})
         // These must be detected at the table level before walking individual cells
@@ -250,10 +256,10 @@ internal sealed class DocumentWalker
         }
 
         // Step 2: Walk remaining rows and cells
-        // After table row loops are processed, walk the remaining cells
-        foreach (TableRow row in table.Elements<TableRow>().ToList())
+        // After table row loops are processed, walk the remaining original cells
+        foreach (TableRow row in originalRows)
         {
-            // Skip if row was removed by loop processing
+            // Skip if row was removed by loop processing (loop markers and loop content rows)
             if (row.Parent == null)
             {
                 continue;
