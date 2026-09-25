@@ -4,7 +4,7 @@ Get up and running with Templify in 5 minutes and generate your first Word docum
 
 ## Prerequisites
 
-- .NET 6.0 SDK or later ([Download](https://dotnet.microsoft.com/download))
+- .NET 8.0 SDK or later ([Download](https://dotnet.microsoft.com/download)); Templify targets net8.0, net9.0 and net10.0
 - A code editor (Visual Studio 2022, VS Code, or Rider)
 - Basic C# knowledge
 

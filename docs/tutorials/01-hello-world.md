@@ -19,7 +19,7 @@ By the end of this tutorial, you'll be able to:
 
 ## Prerequisites
 
-- .NET 6.0 SDK or later installed
+- .NET 8.0 SDK or later installed
 - Code editor (VS 2022, VS Code, or Rider)
 - Templify NuGet package installed
 - Microsoft Word (for creating templates)

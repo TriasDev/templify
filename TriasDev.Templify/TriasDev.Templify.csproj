@@ -1,7 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net10.0;net9.0;net8.0;net6.0</TargetFrameworks>
+    <!-- Supported TFMs: .NET versions in Microsoft support. EOL TFMs are dropped in a minor release
+         with a release-notes notice (net6.0 dropped in 1.8.0, see #154 and CompatibilitySuppressions.xml). -->
+    <TargetFrameworks>net10.0;net9.0;net8.0</TargetFrameworks>
 
     <!-- XML Documentation -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
