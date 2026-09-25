@@ -71,7 +71,7 @@ public static class JsonDataParser
     /// <summary>
     /// Converts a JsonElement to an appropriate .NET object based on its type.
     /// </summary>
-    private static object ConvertJsonElementToObject(JsonElement element)
+    internal static object ConvertJsonElementToObject(JsonElement element)
     {
         switch (element.ValueKind)
         {
