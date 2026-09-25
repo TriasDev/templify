@@ -12,17 +12,18 @@ A tool for automatically generating example Word documents and converting them t
 
 ### Prerequisites
 
-- .NET 9 SDK
-- Access to a Stirling-PDF instance (for image generation)
+- .NET 10 SDK
+- Access to a Stirling-PDF instance (only for image generation; use `--skip-images` without it)
 
 ### Setup
 
-1. Copy the environment file:
+1. Copy the environment file (the tool looks for `.env` in the current directory and its parents,
+   then in `TriasDev.Templify.DocumentGenerator/`):
    ```bash
-   cp .env.example .env
+   cp TriasDev.Templify.DocumentGenerator/.env.example TriasDev.Templify.DocumentGenerator/.env
    ```
 
-2. Edit `.env` and configure your Stirling-PDF instance:
+2. Edit `.env` and configure your Stirling-PDF instance (`.env` is git-ignored):
    ```env
    STIRLING_PDF_URL=https://your-stirling-instance.com
    STIRLING_PDF_API_KEY=your-api-key-here
@@ -40,12 +41,21 @@ dotnet run --project TriasDev.Templify.DocumentGenerator
 dotnet run --project TriasDev.Templify.DocumentGenerator -- hello-world
 dotnet run --project TriasDev.Templify.DocumentGenerator -- invoice
 dotnet run --project TriasDev.Templify.DocumentGenerator -- conditionals
+dotnet run --project TriasDev.Templify.DocumentGenerator -- advanced-conditionals
+dotnet run --project TriasDev.Templify.DocumentGenerator -- warning-report
 ```
 
 **Skip image generation:**
 ```bash
 dotnet run --project TriasDev.Templify.DocumentGenerator -- --skip-images
 ```
+
+The repository root is located automatically (directory containing `templify.sln`), so the tool can be
+run from any directory. It exits with a non-zero code if any example fails to generate or process, or if
+image conversion was requested but fails.
+
+Sample data uses a fixed date (`ExampleGenerators.SampleDate`, 2025-01-15) so that regenerated outputs
+have stable content.
 
 ## Output
 
@@ -56,8 +66,8 @@ examples/
 ├── templates/          # Template .docx files (with {{placeholders}})
 └── outputs/            # Processed .docx files (with actual data)
 
-docfx_project/images/examples/
-├── templates/          # PNG screenshots of templates
+docs/images/examples/
+├── templates/          # PNG screenshots of templates (used by the MkDocs site)
 └── outputs/            # PNG screenshots of outputs
 ```
 
@@ -84,6 +94,26 @@ docfx_project/images/examples/
   - Boolean expressions (=, !=, and, or)
   - Nested conditionals
   - Multiple condition types
+
+### 4. Advanced Conditionals (`advanced-conditionals`)
+- **Purpose**: Demonstrates elseif chains and the extended condition operators
+- **Features**:
+  - `{{#if}}` / `{{#elseif}}` / `{{#else}}` chains
+  - Membership: `Role in ("Admin", "Editor")`, `Country in SupportedCountries`
+  - String checks: `contains`, `startswith`
+  - Existence: `exists`, `is empty`, `is not empty`
+  - Grouping with parentheses: `(Points >= 500 or IsPartner) and not IsSuspended`
+
+### 5. Warning Report (`warning-report`)
+- **Purpose**: The template Templify uses to render processing warnings
+  (`ProcessingResult.GetWarningReport()`)
+- **Manual step**: The library embeds a copy of this template as a resource. After changing
+  `WarningReportTemplateGenerator`, regenerate it and copy it into the core library:
+  ```bash
+  dotnet run --project TriasDev.Templify.DocumentGenerator -- warning-report --skip-images
+  cp examples/templates/warning-report-template.docx TriasDev.Templify/Resources/WarningReportTemplate.docx
+  ```
+  Then run the test suite (`ProcessingWarnings*` tests cover the report) before committing.
 
 ## Architecture
 
@@ -112,7 +142,7 @@ docfx_project/images/examples/
 
 ```
 1. Load .env configuration
-2. Create generators (HelloWorld, Invoice, Conditionals)
+2. Create generators (ExampleGenerators.All)
 3. For each generator:
    ├─▶ Generate template.docx (using OpenXML)
    ├─▶ Process with Templify → output.docx
@@ -154,16 +184,17 @@ docfx_project/images/examples/
    }
    ```
 
-2. Register in `Program.cs`:
+2. Register in `ExampleGenerators.cs`:
    ```csharp
-   var generators = new List<IExampleGenerator>
-   {
+   public static IReadOnlyList<IExampleGenerator> All { get; } =
+   [
        new HelloWorldGenerator(),
-       new InvoiceGenerator(),
-       new ConditionalGenerator(),
+       // ...
        new MyExampleGenerator(),  // Add here
-   };
+   ];
    ```
+   The smoke test in `TriasDev.Templify.Tools.Tests` (`ExampleGeneratorSmokeTests`) automatically
+   covers every registered generator: the template must process without warnings and without leftover `{{`.
 
 3. Run the generator:
    ```bash
@@ -207,16 +238,16 @@ AddTableRow(table, "{{/foreach}}", "", "");
 
 ## Using Images in Documentation
 
-After generating images, reference them in your markdown files:
+After generating images, reference them in your markdown files (paths relative to e.g. `docs/for-template-authors/`):
 
 ```markdown
 ## Example: Hello World
 
 **Template:**
-![Hello World Template](../../images/examples/templates/hello-world-template.png)
+![Hello World Template](../images/examples/templates/hello-world-template.png)
 
 **Output:**
-![Hello World Output](../../images/examples/outputs/hello-world-output.png)
+![Hello World Output](../images/examples/outputs/hello-world-output.png)
 
 The template shows how to use placeholders like `{{FirstName}}` and `{{Company.Name}}`.
 ```
@@ -256,7 +287,7 @@ The tool requires a running Stirling-PDF instance. Options:
 ### "STIRLING_PDF_URL not configured"
 
 **Solution**:
-- Create `.env` file from `.env.example`
+- Create `TriasDev.Templify.DocumentGenerator/.env` from `.env.example`
 - Set `STIRLING_PDF_URL` variable
 - Restart the tool
 

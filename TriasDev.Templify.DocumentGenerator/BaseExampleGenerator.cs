@@ -23,8 +23,9 @@ public abstract class BaseExampleGenerator : IExampleGenerator
 
         var outputPath = Path.Combine(outputDirectory, $"{Name}-output.docx");
 
+        // Process into memory first so that a failed run never leaves a broken output file behind.
         using var templateStream = File.OpenRead(templatePath);
-        using var outputStream = File.Create(outputPath);
+        using var outputStream = new MemoryStream();
 
         var result = processor.ProcessTemplate(templateStream, outputStream, data);
 
@@ -34,10 +35,16 @@ public abstract class BaseExampleGenerator : IExampleGenerator
                 $"Failed to process template: {result.ErrorMessage}");
         }
 
+        File.WriteAllBytes(outputPath, outputStream.ToArray());
+
         Console.WriteLine($"  ✓ Processed template: {result.ReplacementCount} placeholders replaced");
         if (result.MissingVariables.Any())
         {
             Console.WriteLine($"  ⚠ Missing variables: {string.Join(", ", result.MissingVariables)}");
+        }
+        if (result.HasWarnings)
+        {
+            Console.WriteLine($"  ⚠ {result.Warnings.Count} processing warning(s)");
         }
 
         return outputPath;

@@ -1,34 +1,28 @@
 using DotNetEnv;
 using TriasDev.Templify.DocumentGenerator;
-using TriasDev.Templify.DocumentGenerator.Generators;
-
-// Load environment variables
-var envPath = FindEnvFile();
-if (envPath != null)
-{
-    Env.Load(envPath);
-}
 
 Console.WriteLine("Templify Documentation Example Generator");
 Console.WriteLine("=========================================");
 Console.WriteLine();
 
-// Get base directories
-var baseDir = Directory.GetCurrentDirectory();
-while (!Directory.Exists(Path.Combine(baseDir, "examples")))
+// Resolve the repository root independently of the current working directory
+var baseDir = RepositoryPaths.FindRepositoryRoot();
+if (baseDir == null)
 {
-    var parent = Directory.GetParent(baseDir);
-    if (parent == null)
-    {
-        Console.WriteLine("Error: Could not find 'examples' directory. Run from repository root.");
-        return 1;
-    }
-    baseDir = parent.FullName;
+    Console.WriteLine("Error: Could not find the repository root (directory containing templify.sln and examples/).");
+    return 1;
 }
 
-var templatesDir = Path.Combine(baseDir, "examples", "templates");
-var outputsDir = Path.Combine(baseDir, "examples", "outputs");
-var imagesDir = Path.Combine(baseDir, "docfx_project", "images", "examples");
+// Load environment variables (.env in the current directory or a parent, or next to the project)
+var envPath = FindEnvFile(baseDir);
+if (envPath != null)
+{
+    Env.Load(envPath);
+}
+
+var templatesDir = RepositoryPaths.TemplatesDirectory(baseDir);
+var outputsDir = RepositoryPaths.OutputsDirectory(baseDir);
+var imagesDir = RepositoryPaths.ImagesDirectory(baseDir);
 
 // Ensure directories exist
 Directory.CreateDirectory(templatesDir);
@@ -37,17 +31,13 @@ Directory.CreateDirectory(Path.Combine(imagesDir, "templates"));
 Directory.CreateDirectory(Path.Combine(imagesDir, "outputs"));
 
 // Register all generators
-var generators = new List<IExampleGenerator>
-{
-    new HelloWorldGenerator(),
-    new InvoiceGenerator(),
-    new ConditionalGenerator(),
-    new WarningReportTemplateGenerator(),
-};
+var generators = ExampleGenerators.All;
 
 // Parse command line arguments
 var skipImages = args.Contains("--skip-images");
 var requestedExample = args.FirstOrDefault(a => !a.StartsWith("--"));
+
+var failures = 0;
 
 // Generate documents
 if (string.IsNullOrEmpty(requestedExample) || requestedExample == "all")
@@ -57,11 +47,21 @@ if (string.IsNullOrEmpty(requestedExample) || requestedExample == "all")
 
     foreach (var generator in generators)
     {
-        GenerateExample(generator, templatesDir, outputsDir);
+        if (!GenerateExample(generator, templatesDir, outputsDir))
+        {
+            failures++;
+        }
     }
 
     Console.WriteLine();
-    Console.WriteLine($"✓ Generated {generators.Count} examples successfully!");
+    if (failures == 0)
+    {
+        Console.WriteLine($"✓ Generated {generators.Count} examples successfully!");
+    }
+    else
+    {
+        Console.WriteLine($"✗ {failures} of {generators.Count} examples failed.");
+    }
 }
 else
 {
@@ -79,10 +79,18 @@ else
         return 1;
     }
 
-    GenerateExample(generator, templatesDir, outputsDir);
+    var succeeded = GenerateExample(generator, templatesDir, outputsDir);
 
     Console.WriteLine();
-    Console.WriteLine($"✓ Generated '{generator.Name}' successfully!");
+    if (succeeded)
+    {
+        Console.WriteLine($"✓ Generated '{generator.Name}' successfully!");
+    }
+    else
+    {
+        failures++;
+        Console.WriteLine($"✗ Generating '{generator.Name}' failed.");
+    }
 }
 
 // Convert to images
@@ -101,7 +109,7 @@ if (!skipImages)
     {
         Console.WriteLine("⚠ Skipping image conversion: STIRLING_PDF_URL not configured");
         Console.WriteLine("  To enable image generation:");
-        Console.WriteLine("  1. Copy .env.example to .env");
+        Console.WriteLine("  1. Copy TriasDev.Templify.DocumentGenerator/.env.example to TriasDev.Templify.DocumentGenerator/.env");
         Console.WriteLine("  2. Set STIRLING_PDF_URL and STIRLING_PDF_API_KEY");
     }
     else
@@ -114,6 +122,7 @@ if (!skipImages)
 
         if (!isConnected)
         {
+            failures++;
             Console.WriteLine("✗ Cannot connect to Stirling-PDF");
             Console.WriteLine("  Please ensure:");
             Console.WriteLine("  - Stirling-PDF is running");
@@ -127,8 +136,8 @@ if (!skipImages)
             Console.WriteLine("✓ Connected to Stirling-PDF");
             Console.WriteLine();
 
-            await ConvertDocumentsToImages(converter, templatesDir, Path.Combine(imagesDir, "templates"), "templates");
-            await ConvertDocumentsToImages(converter, outputsDir, Path.Combine(imagesDir, "outputs"), "outputs");
+            failures += await ConvertDocumentsToImages(converter, templatesDir, Path.Combine(imagesDir, "templates"), "templates");
+            failures += await ConvertDocumentsToImages(converter, outputsDir, Path.Combine(imagesDir, "outputs"), "outputs");
         }
     }
 }
@@ -165,9 +174,9 @@ if (!skipImages && (templateImageCount > 0 || outputImageCount > 0))
     Console.WriteLine($"  Documents: {templatesDir}");
     Console.WriteLine($"  Images:    {imagesDir}");
     Console.WriteLine();
-    Console.WriteLine("💡 Usage in documentation:");
-    Console.WriteLine("  ![Template](../../images/examples/templates/hello-world-template.png)");
-    Console.WriteLine("  ![Output](../../images/examples/outputs/hello-world-output.png)");
+    Console.WriteLine("💡 Usage in documentation (from docs/for-template-authors/*.md):");
+    Console.WriteLine("  ![Template](../images/examples/templates/hello-world-template.png)");
+    Console.WriteLine("  ![Output](../images/examples/outputs/hello-world-output.png)");
 }
 else
 {
@@ -176,13 +185,18 @@ else
 }
 
 Console.WriteLine();
-Console.WriteLine("✓ All done!");
+if (failures > 0)
+{
+    Console.WriteLine($"✗ Finished with {failures} failure(s).");
+    return 1;
+}
 
+Console.WriteLine("✓ All done!");
 return 0;
 
 // Helper functions
 
-static string? FindEnvFile()
+static string? FindEnvFile(string repositoryRoot)
 {
     var dir = Directory.GetCurrentDirectory();
     while (dir != null)
@@ -195,10 +209,12 @@ static string? FindEnvFile()
 
         dir = Directory.GetParent(dir)?.FullName;
     }
-    return null;
+
+    var projectEnvPath = Path.Combine(repositoryRoot, "TriasDev.Templify.DocumentGenerator", ".env");
+    return File.Exists(projectEnvPath) ? projectEnvPath : null;
 }
 
-static void GenerateExample(IExampleGenerator generator, string templatesDir, string outputsDir)
+static bool GenerateExample(IExampleGenerator generator, string templatesDir, string outputsDir)
 {
     Console.WriteLine($"[{generator.Name}]");
     Console.WriteLine($"  Description: {generator.Description}");
@@ -216,15 +232,17 @@ static void GenerateExample(IExampleGenerator generator, string templatesDir, st
         Console.WriteLine($"✓ {Path.GetFileName(outputPath)}");
 
         Console.WriteLine();
+        return true;
     }
     catch (Exception ex)
     {
         Console.WriteLine($"✗ Error: {ex.Message}");
         Console.WriteLine();
+        return false;
     }
 }
 
-static async Task ConvertDocumentsToImages(StirlingPdfConverter converter, string sourceDir, string targetDir, string label)
+static async Task<int> ConvertDocumentsToImages(StirlingPdfConverter converter, string sourceDir, string targetDir, string label)
 {
     Console.WriteLine($"Converting {label}...");
 
@@ -252,4 +270,5 @@ static async Task ConvertDocumentsToImages(StirlingPdfConverter converter, strin
 
     Console.WriteLine($"  Converted: {successCount}/{docxFiles.Length}");
     Console.WriteLine();
+    return docxFiles.Length - successCount;
 }
