@@ -13,3 +13,22 @@ TriasDev.Templify.Core.OdtTemplateProcessor.ProcessTemplateFile(string! template
 TriasDev.Templify.Core.OdtTemplateProcessor.ValidateTemplate(System.IO.Stream! templateStream) -> TriasDev.Templify.Core.ValidationResult!
 TriasDev.Templify.Core.OdtTemplateProcessor.ValidateTemplate(System.IO.Stream! templateStream, System.Collections.Generic.Dictionary<string!, object!>! data) -> TriasDev.Templify.Core.ValidationResult!
 TriasDev.Templify.Core.OdtTemplateProcessor.ValidateTemplate(System.IO.Stream! templateStream, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! data) -> TriasDev.Templify.Core.ValidationResult!
+TriasDev.Templify.Core.TemplateFormat
+TriasDev.Templify.Core.TemplateFormat.Docx = 1 -> TriasDev.Templify.Core.TemplateFormat
+TriasDev.Templify.Core.TemplateFormat.Odt = 2 -> TriasDev.Templify.Core.TemplateFormat
+TriasDev.Templify.Core.TemplateFormat.Unknown = 0 -> TriasDev.Templify.Core.TemplateFormat
+TriasDev.Templify.Core.TemplateProcessor
+TriasDev.Templify.Core.TemplateProcessor.ProcessTemplate(System.IO.Stream! templateStream, System.IO.Stream! outputStream, System.Collections.Generic.Dictionary<string!, object!>! data) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.TemplateProcessor.ProcessTemplate(System.IO.Stream! templateStream, System.IO.Stream! outputStream, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! data) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.TemplateProcessor.ProcessTemplate(System.IO.Stream! templateStream, System.IO.Stream! outputStream, string! jsonData) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.TemplateProcessor.ProcessTemplate(byte[]! template, System.Collections.Generic.Dictionary<string!, object!>! data, out byte[]! output) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.TemplateProcessor.ProcessTemplate(byte[]! template, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! data, out byte[]! output) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.TemplateProcessor.ProcessTemplate(byte[]! template, string! jsonData, out byte[]! output) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.TemplateProcessor.ProcessTemplateFile(string! templatePath, string! outputPath, System.Collections.Generic.Dictionary<string!, object!>! data) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.TemplateProcessor.ProcessTemplateFile(string! templatePath, string! outputPath, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! data) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.TemplateProcessor.ProcessTemplateFile(string! templatePath, string! outputPath, string! jsonData) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.TemplateProcessor.TemplateProcessor(TriasDev.Templify.Core.PlaceholderReplacementOptions? options = null) -> void
+TriasDev.Templify.Core.TemplateProcessor.ValidateTemplate(System.IO.Stream! templateStream) -> TriasDev.Templify.Core.ValidationResult!
+TriasDev.Templify.Core.TemplateProcessor.ValidateTemplate(System.IO.Stream! templateStream, System.Collections.Generic.Dictionary<string!, object!>! data) -> TriasDev.Templify.Core.ValidationResult!
+TriasDev.Templify.Core.TemplateProcessor.ValidateTemplate(System.IO.Stream! templateStream, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! data) -> TriasDev.Templify.Core.ValidationResult!
+static TriasDev.Templify.Core.TemplateProcessor.DetectFormat(System.IO.Stream! templateStream) -> TriasDev.Templify.Core.TemplateFormat
