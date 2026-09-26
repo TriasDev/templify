@@ -150,7 +150,7 @@ public sealed class DocumentTemplateProcessorEdgeCaseTests
         Assert.True(run.Verifier.HasUpdateFieldsOnOpen());
     }
 
-    [Fact(Skip = "Bug: #196")]
+    [Fact]
     public void ProcessTemplate_AutoMode_SimpleFieldInFooter_SetsUpdateFieldsOnOpen()
     {
         // <w:fldSimple w:instr="PAGE"/> is how many generators (and Word for some fields) write page numbers
@@ -161,6 +161,138 @@ public sealed class DocumentTemplateProcessorEdgeCaseTests
         using TemplateTestRun run = TemplateTestHarness.Process(builder, _data, AutoOptions());
 
         Assert.True(run.Verifier.HasUpdateFieldsOnOpen());
+    }
+
+    [Theory]
+    [InlineData(" TOC \\o \"1-3\" \\h ")]
+    [InlineData("REF _Ref123 \\h")]
+    [InlineData("date \\@ \"yyyy-MM-dd\"")]
+    public void ProcessTemplate_AutoMode_DynamicSimpleFieldInBody_SetsUpdateFieldsOnOpen(string instruction)
+    {
+        DocumentBuilder builder = new DocumentBuilder().AddParagraph("Hello {{Name}}");
+        builder.AddElement(SimpleFieldParagraph(instruction));
+
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, _data, AutoOptions());
+
+        Assert.True(run.Verifier.HasUpdateFieldsOnOpen());
+    }
+
+    [Fact]
+    public void ProcessTemplate_AutoMode_SimpleFieldInHeader_SetsUpdateFieldsOnOpen()
+    {
+        DocumentBuilder builder = new DocumentBuilder().AddParagraph("Hello {{Name}}").AddHeader("Header");
+        builder.MainPart.HeaderParts.Single().Header!.Append(SimpleFieldParagraph("NUMPAGES"));
+
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, _data, AutoOptions());
+
+        Assert.True(run.Verifier.HasUpdateFieldsOnOpen());
+    }
+
+    [Fact]
+    public void ProcessTemplate_AutoMode_SimpleFieldInFootnote_SetsUpdateFieldsOnOpen()
+    {
+        DocumentBuilder builder = new DocumentBuilder();
+        FootnotesPart part = builder.MainPart.AddNewPart<FootnotesPart>();
+        part.Footnotes = new Footnotes(new Footnote(SimpleFieldParagraph(" PAGEREF _Toc1 \\h ")) { Id = 1 });
+        builder.AddElement(new Paragraph(new Run(new Text("Hello {{Name}}")), new Run(new FootnoteReference { Id = 1 })));
+
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, _data, AutoOptions());
+
+        Assert.True(run.Verifier.HasUpdateFieldsOnOpen());
+    }
+
+    [Fact]
+    public void ProcessTemplate_AutoMode_SimpleFieldInEndnote_SetsUpdateFieldsOnOpen()
+    {
+        DocumentBuilder builder = new DocumentBuilder();
+        EndnotesPart part = builder.MainPart.AddNewPart<EndnotesPart>();
+        part.Endnotes = new Endnotes(new Endnote(SimpleFieldParagraph("NOTEREF _Ref1")) { Id = 1 });
+        builder.AddElement(new Paragraph(new Run(new Text("Hello {{Name}}")), new Run(new EndnoteReference { Id = 1 })));
+
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, _data, AutoOptions());
+
+        Assert.True(run.Verifier.HasUpdateFieldsOnOpen());
+    }
+
+    [Fact]
+    public void ProcessTemplate_AutoMode_ComplexFieldInFootnote_SetsUpdateFieldsOnOpen()
+    {
+        DocumentBuilder builder = new DocumentBuilder();
+        FootnotesPart part = builder.MainPart.AddNewPart<FootnotesPart>();
+        Footnote footnote = new Footnote { Id = 1 };
+        AppendComplexField(footnote, " PAGE ");
+        part.Footnotes = new Footnotes(footnote);
+        builder.AddElement(new Paragraph(new Run(new Text("Hello {{Name}}")), new Run(new FootnoteReference { Id = 1 })));
+
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, _data, AutoOptions());
+
+        Assert.True(run.Verifier.HasUpdateFieldsOnOpen());
+    }
+
+    [Theory]
+    [InlineData("   ")]
+    [InlineData(" MERGEFIELD Name ")]
+    [InlineData("PAGEX")]
+    public void ProcessTemplate_AutoMode_OnlyBlankOrStaticSimpleFields_DoesNotSetUpdateFieldsOnOpen(string instruction)
+    {
+        DocumentBuilder builder = new DocumentBuilder().AddParagraph("Hello {{Name}}").AddFooter("Footer");
+        builder.MainPart.FooterParts.Single().Footer!.Append(SimpleFieldParagraph(instruction));
+        builder.AddElement(SimpleFieldParagraph(instruction));
+
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, _data, AutoOptions());
+
+        Assert.False(run.Verifier.HasUpdateFieldsOnOpen());
+    }
+
+    [Fact]
+    public void ProcessTemplate_AutoMode_SimpleFieldWithoutInstruction_DoesNotSetUpdateFieldsOnOpen()
+    {
+        DocumentBuilder builder = new DocumentBuilder().AddParagraph("Hello {{Name}}");
+        builder.AddElement(new Paragraph(new SimpleField(new Run(new Text("x")))));
+
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, _data, AutoOptions());
+
+        Assert.False(run.Verifier.HasUpdateFieldsOnOpen());
+    }
+
+    [Fact]
+    public void ProcessTemplate_AutoMode_StaticComplexFieldAndDynamicSimpleField_SetsUpdateFieldsOnOpen()
+    {
+        DocumentBuilder builder = new DocumentBuilder().AddParagraph("Hello {{Name}}").AddFooter("Footer");
+        AppendComplexField(builder.MainPart.FooterParts.Single().Footer!, " MERGEFIELD Name ");
+        builder.MainPart.FooterParts.Single().Footer!.Append(SimpleFieldParagraph(" PAGE "));
+
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, _data, AutoOptions());
+
+        Assert.True(run.Verifier.HasUpdateFieldsOnOpen());
+    }
+
+    [Fact]
+    public void ProcessTemplate_AutoMode_StaticSimpleFieldAndDynamicComplexField_SetsUpdateFieldsOnOpen()
+    {
+        DocumentBuilder builder = new DocumentBuilder().AddParagraph("Hello {{Name}}").AddFooter("Footer");
+        builder.MainPart.FooterParts.Single().Footer!.Append(SimpleFieldParagraph(" MERGEFIELD Name "));
+        AppendComplexField(builder.MainPart.FooterParts.Single().Footer!, " NUMPAGES ");
+
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, _data, AutoOptions());
+
+        Assert.True(run.Verifier.HasUpdateFieldsOnOpen());
+    }
+
+    [Fact]
+    public void ProcessTemplate_NeverMode_DynamicSimpleField_DoesNotSetUpdateFieldsOnOpen()
+    {
+        DocumentBuilder builder = new DocumentBuilder().AddParagraph("Hello {{Name}}");
+        builder.AddElement(SimpleFieldParagraph(" PAGE "));
+        PlaceholderReplacementOptions options = new PlaceholderReplacementOptions
+        {
+            Culture = System.Globalization.CultureInfo.InvariantCulture,
+            UpdateFieldsOnOpen = UpdateFieldsOnOpenMode.Never
+        };
+
+        using TemplateTestRun run = TemplateTestHarness.Process(builder, _data, options);
+
+        Assert.False(run.Verifier.HasUpdateFieldsOnOpen());
     }
 
     [Theory]
@@ -232,6 +364,14 @@ public sealed class DocumentTemplateProcessorEdgeCaseTests
         Culture = System.Globalization.CultureInfo.InvariantCulture,
         UpdateFieldsOnOpen = UpdateFieldsOnOpenMode.Always
     };
+
+    /// <summary>
+    /// Creates a paragraph with a simple field (<c>w:fldSimple w:instr="..."</c>).
+    /// </summary>
+    private static Paragraph SimpleFieldParagraph(string instruction)
+    {
+        return new Paragraph(new SimpleField(new Run(new Text("1"))) { Instruction = instruction });
+    }
 
     /// <summary>
     /// Appends a paragraph with a complex field (<c>fldChar begin / instrText / separate / result / end</c>).

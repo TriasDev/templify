@@ -326,7 +326,7 @@ var options = new PlaceholderReplacementOptions
 
 ### Fields Detected in Auto Mode
 
-Auto mode looks at field codes in the body, headers and footers:
+Auto mode looks at field codes in the body, headers, footers, footnotes and endnotes. Both complex fields (`w:instrText`) and simple fields (`w:fldSimple`) count. The field type (the first word of the field code) must be one of:
 
 - `TOC` - Table of Contents
 - `PAGE` - Current page number
