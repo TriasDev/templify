@@ -47,8 +47,9 @@ Pick a style and stick with it throughout your template:
 ```
 
 **Avoid:**
-- `snake_case` (hard to read in templates)
-- `kebab-case` (doesn't work well with dot notation)
+- `snake_case` (works, but is hard to read in templates)
+- `kebab-case` and names with spaces (`"first-name"`, `"First Name"`): they **cannot** be used in placeholders at all. Names may only contain letters, digits and underscores
+- Names that are condition keywords: `And`, `Or`, `Not`, `True`, `False` and `Null` can only be used in conditions with the `[Name]` escape; `Empty`, `Exists`, `In`, `Contains`, ... work but are easy to misread
 - Mixing styles
 
 ### Boolean Names Should Be Questions
@@ -147,7 +148,7 @@ Employees:
 
 ### Add Comments in Word
 
-Use Word's comment feature to document your templates:
+Use Word's comment feature to document your templates. Comments are not processed, so placeholders mentioned in a comment stay as they are:
 
 1. Select a placeholder or section
 2. Right-click → New Comment
@@ -387,9 +388,9 @@ Consider splitting very large documents into multiple templates.
 
 **❌ Raw values:**
 ```
-Active: {{IsActive}}        → Active: true
+Active: {{IsActive}}        → Active: True
 Price: {{Price}}            → Price: 1234.5
-Date: {{Date}}              → Date: 2024-01-15T00:00:00
+Date: {{Date}}              → Date: 2024-01-15 (or 1/15/2024 12:00:00 AM for a date value from code)
 ```
 
 **✅ Formatted:**
@@ -397,6 +398,8 @@ Date: {{Date}}              → Date: 2024-01-15T00:00:00
 Active: {{IsActive:yesno}}  → Active: Yes
 Price: {{Price:currency}}   → Price: $1,234.50
 Date: {{Date:date:MMM d}}   → Date: Jan 15
+
+(Output shown for the en-US culture.)
 ```
 
 ### Preserve Template Formatting
@@ -483,7 +486,7 @@ Maintain a sample JSON file alongside your template:
 
 ### 1. Forgetting {{/if}} or {{/foreach}}
 
-**Error:** Template doesn't process correctly
+**Error:** Processing fails with a message such as `Conditional start marker '{{#if A}}' has no matching '{{/if}}'`.
 
 **Solution:** Count your opening and closing tags:
 ```
@@ -510,8 +513,13 @@ First item: {{Items.Name}}  ← Wrong, Items is array not object
 **✅ Correct:**
 ```
 First item: {{Items[0].Name}}
-Or loop:
-{{#foreach Items}}{{Name}}{{/foreach}}
+```
+
+Or loop (markers in their own paragraphs):
+```
+{{#foreach Items}}
+{{Name}}
+{{/foreach}}
 ```
 
 ### 3. Comparing Wrong Types
@@ -523,9 +531,11 @@ Or loop:
 }
 ```
 
-**❌ Might not work:**
+**⚠️ Works, but fragile:**
 ```
-{{#if Age > 18}}  ← Comparing string to number
+{{#if Age > 18}}   ← works: numeric text is read as a number for > < >= <=
+{{#if Age = 25}}   ← works: compared as text "25"
+{{Age:number:N0}}  ← NOT formatted: format specifiers need a real number
 ```
 
 **✅ Better:**
@@ -582,6 +592,7 @@ When things don't work:
 - [ ] Confirm all {{#if}} have matching {{/if}}
 - [ ] Confirm all {{#foreach}} have matching {{/foreach}}
 - [ ] Check for spaces inside braces: `{{Name}}` not `{{ Name }}`
+- [ ] Put `{{#if}}`/`{{#foreach}}` block markers in their own paragraphs (or table rows)
 - [ ] Verify array access uses [index] not dot notation
 - [ ] Test with simple data first
 - [ ] Check that JSON types match expectations (numbers not strings)

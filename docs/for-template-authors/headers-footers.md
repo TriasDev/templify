@@ -74,11 +74,13 @@ Use conditionals to show different footer text based on data.
 
 ### Loop in Header
 
-Loops work in headers too - useful for listing authors, departments, etc.
+Loops work in headers too - useful for listing authors, departments, etc. As in the body, the `{{#foreach}}` and `{{/foreach}}` markers must be in their own paragraphs of the header (a loop within a single paragraph produces no output).
 
-**Template header:**
+**Template header** (three paragraphs):
 ```
-{{#foreach Authors}}{{Name}}{{#if @last}}{{#else}}, {{/if}}{{/foreach}}
+{{#foreach Authors}}
+{{Name}}{{#if not @last}},{{/if}}
+{{/foreach}}
 ```
 
 **JSON data:**
@@ -91,7 +93,11 @@ Loops work in headers too - useful for listing authors, departments, etc.
 }
 ```
 
-**Result:** `Alice, Bob`
+**Result** (one paragraph per author):
+```
+Alice,
+Bob
+```
 
 ## Formatting Preservation
 

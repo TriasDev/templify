@@ -2,6 +2,8 @@
 
 Format specifiers allow you to control how values are displayed in your generated documents. You can format booleans as checkboxes or Yes/No text, transform string casing, display numbers with specific decimal places, format currency values according to locale, and apply custom date formats.
 
+Each specifier applies to one kind of value: string specifiers to text, boolean specifiers to `true`/`false`, number specifiers to numbers and date specifiers to dates (or date text). On any other kind of value the specifier is ignored and the value is shown as usual. Numbers, dates and currency use the culture configured by the developer (`PlaceholderReplacementOptions.Culture`, by default the culture of the machine running Templify).
+
 ## Table of Contents
 
 - [Quick Start](#quick-start)
@@ -156,8 +158,8 @@ Displays "Yes" or "No" text.
 Approved: {{IsApproved:yesno}}
 ```
 
-#### checkmark
-Displays a checkmark or X symbol.
+#### checkmark (alias: check)
+Displays a checkmark or X symbol. `{{IsValid:check}}` is the same as `{{IsValid:checkmark}}`.
 
 | Value | Output |
 |-------|--------|
@@ -259,14 +261,14 @@ Formats a number using a .NET format string. The format string follows the colon
 | `:number:N2` | Number with 2 decimal places | 1234.5678 | 1,234.57 |
 | `:number:N0` | Number with no decimals | 1234.5 | 1,235 |
 | `:number:F3` | Fixed-point with 3 decimals | 3.14159 | 3.142 |
-| `:number:P` | Percentage | 0.1234 | 12.34 % |
+| `:number:P2` | Percentage with 2 decimals | 0.1234 | 12.34% |
 | `:number:C` | Currency (same as `:currency`) | 42 | $42.00 |
 
 **Example:**
 ```
 Value: {{Price:number:N2}}
 Rate: {{InterestRate:number:F3}}
-Progress: {{Completion:number:P}}
+Progress: {{Completion:number:P0}}
 ```
 
 **JSON:**
@@ -282,12 +284,13 @@ Progress: {{Completion:number:P}}
 ```
 Value: 1,234.57
 Rate: 3.142
-Progress: 85.00 %
+Progress: 85%
 ```
 
 **Notes:**
-- Number formatters only apply to numeric values (int, long, decimal, double, float)
-- Non-numeric values with a number format specifier are rendered normally (format is ignored)
+- Number formatters only apply to numeric values (all .NET number types, e.g. int, long, decimal, double, and JSON numbers)
+- Non-numeric values with a number format specifier are rendered normally (format is ignored). This includes numbers stored as text: `"Price": "19.99"` is **not** formatted; use `"Price": 19.99`
+- The exact output depends on the culture: with en-US, `:number:P2` gives `12.34%`, with the invariant culture `12.34 %`, with de-DE `12,34 %`. Without a precision (`:number:P`), the number of decimals comes from the culture and can differ between operating systems, so prefer an explicit precision such as `P0` or `P2`
 - Invalid format strings are handled gracefully — the value falls through to default formatting
 - Format specifier names are case-insensitive: `:currency`, `:CURRENCY`, and `:Currency` all work
 
@@ -322,13 +325,13 @@ Due Date: {{DueDate:date:dd.MM.yyyy}}
 **Output (en-US culture):**
 ```
 Order Date: January 15, 2024
-Due Date: 15.01.2024
+Due Date: 15.02.2024
 ```
 
 **Supported value types:**
 - `DateTime` objects
 - `DateTimeOffset` objects
-- Date strings (parsed automatically, e.g., `"2024-01-15"`, `"01/15/2024"`)
+- Date strings (parsed automatically, e.g., `"2024-01-15"`, `"2024-01-15T10:30:00+02:00"`, `"01/15/2024"`; ISO and invariant formats first, then the configured culture, e.g. `"15.01.2024"` with de-DE)
 
 **Notes:**
 - Month and day names are localized based on the configured culture
@@ -530,7 +533,7 @@ Account Status: Active
 
 ## Localization Support
 
-Format specifiers automatically adapt to the culture you specify in `PlaceholderReplacementOptions`.
+Format specifiers automatically adapt to the culture you specify in `PlaceholderReplacementOptions`. Setting `Culture` is enough: the built-in boolean formatters (`yesno`, `truefalse`, `onoff`, `enabled`, `active`) use the same culture. A custom `BooleanFormatterRegistry` uses the culture passed to its own constructor (English when none is passed).
 
 ### German (de-DE)
 
@@ -538,8 +541,7 @@ Format specifiers automatically adapt to the culture you specify in `Placeholder
 ```csharp
 var options = new PlaceholderReplacementOptions
 {
-    Culture = new CultureInfo("de-DE"),
-    BooleanFormatterRegistry = new BooleanFormatterRegistry(new CultureInfo("de-DE"))
+    Culture = new CultureInfo("de-DE")
 };
 var processor = new DocumentTemplateProcessor(options);
 ```
@@ -567,8 +569,7 @@ Bestätigt: Ja
 ```csharp
 var options = new PlaceholderReplacementOptions
 {
-    Culture = new CultureInfo("fr-FR"),
-    BooleanFormatterRegistry = new BooleanFormatterRegistry(new CultureInfo("fr-FR"))
+    Culture = new CultureInfo("fr-FR")
 };
 var processor = new DocumentTemplateProcessor(options);
 ```
@@ -589,8 +590,7 @@ Confirmé: Oui
 ```csharp
 var options = new PlaceholderReplacementOptions
 {
-    Culture = new CultureInfo("es-ES"),
-    BooleanFormatterRegistry = new BooleanFormatterRegistry(new CultureInfo("es-ES"))
+    Culture = new CultureInfo("es-ES")
 };
 var processor = new DocumentTemplateProcessor(options);
 ```
@@ -607,15 +607,23 @@ Confirmado: Sí
 
 ### Supported Languages
 
-The `yesno` formatter currently supports:
-- English (en): Yes / No
-- German (de): Ja / Nein
-- French (fr): Oui / Non
-- Spanish (es): Sí / No
-- Italian (it): Sì / No
-- Portuguese (pt): Sim / Não
+The word-based boolean formatters are translated for these languages (selected by the culture's language; all other languages use English):
 
-Symbol-based formatters (checkbox, checkmark) are culture-independent.
+| Language | `yesno` | `truefalse` | `onoff` | `enabled` | `active` |
+|----------|---------|-------------|---------|-----------|----------|
+| English (default) | Yes / No | True / False | On / Off | Enabled / Disabled | Active / Inactive |
+| German (de) | Ja / Nein | Wahr / Falsch | Ein / Aus | Aktiviert / Deaktiviert | Aktiv / Inaktiv |
+| French (fr) | Oui / Non | Vrai / Faux | Activé / Désactivé | Activé / Désactivé | Actif / Inactif |
+| Spanish (es) | Sí / No | Verdadero / Falso | Encendido / Apagado | Habilitado / Deshabilitado | Activo / Inactivo |
+| Italian (it) | Sì / No | Vero / Falso | Acceso / Spento | Abilitato / Disabilitato | Attivo / Inattivo |
+| Portuguese (pt) | Sim / Não | Verdadeiro / Falso | Ligado / Desligado | Ativado / Desativado | Ativo / Inativo |
+| Dutch (nl) | Ja / Nee | Waar / Onwaar | Aan / Uit | Ingeschakeld / Uitgeschakeld | Actief / Inactief |
+| Polish (pl) | Tak / Nie | Prawda / Fałsz | Włączone / Wyłączone | Włączone / Wyłączone | Aktywny / Nieaktywny |
+| Russian (ru) | Да / Нет | Истина / Ложь | Вкл / Выкл | Включено / Отключено | Активно / Неактивно |
+| Japanese (ja) | はい / いいえ | English | English | English | English |
+| Chinese (zh) | 是 / 否 | English | English | English | English |
+
+Symbol-based formatters (`checkbox`, `checkmark`, `check`) are culture-independent.
 
 ## Custom Formatters
 
@@ -725,9 +733,9 @@ Eligible: {{(Age >= 18 and HasLicense):yesno}}
 Eligible: Yes
 ```
 
-### Non-Boolean Values
+### Specifier and Value Type Mismatch
 
-Format specifiers only apply to boolean values. Non-boolean values are rendered normally.
+A specifier that does not fit the value's type is ignored, and the value is rendered normally. Boolean specifiers only apply to booleans, string specifiers to text, and so on.
 
 **Template:**
 ```
@@ -761,7 +769,7 @@ All of these are equivalent:
 
 ### Unknown Formatters
 
-If you specify a formatter that doesn't exist, the value defaults to standard boolean formatting.
+If you specify a formatter that doesn't exist, the value is rendered with its default formatting (`True`/`False` for booleans).
 
 **Template:**
 ```
@@ -966,10 +974,10 @@ var processor = new DocumentTemplateProcessor(options);
 
 Format specifiers provide a powerful way to control value presentation in your documents:
 
-- ✅ String formatters (`:uppercase`, `:lowercase`)
-- ✅ 7 built-in boolean formatters (checkbox, yesno, checkmark, truefalse, onoff, enabled, active)
+- ✅ String formatters (`:uppercase`, `:lowercase`) and `:raw` (no markdown)
+- ✅ 7 built-in boolean formatters (checkbox, yesno, checkmark, truefalse, onoff, enabled, active) plus the `check` alias
 - ✅ Currency formatting with locale support (`:currency`)
-- ✅ Flexible number formatting with .NET format strings (`:number:N2`, `:number:F3`, `:number:P`)
+- ✅ Flexible number formatting with .NET format strings (`:number:N2`, `:number:F3`, `:number:P2`)
 - ✅ Date formatting with .NET format strings (`:date:yyyy-MM-dd`, `:date:MMMM d, yyyy`)
 - ✅ Automatic localization support
 - ✅ Custom formatter registration
@@ -980,5 +988,5 @@ Format specifiers provide a powerful way to control value presentation in your d
 
 For more advanced usage, see:
 - [Boolean Expressions Guide](boolean-expressions.md) - Combine expressions with formatters
-- [API Reference](../../TriasDev.Templify/README.md) - Complete API documentation
+- [API Reference](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/README.md) - Complete API documentation
 - [FAQ](../FAQ.md) - Common questions and answers

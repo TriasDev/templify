@@ -6,7 +6,7 @@ JSON (JavaScript Object Notation) is a simple way to store and organize data in 
 
 Templify uses JSON to provide the data that fills in your template placeholders. Think of JSON as a way to write down information in a structured format that computers can easily read.
 
-## The Five Types of Data in JSON
+## The Six Types of Data in JSON
 
 ### 1. Text (Strings)
 
@@ -60,7 +60,19 @@ For yes/no values, use `true` or `false` (no quotes, all lowercase):
 - No quotes around them
 - These are perfect for conditionals in your templates
 
-### 4. Lists (Arrays)
+### 4. Nothing (null)
+
+Use `null` (no quotes, lowercase) for a value that is intentionally empty:
+
+```json
+{
+  "MiddleName": null
+}
+```
+
+In a template, `{{MiddleName}}` becomes empty text, and `{{#if MiddleName}}` is false. Unlike a missing key, a `null` value is not reported as missing.
+
+### 5. Lists (Arrays)
 
 Lists let you have multiple values. They're wrapped in square brackets `[ ]`:
 
@@ -78,7 +90,7 @@ Lists let you have multiple values. They're wrapped in square brackets `[ ]`:
 - All items should be the same type (all text, all numbers, etc.)
 - Can be empty: `[]`
 
-### 5. Objects (Nested Data)
+### 6. Objects (Nested Data)
 
 Objects let you group related data together. They're wrapped in curly braces `{ }`:
 
@@ -111,10 +123,11 @@ Every JSON file for Templify follows this pattern:
 ```
 
 **Key rules:**
-1. **Start with `{` and end with `}`** - These wrap everything
+1. **Start with `{` and end with `}`** - These wrap everything. The top level must be an object, not a list
 2. **Each line has `"Name": value`** - The name (key) and its value
 3. **Separate lines with commas** - But NOT after the last line
 4. **Names (keys) must have double quotes** - Values depend on the type
+5. **Names used in templates** may contain only letters, digits and underscores (`"CustomerName"`, `"customer_name"`), and are case-sensitive. Keys with spaces or hyphens (`"Customer Name"`, `"customer-name"`) are valid JSON but cannot be used in placeholders
 
 ## Common Examples
 
@@ -281,7 +294,7 @@ Every JSON file for Templify follows this pattern:
 
 ### ❌ Numbers in Quotes
 
-If you put numbers in quotes, they become text (usually fine, but can cause issues with comparisons):
+If you put numbers in quotes, they become text. They are displayed as written and `>`/`<` comparisons still work, but number and currency format specifiers (`{{Price:currency}}`) do not format text, and `=` compares them as text (`"10"` does not equal `10.00`):
 
 **Less than ideal:**
 ```json
@@ -462,7 +475,8 @@ Second color: {{Colors[1]}}
 | Number | `"Age": 25` | `{{Age}}` |
 | True/False | `"IsActive": true` | `{{#if IsActive}}...{{/if}}` |
 | Nested Object | `"Customer": { "Name": "Alice" }` | `{{Customer.Name}}` |
-| List | `"Items": ["A", "B"]` | `{{#foreach Items}}{{.}}{{/foreach}}` |
+| List | `"Items": ["A", "B"]` | `{{#foreach Items}}`, `{{.}}`, `{{/foreach}}` (each in its own paragraph) |
+| Nothing | `"Note": null` | `{{Note}}` (empty) |
 
 ## Next Steps
 
