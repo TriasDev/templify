@@ -64,6 +64,9 @@ public sealed class OdtDocumentVerifier
 
     public XElement Body => ContentXml.Root!.Element(Office + "body")!.Element(Office + "text")!;
 
+    /// <summary>Gets a copy of the package bytes.</summary>
+    public byte[] ToBytes() => (byte[])_package.Clone();
+
     public byte[] GetEntryBytes(string name) => _entries[name];
 
     public string GetEntryString(string name) => Encoding.UTF8.GetString(_entries[name]);

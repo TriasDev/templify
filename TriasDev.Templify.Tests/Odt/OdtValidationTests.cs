@@ -42,19 +42,62 @@ public sealed class OdtValidationTests
         ValidationResult result = Validate(template);
 
         Assert.True(result.IsValid);
+        Assert.Empty(result.Errors);
+        Assert.Empty(result.Warnings);
+        Assert.Empty(result.MissingVariables);
         Assert.Equal(new[] { "@index", "Company", "Count", "IsVip", "Items", "Name", "Split", "Title" }, result.AllPlaceholders);
     }
 
     [Theory]
-    [InlineData("{{#if A}}", "has no matching '{{/if}}'")]
-    [InlineData("{{#foreach Items}}", "has no matching '{{/foreach}}'")]
-    [InlineData("{{#if Count >}}x{{/if}}", "Invalid condition 'Count >'")]
-    public void SyntaxErrors_AreReported(string paragraph, string message)
+    [InlineData("{{#if A}}", ValidationErrorType.UnmatchedConditionalStart, "Conditional start marker '{{#if A}}' has no matching '{{/if}}'.")]
+    [InlineData("{{#foreach Items}}", ValidationErrorType.UnmatchedLoopStart, "Loop start marker '{{#foreach Items}}' has no matching '{{/foreach}}'.")]
+    [InlineData("{{#if Count >}}x{{/if}}", ValidationErrorType.InvalidConditionalExpression, "Invalid condition 'Count >': ")]
+    public void SyntaxErrors_AreReported(string paragraph, ValidationErrorType type, string message)
     {
         ValidationResult result = Validate(Paragraphs(paragraph, "x"));
 
         Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e => e.Message.Contains(message, StringComparison.Ordinal));
+        ValidationError error = Assert.Single(result.Errors);
+        Assert.Equal(type, error.Type);
+        Assert.StartsWith(message, error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void InvalidCondition_ReportsLocation_AndEachExpressionOnce()
+    {
+        ValidationResult result = Validate(Paragraphs("{{#if Count >}}", "a", "{{/if}}", "{{#if Count >}}", "b", "{{/if}}"));
+
+        ValidationError error = Assert.Single(result.Errors);
+        Assert.Equal(ValidationErrorType.InvalidConditionalExpression, error.Type);
+        Assert.Equal("{{#if Count >}}", error.Location);
+    }
+
+    [Fact]
+    public void ElseIfAfterElse_IsReported()
+    {
+        ValidationResult result = Validate(Paragraphs("{{#if A}}", "a", "{{#else}}", "b", "{{#elseif B}}", "c", "{{/if}}"));
+
+        ValidationError error = Assert.Single(result.Errors);
+        Assert.Equal(ValidationErrorType.InvalidConditionalExpression, error.Type);
+        Assert.Contains("{{#elseif}}", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReservedWordAsVariable_AddsWarning_OnlyWhenTheDataHasIt()
+    {
+        OdtDocumentBuilder template = Paragraphs("{{#if contains}}", "x", "{{/if}}");
+
+        ValidationResult withoutData = Validate(template);
+        ValidationResult withData = Validate(template, new Dictionary<string, object> { ["contains"] = true });
+
+        Assert.Empty(withoutData.Warnings);
+        Assert.True(withData.IsValid);
+        ValidationWarning warning = Assert.Single(withData.Warnings);
+        Assert.Equal(ValidationWarningType.ReservedWordAsVariable, warning.Type);
+        Assert.Equal(
+            "Condition 'contains' uses 'contains', which is also a keyword, as a variable. Write '[contains]' to reference the variable unambiguously.",
+            warning.Message);
+        Assert.Equal("{{#if contains}}", warning.Location);
     }
 
     [Fact]
@@ -68,10 +111,14 @@ public sealed class OdtValidationTests
         ValidationResult result = Validate(template);
 
         Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e => e.Message.Contains("Table row loop start marker '{{#foreach Rows}}'", StringComparison.Ordinal));
-        Assert.Contains(result.Errors, e => e.Message.Contains("List item conditional start marker '{{#if A}}'", StringComparison.Ordinal));
-        Assert.Contains(result.Errors, e => e.Message.Contains("'{{#if B}}' has no matching", StringComparison.Ordinal));
-        Assert.Equal(result.Errors.Count, result.Errors.Select(e => e.Message).Distinct().Count());
+        Assert.Equal(
+            new[]
+            {
+                "UnmatchedConditionalStart: Conditional start marker '{{#if B}}' has no matching '{{/if}}'.",
+                "UnmatchedConditionalStart: List item conditional start marker '{{#if A}}' has no matching '{{/if}}'.",
+                "UnmatchedLoopStart: Table row loop start marker '{{#foreach Rows}}' has no matching '{{/foreach}}'.",
+            },
+            result.Errors.Select(e => $"{e.Type}: {e.Message}").Order(StringComparer.Ordinal));
     }
 
     [Fact]
@@ -91,6 +138,18 @@ public sealed class OdtValidationTests
 
         Assert.False(result.IsValid);
         Assert.Equal(new[] { "Gone", "Missing", "item.Nope" }, result.MissingVariables.Order(StringComparer.Ordinal));
+        Assert.Equal(
+            new[]
+            {
+                "Variable 'Gone' is referenced in the template but not provided in the data.",
+                "Variable 'Missing' is referenced in the template but not provided in the data.",
+                "Variable 'item.Nope' is referenced in the template but not provided in the data.",
+            },
+            result.Errors.Select(e => e.Message).Order(StringComparer.Ordinal));
+        Assert.All(result.Errors, e => Assert.Equal(ValidationErrorType.MissingVariable, e.Type));
+        Assert.Equal(
+            new[] { "Cell", "Gone", "Items", "Missing", "Name", "Rows", "item.Nope", "item.Title" },
+            result.AllPlaceholders.Order(StringComparer.Ordinal));
     }
 
     [Fact]
@@ -100,8 +159,26 @@ public sealed class OdtValidationTests
 
         ValidationResult result = Validate(template, new Dictionary<string, object> { ["Empty"] = new List<object>() });
 
-        Assert.Contains(result.Warnings, w => w.Type == ValidationWarningType.EmptyLoopCollection);
+        ValidationWarning warning = Assert.Single(result.Warnings);
+        Assert.Equal(ValidationWarningType.EmptyLoopCollection, warning.Type);
+        Assert.Equal("Collection 'Empty' is empty. Variables inside this loop could not be validated.", warning.Message);
         Assert.Equal(new[] { "Absent" }, result.MissingVariables);
+        ValidationError error = Assert.Single(result.Errors);
+        Assert.Equal(ValidationErrorType.MissingVariable, error.Type);
+        Assert.Equal("Collection 'Absent' is referenced in a loop but not provided in the data.", error.Message);
+    }
+
+    [Fact]
+    public void EmptyLoopCollection_WarningCanBeDisabled()
+    {
+        OdtTemplateProcessor processor = new OdtTemplateProcessor(new PlaceholderReplacementOptions { WarnOnEmptyLoopCollections = false });
+        using MemoryStream stream = Paragraphs("{{#foreach Empty}}", "{{X}}", "{{/foreach}}").ToStream();
+
+        ValidationResult result = processor.ValidateTemplate(stream, new Dictionary<string, object> { ["Empty"] = new List<object>() });
+
+        Assert.True(result.IsValid);
+        Assert.Empty(result.Warnings);
+        Assert.Empty(result.MissingVariables);
     }
 
     [Fact]
@@ -130,6 +207,8 @@ public sealed class OdtValidationTests
         Assert.True(result.IsValid, string.Join("; ", result.Errors.Select(e => e.Message)));
         Assert.True(withData.IsValid, string.Join("; ", withData.Errors.Select(e => e.Message)));
         Assert.Empty(withData.MissingVariables);
+        Assert.Empty(withData.Warnings);
+        Assert.Equal(new[] { "@index", "Cell", "Flag", "Items", "Rows", "item" }, result.AllPlaceholders.Order(StringComparer.Ordinal));
     }
 
     [Fact]
@@ -191,6 +270,8 @@ public sealed class OdtValidationTests
         ValidationResult result = processor.ValidateTemplate(stream, (IReadOnlyDictionary<string, object?>)new Dictionary<string, object?> { ["A"] = null });
 
         Assert.True(result.IsValid);
+        Assert.Empty(result.MissingVariables);
+        Assert.Equal(new[] { "A" }, result.AllPlaceholders);
     }
 
     [Fact]
@@ -286,7 +367,13 @@ public sealed class OdtValidationTests
         });
 
         Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e => e.Message.Contains("'{{#if B}}' has no matching", StringComparison.Ordinal));
+        Assert.Equal(
+            new[]
+            {
+                "MissingVariable: Variable 'Title' is referenced in the template but not provided in the data.",
+                "UnmatchedConditionalStart: Conditional start marker '{{#if B}}' has no matching '{{/if}}'.",
+            },
+            result.Errors.Select(e => $"{e.Type}: {e.Message}").Order(StringComparer.Ordinal));
         Assert.Equal(new[] { "Title" }, result.MissingVariables);
     }
 
