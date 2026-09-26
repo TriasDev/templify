@@ -56,13 +56,18 @@ internal sealed class OdtTemplateEngine
         ProcessBlocks(body.Elements().ToList(), context);
 
         XDocument? styles = package.GetXml(OdtPackage.StylesEntry);
-        if (styles?.Root != null)
+        List<XElement> headersAndFooters = styles?.Root != null
+            ? GetHeadersAndFooters(styles.Root).ToList()
+            : new List<XElement>();
+        foreach (XElement headerOrFooter in headersAndFooters)
         {
-            foreach (XElement headerOrFooter in GetHeadersAndFooters(styles.Root))
-            {
-                ProcessContainer(headerOrFooter, context);
-            }
+            ProcessContainer(headerOrFooter, context);
         }
+
+        // Loop cloning copies frame, table and section names and note ids; make them unique again.
+        List<XElement> roots = new List<XElement> { body };
+        roots.AddRange(headersAndFooters);
+        OdtUniqueNames.EnsureUnique(roots);
     }
 
     /// <summary>

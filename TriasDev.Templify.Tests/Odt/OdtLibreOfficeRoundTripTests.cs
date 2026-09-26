@@ -176,6 +176,42 @@ public sealed class OdtLibreOfficeRoundTripTests
         Assert.Equal("End", lines[^1]);
     }
 
+    [Fact]
+    public void ClonedFramesTablesAndSections_KeepTheirUniqueNamesInLibreOffice()
+    {
+        LibreOfficeRunner.RequireExecutable();
+
+        OdtDocumentBuilder template = new OdtDocumentBuilder()
+            .AddParagraph("{{#foreach Items}}")
+            .AddXml(
+                "<text:p>{{Name}}<draw:frame draw:name=\"Box\" text:anchor-type=\"as-char\" svg:width=\"4cm\" svg:height=\"1cm\">" +
+                "<draw:text-box><text:p>box {{Name}}</text:p></draw:text-box></draw:frame></text:p>")
+            .AddXml("<table:table table:name=\"Prices\"><table:table-column/><table:table-row><table:table-cell><text:p>cell {{Name}}</text:p></table:table-cell></table:table-row></table:table>")
+            .AddXml("<text:section text:name=\"Details\"><text:p>section {{Name}}</text:p></text:section>")
+            .AddParagraph("{{/foreach}}");
+
+        byte[] output = ProcessToBytes(template, new Dictionary<string, object>
+        {
+            ["Items"] = new List<Dictionary<string, object>> { new() { ["Name"] = "A" }, new() { ["Name"] = "B" } },
+        });
+
+        // Let LibreOffice load and save the document again: it keeps unique names and renames duplicates.
+        OdtDocumentVerifier resaved = new OdtDocumentVerifier(LibreOfficeRunner.Convert(output, "odt", "odt", "odt"));
+        Assert.Equal(
+            new[] { "Box", "Box_2" },
+            resaved.Body.Descendants(OdtDocumentVerifier.Draw + "frame").Select(f => (string)f.Attribute(OdtDocumentVerifier.Draw + "name")!));
+        Assert.Equal(
+            new[] { "Prices", "Prices_2" },
+            resaved.Body.Descendants(OdtDocumentVerifier.Table + "table").Select(t => (string)t.Attribute(OdtDocumentVerifier.Table + "name")!));
+        Assert.Equal(
+            new[] { "Details", "Details_2" },
+            resaved.Body.Descendants(OdtDocumentVerifier.Text + "section").Select(s => (string)s.Attribute(OdtDocumentVerifier.Text + "name")!));
+
+        string all = string.Join("\n", LibreOfficeRunner.ConvertToTextLines(output));
+        Assert.Contains("cell B", all, StringComparison.Ordinal);
+        Assert.Contains("section B", all, StringComparison.Ordinal);
+    }
+
     private static byte[] ProcessToBytes(OdtDocumentBuilder template, Dictionary<string, object> data)
     {
         OdtTemplateProcessor processor = new OdtTemplateProcessor(new PlaceholderReplacementOptions { Culture = CultureInfo.InvariantCulture });

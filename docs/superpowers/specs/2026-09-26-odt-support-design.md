@@ -118,7 +118,7 @@ This mirrors `DocumentWalker.WalkElements`/`WalkRows`, including the #140 rule: 
 | `OdtConditionalDetector`, `OdtConditionalBlock` | block and table-row conditionals over `XElement` siblings. They reuse `ConditionalPatterns` and have the same errors and messages as `ConditionalDetector`. | 2 |
 | `OdtLoopDetector`, `OdtLoopBlock` | body, table-row and list-item loops. They reuse the `LoopDetector` patterns and name validation. | 3 |
 | `OdtLoopDetector`, `OdtLoopBlock` (row loops) | a repeated row is cloned and removed as a unit, and covered cells are cloned with their row (no separate component needed) | 3 |
-| `OdtDrawingNames` | makes `draw:name` of frames and shapes unique after cloning (the counterpart of `DrawingIdAllocator`, #178). Duplicate names make LibreOffice rename objects on load and break references. | 5 |
+| `OdtUniqueNames` | makes `draw:name` of frames and shapes, `table:name`, the `text:name` of sections and the `text:id` of notes unique after cloning, and drops duplicate `xml:id`s (the counterpart of `DrawingIdAllocator`, #178). Duplicate names make LibreOffice rename objects on load and break references. | 4 |
 | `OdtTextStyles` | the automatic-style registry per part (`content.xml` and `styles.xml` each have their own). It creates or reuses `T…` text styles for bold, italic, strikethrough and their combinations. | 5 |
 | `OdtTemplateValidator` | the ODT counterpart of `TemplateValidator` / `ScopedVariableValidator` | 5 |
 
@@ -176,8 +176,8 @@ The maintainer's list names "internal document abstraction" as step 1. Because o
 | 1 | This spec. `OdtPackage`, `OdtParagraphTextModel`, `OdtParagraphTextRewriter`, `OdtTemplateEngine` with placeholders everywhere (body, headings, tables, lists, sections, notes, text boxes, headers/footers), and the public `OdtTemplateProcessor` (process overloads). |
 | 2 | Conditionals: block (paragraph-level, across any block containers), inline (same paragraph, including elseif/else and nesting), table-row, and **list-item** (see 8.1), with the same warnings and errors. Cells, notes, text boxes and headers/footers that end up empty get an empty `text:p`. A list item left without content, and a list, table or header-row group left without items or rows, is removed. |
 | 3 | Loops: body loops with implicit and named iteration variables, metadata (`@index`, `@number`, `@first`, `@last`, `@count`), nested loops, null items and missing or null collections with warnings, and `WarnOnEmptyLoopCollections`. Table-row loops and conditionals, with repeated rows expanded and covered cells. |
-| 4 | Container integrity: list-item loops and conditionals, loops and conditionals in headers/footers, notes, text boxes and sections, empty-container fixes (a table without rows is removed, and so on), and `text:section` name uniqueness after cloning. |
-| 5 | Markdown via automatic styles, `EnableMarkdown` and `:raw`. `draw:name` uniqueness for cloned frames. `ValidateTemplate` for ODT. `DocumentProperties` → `meta.xml`. |
+| 4 | Container integrity: loops and conditionals in headers/footers, notes, text boxes, sections and nested lists, and empty-container fixes. List-item loops and conditionals shipped earlier, in PRs 2 and 3. **Name uniqueness after cloning** (`OdtUniqueNames`) covers `draw:name` of frames and shapes, `table:name`, the `text:name` of sections and the `text:id` of notes. The first occurrence keeps its name, and duplicates get `_2`, `_3`, … Duplicate `xml:id`s are removed from the later copies. Body and headers/footers share one name space. This was moved forward from PR 5. |
+| 5 | Markdown via automatic styles, `EnableMarkdown` and `:raw`. `ValidateTemplate` for ODT. `DocumentProperties` → `meta.xml`. |
 | later (lead) | The universal facade, docs and examples, converter and GUI support, and an optional LibreOffice CI job. |
 
 ## 8. Known limitations and open questions (conservative defaults chosen)
@@ -196,3 +196,4 @@ In Word a list item is just a numbered paragraph, so markers can be list paragra
 - The thumbnail (`Thumbnails/thumbnail.png`) is copied unchanged. LibreOffice regenerates it on save.
 - Indexes (table of contents) are not regenerated. Placeholders in their cached body are replaced like normal text.
 - `.fodt` is not supported (a failed result with a clear message).
+- Bookmark and annotation names cloned by loops are not renamed. They come in start/end pairs that would have to be renamed consistently. LibreOffice tolerates duplicates by renaming them on load. The same applies to DOCX, where loop-cloned bookmarks are not renamed either.
