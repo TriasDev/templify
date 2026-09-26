@@ -403,6 +403,14 @@ public sealed class DocumentTemplateProcessor
             }
 
             templateStream.CopyTo(outputStream);
+
+            // An output with longer earlier content (an existing file opened without truncation) would keep
+            // trailing bytes after the copy, and the package could not be opened.
+            if (outputStream.Length > outputStream.Position)
+            {
+                outputStream.SetLength(outputStream.Position);
+            }
+
             outputStream.Position = 0;
 
             // Track missing variables and warnings

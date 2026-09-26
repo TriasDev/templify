@@ -134,7 +134,7 @@ This mirrors `DocumentWalker.WalkElements`/`WalkRows`, including the #140 rule: 
 
 Contract differences from `DocumentTemplateProcessor`, all of them relaxations:
 
-- The output stream only has to be **writable**. The document is built in memory and written in one go when processing succeeds. The DOCX processor edits in place and needs a readable, writable and seekable stream.
+- The output stream only has to be **writable**. The document is built in memory (compressed; only `content.xml`, `styles.xml`, `meta.xml` and the manifest are unpacked, each up to 256 MB, other entries are streamed from the template) and written in one go when processing succeeds. A seekable output is cut off after the document. The DOCX processor edits in place and needs a readable, writable and seekable stream.
 - On failure nothing is written to the output stream.
 
 Options that do not apply to ODT:
