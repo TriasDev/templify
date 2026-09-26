@@ -32,7 +32,13 @@ namespace TriasDev.Templify.Core;
 /// empty paragraph (cells, text boxes, notes, headers and footers); empty list items, lists and tables are removed.
 /// </para>
 /// <para>
-/// Markdown in values is inserted as literal text, and loop markers are not evaluated yet.
+/// Loops (<c>{{#foreach Items}}</c>, <c>{{#foreach item in Items}}</c>, nested to any depth, with <c>{{@index}}</c>,
+/// <c>{{@number}}</c>, <c>{{@first}}</c>, <c>{{@last}}</c> and <c>{{@count}}</c>) repeat paragraphs and other blocks
+/// (markers in their own paragraphs), table rows (markers in their own rows) and list items (markers in their own
+/// items). Missing or null collections remove the loop with a warning; a value that is not a collection fails.
+/// </para>
+/// <para>
+/// Markdown in values is inserted as literal text.
 /// </para>
 /// <para>
 /// <see cref="PlaceholderReplacementOptions.UpdateFieldsOnOpen"/> and
