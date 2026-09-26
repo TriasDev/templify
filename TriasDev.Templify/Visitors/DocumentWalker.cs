@@ -515,7 +515,6 @@ internal sealed class DocumentWalker
     /// Marker paragraphs include:
     /// - {{#if ...}}, {{#else}}, {{/if}}
     /// - {{#foreach ...}}, {{/foreach}}
-    /// - {{#empty}}, {{/empty}}
     ///
     /// These paragraphs are processed by block visitors and should not be
     /// visited as regular paragraphs or placeholders.
@@ -531,8 +530,7 @@ internal sealed class DocumentWalker
         }
 
         // Check for loop markers
-        if (text.Contains("{{#foreach") || text.Contains("{{/foreach}}") ||
-            text.Contains("{{#empty}}") || text.Contains("{{/empty}}"))
+        if (text.Contains("{{#foreach") || text.Contains("{{/foreach}}"))
         {
             return true;
         }

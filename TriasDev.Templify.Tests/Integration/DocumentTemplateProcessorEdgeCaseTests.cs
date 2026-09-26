@@ -385,4 +385,17 @@ public sealed class DocumentTemplateProcessorEdgeCaseTests
             new Run(new Text("1")),
             new Run(new FieldChar { FieldCharType = FieldCharValues.End })));
     }
+
+    // ---------- Removed syntax ----------
+
+    [Fact]
+    public void ProcessTemplate_ParagraphWithEmptyMarkerText_IsNotAMarkerParagraph()
+    {
+        // {{#empty}} is not template syntax (the feature was removed), so the paragraph is ordinary text.
+        using TemplateTestRun run = TemplateTestHarness.Process(new DocumentBuilder().AddParagraph("{{#empty}} {{Name}} {{/empty}}"), _data);
+
+        Assert.True(run.Result.IsSuccess, run.Result.ErrorMessage);
+        Assert.Equal("{{#empty}} Alice {{/empty}}", run.Verifier.GetParagraphText(0));
+        Assert.Equal(1, run.Result.ReplacementCount);
+    }
 }

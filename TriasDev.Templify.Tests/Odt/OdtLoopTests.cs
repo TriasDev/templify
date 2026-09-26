@@ -436,4 +436,142 @@ public sealed class OdtLoopTests
 
         Assert.Equal(new[] { "end" }, texts);
     }
+
+    private const string NumberedList = "<text:list xml:id=\"list1\" text:style-name=\"L1\"><text:list-item><text:p>{{Name}}</text:p></text:list-item></text:list>";
+
+    private static readonly XName _xmlId = XNamespace.Xml + "id";
+
+    private static List<XElement> ProcessLists(OdtDocumentBuilder template, Dictionary<string, object> data) =>
+        OdtTestHelper.Process(template, data).Output.Body.Descendants(_text + "list").ToList();
+
+    [Fact]
+    public void ParagraphLoopOverList_LaterClonesContinueTheFirstClone()
+    {
+        List<XElement> lists = ProcessLists(
+            Paragraphs("{{#foreach Items}}").AddXml(NumberedList).AddParagraph("{{/foreach}}"),
+            new Dictionary<string, object> { ["Items"] = Items("a", "b", "c") });
+
+        Assert.Equal(3, lists.Count);
+        Assert.Equal("list1", (string?)lists[0].Attribute(_xmlId));
+        Assert.Null(lists[0].Attribute(_text + "continue-list"));
+        Assert.All(lists.Skip(1), l =>
+        {
+            Assert.Equal("list1", (string?)l.Attribute(_text + "continue-list"));
+            Assert.Null(l.Attribute(_xmlId));
+        });
+    }
+
+    [Fact]
+    public void ClonedListWithoutId_GetsAnUnusedId()
+    {
+        List<XElement> lists = ProcessLists(
+            Paragraphs("{{#foreach Items}}")
+                .AddXml("<text:list text:continue-numbering=\"true\"><text:list-item><text:p>{{Name}}</text:p></text:list-item></text:list>")
+                .AddParagraph("{{/foreach}}")
+                .AddXml("<text:list xml:id=\"templify-list1\"><text:list-item><text:p>other</text:p></text:list-item></text:list>"),
+            new Dictionary<string, object> { ["Items"] = Items("a", "b") });
+
+        Assert.Equal("templify-list2", (string?)lists[0].Attribute(_xmlId));
+        Assert.Equal("true", (string?)lists[0].Attribute(_text + "continue-numbering"));
+        Assert.Equal("templify-list2", (string?)lists[1].Attribute(_text + "continue-list"));
+        Assert.Null(lists[1].Attribute(_text + "continue-numbering"));
+        Assert.Null(lists[2].Attribute(_text + "continue-list"));
+        Assert.Equal("templify-list1", (string?)lists[2].Attribute(_xmlId));
+    }
+
+    [Fact]
+    public void ListsOutsideTheLoopAndSingleIterations_AreNotLinked()
+    {
+        List<XElement> lists = ProcessLists(
+            new OdtDocumentBuilder()
+                .AddXml("<text:list><text:list-item><text:p>before</text:p></text:list-item></text:list>")
+                .AddParagraph("{{#foreach Items}}").AddXml(NumberedList).AddParagraph("{{/foreach}}")
+                .AddParagraph("{{#foreach One}}").AddXml(NumberedList.Replace("list1", "list2", StringComparison.Ordinal)).AddParagraph("{{/foreach}}")
+                .AddXml("<text:list><text:list-item><text:p>after</text:p></text:list-item></text:list>"),
+            new Dictionary<string, object> { ["Items"] = Items("a", "b"), ["One"] = Items("x") });
+
+        Assert.Equal(5, lists.Count);
+        Assert.Equal(new string?[] { null, null, "list1", null, null }, lists.Select(l => (string?)l.Attribute(_text + "continue-list")));
+        Assert.Equal("list2", (string?)lists[3].Attribute(_xmlId));
+    }
+
+    [Fact]
+    public void ListRemovedByConditionalInFirstIteration_NextCloneStartsTheNumbering()
+    {
+        List<XElement> lists = ProcessLists(
+            Paragraphs("{{#foreach Items}}", "{{#if Name != \"a\"}}").AddXml(NumberedList).AddParagraph("{{/if}}").AddParagraph("{{/foreach}}"),
+            new Dictionary<string, object> { ["Items"] = Items("a", "b", "c") });
+
+        Assert.Equal(2, lists.Count);
+        string? id = (string?)lists[0].Attribute(_xmlId);
+        Assert.NotNull(id);
+        Assert.Null(lists[0].Attribute(_text + "continue-list"));
+        Assert.Equal(id, (string?)lists[1].Attribute(_text + "continue-list"));
+    }
+
+    [Fact]
+    public void NestedLoops_AllCopiesOfTheListContinueTheFirstCopy()
+    {
+        // As in Word, where every copy of a numbered paragraph keeps its numbering instance.
+        List<Dictionary<string, object>> groups = new List<Dictionary<string, object>>
+        {
+            new() { ["Items"] = Items("a", "b") },
+            new() { ["Items"] = Items("c", "d") },
+        };
+
+        List<XElement> lists = ProcessLists(
+            Paragraphs("{{#foreach Groups}}", "{{#foreach Items}}").AddXml(NumberedList).AddParagraph("{{/foreach}}").AddParagraph("{{/foreach}}"),
+            new Dictionary<string, object> { ["Groups"] = groups });
+
+        Assert.Equal(4, lists.Count);
+        Assert.Equal("list1", (string?)lists[0].Attribute(_xmlId));
+        Assert.All(lists.Skip(1), l => Assert.Equal("list1", (string?)l.Attribute(_text + "continue-list")));
+        Assert.Single(lists, l => l.Attribute(_xmlId) != null);
+    }
+
+    [Fact]
+    public void TableRowLoopOverListInCell_LaterRowsContinueTheFirstRow()
+    {
+        List<XElement> lists = ProcessLists(
+            new OdtDocumentBuilder().AddXml(
+                "<table:table table:name=\"T\"><table:table-column/>" +
+                "<table:table-row><table:table-cell><text:p>{{#foreach Items}}</text:p></table:table-cell></table:table-row>" +
+                "<table:table-row><table:table-cell>" + NumberedList + "</table:table-cell></table:table-row>" +
+                "<table:table-row><table:table-cell><text:p>{{/foreach}}</text:p></table:table-cell></table:table-row>" +
+                "</table:table>"),
+            new Dictionary<string, object> { ["Items"] = Items("a", "b") });
+
+        Assert.Equal(2, lists.Count);
+        Assert.Equal("list1", (string?)lists[0].Attribute(_xmlId));
+        Assert.Equal("list1", (string?)lists[1].Attribute(_text + "continue-list"));
+    }
+
+    [Fact]
+    public void NestedSubLists_AreNotLinkedSeparately()
+    {
+        List<XElement> lists = ProcessLists(
+            Paragraphs("{{#foreach Items}}")
+                .AddXml("<text:list xml:id=\"outer\"><text:list-item><text:p>{{Name}}</text:p><text:list><text:list-item><text:p>sub</text:p></text:list-item></text:list></text:list-item></text:list>")
+                .AddParagraph("{{/foreach}}"),
+            new Dictionary<string, object> { ["Items"] = Items("a", "b") });
+
+        List<XElement> outer = lists.Where(l => l.Parent!.Name != _text + "list-item").ToList();
+        List<XElement> nested = lists.Except(outer).ToList();
+        Assert.Equal("outer", (string?)outer[1].Attribute(_text + "continue-list"));
+        Assert.All(nested, l => Assert.Null(l.Attribute(_text + "continue-list")));
+    }
+
+    [Fact]
+    public void ListItemLoopOverItemsWithSubLists_DoesNotLinkTheSubLists()
+    {
+        List<XElement> lists = ProcessLists(
+            new OdtDocumentBuilder().AddXml(
+                "<text:list><text:list-item><text:p>{{#foreach Items}}</text:p></text:list-item>" +
+                "<text:list-item><text:p>{{Name}}</text:p><text:list><text:list-item><text:p>sub</text:p></text:list-item></text:list></text:list-item>" +
+                "<text:list-item><text:p>{{/foreach}}</text:p></text:list-item></text:list>"),
+            new Dictionary<string, object> { ["Items"] = Items("a", "b") });
+
+        Assert.Equal(3, lists.Count);
+        Assert.All(lists, l => Assert.Null(l.Attribute(_text + "continue-list")));
+    }
 }

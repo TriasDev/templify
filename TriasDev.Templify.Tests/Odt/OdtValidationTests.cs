@@ -172,4 +172,24 @@ public sealed class OdtValidationTests
         Assert.Throws<ArgumentNullException>(() => processor.ValidateTemplate(null!));
         Assert.Throws<ArgumentNullException>(() => processor.ValidateTemplate(new MemoryStream(), (Dictionary<string, object>)null!));
     }
+
+    [Fact]
+    public void HeaderRegions_AreValidated()
+    {
+        OdtDocumentBuilder template = new OdtDocumentBuilder()
+            .AddParagraph("Body")
+            .AddHeaderXml(
+                "<style:region-left><text:p>{{#if B}}</text:p></style:region-left>" +
+                "<style:region-right><text:p>{{#foreach Items}}</text:p><text:p>{{Title}}</text:p><text:p>{{/foreach}}</text:p></style:region-right>");
+
+        ValidationResult result = Validate(template, new Dictionary<string, object>
+        {
+            ["B"] = true,
+            ["Items"] = new List<Dictionary<string, object>> { new() { ["Name"] = "a" } },
+        });
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.Message.Contains("'{{#if B}}' has no matching", StringComparison.Ordinal));
+        Assert.Equal(new[] { "Title" }, result.MissingVariables);
+    }
 }

@@ -252,6 +252,168 @@ public sealed class OdtLibreOfficeRoundTripTests
     /// Gets a text property of the innermost span holding <paramref name="text"/>, following the span's
     /// ancestors (nested spans combine), from the automatic styles of content.xml.
     /// </summary>
+    private const string NumberedListStyle =
+        "<text:list-style style:name=\"L1\"><text:list-level-style-number text:level=\"1\" style:num-suffix=\".\" style:num-format=\"1\">" +
+        "<style:list-level-properties text:list-level-position-and-space-mode=\"label-alignment\">" +
+        "<style:list-level-label-alignment text:label-followed-by=\"space\" fo:text-indent=\"-0.635cm\" fo:margin-left=\"1.27cm\"/>" +
+        "</style:list-level-properties></text:list-level-style-number></text:list-style>";
+
+    private static string NumberedList(string id, string text) =>
+        $"<text:list xml:id=\"{id}\" text:style-name=\"L1\"><text:list-item><text:p>{text}</text:p></text:list-item></text:list>";
+
+    [Fact]
+    public void NumberedListsInLoops_ContinueTheirNumberingInLibreOffice()
+    {
+        LibreOfficeRunner.RequireExecutable();
+
+        OdtDocumentBuilder template = new OdtDocumentBuilder()
+            .AddAutomaticStyles(NumberedListStyle)
+            .AddParagraph("{{#foreach Items}}")
+            .AddXml(NumberedList("list1", "{{Name}}"))
+            .AddParagraph("Note {{Name}}")
+            .AddXml("<text:list text:style-name=\"L1\"><text:list-item><text:p>Second {{Name}}</text:p></text:list-item></text:list>")
+            .AddParagraph("{{/foreach}}")
+            .AddXml(NumberedList("list2", "Restarts"))
+            .AddParagraph("{{#foreach Groups}}")
+            .AddParagraph("Group {{Name}}")
+            .AddParagraph("{{#foreach Items}}")
+            .AddXml(NumberedList("list3", "{{Name}}"))
+            .AddParagraph("{{/foreach}}")
+            .AddParagraph("{{/foreach}}")
+            .AddXml(
+                "<table:table table:name=\"T\"><table:table-column/>" +
+                "<table:table-row><table:table-cell><text:p>{{#foreach Items}}</text:p></table:table-cell></table:table-row>" +
+                "<table:table-row><table:table-cell>" + NumberedList("list4", "Cell {{Name}}") + "</table:table-cell></table:table-row>" +
+                "<table:table-row><table:table-cell><text:p>{{/foreach}}</text:p></table:table-cell></table:table-row>" +
+                "</table:table>");
+
+        List<Dictionary<string, object>> items = new List<Dictionary<string, object>>
+        {
+            new() { ["Name"] = "A" },
+            new() { ["Name"] = "B" },
+            new() { ["Name"] = "C" },
+        };
+        byte[] output = ProcessToBytes(template, new Dictionary<string, object>
+        {
+            ["Items"] = items,
+            ["Groups"] = new List<Dictionary<string, object>>
+            {
+                new() { ["Name"] = "G1", ["Items"] = items.Take(2).ToList() },
+                new() { ["Name"] = "G2", ["Items"] = items.Take(2).ToList() },
+            },
+        });
+
+        string[] lines = LibreOfficeRunner.ConvertToTextLines(output).Select(l => l.Trim()).ToArray();
+        Assert.Equal(
+            new[]
+            {
+                "1. A", "Note A", "1. Second A",
+                "2. B", "Note B", "2. Second B",
+                "3. C", "Note C", "3. Second C",
+                "1. Restarts",
+                "Group G1", "1. A", "2. B",
+                "Group G2", "3. A", "4. B",
+                "1. Cell A", "2. Cell B", "3. Cell C",
+            },
+            lines);
+    }
+
+    [Fact]
+    public void DocxConvertedByLibreOffice_ProcessedAsOdt_MatchesDocxProcessing()
+    {
+        LibreOfficeRunner.RequireExecutable();
+
+        DocumentBuilder docx = new DocumentBuilder()
+            .AddHeading("Offer {{Number}}")
+            .AddParagraphWithRuns(("Dear {{Cus", null), ("tomer.Na", DocumentBuilder.CreateFormatting(bold: true)), ("me}}, welcome.", null))
+            .AddParagraph("{{#if Vip}}")
+            .AddParagraph("VIP: {{Discount:number:P0}} off")
+            .AddParagraph("{{#else}}")
+            .AddParagraph("No discount")
+            .AddParagraph("{{/if}}")
+            .AddParagraph("Inline: {{#if Vip}}yes{{#else}}no{{/if}} and {{Md}}")
+            .AddParagraph("{{#foreach Items}}")
+            .AddNumberedListItem("{{@number}}) {{Name}} {{Price:currency}}")
+            .AddParagraph("{{/foreach}}")
+            .AddParagraph("{{#foreach Groups}}")
+            .AddParagraph("Group {{Name}}")
+            .AddParagraph("{{#foreach Items}}")
+            .AddNumberedListItem("{{Name}}")
+            .AddParagraph("{{/foreach}}")
+            .AddParagraph("{{/foreach}}")
+            .AddParagraph("Bullets:")
+            .AddBulletListItem("{{#foreach Items}}")
+            .AddBulletListItem("{{Name}}")
+            .AddBulletListItem("{{/foreach}}")
+            .AddTableWithCellParagraphs(4, 2, (row, col) => row switch
+            {
+                0 => new[] { col == 0 ? "Name" : "Price" },
+                1 => new[] { col == 0 ? "{{#foreach Items}}" : string.Empty },
+                2 => new[] { col == 0 ? "{{Name}}" : "{{Price:number:N2}}" },
+                _ => new[] { col == 0 ? "{{/foreach}}" : string.Empty },
+            })
+            .AddParagraph("Tabs\tand  double  spaces {{Spaced}} end");
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            ["Number"] = 7,
+            ["Customer"] = new Dictionary<string, object> { ["Name"] = "Anna" },
+            ["Vip"] = true,
+            ["Discount"] = 0.1,
+            ["Md"] = "**bold** and *italic*",
+            ["Items"] = new List<Dictionary<string, object>>
+            {
+                new() { ["Name"] = "Widget", ["Price"] = 9.5m },
+                new() { ["Name"] = "Gadget", ["Price"] = 20m },
+                new() { ["Name"] = "Gizmo", ["Price"] = 1m },
+            },
+            ["Spaced"] = " a  b ",
+        };
+        data["Groups"] = new List<Dictionary<string, object>>
+        {
+            new() { ["Name"] = "G1", ["Items"] = data["Items"] },
+            new() { ["Name"] = "G2", ["Items"] = data["Items"] },
+        };
+
+        byte[] docxTemplate = docx.ToStream().ToArray();
+        byte[] odtTemplate = LibreOfficeRunner.Convert(docxTemplate, "docx", "odt", "odt");
+        PlaceholderReplacementOptions options = new PlaceholderReplacementOptions { Culture = CultureInfo.InvariantCulture };
+
+        ProcessingResult docxResult = new DocumentTemplateProcessor(options).ProcessTemplate(docxTemplate, data, out byte[] docxOutput);
+        ProcessingResult odtResult = new OdtTemplateProcessor(options).ProcessTemplate(odtTemplate, data, out byte[] odtOutput);
+        Assert.True(docxResult.IsSuccess, docxResult.ErrorMessage);
+        Assert.True(odtResult.IsSuccess, odtResult.ErrorMessage);
+        Assert.Equal(docxResult.ReplacementCount, odtResult.ReplacementCount);
+        new OdtDocumentVerifier(odtOutput).AssertValidOdtPackage();
+
+        string[] docxLines = Encoding.UTF8.GetString(LibreOfficeRunner.Convert(docxOutput, "docx", "txt:Text (encoded):UTF8", "txt"))
+            .TrimStart('\uFEFF').Replace("\r\n", "\n", StringComparison.Ordinal).TrimEnd('\n').Split('\n');
+        string[] odtLines = LibreOfficeRunner.ConvertToTextLines(odtOutput);
+        Assert.Equal(docxLines, odtLines);
+        Assert.Contains(odtLines, l => l.Trim() == "3. 3) Gizmo ¤1.00");
+    }
+
+    [Fact]
+    public void HeaderRegions_ProcessedDocumentOpensInLibreOffice()
+    {
+        LibreOfficeRunner.RequireExecutable();
+
+        // LibreOffice Writer itself does not display header regions (it drops them on load), so this only checks
+        // that a processed document with regions stays loadable; the processing is covered by OdtContainerTests.
+        OdtDocumentBuilder template = new OdtDocumentBuilder()
+            .AddHeaderXml(
+                "<style:region-left><text:p>L {{Name}}</text:p></style:region-left>" +
+                "<style:region-right><text:p>{{#if Show}}</text:p><text:p>R {{Name}}</text:p><text:p>{{/if}}</text:p></style:region-right>")
+            .AddParagraph("Body {{Name}}");
+
+        byte[] output = ProcessToBytes(template, new Dictionary<string, object> { ["Name"] = "X", ["Show"] = true });
+
+        Assert.Equal(new[] { "L X", "R X" }, new OdtDocumentVerifier(output).GetHeaderTexts());
+        Assert.Equal("Body X", LibreOfficeRunner.ConvertToTextLines(output)[0]);
+        byte[] pdf = LibreOfficeRunner.Convert(output, "odt", "pdf", "pdf");
+        Assert.StartsWith("%PDF", Encoding.ASCII.GetString(pdf, 0, 4), StringComparison.Ordinal);
+    }
+
     private static string? GetEffectiveProperty(OdtDocumentVerifier document, string text, System.Xml.Linq.XName property)
     {
         System.Xml.Linq.XElement? automaticStyles = document.ContentXml.Root!.Element(OdtDocumentVerifier.Office + "automatic-styles");
