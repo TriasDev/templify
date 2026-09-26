@@ -159,7 +159,19 @@ public enum ValidationErrorType
     /// <summary>
     /// A conditional expression is invalid or cannot be evaluated.
     /// </summary>
-    InvalidConditionalExpression
+    InvalidConditionalExpression = 6,
+
+    /// <summary>
+    /// The input could not be read as a supported template document: the format is not supported (for example a
+    /// legacy .doc, a flat .fodt or random bytes), the stream is not readable, or the package is corrupted or was
+    /// rejected (for example an OpenDocument package with a missing or malformed content.xml).
+    /// </summary>
+    /// <remarks>
+    /// Reported by <see cref="TemplateProcessor"/> and <see cref="OdtTemplateProcessor"/>. The Word validator of
+    /// <see cref="DocumentTemplateProcessor"/> still reports unreadable documents as
+    /// <see cref="InvalidPlaceholderSyntax"/> for compatibility.
+    /// </remarks>
+    InvalidDocument = 7
 }
 
 /// <summary>

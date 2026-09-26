@@ -4,6 +4,7 @@
 using System.Collections;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Xml;
 using System.Xml.Linq;
 using TriasDev.Templify.Conditionals;
 using TriasDev.Templify.Core;
@@ -23,6 +24,8 @@ namespace TriasDev.Templify.OpenDocument;
 /// </remarks>
 internal sealed class OdtTemplateValidator
 {
+    private const string UnreadableStreamMessage = "Invalid template stream: the template stream must be readable.";
+
     private readonly PlaceholderReplacementOptions _options;
 
     public OdtTemplateValidator(PlaceholderReplacementOptions options)
@@ -39,6 +42,13 @@ internal sealed class OdtTemplateValidator
         List<ValidationWarning> warnings = new List<ValidationWarning>();
         HashSet<string> allPlaceholders = new HashSet<string>();
         HashSet<string> missingVariables = new HashSet<string>();
+
+        if (!templateStream.CanRead)
+        {
+            return ValidationResult.Failure(
+                new[] { ValidationError.Create(ValidationErrorType.InvalidDocument, UnreadableStreamMessage) },
+                Array.Empty<string>());
+        }
 
         try
         {
@@ -67,10 +77,18 @@ internal sealed class OdtTemplateValidator
                 }
             }
         }
+        catch (InvalidOdtPackageException ex)
+        {
+            errors.Add(ValidationError.Create(ValidationErrorType.InvalidDocument, ex.Message));
+        }
+        catch (Exception ex) when (ex is InvalidDataException or IOException or XmlException)
+        {
+            // The stream could not be read (truncated, or failing while it is copied or inflated).
+            errors.Add(ValidationError.Create(ValidationErrorType.InvalidDocument, $"Validation failed: {ex.Message}"));
+        }
         catch (Exception ex)
         {
-            string message = ex is InvalidOdtPackageException ? ex.Message : $"Validation failed: {ex.Message}";
-            errors.Add(ValidationError.Create(ValidationErrorType.InvalidPlaceholderSyntax, message));
+            errors.Add(ValidationError.Create(ValidationErrorType.InvalidPlaceholderSyntax, $"Validation failed: {ex.Message}"));
         }
 
         List<string> placeholders = allPlaceholders.OrderBy(p => p).ToList();

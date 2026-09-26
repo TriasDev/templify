@@ -443,8 +443,9 @@ public sealed class OdtPackageTests
         Assert.False(result.IsSuccess);
         Assert.Equal("Invalid document: the package contains the entry 'content.xml' more than once.", result.ErrorMessage);
         Assert.Empty(output);
-        Assert.False(validation.IsValid);
-        Assert.Equal(result.ErrorMessage, validation.Errors[0].Message);
+        ValidationError error = Assert.Single(validation.Errors);
+        Assert.Equal(ValidationErrorType.InvalidDocument, error.Type);
+        Assert.Equal(result.ErrorMessage, error.Message);
     }
 
     [Theory]

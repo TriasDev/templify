@@ -1354,7 +1354,7 @@ Result of template processing operation.
 
 ### ValidationResult
 
-- `IsValid` (no errors), `Errors` (`ValidationError` with `Type`, `Message`, `Location`); when data is passed, each missing variable is an error of type `MissingVariable`
+- `IsValid` (no errors), `Errors` (`ValidationError` with `Type`, `Message`, `Location`); when data is passed, each missing variable is an error of type `MissingVariable`; a template that cannot be read (unsupported format, corrupted package) passed to `TemplateProcessor` or `OdtTemplateProcessor` is an error of type `InvalidDocument`
 - `AllPlaceholders`, `MissingVariables`
 - `Warnings` (`ValidationWarning` of type `EmptyLoopCollection` or `ReservedWordAsVariable`)
 

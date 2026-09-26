@@ -212,6 +212,22 @@ public sealed class ValidationResultTests
         Assert.True(Enum.IsDefined(typeof(ValidationErrorType), ValidationErrorType.InvalidPlaceholderSyntax));
         Assert.True(Enum.IsDefined(typeof(ValidationErrorType), ValidationErrorType.MissingVariable));
         Assert.True(Enum.IsDefined(typeof(ValidationErrorType), ValidationErrorType.InvalidConditionalExpression));
+        Assert.True(Enum.IsDefined(typeof(ValidationErrorType), ValidationErrorType.InvalidDocument));
+    }
+
+    [Fact]
+    public void ValidationErrorType_NumericValues_AreStable()
+    {
+        // Consumers may persist or compare the numeric values; new members are appended.
+        Assert.Equal(0, (int)ValidationErrorType.UnmatchedConditionalStart);
+        Assert.Equal(1, (int)ValidationErrorType.UnmatchedConditionalEnd);
+        Assert.Equal(2, (int)ValidationErrorType.UnmatchedLoopStart);
+        Assert.Equal(3, (int)ValidationErrorType.UnmatchedLoopEnd);
+        Assert.Equal(4, (int)ValidationErrorType.InvalidPlaceholderSyntax);
+        Assert.Equal(5, (int)ValidationErrorType.MissingVariable);
+        Assert.Equal(6, (int)ValidationErrorType.InvalidConditionalExpression);
+        Assert.Equal(7, (int)ValidationErrorType.InvalidDocument);
+        Assert.Equal(8, Enum.GetValues<ValidationErrorType>().Length);
     }
 
     [Fact]

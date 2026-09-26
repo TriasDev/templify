@@ -93,6 +93,10 @@ internal sealed class TemplateValidator
         }
         catch (Exception ex)
         {
+            // An unreadable or corrupted document ("Validation failed: File contains corrupted data.") would be
+            // ValidationErrorType.InvalidDocument, as the OpenDocument validator reports it. This validator shipped
+            // in 1.x with InvalidPlaceholderSyntax and consumers may switch on it, so the type changes only in 2.0
+            // (issue #156). The same applies to the missing MainDocumentPart/Body error above.
             errors.Add(ValidationError.Create(
                 ValidationErrorType.InvalidPlaceholderSyntax,
                 $"Validation failed: {ex.Message}"));

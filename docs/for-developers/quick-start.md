@@ -224,6 +224,21 @@ Each missing variable or loop collection is reported as an error of type `Missin
 the syntax only. `validation.Warnings` reports loops over empty collections (`EmptyLoopCollection`, controlled by
 `WarnOnEmptyLoopCollections`) and condition keywords used as variable names (`ReservedWordAsVariable`).
 
+`ValidationError.Type` is one of these `ValidationErrorType` values:
+
+| Type | Meaning |
+|------|---------|
+| `UnmatchedConditionalStart` / `UnmatchedConditionalEnd` | An `{{#if}}` without `{{/if}}`, or the other way round |
+| `UnmatchedLoopStart` / `UnmatchedLoopEnd` | A `{{#foreach}}` without `{{/foreach}}`, or the other way round |
+| `InvalidPlaceholderSyntax` | Invalid template syntax, for example an invalid loop variable name |
+| `MissingVariable` | A variable or loop collection is not in the data (only when data is passed) |
+| `InvalidConditionalExpression` | A condition cannot be parsed |
+| `InvalidDocument` | The input cannot be read as a supported template: unsupported format, unreadable stream, or corrupted or rejected package |
+
+`InvalidDocument` is reported by `TemplateProcessor` and `OdtTemplateProcessor`. `DocumentTemplateProcessor` still
+reports an unreadable Word document as `InvalidPlaceholderSyntax` ("Validation failed: ..."), for compatibility with
+earlier versions.
+
 ## Configuration Options
 
 Customize template processing with `PlaceholderReplacementOptions`:

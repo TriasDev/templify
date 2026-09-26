@@ -529,7 +529,33 @@ public sealed class TemplateProcessorTests
 
         Assert.False(result.IsValid);
         ValidationError error = Assert.Single(result.Errors);
+        Assert.Equal(ValidationErrorType.InvalidDocument, error.Type);
         Assert.StartsWith("Unsupported template format", error.Message);
+    }
+
+    [Fact]
+    public void ValidateTemplate_RandomBytesWithData_IsInvalidDocument()
+    {
+        using MemoryStream template = new MemoryStream(Encoding.UTF8.GetBytes("not a template"));
+
+        ValidationResult result = new TemplateProcessor().ValidateTemplate(template, _data);
+
+        ValidationError error = Assert.Single(result.Errors);
+        Assert.Equal(ValidationErrorType.InvalidDocument, error.Type);
+        Assert.StartsWith("Unsupported template format", error.Message);
+        Assert.Empty(result.MissingVariables);
+    }
+
+    [Fact]
+    public void ValidateTemplate_CorruptedOdt_IsInvalidDocument()
+    {
+        byte[] template = CreateZip(("mimetype", "application/vnd.oasis.opendocument.text"), ("content.xml", "<office:document-content"));
+
+        ValidationResult result = new TemplateProcessor().ValidateTemplate(new MemoryStream(template));
+
+        ValidationError error = Assert.Single(result.Errors);
+        Assert.Equal(ValidationErrorType.InvalidDocument, error.Type);
+        Assert.StartsWith("Invalid document: content.xml is not well-formed XML", error.Message);
     }
 
     [Fact]
@@ -541,7 +567,9 @@ public sealed class TemplateProcessorTests
         ValidationResult result = new TemplateProcessor().ValidateTemplate(template, _data);
 
         Assert.False(result.IsValid);
-        Assert.Contains("must be readable", Assert.Single(result.Errors).Message);
+        ValidationError error = Assert.Single(result.Errors);
+        Assert.Equal(ValidationErrorType.InvalidDocument, error.Type);
+        Assert.Equal("Invalid template stream: the template stream must be readable.", error.Message);
     }
 
     // ---------- Helpers ----------

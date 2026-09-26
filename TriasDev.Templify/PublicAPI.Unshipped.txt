@@ -32,3 +32,4 @@ TriasDev.Templify.Core.TemplateProcessor.ValidateTemplate(System.IO.Stream! temp
 TriasDev.Templify.Core.TemplateProcessor.ValidateTemplate(System.IO.Stream! templateStream, System.Collections.Generic.Dictionary<string!, object!>! data) -> TriasDev.Templify.Core.ValidationResult!
 TriasDev.Templify.Core.TemplateProcessor.ValidateTemplate(System.IO.Stream! templateStream, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! data) -> TriasDev.Templify.Core.ValidationResult!
 static TriasDev.Templify.Core.TemplateProcessor.DetectFormat(System.IO.Stream! templateStream) -> TriasDev.Templify.Core.TemplateFormat
+TriasDev.Templify.Core.ValidationErrorType.InvalidDocument = 7 -> TriasDev.Templify.Core.ValidationErrorType
