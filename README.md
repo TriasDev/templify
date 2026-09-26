@@ -286,7 +286,7 @@ The template processing library: `DocumentTemplateProcessor` for Word documents,
 
 ### 🖥️ GUI Application
 
-Cross-platform desktop application (Avalonia) to load a template and JSON data, process the template with Templify, and preview and save the result.
+Cross-platform desktop application (Avalonia) to load a template (`.docx`, `.odt` or `.ott`) and JSON data, process the template with Templify, and preview and save the result.
 
 ```bash
 dotnet run --project TriasDev.Templify.Gui/TriasDev.Templify.Gui.csproj

@@ -3,6 +3,7 @@
 
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using TriasDev.Templify.Core;
 using TriasDev.Templify.Gui.Models;
 using TriasDev.Templify.Gui.Services;
 
@@ -101,5 +102,84 @@ public sealed class TemplifyServiceTests : IDisposable
     public void PathsAreEqual_ComparesNormalizedPaths(string? first, string? second, bool expected)
     {
         Assert.Equal(expected, TemplifyService.PathsAreEqual(first, second));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ProcessTemplate_OpenDocumentTemplate_WritesOdt(bool asTemplate)
+    {
+        string template = OdtTestFile.Create(_temp.File(asTemplate ? "letter.ott" : "letter.odt"), asTemplate, "Hello {{Name}}!");
+        string json = _temp.File("data.json");
+        File.WriteAllText(json, """{ "Name": "World" }""");
+        string output = _temp.File("out.odt");
+
+        UiProcessingResult result = await _service.ProcessTemplateAsync(template, json, output);
+
+        Assert.True(result.Success, result.Processing.ErrorMessage);
+        Assert.True(result.Validation!.IsValid);
+        Assert.Equal(new[] { "Hello World!" }, OdtTestFile.ReadParagraphs(output));
+        Assert.Equal(OdtTestFile.TextMediaType, OdtTestFile.ReadMimetype(output));
+        Assert.Equal(3, Directory.GetFiles(_temp.Path).Length); // template, json, output
+    }
+
+    [Fact]
+    public async Task ValidateTemplate_OpenDocumentTemplate_ReportsErrorsAndMissingVariables()
+    {
+        string invalid = OdtTestFile.Create(_temp.File("invalid.odt"), asTemplate: false, "{{#if Flag}}", "x");
+        string valid = OdtTestFile.Create(_temp.File("valid.odt"), asTemplate: false, "{{Name}} {{Other}}");
+        string json = _temp.File("data.json");
+        File.WriteAllText(json, """{ "Name": "World" }""");
+
+        ValidationResult invalidResult = await _service.ValidateTemplateAsync(invalid);
+        ValidationResult validResult = await _service.ValidateTemplateAsync(valid, json);
+
+        Assert.False(invalidResult.IsValid);
+        Assert.Contains(invalidResult.Errors, e => e.Message.Contains("{{#if Flag}}", StringComparison.Ordinal));
+        Assert.Equal(new[] { "Other" }, validResult.MissingVariables);
+    }
+
+    [Fact]
+    public async Task ProcessTemplate_UnsupportedFormat_FailsWithClearMessage()
+    {
+        string template = _temp.File("template.odt");
+        File.WriteAllText(template, "not a package");
+        string json = _temp.File("data.json");
+        File.WriteAllText(json, "{}");
+        string output = _temp.File("out.odt");
+
+        UiProcessingResult result = await _service.ProcessTemplateAsync(template, json, output);
+
+        Assert.False(result.Success);
+        Assert.StartsWith("Unsupported template format", result.Processing.ErrorMessage);
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
+    public void GetOutputExtension_UsesContentThenFileName()
+    {
+        string odtNamedDocx = OdtTestFile.Create(_temp.File("misnamed.docx"), asTemplate: false, "x");
+        string ott = OdtTestFile.Create(_temp.File("letter.ott"), asTemplate: true, "x");
+        string docx = CreateTemplate("x");
+
+        Assert.Equal(".odt", TemplifyService.GetOutputExtension(odtNamedDocx));   // content wins
+        Assert.Equal(".odt", TemplifyService.GetOutputExtension(ott));
+        Assert.Equal(".docx", TemplifyService.GetOutputExtension(docx));
+        Assert.Equal(".odt", TemplifyService.GetOutputExtension(_temp.File("missing.ott")));   // file name fallback
+        Assert.Equal(".odt", TemplifyService.GetOutputExtension(_temp.File("missing.ODT")));
+        Assert.Equal(".docx", TemplifyService.GetOutputExtension(_temp.File("missing.docx")));
+        Assert.Equal(".docx", TemplifyService.GetOutputExtension(null));
+    }
+
+    [Fact]
+    public void FileDialog_TemplateFilterAcceptsWordAndOpenDocument()
+    {
+        IReadOnlyList<string> patterns = FileDialogService.TemplateFileTypes[0].Patterns!;
+
+        Assert.Equal(new[] { "*.docx", "*.odt", "*.ott" }, patterns);
+        Assert.Equal(("odt", "*.odt"), (FileDialogService.GetSaveFileTypes("letter-output.odt").DefaultExtension,
+            FileDialogService.GetSaveFileTypes("letter-output.odt").Choices.Single().Patterns!.Single()));
+        Assert.Equal(("docx", "*.docx"), (FileDialogService.GetSaveFileTypes("warnings.docx").DefaultExtension,
+            FileDialogService.GetSaveFileTypes("warnings.docx").Choices.Single().Patterns!.Single()));
     }
 }

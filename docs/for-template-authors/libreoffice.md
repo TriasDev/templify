@@ -84,6 +84,12 @@ A few things behave differently from Word templates, mostly because of how the O
 - **Password-protected documents are not supported.** Processing fails with a clear message.
 - **Flat OpenDocument (`.fodt`) is not supported.** Save the template as `.odt` or `.ott`.
 
+## Trying It Out
+
+The Templify GUI application accepts `.odt` and `.ott` templates as well as `.docx` files. Select the template and
+a JSON data file, and the output is saved as `<template>-output.odt`. See
+[Getting Started](getting-started.md) for the GUI and the JSON data format.
+
 ## Next Steps
 
 - [Template Syntax](template-syntax.md): the complete syntax reference

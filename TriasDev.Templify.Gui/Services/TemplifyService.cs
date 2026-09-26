@@ -14,10 +14,17 @@ using TriasDev.Templify.Utilities;
 namespace TriasDev.Templify.Gui.Services;
 
 /// <summary>
-/// Service for Templify template operations.
+/// Service for Templify template operations. Word (.docx) and OpenDocument Text (.odt, .ott) templates are both
+/// supported: <see cref="TemplateProcessor"/> detects the format from the file content.
 /// </summary>
 public class TemplifyService : ITemplifyService
 {
+    /// <summary>Output extension for Word templates.</summary>
+    internal const string DocxExtension = ".docx";
+
+    /// <summary>Output extension for OpenDocument templates (.odt and .ott both produce .odt).</summary>
+    internal const string OdtExtension = ".odt";
+
     /// <summary>
     /// Validates a template file with optional JSON data.
     /// </summary>
@@ -37,7 +44,7 @@ public class TemplifyService : ITemplifyService
                 TextReplacements = enableHtmlEntityReplacement ? TextReplacements.HtmlEntities : null
             };
 
-            DocumentTemplateProcessor processor = new DocumentTemplateProcessor(options);
+            TemplateProcessor processor = new TemplateProcessor(options);
 
             using FileStream templateStream = File.OpenRead(templatePath);
 
@@ -108,7 +115,7 @@ public class TemplifyService : ITemplifyService
                     TextReplacements = enableHtmlEntityReplacement ? TextReplacements.HtmlEntities : null
                 };
 
-                DocumentTemplateProcessor processor = new DocumentTemplateProcessor(options);
+                TemplateProcessor processor = new TemplateProcessor(options);
 
                 using (FileStream templateStream = File.OpenRead(templatePath))
                 {
@@ -145,6 +152,42 @@ public class TemplifyService : ITemplifyService
 
             return result;
         });
+    }
+
+    /// <summary>
+    /// Returns the extension of the document produced from a template: <c>.odt</c> for an OpenDocument Text
+    /// document or template, otherwise <c>.docx</c>. The format is detected from the file content; when the file
+    /// cannot be read (or is not a supported format), the template's extension decides.
+    /// </summary>
+    internal static string GetOutputExtension(string? templatePath)
+    {
+        if (string.IsNullOrWhiteSpace(templatePath))
+        {
+            return DocxExtension;
+        }
+
+        try
+        {
+            if (File.Exists(templatePath))
+            {
+                using FileStream stream = File.OpenRead(templatePath);
+                TemplateFormat format = TemplateProcessor.DetectFormat(stream);
+                if (format != TemplateFormat.Unknown)
+                {
+                    return format == TemplateFormat.Odt ? OdtExtension : DocxExtension;
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Fall back to the file name below.
+        }
+
+        string extension = Path.GetExtension(templatePath);
+        return extension.Equals(".odt", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".ott", StringComparison.OrdinalIgnoreCase)
+            ? OdtExtension
+            : DocxExtension;
     }
 
     /// <summary>

@@ -11,7 +11,7 @@ namespace TriasDev.Templify.Gui.Services;
 public interface IFileDialogService
 {
     /// <summary>
-    /// Opens a file picker for template files (.docx).
+    /// Opens a file picker for template files (.docx, .odt, .ott).
     /// </summary>
     /// <returns>Selected file path, or null if cancelled.</returns>
     Task<string?> OpenTemplateFileAsync();
@@ -23,7 +23,8 @@ public interface IFileDialogService
     Task<string?> OpenJsonFileAsync();
 
     /// <summary>
-    /// Opens a save file dialog for output files (.docx).
+    /// Opens a save file dialog for output files. The file type follows the extension of
+    /// <paramref name="defaultName"/> (.odt for OpenDocument, otherwise .docx).
     /// </summary>
     /// <param name="defaultName">Default filename.</param>
     /// <returns>Selected file path, or null if cancelled.</returns>
