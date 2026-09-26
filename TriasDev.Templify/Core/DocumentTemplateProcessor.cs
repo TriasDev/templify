@@ -2,6 +2,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Text.Json;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using TriasDev.Templify.Placeholders;
@@ -539,48 +540,59 @@ public sealed class DocumentTemplateProcessor
     /// </summary>
     /// <param name="document">The Word document to check.</param>
     /// <returns>True if the document contains fields like TOC, PAGE, NUMPAGES, etc.</returns>
+    /// <remarks>
+    /// Both complex fields (<c>w:instrText</c> between <c>w:fldChar</c> markers) and simple fields
+    /// (<c>w:fldSimple w:instr="..."</c>) are considered, in the body, headers, footers, footnotes and endnotes.
+    /// </remarks>
     private static bool HasFields(WordprocessingDocument document)
     {
-        if (document.MainDocumentPart?.Document?.Body == null)
+        MainDocumentPart? mainPart = document.MainDocumentPart;
+        if (mainPart?.Document?.Body == null)
         {
             return false;
         }
 
-        // Collect field codes from body, headers, and footers (lazy to short-circuit on first match)
-        IEnumerable<FieldCode> fieldCodes = document.MainDocumentPart.Document.Body.Descendants<FieldCode>()
-            .Concat(document.MainDocumentPart.HeaderParts
-                .Where(hp => hp.Header != null)
-                .SelectMany(hp => hp.Header!.Descendants<FieldCode>()))
-            .Concat(document.MainDocumentPart.FooterParts
-                .Where(fp => fp.Footer != null)
-                .SelectMany(fp => fp.Footer!.Descendants<FieldCode>()));
+        // Roots to scan (lazy to short-circuit on first match)
+        IEnumerable<OpenXmlElement> roots = new OpenXmlElement[] { mainPart.Document.Body }
+            .Concat(mainPart.HeaderParts.Select(hp => hp.Header).OfType<OpenXmlElement>())
+            .Concat(mainPart.FooterParts.Select(fp => fp.Footer).OfType<OpenXmlElement>())
+            .Concat(new OpenXmlElement?[] { mainPart.FootnotesPart?.Footnotes, mainPart.EndnotesPart?.Endnotes }
+                .OfType<OpenXmlElement>());
 
-        return fieldCodes.Any(fc =>
+        return roots
+            .SelectMany(root => root.Descendants<FieldCode>().Select(fc => fc.Text)
+                .Concat(root.Descendants<SimpleField>().Select(sf => sf.Instruction?.Value)))
+            .Any(IsDynamicFieldInstruction);
+    }
+
+    /// <summary>
+    /// Returns whether a field instruction starts with one of the dynamic field types.
+    /// </summary>
+    private static bool IsDynamicFieldInstruction(string? instruction)
+    {
+        if (string.IsNullOrWhiteSpace(instruction))
+        {
+            return false;
+        }
+
+        // Field instructions start with the field type, followed by
+        // spaces, switches (starting with '\'), and parameters.
+        // Example: " TOC \o \"1-3\" \h \z \u "
+        string text = instruction.TrimStart();
+
+        // Get the first token (up to whitespace or a backslash for switches)
+        int endIndex = text.IndexOfAny(new[] { ' ', '\t', '\r', '\n', '\\' });
+        string fieldTypeInDoc = endIndex >= 0 ? text[..endIndex] : text;
+
+        foreach (string field in _dynamicFieldTypes)
+        {
+            if (fieldTypeInDoc.Equals(field, StringComparison.OrdinalIgnoreCase))
             {
-                if (string.IsNullOrWhiteSpace(fc.Text))
-                {
-                    return false;
-                }
+                return true;
+            }
+        }
 
-                // Field codes typically start with the field type, followed by
-                // spaces, switches (starting with '\'), and parameters.
-                // Example: " TOC \o \"1-3\" \h \z \u "
-                string text = fc.Text.TrimStart();
-
-                // Get the first token (up to whitespace or a backslash for switches)
-                int endIndex = text.IndexOfAny(new[] { ' ', '\t', '\r', '\n', '\\' });
-                string fieldTypeInDoc = endIndex >= 0 ? text[..endIndex] : text;
-
-                foreach (string field in _dynamicFieldTypes)
-                {
-                    if (fieldTypeInDoc.Equals(field, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
-            });
+        return false;
     }
 
     /// <summary>
