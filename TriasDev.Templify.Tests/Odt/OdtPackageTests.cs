@@ -431,6 +431,155 @@ public sealed class OdtPackageTests
         Assert.Equal("Hello World", new OdtDocumentVerifier(written[3..]).GetParagraphTexts()[0]);
     }
 
+    [Fact]
+    public void Process_DuplicateEntryName_ReturnsFailure()
+    {
+        // Which of two same-named entries a reader uses is undefined; the package used to be reproduced as it was.
+        byte[] template = AddEntries(new OdtDocumentBuilder().AddParagraph("{{Name}}").ToBytes(), ("content.xml", "<x/>"));
+
+        ProcessingResult result = new OdtTemplateProcessor().ProcessTemplate(template, _data, out byte[] output);
+        ValidationResult validation = new OdtTemplateProcessor().ValidateTemplate(new MemoryStream(template));
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("Invalid document: the package contains the entry 'content.xml' more than once.", result.ErrorMessage);
+        Assert.Empty(output);
+        Assert.False(validation.IsValid);
+        Assert.Equal(result.ErrorMessage, validation.Errors[0].Message);
+    }
+
+    [Theory]
+    [InlineData("../evil.xml")]
+    [InlineData("Pictures/../../evil.xml")]
+    [InlineData("Pictures\\..\\..\\evil.xml")]
+    [InlineData("/etc/evil.xml")]
+    [InlineData("\\evil.xml")]
+    [InlineData("C:/evil.xml")]
+    public void Process_EntryWithAbsoluteOrParentPath_ReturnsFailure(string entryName)
+    {
+        byte[] template = AddEntries(new OdtDocumentBuilder().AddParagraph("{{Name}}").ToBytes(), (entryName, "x"));
+
+        ProcessingResult result = new OdtTemplateProcessor().ProcessTemplate(template, _data, out byte[] output);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal($"Invalid document: the package contains an entry with an invalid path ('{entryName}').", result.ErrorMessage);
+        Assert.Empty(output);
+    }
+
+    [Fact]
+    public void Process_EntryNamesWithDotsInsideSegments_AreKept()
+    {
+        byte[] picture = { 1, 2, 3 };
+        OdtDocumentBuilder template = new OdtDocumentBuilder()
+            .AddParagraph("{{Name}}")
+            .AddEntry("Pictures/a..b.png", picture)
+            .AddEntry("Object 1/./content.xml", Encoding.UTF8.GetBytes("<x/>"));
+
+        (_, OdtDocumentVerifier output) = OdtTestHelper.Process(template, _data);
+
+        Assert.Equal(picture, output.GetEntryBytes("Pictures/a..b.png"));
+        Assert.Contains("Object 1/./content.xml", output.EntryNames);
+    }
+
+    [Theory]
+    [InlineData("APPLICATION/VND.OASIS.OPENDOCUMENT.TEXT")]
+    [InlineData("Application/Vnd.Oasis.OpenDocument.Text-Template")]
+    public void Process_MediaTypeInOtherCase_IsAcceptedAndWrittenCanonically(string mediaType)
+    {
+        OdtDocumentBuilder builder = new OdtDocumentBuilder().AddParagraph("Hello {{Name}}");
+        byte[] template = CreateZip(("mimetype", mediaType), ("content.xml", builder.BuildContentXml()));
+
+        ProcessingResult result = new OdtTemplateProcessor().ProcessTemplate(template, _data, out byte[] output);
+
+        Assert.True(result.IsSuccess, result.ErrorMessage);
+        OdtDocumentVerifier verifier = new OdtDocumentVerifier(output);
+        Assert.Equal("mimetype", verifier.EntryNames[0]);
+        Assert.Equal(OdtDocumentBuilder.TextMediaType, verifier.Mimetype);
+        Assert.Equal("Hello World", verifier.GetParagraphTexts()[0]);
+    }
+
+    [Fact]
+    public void Process_TemplateManifestMediaTypeInOtherCase_IsRewrittenToText()
+    {
+        byte[] template = new OdtDocumentBuilder().AsTemplate().WithoutMimetype().AddParagraph("{{Name}}").ToBytes();
+        template = ReplaceEntry(template, "META-INF/manifest.xml", manifest => manifest.Replace(
+            OdtDocumentBuilder.TemplateMediaType, OdtDocumentBuilder.TemplateMediaType.ToUpperInvariant(), StringComparison.Ordinal));
+
+        ProcessingResult result = new OdtTemplateProcessor().ProcessTemplate(template, _data, out byte[] output);
+
+        Assert.True(result.IsSuccess, result.ErrorMessage);
+        OdtDocumentVerifier verifier = new OdtDocumentVerifier(output);
+        Assert.Equal(OdtDocumentBuilder.TextMediaType, verifier.Mimetype);
+        Assert.Equal(OdtDocumentBuilder.TextMediaType, verifier.ManifestRootMediaType);
+    }
+
+    [Fact]
+    public void Process_Thumbnail_IsRemovedWithManifestEntry()
+    {
+        // The thumbnail shows the unprocessed template ({{...}}); LibreOffice writes a new one when it saves.
+        OdtDocumentBuilder template = new OdtDocumentBuilder()
+            .AddParagraph("{{Name}}")
+            .AddEntry("Thumbnails/", Array.Empty<byte>())
+            .AddEntry("Thumbnails/thumbnail.png", new byte[] { 0x89, 0x50, 0x4E, 0x47 });
+
+        (_, OdtDocumentVerifier output) = OdtTestHelper.Process(template, _data);
+
+        Assert.DoesNotContain(output.EntryNames, n => n.StartsWith("Thumbnails/", StringComparison.Ordinal));
+        Assert.DoesNotContain("Thumbnails/", output.GetEntryString("META-INF/manifest.xml"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Process_OtherFilesInThumbnailsDirectory_AreKept()
+    {
+        OdtDocumentBuilder template = new OdtDocumentBuilder()
+            .AddParagraph("{{Name}}")
+            .AddEntry("Thumbnails/", Array.Empty<byte>())
+            .AddEntry("Thumbnails/thumbnail.png", new byte[] { 1 })
+            .AddEntry("Thumbnails/other.png", new byte[] { 2 });
+
+        (_, OdtDocumentVerifier output) = OdtTestHelper.Process(template, _data);
+
+        Assert.DoesNotContain("Thumbnails/thumbnail.png", output.EntryNames);
+        Assert.Contains("Thumbnails/", output.EntryNames);
+        Assert.Equal(new byte[] { 2 }, output.GetEntryBytes("Thumbnails/other.png"));
+    }
+
+    private static byte[] AddEntries(byte[] package, params (string Name, string Content)[] entries)
+    {
+        using MemoryStream stream = new MemoryStream();
+        stream.Write(package);
+        using (ZipArchive archive = new ZipArchive(stream, ZipArchiveMode.Update, leaveOpen: true))
+        {
+            foreach ((string name, string content) in entries)
+            {
+                using Stream entryStream = archive.CreateEntry(name).Open();
+                entryStream.Write(Encoding.UTF8.GetBytes(content));
+            }
+        }
+
+        return stream.ToArray();
+    }
+
+    private static byte[] ReplaceEntry(byte[] package, string name, Func<string, string> replace)
+    {
+        using MemoryStream stream = new MemoryStream();
+        stream.Write(package);
+        using (ZipArchive archive = new ZipArchive(stream, ZipArchiveMode.Update, leaveOpen: true))
+        {
+            ZipArchiveEntry entry = archive.GetEntry(name)!;
+            string content;
+            using (StreamReader reader = new StreamReader(entry.Open()))
+            {
+                content = reader.ReadToEnd();
+            }
+
+            entry.Delete();
+            using Stream entryStream = archive.CreateEntry(name).Open();
+            entryStream.Write(Encoding.UTF8.GetBytes(replace(content)));
+        }
+
+        return stream.ToArray();
+    }
+
     private static byte[] CreateTemplateWithLargeEntry(out int entrySize)
     {
         entrySize = 64 * 1024 * 1024;

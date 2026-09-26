@@ -2,6 +2,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Xml.Linq;
+using TriasDev.Templify.Core;
 using TriasDev.Templify.Tests.Helpers;
 
 namespace TriasDev.Templify.Tests.Odt;
@@ -183,5 +184,28 @@ public sealed class OdtContainerTests
         XElement header = output.StylesXml!.Descendants(OdtDocumentVerifier.Style + "header").Single();
         Assert.Single(header.Elements());
         Assert.Equal(_text + "p", header.Elements().Single().Name);
+    }
+
+    [Fact]
+    public void HeaderAndFooterRegions_AreProcessed()
+    {
+        OdtDocumentBuilder template = new OdtDocumentBuilder()
+            .AddParagraph("Body {{Name}}")
+            .AddHeaderXml(
+                "<style:region-left><text:p>L {{Name}}</text:p></style:region-left>" +
+                "<style:region-center><text:p>{{#if Show}}</text:p><text:p>hidden</text:p><text:p>{{/if}}</text:p></style:region-center>" +
+                "<style:region-right><text:p>{{#foreach Items}}</text:p><text:p>R {{Name}}</text:p><text:p>{{/foreach}}</text:p></style:region-right>")
+            .AddFooterXml("<style:region-center><text:p>F {{Name}}</text:p></style:region-center>");
+
+        (ProcessingResult result, OdtDocumentVerifier output) = OdtTestHelper.Process(template, new Dictionary<string, object>
+        {
+            ["Name"] = "X",
+            ["Show"] = false,
+            ["Items"] = Items("a", "b"),
+        });
+
+        Assert.Equal(new[] { "L X", string.Empty, "R a", "R b" }, output.GetHeaderTexts());
+        Assert.Equal(new[] { "F X" }, output.GetFooterTexts());
+        Assert.Equal(5, result.ReplacementCount);
     }
 }

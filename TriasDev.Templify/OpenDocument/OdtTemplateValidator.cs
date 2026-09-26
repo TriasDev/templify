@@ -230,7 +230,8 @@ internal sealed class OdtTemplateValidator
                  || block.Name == OdfNames.Section
                  || block.Name == OdfNames.NumberedParagraph
                  || block.Name == OdfNames.IndexBody
-                 || block.Name == OdfNames.IndexTitle)
+                 || block.Name == OdfNames.IndexTitle
+                 || OdfNames.IsHeaderFooterRegion(block))
         {
             yield return block.Elements().ToList();
         }

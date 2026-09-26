@@ -564,4 +564,16 @@ public sealed class OdtPlaceholderTests
         Assert.Equal(0, result.ReplacementCount);
         Assert.Equal(new[] { string.Empty, "Plain text" }, output.GetParagraphTexts());
     }
+
+    [Fact]
+    public void ParagraphWithEmptyMarkerText_IsNotAMarkerParagraph()
+    {
+        // {{#empty}} is not template syntax (the feature was removed), so the paragraph is ordinary text.
+        (ProcessingResult result, OdtDocumentVerifier output) = OdtTestHelper.Process(
+            new OdtDocumentBuilder().AddParagraph("{{#empty}} {{Name}} {{/empty}}"),
+            new Dictionary<string, object> { ["Name"] = "World" });
+
+        Assert.Equal("{{#empty}} World {{/empty}}", output.GetParagraphTexts()[0]);
+        Assert.Equal(1, result.ReplacementCount);
+    }
 }
