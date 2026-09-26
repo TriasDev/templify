@@ -1,6 +1,8 @@
 // Copyright (c) 2025 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.IO.Compression;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using TriasDev.Templify.Core;
 using TriasDev.Templify.DocumentGenerator;
@@ -33,8 +35,27 @@ public sealed class ExampleGeneratorSmokeTests : IDisposable
 
     private static string ReadDocumentText(Stream stream)
     {
+        if (TemplateProcessor.DetectFormat(stream) == TemplateFormat.Odt)
+        {
+            return ReadOdtText(stream);
+        }
+
         using WordprocessingDocument document = WordprocessingDocument.Open(stream, false);
         return document.MainDocumentPart!.Document!.Body!.InnerText;
+    }
+
+    /// <summary>The text of content.xml and styles.xml (headers and footers) of an OpenDocument package.</summary>
+    private static string ReadOdtText(Stream stream)
+    {
+        using ZipArchive archive = new(stream, ZipArchiveMode.Read, leaveOpen: true);
+        string text = string.Empty;
+        foreach (string part in new[] { "content.xml", "styles.xml" })
+        {
+            using Stream entry = archive.GetEntry(part)!.Open();
+            text += XDocument.Load(entry).Root!.Value;
+        }
+
+        return text;
     }
 
     [Theory]
@@ -44,7 +65,8 @@ public sealed class ExampleGeneratorSmokeTests : IDisposable
         IExampleGenerator generator = GetGenerator(name);
         string templatePath = generator.GenerateTemplate(_temp.Path);
 
-        DocumentTemplateProcessor processor = new();
+        // The facade handles the .docx examples and the OpenDocument example alike.
+        TemplateProcessor processor = new();
         using FileStream templateStream = File.OpenRead(templatePath);
         using MemoryStream output = new();
         ProcessingResult result = processor.ProcessTemplate(templateStream, output, generator.GetSampleData());
@@ -58,6 +80,20 @@ public sealed class ExampleGeneratorSmokeTests : IDisposable
         Assert.DoesNotContain("{{", text);
         Assert.DoesNotContain("}}", text);
         Assert.False(string.IsNullOrWhiteSpace(text));
+    }
+
+    [Theory]
+    [MemberData(nameof(GeneratorNames))]
+    public void Generator_TemplateValidatesWithSampleData(string name)
+    {
+        IExampleGenerator generator = GetGenerator(name);
+        string templatePath = generator.GenerateTemplate(_temp.Path);
+
+        using FileStream templateStream = File.OpenRead(templatePath);
+        ValidationResult result = new TemplateProcessor().ValidateTemplate(templateStream, generator.GetSampleData());
+
+        Assert.True(result.IsValid, string.Join("; ", result.Errors.Select(e => e.Message)));
+        Assert.Empty(result.MissingVariables);
     }
 
     [Theory]
@@ -123,6 +159,40 @@ public sealed class ExampleGeneratorSmokeTests : IDisposable
         Assert.Contains("You have not set a nickname yet.", text);     // is empty
         Assert.Contains("Your interests: Hiking, Photography", text);  // is not empty
         Assert.Contains("You qualify for the partner lounge.", text);  // grouping
+    }
+
+    [Fact]
+    public void LibreOfficeLetter_IsAnOdtWithTheExpectedContent()
+    {
+        IExampleGenerator generator = GetGenerator("libreoffice-letter");
+        string templatePath = generator.GenerateTemplate(_temp.Path);
+
+        string outputPath = generator.ProcessTemplate(templatePath, _temp.Path);
+
+        Assert.EndsWith(".odt", templatePath);
+        Assert.EndsWith(".odt", outputPath);
+        using FileStream stream = File.OpenRead(outputPath);
+        Assert.Equal(TemplateFormat.Odt, TemplateProcessor.DetectFormat(stream));
+        string text = ReadDocumentText(stream);
+        Assert.Contains("Dear Alice Johnson,", text);
+        Assert.Contains("January 15, 2025", text);
+        Assert.Contains("Free shipping", text);
+        Assert.Contains("Priority support", text);
+        Assert.DoesNotContain("Become a premium customer", text);   // else branch removed
+        Assert.Contains("Office chair", text);
+        Assert.Contains("$249.00", text);
+        Assert.Contains("Acme Corporation · Order confirmation for Alice Johnson", text);   // footer
+    }
+
+    [Fact]
+    public void LibreOfficeLetter_TemplateIsDeterministic()
+    {
+        IExampleGenerator generator = GetGenerator("libreoffice-letter");
+        byte[] first = File.ReadAllBytes(generator.GenerateTemplate(_temp.Path));
+        byte[] second = File.ReadAllBytes(generator.GenerateTemplate(_temp.Path));
+
+        Assert.NotEmpty(first);
+        Assert.Equal(first, second);
     }
 
     [Fact]

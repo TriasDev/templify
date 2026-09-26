@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Templify** is a .NET library (net8.0/net9.0/net10.0) for replacing placeholders in Word documents (.docx) without requiring Microsoft Word. It uses the OpenXML SDK and provides a visitor pattern architecture for processing templates with placeholders (`{{variableName}}`), conditionals, and loops.
+**Templify** is a .NET library (net8.0/net9.0/net10.0) for replacing placeholders in Word documents (.docx) and OpenDocument Text documents (.odt/.ott, LibreOffice) without requiring Microsoft Word or LibreOffice. It uses the OpenXML SDK and provides a visitor pattern architecture for processing templates with placeholders (`{{variableName}}`), conditionals, and loops.
 
 **Target Frameworks:** net10.0, net9.0, net8.0 (library); tools use net10.0, `TriasDev.Templify.Tests` multi-targets all library TFMs
 **Primary Dependency:** DocumentFormat.OpenXml 3.5.1
@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is a multi-project solution with 9 projects:
 
 - **TriasDev.Templify** - Core library with template processing logic
-- **TriasDev.Templify.Tests** - xUnit test suite (~1,750 tests, ~91% line / ~85% branch coverage)
+- **TriasDev.Templify.Tests** - xUnit test suite (~2,090 tests, ~91% line / ~85% branch coverage)
 - **TriasDev.Templify.Benchmarks** - BenchmarkDotNet performance tests
 - **TriasDev.Templify.Converter** - CLI tool for converting Word documents
 - **TriasDev.Templify.Gui** - Avalonia-based GUI application
@@ -245,6 +245,37 @@ body, headers/footers and notes.
    - **TemplateValidator** (Core/) - `ValidateTemplate` implementation
    - **WarningCollector / WarningReportGenerator** (Core/) - Processing warnings and the warning report document
 
+### OpenDocument (.odt / .ott)
+
+OpenDocument Text templates have their own internal engine in `OpenDocument/` (namespace `TriasDev.Templify.OpenDocument`,
+all `internal`). The Word pipeline is not touched, and the format-agnostic parts are reused unchanged: the condition
+engine, `PlaceholderScanner`, `ValueConverter`, contexts, `ReplacementContent`/`MarkdownParser`, results and warnings.
+Design: `docs/superpowers/specs/2026-09-26-odt-support-design.md`.
+
+- **Public entry points** (Core/): `OdtTemplateProcessor` (same method shapes as `DocumentTemplateProcessor`; the output
+  stream only has to be writable and is written only on success) and `TemplateProcessor`, the facade that detects the
+  format (`TemplateFormatDetector`: ODF `mimetype` / manifest root media type vs OOXML `[Content_Types].xml`
+  WordprocessingML main part) and delegates. `TemplateFormat` enum: `Unknown`, `Docx`, `Odt`. Non-seekable template
+  streams are buffered; unsupported formats → `ProcessingResult.Failure("Unsupported template format: ...")`.
+- **Package** (`OdtPackage`): ZIP via `System.IO.Compression`, XML via `System.Xml.Linq` (no new dependency). It writes
+  `mimetype` first and stored, rewrites `.ott` to `.odt`, rejects encrypted packages and drops document signatures.
+- **Engine** (`OdtTemplateEngine`): no visitors. It uses the same order as the Word walker (loops detected →
+  conditionals deepest first → loops expanded → placeholders) over `content.xml` and the `styles.xml` master pages
+  (headers and footers). It walks tables and row groups, lists (items are treated like rows), sections, text boxes,
+  notes and index bodies.
+- **Text** (`OdtParagraphTextModel`, `OdtParagraphTextRewriter`): the paragraph text across `text:span`/`text:a`, with
+  `text:s`, `text:tab` and `text:line-break` as atoms. Replacements are encoded so that ODF whitespace collapsing
+  renders them exactly.
+- **Other components:** `OdtConditionalDetector`/`OdtLoopDetector` (markers), `OdtPlaceholderProcessor`,
+  `OdtTextStyles` (markdown as automatic `T{n}` styles), `OdtUniqueNames` (frame/table/section names and note ids
+  after cloning), `OdtDocumentProperties` (`meta.xml`), `OdtTemplateValidator`.
+- **Known gaps (documented):** loop-cloned bookmarks are not renamed, whitespace collapses after removals, row spans
+  are not adjusted, `UpdateFieldsOnOpen` does not apply, comments are not processed, `.fodt` is unsupported.
+- **Tests:** `TriasDev.Templify.Tests/Odt/` (one class per feature). The helpers are `Helpers/OdtDocumentBuilder` and
+  `OdtDocumentVerifier` (the verifier checks the package structure). LibreOffice round trips use
+  `[Trait("Category", "LibreOffice")]` and run only when `soffice` is found (macOS default path, `PATH` or
+  `TEMPLIFY_SOFFICE`). Otherwise they are skipped. Facade tests: `Core/TemplateProcessorTests.cs`.
+
 ### Processing Flow
 
 ```
@@ -273,7 +304,9 @@ body, headers/footers and notes.
 ### Code Organization by Feature
 
 **Core Processing:**
-- `Core/DocumentTemplateProcessor.cs` - Main entry point
+- `Core/DocumentTemplateProcessor.cs` - Main entry point (Word)
+- `Core/OdtTemplateProcessor.cs` - Entry point for OpenDocument Text (.odt/.ott)
+- `Core/TemplateProcessor.cs`, `Core/TemplateFormat.cs`, `Core/TemplateFormatDetector.cs` - Format-detecting facade
 - `Core/TextTemplateProcessor.cs` / `Core/TextProcessingResult.cs` - Plain text templates
 - `Core/PlaceholderReplacementOptions.cs` - Configuration (`MissingVariableBehavior`, `Culture`, `BooleanFormatterRegistry`, `EnableNewlineSupport`, `EnableMarkdown`, `WarnOnEmptyLoopCollections`, `TextReplacements`, `UpdateFieldsOnOpen`, `DocumentProperties`)
 - `Core/ProcessingResult.cs` - Result (`IsSuccess`, `ErrorMessage`, `ReplacementCount`, `MissingVariables`, `Warnings`, `HasWarnings`, `GetWarningReport()`)
@@ -291,6 +324,9 @@ body, headers/footers and notes.
 - `Visitors/PlaceholderVisitor.cs` - Placeholder replacement
 - `Visitors/CompositeVisitor.cs` - Visitor composition
 - `Visitors/TemplateElementHelper.cs` - Cloning and safe removal of elements
+
+**OpenDocument:**
+- `OpenDocument/` - The internal ODT engine (see "OpenDocument (.odt / .ott)" above)
 
 **Conditionals:**
 - `Conditionals/ConditionalBlock.cs`, `ConditionalBranch.cs` - Data structures for if/elseif/else blocks
@@ -421,8 +457,8 @@ inside one paragraph.
 
 ### Markdown Syntax
 
-Variable values support markdown formatting for dynamic text styling (Word documents only, `EnableMarkdown` defaults to
-`true`; `:raw` disables it per placeholder):
+Variable values support markdown formatting for dynamic text styling (Word and OpenDocument documents, not text
+templates; `EnableMarkdown` defaults to `true`; `:raw` disables it per placeholder):
 
 ```csharp
 var data = new Dictionary<string, object>
@@ -463,7 +499,7 @@ properties (styles, list numbering) are not touched.
 ## Testing Strategy
 
 ### Test Organization
-`TriasDev.Templify.Tests` has about 1,750 tests (on each of net10/net9/net8). Core line coverage is about 91% and branch coverage about 85%. Excluding the source-generated regex code, the figures are about 96% and 91% (as of 2026-09).
+`TriasDev.Templify.Tests` has about 2,090 tests (on each of net10/net9/net8). Core line coverage is about 91% and branch coverage about 85%. Excluding the source-generated regex code, the figures are about 96% and 91% (as of 2026-09).
 - **Unit tests:** one folder per library namespace (see below). Internal types are used directly through `InternalsVisibleTo`, not through reflection.
 - **Integration tests** (`Integration/`): end-to-end processing of generated Word documents. This covers placeholders, loops, conditionals, tables, headers/footers, text boxes, markdown, culture independence, validation, output schema validity and unicode.
 - **Skipped tests** use `[Fact(Skip = "Bug: #<issue>")]` and document known library bugs. Remove the `Skip` when you fix the bug.
@@ -473,6 +509,8 @@ properties (styles, list numbering) are not touched.
 Test folders mirror the library namespaces, and each test namespace matches its folder (`TriasDev.Templify.Tests.<Folder>`):
 - `Conditionals/` (`Conditionals/Engine/` for the expression engine), `Core/`, `Formatting/`, `Loops/`, `Markdown/`, `Placeholders/`, `PropertyPaths/`, `Replacements/`, `Utilities/`, `Visitors/`: unit tests for that namespace
 - `Integration/`: end-to-end tests
+- `Odt/`: OpenDocument engine tests (placeholders, conditionals, loops, containers, markdown, validation, package, LibreOffice round trips)
+- `Documentation/`: tests that mirror the code samples in the READMEs and docs pages
 - `Helpers/`: `DocumentBuilder` / `DocumentVerifier`, `TemplateTestHarness` (build → process → verify, `InvariantCulture` by default), `ConditionEngineTestHelper` (`Eval` / `EvalInline`) and `TestBlocks`
 - Root: only `ObsoleteApiTests` (cross-namespace deprecated public API)
 - Naming: `ConditionalEvaluatorTests` tests the internal `ConditionalEvaluator` used by templates. `PublicConditionEvaluatorTests` tests the public standalone `ConditionEvaluator` API.

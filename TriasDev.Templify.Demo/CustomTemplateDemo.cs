@@ -8,7 +8,8 @@ namespace TriasDev.Templify.Demo;
 
 /// <summary>
 /// Processes a user-supplied template with a JSON data file:
-/// <c>--template &lt;file.docx&gt; --data &lt;file.json&gt; [--output &lt;file.docx&gt;]</c>.
+/// <c>--template &lt;file.docx|file.odt|file.ott&gt; --data &lt;file.json&gt; [--output &lt;file&gt;]</c>.
+/// The format is detected from the file content by <see cref="TemplateProcessor"/>.
 /// </summary>
 internal partial class Program
 {
@@ -22,23 +23,38 @@ internal partial class Program
 
         if (string.IsNullOrEmpty(templatePath) || string.IsNullOrEmpty(jsonPath))
         {
-            Console.WriteLine("Usage: dotnet run --project TriasDev.Templify.Demo -- --template <file.docx> --data <file.json> [--output <file.docx>]");
+            Console.WriteLine("Usage: dotnet run --project TriasDev.Templify.Demo -- --template <file.docx|file.odt|file.ott> --data <file.json> [--output <file>]");
             return 1;
         }
 
         templatePath = Path.GetFullPath(templatePath);
         jsonPath = Path.GetFullPath(jsonPath);
-        string outputPath = Path.GetFullPath(
-            GetArgumentValue(args, "--output")
-            ?? Path.Combine(
-                Path.GetDirectoryName(templatePath) ?? ".",
-                Path.GetFileNameWithoutExtension(templatePath) + "-output.docx"));
 
         if (!File.Exists(templatePath))
         {
             WriteColored(ConsoleColor.Red, $"❌ Template not found: {templatePath}");
             return 1;
         }
+
+        // Word (.docx) or OpenDocument (.odt/.ott), detected from the content; the output has the template's format.
+        TemplateFormat format;
+        using (FileStream detectStream = File.OpenRead(templatePath))
+        {
+            format = TemplateProcessor.DetectFormat(detectStream);
+        }
+
+        if (format == TemplateFormat.Unknown)
+        {
+            WriteColored(ConsoleColor.Red, "❌ The template is neither a Word document (.docx) nor an OpenDocument Text document (.odt/.ott).");
+            return 1;
+        }
+
+        string outputExtension = format == TemplateFormat.Odt ? ".odt" : ".docx";
+        string outputPath = Path.GetFullPath(
+            GetArgumentValue(args, "--output")
+            ?? Path.Combine(
+                Path.GetDirectoryName(templatePath) ?? ".",
+                Path.GetFileNameWithoutExtension(templatePath) + "-output" + outputExtension));
 
         if (!File.Exists(jsonPath))
         {
@@ -52,7 +68,7 @@ internal partial class Program
             return 1;
         }
 
-        Console.WriteLine($"📄 Template: {templatePath}");
+        Console.WriteLine($"📄 Template: {templatePath} ({(format == TemplateFormat.Odt ? "OpenDocument Text" : "Word")})");
         Console.WriteLine($"📊 Data:     {jsonPath}");
         Console.WriteLine();
 
@@ -66,7 +82,7 @@ internal partial class Program
                 Culture = CultureInfo.InvariantCulture
             };
 
-            DocumentTemplateProcessor processor = new DocumentTemplateProcessor(options);
+            TemplateProcessor processor = new TemplateProcessor(options);
 
             Console.WriteLine("🔍 Validating template...");
             using (FileStream validateStream = File.OpenRead(templatePath))

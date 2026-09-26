@@ -1,6 +1,6 @@
 # Templify
 
-A simple, focused .NET library for replacing placeholders in Word documents (.docx) without requiring Microsoft Word to be installed.
+A simple, focused .NET library for replacing placeholders in Word documents (.docx) and LibreOffice / OpenDocument Text documents (.odt, .ott) without requiring Microsoft Word or LibreOffice to be installed.
 
 ## Overview
 
@@ -8,6 +8,7 @@ Templify is built on the Microsoft OpenXML SDK and provides a straightforward AP
 
 ## Features
 
+- **Word and LibreOffice**: `.docx` templates (`DocumentTemplateProcessor`), OpenDocument Text `.odt`/`.ott` templates (`OdtTemplateProcessor`), or both through the format-detecting `TemplateProcessor`, with the same syntax, options and results
 - **Simple placeholder syntax**: Use `{{variableName}}` in your Word templates
 - **Format specifiers**: Currency, number and date formats, upper/lower case, and boolean display as checkboxes (☑/☐), Yes/No, checkmarks (✓/✗) and more
 - **Markdown in values**: `**bold**`, `*italic*`, `~~strikethrough~~` in data values become Word formatting (can be turned off)
@@ -87,6 +88,31 @@ ProcessingResult bytesResult = processor.ProcessTemplate(template, data, out byt
 // JSON data (root must be an object)
 ProcessingResult jsonResult = processor.ProcessTemplateFile("template.docx", "output.docx", File.ReadAllText("data.json"));
 ```
+
+### LibreOffice / OpenDocument Templates
+
+Templates saved in LibreOffice Writer as `.odt` (or as `.ott` templates) use the same syntax. `OdtTemplateProcessor`
+has the same methods as `DocumentTemplateProcessor`. `TemplateProcessor` accepts both formats and detects the format
+from the file content:
+
+```csharp
+// OpenDocument only; the output stream only has to be writable
+var odtProcessor = new OdtTemplateProcessor();
+ProcessingResult odtResult = odtProcessor.ProcessTemplateFile("template.odt", "output.odt", data);
+
+// Word or OpenDocument: the output has the format of the template (.ott produces .odt)
+var anyProcessor = new TemplateProcessor();
+ProcessingResult anyResult = anyProcessor.ProcessTemplateFile("template.ott", "output.odt", data);
+
+// Detect the format yourself, e.g. to choose the output file name
+using var stream = File.OpenRead("template.ott");
+TemplateFormat format = TemplateProcessor.DetectFormat(stream);   // Docx, Odt or Unknown
+```
+
+Differences from Word: `UpdateFieldsOnOpen` does not apply (LibreOffice updates fields itself), several spaces
+collapse into one when text around them is removed, and flat `.fodt` files are not supported. See the
+[OpenDocument guide](https://triasdev.github.io/templify/for-developers/opendocument/) and
+[LibreOffice / OpenDocument Templates](https://triasdev.github.io/templify/for-template-authors/libreoffice/).
 
 ### Word Template Example
 

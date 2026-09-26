@@ -1,6 +1,6 @@
 # Templify Documentation
 
-Welcome to **Templify** - a powerful tool for creating dynamic Word documents from templates with placeholders, conditionals, and loops.
+Welcome to **Templify** - a powerful tool for creating dynamic Word (`.docx`) and LibreOffice / OpenDocument (`.odt`) documents from templates with placeholders, conditionals, and loops.
 
 ---
 
@@ -19,6 +19,7 @@ I work with Word documents and need to create templates with placeholders like `
 - [Template Syntax Reference](for-template-authors/template-syntax.md) - Complete syntax guide
 - [Examples Gallery](for-template-authors/examples-gallery.md) - Real-world templates
 - [Best Practices](for-template-authors/best-practices.md) - Tips for great templates
+- [LibreOffice / OpenDocument](for-template-authors/libreoffice.md) - Templates written in LibreOffice Writer (`.odt`, `.ott`)
 
 ---
 
@@ -32,6 +33,7 @@ I'm a software developer who wants to use the Templify library in my C# applicat
 
 **Quick Links:**
 - [Developer Quick Start](for-developers/quick-start.md) - Installation, API overview, options
+- [OpenDocument (.odt)](for-developers/opendocument.md) - `OdtTemplateProcessor` and the format-detecting `TemplateProcessor`
 - [Processing Warnings](for-developers/processing-warnings.md) - Missing variables, loop and expression warnings
 - [Text Template Processing](for-developers/text-templates.md) - Templates for plain text and emails
 - [Condition Evaluation](for-developers/condition-evaluation.md) - Evaluate conditions without a document
@@ -56,8 +58,9 @@ Templify lets you create Word document templates with special placeholders that 
 🔁 **Loops** - Repeat sections with `{{#foreach}}...{{/foreach}}`
 ⚡ **Conditionals** - Dynamic content with `{{#if}}...{{#else}}...{{/if}}`
 📊 **Table Support** - Loop through table rows
+📄 **Word and LibreOffice** - `.docx` templates from Word and `.odt`/`.ott` templates from LibreOffice Writer
 🎨 **Formatting** - Preserves Word styling, supports markdown and format specifiers
-🚀 **No Word Required** - Uses Open XML SDK (template authors still use Word to create templates)
+🚀 **No Office Required** - Processing needs neither Word nor LibreOffice (template authors still use them to create templates)
 
 ## Quick Example
 

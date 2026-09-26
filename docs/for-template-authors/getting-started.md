@@ -8,7 +8,7 @@ Templify is a tool that takes a Word document template with placeholders (like `
 
 ## What You'll Need
 
-1. **Microsoft Word** (or any app that can edit .docx files)
+1. **Microsoft Word** (or any app that can edit .docx files). LibreOffice Writer works too, see [LibreOffice / OpenDocument Templates](libreoffice.md)
 2. **A text editor** (Notepad, TextEdit, VS Code, or any editor for JSON files)
 3. **Templify** - the Templify GUI application, or an application that uses the Templify library (developers can also use the demo console app, see below)
 

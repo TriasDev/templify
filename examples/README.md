@@ -1,6 +1,6 @@
 # Templify Examples
 
-This folder contains example Word templates and the documents Templify produced from them. They are generated
+This folder contains example Word (and one LibreOffice / OpenDocument) templates and the documents Templify produced from them. They are generated
 by the [DocumentGenerator](../TriasDev.Templify.DocumentGenerator/README.md) tool, so they always match the
 current library.
 
@@ -13,6 +13,7 @@ current library.
 | Conditionals | [templates/conditionals-template.docx](templates/conditionals-template.docx) | [outputs/conditionals-output.docx](outputs/conditionals-output.docx) | If/else blocks, boolean flags, status-based content |
 | Advanced Conditionals | [templates/advanced-conditionals-template.docx](templates/advanced-conditionals-template.docx) | [outputs/advanced-conditionals-output.docx](outputs/advanced-conditionals-output.docx) | `elseif` chains, `in`/`contains`/`startswith`, `exists`/`is empty`, grouping with parentheses |
 | Warning Report | [templates/warning-report-template.docx](templates/warning-report-template.docx) | [outputs/warning-report-output.docx](outputs/warning-report-output.docx) | The template behind `ProcessingResult.GetWarningReport()` |
+| LibreOffice Letter | [templates/libreoffice-letter-template.odt](templates/libreoffice-letter-template.odt) | [outputs/libreoffice-letter-output.odt](outputs/libreoffice-letter-output.odt) | OpenDocument (`.odt`) template for LibreOffice Writer: conditionals, list-item and table-row loops, markdown, footer |
 
 The sample data for each example is defined in code in
 [`TriasDev.Templify.DocumentGenerator/Generators/`](../TriasDev.Templify.DocumentGenerator/Generators/).
@@ -21,7 +22,7 @@ The sample data for each example is defined in code in
 
 ### 1. Open a Template
 
-Open a file from `templates/` in Word to see the placeholders, conditionals and loops, and compare it with the
+Open a file from `templates/` in Word (or the `.odt` file in LibreOffice Writer) to see the placeholders, conditionals and loops, and compare it with the
 matching file in `outputs/`.
 
 ### 2. Process It With Your Own Data
@@ -51,7 +52,7 @@ OpenXMLTemplates documents (`analyze`, `convert`, `validate`, `clean`).
 using TriasDev.Templify.Core;
 
 string json = File.ReadAllText("my-data.json");
-var processor = new DocumentTemplateProcessor();
+var processor = new TemplateProcessor();   // .docx, .odt and .ott
 
 ProcessingResult result = processor.ProcessTemplateFile(
     "examples/templates/hello-world-template.docx",

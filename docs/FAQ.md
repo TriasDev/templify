@@ -54,6 +54,14 @@ Or in Visual Studio: `Install-Package TriasDev.Templify`
 
 **A:** **No!** Templify uses the OpenXML SDK to work directly with .docx files. It runs on any platform without Office installed.
 
+### Q: Can I write templates in LibreOffice?
+
+**A:** **Yes.** Save the template as OpenDocument Text (`.odt`) or as a template (`.ott`) and process it with
+`OdtTemplateProcessor`, or with `TemplateProcessor`, which accepts both Word and OpenDocument files. The template
+syntax is the same, and LibreOffice does not need to be installed where the templates are processed. See
+[LibreOffice / OpenDocument Templates](for-template-authors/libreoffice.md) and
+[OpenDocument for developers](for-developers/opendocument.md).
+
 ### Q: Can I use Templify in web applications?
 
 **A:** **Yes!** Templify works perfectly in:
