@@ -153,6 +153,38 @@ public sealed class OdtMarkdownTests
     }
 
     [Fact]
+    public void NewStyleName_DoesNotShadowACommonStyleOfStylesXml()
+    {
+        // content.xml spans can reference common (named) styles of styles.xml. An automatic style with the same
+        // name takes precedence in LibreOffice, so the red "T3" text used to turn bold when markdown created T3.
+        (_, OdtDocumentVerifier output) = OdtTestHelper.Process(
+            new OdtDocumentBuilder()
+                .AddCommonStyles("<style:style style:name=\"T3\" style:family=\"text\"><style:text-properties fo:color=\"#ff0000\"/></style:style>"
+                    + "<text:list-style style:name=\"T4\"/>")
+                .AddXml("<text:p><text:span text:style-name=\"T3\">red</text:span> {{Bold}}</text:p>"),
+            new Dictionary<string, object> { ["Bold"] = "**b**" });
+
+        XElement bold = output.Body.Descendants(_text + "span").Single(s => s.Value == "b");
+        Assert.Equal("T5", (string?)bold.Attribute(_text + "style-name"));
+        Assert.Equal("bold", (string?)TextProperties(output.ContentXml, bold)!.Attribute(_fo + "font-weight"));
+        XElement red = output.Body.Descendants(_text + "span").Single(s => s.Value == "red");
+        Assert.Equal("T3", (string?)red.Attribute(_text + "style-name"));
+        Assert.Null(TextProperties(output.ContentXml, red));
+    }
+
+    [Fact]
+    public void HeaderStyles_MayReuseNamesOfContentStyles()
+    {
+        // Automatic styles are per part: a header style T1 in styles.xml and the content style T1 do not collide.
+        (_, OdtDocumentVerifier output) = OdtTestHelper.Process(
+            new OdtDocumentBuilder().AddHeaderParagraph("{{Value}}"),
+            new Dictionary<string, object> { ["Value"] = "~~s~~" });
+
+        XElement headerSpan = output.StylesXml!.Descendants(_text + "span").Single();
+        Assert.Equal("T1", (string?)headerSpan.Attribute(_text + "style-name"));
+    }
+
+    [Fact]
     public void MarkdownInLoop_ReusesStyleForAllItems()
     {
         (_, OdtDocumentVerifier output) = OdtTestHelper.Process(
