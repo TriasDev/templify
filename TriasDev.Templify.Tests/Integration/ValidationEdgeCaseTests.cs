@@ -35,7 +35,7 @@ public sealed class ValidationEdgeCaseTests
         Assert.StartsWith("Validation failed:", Assert.Single(result.Errors).Message);
     }
 
-    [Fact(Skip = "Bug: #198")]
+    [Fact]
     public void ValidateTemplate_TableRowLoopWithData_ItemPropertiesAreNotReportedMissing()
     {
         Dictionary<string, object> data = new Dictionary<string, object> { ["Items"] = Items("A") };

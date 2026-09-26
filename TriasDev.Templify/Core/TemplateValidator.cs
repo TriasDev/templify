@@ -166,14 +166,19 @@ internal sealed class TemplateValidator
     }
 
     /// <summary>
-    /// Validates table row loops in a list of elements (used for headers/footers).
+    /// Validates table row loops in a list of elements (used for headers/footers), including the
+    /// loops of tables nested in cells, loops or content controls.
     /// </summary>
     private static void ValidateTableRowLoopsInElements(
         List<OpenXmlElement> elements,
         HashSet<string> allPlaceholders,
         List<ValidationError> errors)
     {
-        foreach (Table table in elements.OfType<Table>())
+        IEnumerable<Table> tables = elements.SelectMany(e => e is Table table
+            ? table.Descendants<Table>().Prepend(table)
+            : e.Descendants<Table>());
+
+        foreach (Table table in tables)
         {
             try
             {
@@ -214,15 +219,10 @@ internal sealed class TemplateValidator
         List<ValidationError> errors,
         bool warnOnEmptyLoopCollections)
     {
-        ValueResolver resolver = new ValueResolver();
-        Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)> loopStack =
-            new Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)>();
-
         // Note: We reuse allPlaceholders from steps 1-4 (conditionals, loops, table loops, regular placeholders).
-        // ValidatePlaceholdersInScope will add any additional placeholders found during recursive processing.
-
-        // Validate placeholders with proper loop scoping
-        ValidatePlaceholdersInScope(elements, loopStack, data, allPlaceholders, missingVariables, warnings, errors, resolver, warnOnEmptyLoopCollections);
+        // The scoped validation adds any additional placeholders found while descending into loops.
+        new ScopedVariableValidator(data, allPlaceholders, missingVariables, warnings, errors, warnOnEmptyLoopCollections)
+            .ValidateElements(elements);
     }
 
     /// <summary>
@@ -307,302 +307,6 @@ internal sealed class TemplateValidator
     }
 
     /// <summary>
-    /// Recursively validates placeholders within a scope, handling loops and their nested content.
-    /// </summary>
-    private static void ValidatePlaceholdersInScope(
-        IReadOnlyList<OpenXmlElement> elements,
-        Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)> loopStack,
-        IReadOnlyDictionary<string, object> data,
-        HashSet<string> allPlaceholders,
-        HashSet<string> missingVariables,
-        List<ValidationWarning> warnings,
-        List<ValidationError> errors,
-        ValueResolver resolver,
-        bool warnOnEmptyLoopCollections)
-    {
-        // 1. Detect loops in these elements
-        IReadOnlyList<LoopBlock> loopBlocks;
-        try
-        {
-            loopBlocks = LoopDetector.DetectLoopsInElements(elements.ToList());
-        }
-        catch (TemplateSyntaxException)
-        {
-            // Loop detection errors are already captured in the main validation
-            loopBlocks = Array.Empty<LoopBlock>();
-        }
-
-        // 2. Collect all loops (both regular and table row loops) for exclusion
-        List<LoopBlock> allLoops = new List<LoopBlock>(loopBlocks);
-
-        // Detect table row loops
-        List<LoopBlock> tableRowLoops = new List<LoopBlock>();
-        foreach (Table table in elements.OfType<Table>())
-        {
-            try
-            {
-                IReadOnlyList<LoopBlock> tableLoops = LoopDetector.DetectTableRowLoops(table);
-                tableRowLoops.AddRange(tableLoops);
-            }
-            catch (TemplateSyntaxException)
-            {
-                // Table loop detection errors are captured elsewhere
-            }
-        }
-
-        allLoops.AddRange(tableRowLoops);
-
-        // 3. Process each regular loop recursively
-        foreach (LoopBlock loop in loopBlocks)
-        {
-            ProcessLoopForValidation(loop, loopStack, data, allPlaceholders, missingVariables, warnings, errors, resolver, warnOnEmptyLoopCollections);
-        }
-
-        // 4. Process table row loops recursively
-        foreach (LoopBlock loop in tableRowLoops)
-        {
-            ProcessLoopForValidation(loop, loopStack, data, allPlaceholders, missingVariables, warnings, errors, resolver, warnOnEmptyLoopCollections);
-        }
-
-        // 5. Find placeholders in current scope (exclude all nested loop content)
-        HashSet<string> placeholders = FindPlaceholdersInElements(elements, allLoops);
-
-        // 6. Validate each placeholder against current scope
-        foreach (string placeholder in placeholders)
-        {
-            allPlaceholders.Add(placeholder);
-
-            // Skip special placeholders
-            if (placeholder.StartsWith("@") || placeholder == "." || placeholder == "this" || placeholder.StartsWith("."))
-            {
-                continue;
-            }
-
-            if (!CanResolveInScope(placeholder, loopStack, data, resolver))
-            {
-                missingVariables.Add(placeholder);
-                errors.Add(ValidationError.Create(
-                    ValidationErrorType.MissingVariable,
-                    $"Variable '{placeholder}' is referenced in the template but not provided in the data."));
-            }
-        }
-    }
-
-    /// <summary>
-    /// Processes a loop block for validation, recursing into its content.
-    /// </summary>
-    private static void ProcessLoopForValidation(
-        LoopBlock loop,
-        Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)> loopStack,
-        IReadOnlyDictionary<string, object> data,
-        HashSet<string> allPlaceholders,
-        HashSet<string> missingVariables,
-        List<ValidationWarning> warnings,
-        List<ValidationError> errors,
-        ValueResolver resolver,
-        bool warnOnEmptyLoopCollections)
-    {
-        allPlaceholders.Add(loop.CollectionName);
-
-        // Check if this is a loop-scoped property (nested collection from parent loop)
-        bool isLoopScopedProperty = IsLoopScopedProperty(loop.CollectionName, loopStack);
-
-        if (isLoopScopedProperty)
-        {
-            // The collection is a property of a loop item - we can't resolve it statically
-            return;
-        }
-
-        // Try to resolve from global data
-        object? collection = ResolveCollectionFromGlobalScope(loop.CollectionName, data, resolver);
-
-        if (collection == null)
-        {
-            // Collection is not found in global scope - flag as missing
-            missingVariables.Add(loop.CollectionName);
-            errors.Add(ValidationError.Create(
-                ValidationErrorType.MissingVariable,
-                $"Collection '{loop.CollectionName}' is referenced in a loop but not provided in the data."));
-            return;
-        }
-
-        // Aggregate properties from ALL items in collection
-        HashSet<string> aggregatedProperties = AggregatePropertiesFromCollection(collection);
-
-        if (aggregatedProperties.Count == 0)
-        {
-            // Empty collection - optionally add warning, skip inner validation
-            if (warnOnEmptyLoopCollections)
-            {
-                warnings.Add(ValidationWarning.Create(
-                    ValidationWarningType.EmptyLoopCollection,
-                    $"Collection '{loop.CollectionName}' is empty. Variables inside this loop could not be validated."));
-            }
-
-            return;
-        }
-
-        // Recurse into loop content with aggregated properties as scope
-        loopStack.Push((loop.CollectionName, loop.IterationVariableName, aggregatedProperties));
-        ValidatePlaceholdersInScope(loop.ContentElements, loopStack, data, allPlaceholders, missingVariables, warnings, errors, resolver, warnOnEmptyLoopCollections);
-        loopStack.Pop();
-    }
-
-    /// <summary>
-    /// Checks if the given name is a property available in any parent loop scope.
-    /// </summary>
-    private static bool IsLoopScopedProperty(
-        string name,
-        Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)> loopStack)
-    {
-        foreach ((string _, string? _, HashSet<string> properties) in loopStack)
-        {
-            if (properties.Contains(name))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Resolves a collection from global data only.
-    /// </summary>
-    private static object? ResolveCollectionFromGlobalScope(
-        string collectionName,
-        IReadOnlyDictionary<string, object> data,
-        ValueResolver resolver)
-    {
-        if (resolver.TryResolveValue(data, collectionName, out object? value))
-        {
-            return value;
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Aggregates all property names from all items in a collection.
-    /// </summary>
-    private static HashSet<string> AggregatePropertiesFromCollection(object collection)
-    {
-        HashSet<string> properties = new HashSet<string>();
-
-        // Strings implement IEnumerable<char>, so exclude them explicitly
-        if (collection is string || collection is not IEnumerable enumerable)
-        {
-            return properties;
-        }
-
-        // Cache property info by type to avoid repeated reflection
-        Dictionary<Type, System.Reflection.PropertyInfo[]> typePropertyCache = new Dictionary<Type, System.Reflection.PropertyInfo[]>();
-
-        foreach (object? item in enumerable)
-        {
-            if (item == null)
-            {
-                continue;
-            }
-
-            if (item is IDictionary<string, object> dict)
-            {
-                foreach (string key in dict.Keys)
-                {
-                    properties.Add(key);
-                }
-            }
-            else if (item is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Object)
-            {
-                foreach (JsonProperty prop in jsonElement.EnumerateObject())
-                {
-                    properties.Add(prop.Name);
-                }
-            }
-            else
-            {
-                // POCO - get public properties (with caching by type)
-                Type itemType = item.GetType();
-                if (!typePropertyCache.TryGetValue(itemType, out System.Reflection.PropertyInfo[]? cachedProperties))
-                {
-                    cachedProperties = itemType.GetProperties();
-                    typePropertyCache[itemType] = cachedProperties;
-                }
-
-                foreach (System.Reflection.PropertyInfo prop in cachedProperties)
-                {
-                    properties.Add(prop.Name);
-                }
-            }
-        }
-
-        return properties;
-    }
-
-    /// <summary>
-    /// Checks if a placeholder can be resolved in the current scope.
-    /// </summary>
-    private static bool CanResolveInScope(
-        string placeholder,
-        Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)> loopStack,
-        IReadOnlyDictionary<string, object> data,
-        ValueResolver resolver)
-    {
-        // Try loop scopes (innermost first - stack iteration goes from top to bottom)
-        foreach ((string _, string? iterationVariableName, HashSet<string> properties) in loopStack)
-        {
-            // Check if accessing via named iteration variable (e.g., "item" or "item.Name")
-            if (iterationVariableName != null)
-            {
-                // Direct reference to iteration variable (e.g., {{item}})
-                if (placeholder == iterationVariableName)
-                {
-                    return true;
-                }
-
-                // Property access via iteration variable (e.g., {{item.Name}})
-                // Cache prefix to avoid repeated string concatenation
-                string iterationVariablePrefix = iterationVariableName + ".";
-                if (placeholder.StartsWith(iterationVariablePrefix, StringComparison.Ordinal))
-                {
-                    string propertyPath = placeholder.Substring(iterationVariablePrefix.Length);
-                    // Extract root property from the path
-                    int nextDotIndex = propertyPath.IndexOf('.');
-                    string rootProperty = nextDotIndex > 0 ? propertyPath.Substring(0, nextDotIndex) : propertyPath;
-                    if (properties.Contains(rootProperty))
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            // Direct property match (implicit syntax)
-            if (properties.Contains(placeholder))
-            {
-                return true;
-            }
-
-            // Nested property (e.g., "Address.City" - check if "Address" exists)
-            // Note: During static validation, we can only verify the root property exists in the loop scope.
-            // We cannot deeply validate the nested path (e.g., that Address actually has a City property)
-            // because we only have property names from the collection, not actual runtime values.
-            // This is an acceptable limitation - runtime processing will catch any invalid nested paths.
-            int dotIndex = placeholder.IndexOf('.');
-            if (dotIndex > 0)
-            {
-                string rootProperty = placeholder.Substring(0, dotIndex);
-                if (properties.Contains(rootProperty))
-                {
-                    return true;
-                }
-            }
-        }
-
-        // Try global scope
-        return resolver.TryResolveValue(data, placeholder, out _);
-    }
-
-    /// <summary>
     /// Gets all element lists from header, footer, footnote and endnote parts in the document.
     /// </summary>
     private static IEnumerable<List<OpenXmlElement>> GetHeaderFooterElements(WordprocessingDocument document)
@@ -677,13 +381,10 @@ internal sealed class TemplateValidator
         List<ValidationError> errors,
         bool warnOnEmptyLoopCollections)
     {
-        ValueResolver resolver = new ValueResolver();
-
         foreach (List<OpenXmlElement> elements in GetHeaderFooterElements(document))
         {
-            Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)> loopStack =
-                new Stack<(string CollectionName, string? IterationVariableName, HashSet<string> Properties)>();
-            ValidatePlaceholdersInScope(elements, loopStack, data, allPlaceholders, missingVariables, warnings, errors, resolver, warnOnEmptyLoopCollections);
+            new ScopedVariableValidator(data, allPlaceholders, missingVariables, warnings, errors, warnOnEmptyLoopCollections)
+                .ValidateElements(elements);
         }
     }
 
@@ -701,45 +402,5 @@ internal sealed class TemplateValidator
                 allPlaceholders.Add(placeholder);
             }
         }
-    }
-
-    /// <summary>
-    /// Finds all placeholders in the given elements, excluding content inside nested loops.
-    /// </summary>
-    private static HashSet<string> FindPlaceholdersInElements(
-        IReadOnlyList<OpenXmlElement> elements,
-        IReadOnlyList<LoopBlock> nestedLoops)
-    {
-        HashSet<string> placeholders = new HashSet<string>();
-
-        // Build a set of elements that are inside loops (to exclude)
-        HashSet<OpenXmlElement> loopElements = new HashSet<OpenXmlElement>();
-        foreach (LoopBlock loop in nestedLoops)
-        {
-            loopElements.Add(loop.StartMarker);
-            loopElements.Add(loop.EndMarker);
-            foreach (OpenXmlElement content in loop.ContentElements)
-            {
-                loopElements.Add(content);
-            }
-        }
-
-        // Find placeholders in elements that are not inside loops
-        foreach (OpenXmlElement element in elements)
-        {
-            if (loopElements.Contains(element))
-            {
-                continue;
-            }
-
-            string text = element.InnerText;
-            IEnumerable<string> found = PlaceholderScanner.GetUniqueVariableNames(text);
-            foreach (string placeholder in found)
-            {
-                placeholders.Add(placeholder);
-            }
-        }
-
-        return placeholders;
     }
 }
