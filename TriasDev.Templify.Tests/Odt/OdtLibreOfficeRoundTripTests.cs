@@ -97,6 +97,48 @@ public sealed class OdtLibreOfficeRoundTripTests
         Assert.Equal("\tTabbed World", lines[1]);
     }
 
+    [Fact]
+    public void Conditionals_RoundTripThroughLibreOffice()
+    {
+        LibreOfficeRunner.RequireExecutable();
+
+        OdtDocumentBuilder template = new OdtDocumentBuilder()
+            .AddParagraph("{{#if Premium}}")
+            .AddParagraph("Premium customer")
+            .AddParagraph("{{#else}}")
+            .AddParagraph("Standard customer")
+            .AddParagraph("{{/if}}")
+            .AddXml("<text:p>Dear {{#if IsMale}}Mr.{{#else}}<text:span text:style-name=\"T1\">Ms.</text:span>{{/if}} {{Name}}</text:p>")
+            .AddTable(new[] { "{{#if ShowRow}}" }, new[] { "Hidden row" }, new[] { "{{/if}}" }, new[] { "Kept row" })
+            .AddXml(
+                "<text:list><text:list-item><text:p>First</text:p></text:list-item>" +
+                "<text:list-item><text:p>{{#if ShowItem}}</text:p></text:list-item>" +
+                "<text:list-item><text:p>Hidden item</text:p></text:list-item>" +
+                "<text:list-item><text:p>{{/if}}</text:p></text:list-item>" +
+                "<text:list-item><text:p>Last</text:p></text:list-item></text:list>")
+            .AddParagraph("End");
+
+        byte[] output = ProcessToBytes(template, new Dictionary<string, object>
+        {
+            ["Premium"] = false,
+            ["IsMale"] = false,
+            ["Name"] = "Smith",
+            ["ShowRow"] = false,
+            ["ShowItem"] = false,
+        });
+
+        string[] lines = LibreOfficeRunner.ConvertToTextLines(output);
+        string all = string.Join("\n", lines);
+        Assert.Equal("Standard customer", lines[0]);
+        Assert.Equal("Dear Ms. Smith", lines[1]);
+        Assert.Contains("Kept row", all, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hidden", all, StringComparison.Ordinal);
+        Assert.DoesNotContain("{{", all, StringComparison.Ordinal);
+        Assert.Contains("First", all, StringComparison.Ordinal);
+        Assert.Contains("Last", all, StringComparison.Ordinal);
+        Assert.Equal("End", lines[^1]);
+    }
+
     private static byte[] ProcessToBytes(OdtDocumentBuilder template, Dictionary<string, object> data)
     {
         OdtTemplateProcessor processor = new OdtTemplateProcessor(new PlaceholderReplacementOptions { Culture = CultureInfo.InvariantCulture });

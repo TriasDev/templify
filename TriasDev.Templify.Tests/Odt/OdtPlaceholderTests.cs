@@ -554,13 +554,14 @@ public sealed class OdtPlaceholderTests
     }
 
     [Fact]
-    public void ConditionalAndLoopMarkers_AreLeftAsText_ForNow()
+    public void LoopMarkers_AreLeftAsText_ForNow()
     {
         (_, OdtDocumentVerifier output) = OdtTestHelper.Process(
-            new OdtDocumentBuilder().AddParagraph("{{#if Show}}{{Name}}{{/if}}"),
-            new Dictionary<string, object> { ["Show"] = true, ["Name"] = "N" });
+            new OdtDocumentBuilder().AddParagraph("{{#foreach Items}}{{Name}}{{/foreach}}"),
+            new Dictionary<string, object> { ["Items"] = new List<string> { "a" }, ["Name"] = "N" });
 
-        Assert.Equal("{{#if Show}}N{{/if}}", output.GetParagraphTexts()[0]);
+        // Marker paragraphs are not processed for placeholders, as in Word documents.
+        Assert.Equal("{{#foreach Items}}{{Name}}{{/foreach}}", output.GetParagraphTexts()[0]);
     }
 
     [Fact]

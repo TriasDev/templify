@@ -174,13 +174,21 @@ The maintainer's list names "internal document abstraction" as step 1. Because o
 | PR | Content |
 |---|---|
 | 1 | This spec. `OdtPackage`, `OdtParagraphTextModel`, `OdtParagraphTextRewriter`, `OdtTemplateEngine` with placeholders everywhere (body, headings, tables, lists, sections, notes, text boxes, headers/footers), and the public `OdtTemplateProcessor` (process overloads). |
-| 2 | Conditionals: block (paragraph-level, across any block containers), inline (same paragraph, including elseif/else and nesting), and table-row, with the same warnings and errors. Cells, list items, notes and text boxes that end up empty get an empty `text:p`. |
+| 2 | Conditionals: block (paragraph-level, across any block containers), inline (same paragraph, including elseif/else and nesting), table-row, and **list-item** (see 8.1), with the same warnings and errors. Cells, notes, text boxes and headers/footers that end up empty get an empty `text:p`. A list item left without content, and a list, table or header-row group left without items or rows, is removed. |
 | 3 | Loops: body loops with implicit and named iteration variables, metadata (`@index`, `@number`, `@first`, `@last`, `@count`), nested loops, null items and missing or null collections with warnings, and `WarnOnEmptyLoopCollections`. Table-row loops and conditionals, with repeated rows expanded and covered cells. |
 | 4 | Container integrity: list-item loops and conditionals, loops and conditionals in headers/footers, notes, text boxes and sections, empty-container fixes (a table without rows is removed, and so on), and `text:section` name uniqueness after cloning. |
 | 5 | Markdown via automatic styles, `EnableMarkdown` and `:raw`. `draw:name` uniqueness for cloned frames. `ValidateTemplate` for ODT. `DocumentProperties` → `meta.xml`. |
 | later (lead) | The universal facade, docs and examples, converter and GUI support, and an optional LibreOffice CI job. |
 
 ## 8. Known limitations and open questions (conservative defaults chosen)
+
+### 8.1 Lists (decided in PR 2)
+
+In Word a list item is just a numbered paragraph, so markers can be list paragraphs. In ODF, list items are nested containers (`text:list/text:list-item/text:p`). The rules:
+
+- Within a list, markers in their own items work like table rows. The marker items are removed, and the items between them are kept or removed as a whole. A conditional confined to one item is processed inside the item.
+- LibreOffice stores a lone bullet between normal paragraphs as a list of its own. A list with a **single item** therefore carries marker text at the enclosing level, so `{{#if}}` as a one-item list, followed by paragraphs and `{{/if}}`, works as in Word.
+- A marker inside a longer list must be matched **within that list**. Otherwise processing fails with the usual "has no matching `{{/if}}`" error. This is the conservative choice: an explicit error rather than guessing which items to remove.
 
 - Collapsing whitespace after a removal (2.2) is accepted.
 - A digital signature (`META-INF/documentsignatures.xml`) is removed, because the output content no longer matches it. Macro signatures are kept.

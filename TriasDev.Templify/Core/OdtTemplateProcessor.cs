@@ -24,7 +24,15 @@ namespace TriasDev.Templify.Core;
 /// sections, text boxes, footnotes and endnotes, and headers and footers. Placeholders split across
 /// formatting spans are found; the replacement takes the formatting of the placeholder's first character.
 /// Newlines in values become line breaks (<see cref="PlaceholderReplacementOptions.EnableNewlineSupport"/>).
-/// Markdown in values is inserted as literal text, and conditional and loop markers are not evaluated yet.
+/// </para>
+/// <para>
+/// Conditionals (<c>{{#if}}</c>, <c>{{#elseif}}</c>, <c>{{#else}}</c>, <c>{{/if}}</c>, with the full condition syntax)
+/// work as block conditionals (markers in their own paragraphs), inline within one paragraph, over table rows (markers
+/// in their own rows) and over list items (markers in their own items). Content left empty by a conditional gets an
+/// empty paragraph (cells, text boxes, notes, headers and footers); empty list items, lists and tables are removed.
+/// </para>
+/// <para>
+/// Markdown in values is inserted as literal text, and loop markers are not evaluated yet.
 /// </para>
 /// <para>
 /// <see cref="PlaceholderReplacementOptions.UpdateFieldsOnOpen"/> and
