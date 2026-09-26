@@ -31,6 +31,9 @@ internal sealed class OdtPlaceholderProcessor
         _warningCollector = warningCollector ?? throw new ArgumentNullException(nameof(warningCollector));
     }
 
+    /// <summary>Gets the automatic text styles created for markdown formatting.</summary>
+    public OdtTextStyles Styles => _styles;
+
     /// <summary>Gets the number of placeholders replaced so far.</summary>
     public int ReplacementCount { get; private set; }
 

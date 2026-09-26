@@ -414,6 +414,25 @@ public sealed class OdtLibreOfficeRoundTripTests
         Assert.StartsWith("%PDF", Encoding.ASCII.GetString(pdf, 0, 4), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void MarkdownStyle_DoesNotShadowACommonStyle_InLibreOffice()
+    {
+        LibreOfficeRunner.RequireExecutable();
+
+        OdtDocumentBuilder template = new OdtDocumentBuilder()
+            .AddCommonStyles("<style:style style:name=\"T3\" style:family=\"text\"><style:text-properties fo:color=\"#ff0000\"/></style:style>")
+            .AddXml("<text:p><text:span text:style-name=\"T3\">red</text:span> {{Bold}}</text:p>");
+
+        byte[] output = ProcessToBytes(template, new Dictionary<string, object> { ["Bold"] = "**b**" });
+        OdtDocumentVerifier resaved = new OdtDocumentVerifier(LibreOfficeRunner.Convert(output, "odt", "odt", "odt"));
+
+        // LibreOffice still reads the red text with the common style, and only the markdown text as bold.
+        System.Xml.Linq.XElement red = resaved.Body.Descendants(OdtDocumentVerifier.Text + "span").Single(s => s.Value == "red");
+        Assert.Equal("T3", (string?)red.Attribute(OdtDocumentVerifier.Text + "style-name"));
+        Assert.Null(GetEffectiveProperty(resaved, "red", OdtDocumentVerifier.Fo + "font-weight"));
+        Assert.Equal("bold", GetEffectiveProperty(resaved, "b", OdtDocumentVerifier.Fo + "font-weight"));
+    }
+
     private static string? GetEffectiveProperty(OdtDocumentVerifier document, string text, System.Xml.Linq.XName property)
     {
         System.Xml.Linq.XElement? automaticStyles = document.ContentXml.Root!.Element(OdtDocumentVerifier.Office + "automatic-styles");

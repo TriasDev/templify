@@ -39,6 +39,7 @@ public sealed class OdtDocumentBuilder
     private readonly StringBuilder _footer = new StringBuilder();
     private readonly List<(string Name, byte[] Data)> _extraEntries = new List<(string, byte[])>();
     private string _automaticStyles = string.Empty;
+    private string _commonStyles = string.Empty;
     private bool _isTemplate;
     private bool _mimetypeFirst = true;
     private bool _includeMimetype = true;
@@ -126,6 +127,13 @@ public sealed class OdtDocumentBuilder
         return this;
     }
 
+    /// <summary>Adds common (named) styles (raw XML) to the office:styles of styles.xml.</summary>
+    public OdtDocumentBuilder AddCommonStyles(string xml)
+    {
+        _commonStyles += xml;
+        return this;
+    }
+
     /// <summary>Adds an extra package entry (listed in the manifest).</summary>
     public OdtDocumentBuilder AddEntry(string name, byte[] data)
     {
@@ -176,7 +184,9 @@ public sealed class OdtDocumentBuilder
         string footer = _footer.Length > 0 ? $"<style:footer>{_footer}</style:footer>" : string.Empty;
         return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
                $"<office:document-styles {NamespaceDeclarations} office:version=\"1.3\">" +
-               "<office:styles><style:style style:name=\"Standard\" style:family=\"paragraph\" style:class=\"text\"/></office:styles>" +
+               "<office:styles><style:style style:name=\"Standard\" style:family=\"paragraph\" style:class=\"text\"/>" +
+               _commonStyles +
+               "</office:styles>" +
                "<office:automatic-styles><style:page-layout style:name=\"pm1\"/></office:automatic-styles>" +
                "<office:master-styles>" +
                $"<style:master-page style:name=\"Standard\" style:page-layout-name=\"pm1\">{header}{footer}</style:master-page>" +

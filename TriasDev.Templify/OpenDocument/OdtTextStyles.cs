@@ -19,7 +19,9 @@ namespace TriasDev.Templify.OpenDocument;
 /// <para>
 /// A style is reused when the part already has an automatic text style with exactly the markdown
 /// properties (e.g. one created by an earlier replacement, or an identical one written by LibreOffice).
-/// New styles are named <c>T{n}</c> with the lowest number not used by any style of the part.
+/// New styles are named <c>T{n}</c> with the lowest number not used by any style of the part, nor by a
+/// reserved name: the common styles of <c>styles.xml</c> are visible from <c>content.xml</c>, and a span
+/// referencing a common style <c>T3</c> would take the formatting of an automatic style of the same name.
 /// </para>
 /// <para>
 /// The formatted span is nested inside the span holding the placeholder; ODF combines the properties
@@ -35,6 +37,12 @@ internal sealed class OdtTextStyles
     private static readonly XName _textProperties = OdfNames.Style + "text-properties";
 
     private readonly Dictionary<(XDocument Part, int Key), string> _cache = new Dictionary<(XDocument, int), string>();
+    private readonly HashSet<string> _reservedNames = new HashSet<string>(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Reserves style names that new styles must not take (the names of the common styles of <c>styles.xml</c>).
+    /// </summary>
+    public void ReserveNames(IEnumerable<string> names) => _reservedNames.UnionWith(names);
 
     /// <summary>
     /// Gets the name of an automatic text style of <paramref name="part"/> that renders the formatting of
@@ -63,7 +71,7 @@ internal sealed class OdtTextStyles
 
         if (name == null)
         {
-            name = CreateUniqueName(part.Root);
+            name = CreateUniqueName(part.Root, _reservedNames);
             automaticStyles.Add(new XElement(
                 _styleElement,
                 new XAttribute(_styleName, name),
@@ -146,11 +154,12 @@ internal sealed class OdtTextStyles
         return automaticStyles;
     }
 
-    private static string CreateUniqueName(XElement root)
+    private static string CreateUniqueName(XElement root, HashSet<string> reservedNames)
     {
         HashSet<string> used = new HashSet<string>(
             root.Descendants().Select(e => (string?)e.Attribute(_styleName)).OfType<string>(),
             StringComparer.Ordinal);
+        used.UnionWith(reservedNames);
 
         for (int n = 1; ; n++)
         {

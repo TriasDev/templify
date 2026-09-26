@@ -61,9 +61,16 @@ internal sealed class OdtTemplateEngine
             throw new InvalidOdtPackageException("Invalid document: content.xml has no text body (office:text).");
         }
 
+        XDocument? styles = package.GetXml(OdtPackage.StylesEntry);
+
+        // content.xml can reference the common styles of styles.xml by name; markdown styles must not shadow them.
+        _placeholders.Styles.ReserveNames(
+            styles?.Root?.Elements(OdfNames.Office + "styles").Descendants()
+                .Select(e => (string?)e.Attribute(OdfNames.Style + "name")).OfType<string>()
+            ?? Enumerable.Empty<string>());
+
         ProcessBlocks(body.Elements().ToList(), context);
 
-        XDocument? styles = package.GetXml(OdtPackage.StylesEntry);
         List<XElement> headersAndFooters = styles?.Root != null
             ? GetHeadersAndFooters(styles.Root).ToList()
             : new List<XElement>();
