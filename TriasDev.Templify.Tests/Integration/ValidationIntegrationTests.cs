@@ -72,6 +72,50 @@ public sealed class ValidationIntegrationTests
     }
 
     [Fact]
+    public void ValidateTemplate_UnmatchedTableRowConditional_IsReported_AsProcessingFailsOnIt()
+    {
+        // Validation used to pass while processing failed with "Table row conditional start marker ...".
+        DocumentBuilder builder = new DocumentBuilder();
+        string[] loopRows = { "{{#foreach Rows}}", "{{#if A}}", "{{/foreach}}" };
+        builder.AddTable(3, 1, (row, _) => loopRows[row]);
+        builder.AddTable(2, 2, (row, column) => row == 0 && column == 0 ? "{{#if B}}" : "x");
+        byte[] template = builder.ToStream().ToArray();
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        ValidationResult result = processor.ValidateTemplate(new MemoryStream(template));
+        using MemoryStream output = new MemoryStream();
+        ProcessingResult processing = processor.ProcessTemplate(
+            new MemoryStream(template),
+            output,
+            new Dictionary<string, object> { ["Rows"] = new List<int> { 1 }, ["A"] = true, ["B"] = true });
+
+        Assert.False(result.IsValid);
+        Assert.Equal(
+            new[]
+            {
+                "Table row conditional start marker '{{#if A}}' has no matching '{{/if}}'.",
+                "Table row conditional start marker '{{#if B}}' has no matching '{{/if}}'.",
+            },
+            result.Errors.Select(e => e.Message));
+        Assert.All(result.Errors, e => Assert.Equal(ValidationErrorType.UnmatchedConditionalStart, e.Type));
+        Assert.False(processing.IsSuccess);
+        Assert.Equal("Processing failed: " + result.Errors[0].Message, processing.ErrorMessage);
+    }
+
+    [Fact]
+    public void ValidateTemplate_MatchedTableRowConditional_IsValid()
+    {
+        DocumentBuilder builder = new DocumentBuilder();
+        string[] rows = { "{{#if A}}", "shown", "{{#else}}", "hidden", "{{/if}}" };
+        builder.AddTable(5, 1, (row, _) => rows[row]);
+
+        ValidationResult result = new DocumentTemplateProcessor().ValidateTemplate(builder.ToStream());
+
+        Assert.True(result.IsValid);
+        Assert.Equal(new[] { "A" }, result.AllPlaceholders);
+    }
+
+    [Fact]
     public void ValidateTemplate_ValidTemplateWithConditionals_ReturnsSuccess()
     {
         // Arrange
