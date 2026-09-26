@@ -10,10 +10,12 @@ Boolean expressions allow you to evaluate complex logical conditions directly wi
 - [Comparison Operators](#comparison-operators)
 - [Membership, String, and Existence Operators](#membership-string-and-existence-operators)
 - [Reserved Words and Literal Quoting](#reserved-words-and-literal-quoting)
+- [Differences from `{{#if}}` Conditions](#differences-from-if-conditions)
 - [Combining with Format Specifiers](#combining-with-format-specifiers)
 - [Advanced Usage](#advanced-usage)
 - [Best Practices](#best-practices)
 - [Real-World Examples](#real-world-examples)
+- [Operator Precedence](#operator-precedence)
 
 ## Quick Start
 
@@ -51,7 +53,11 @@ Eligible: True
 1. **Expressions must start with `(`** - This distinguishes them from simple variables
 2. **Expressions must end with `)`** - Properly close the parentheses
 3. **Operators are case-insensitive** - `and`, `AND`, `And` all work
-4. **Spaces are optional** - `(var1 and var2)` equals `(var1and var2)`
+4. **Word operators need spaces** - `(var1 and var2)` works, `(var1and var2)` does not (`var1and` is read as one name). Symbol operators do not need spaces: `(Count>0)` works
+5. **No `}` inside the expression** - the placeholder ends at the first `}`
+6. **Result is a boolean** - rendered as `True`/`False`, or through a [boolean format specifier](format-specifiers.md#boolean-formatters) such as `:yesno`
+
+If an expression cannot be evaluated (for example `{{(Count >)}}` or `{{(A && B)}}`), it is handled like a missing variable: by default the placeholder stays in the document, and processing reports an `ExpressionFailed` and a `MissingVariable` warning.
 
 ### Expression vs. Simple Variable
 
@@ -200,7 +206,7 @@ Account locked: True
 
 Checks if two values are equal. Both `==` and `=` are supported.
 
-Numbers are compared by value across numeric types, so `{{(Id = 5)}}` is `True` when `Id` is `5L` and `{{(Price > 5)}}` is `True` when `Price` is the decimal `10.5` or JSON `10.5`. Note that inline expressions only treat the boolean `true` as truthy: a bare number or the text `"true"` used on its own (e.g. `{{(Count)}}`) is `False` here, unlike in `{{#if}}`.
+Numbers are compared by value across numeric types, so `{{(Id = 5)}}` is `True` when `Id` is `5L` and `{{(Price > 5)}}` is `True` when `Price` is the decimal `10.5` or JSON `10.5`. Inline expressions are stricter than `{{#if}}` in some cases; see [Differences from `{{#if}}` Conditions](#differences-from-if-conditions).
 
 **Template:**
 ```
@@ -347,7 +353,7 @@ At or under limit: True
 
 ### Membership (in)
 
-Checks whether a value is a member of a collection. The right side can be a collection variable, a quoted list literal, or a comma-separated string.
+Checks whether a value is a member of a collection. The right side can be a collection variable, a list literal in parentheses, or a comma-separated string.
 
 **Template:**
 ```
@@ -419,21 +425,32 @@ Notes empty: Yes
 
 ## Reserved Words and Literal Quoting
 
-The operator keywords are **reserved words**. The following names are always interpreted as operators, never as variable names or bareword text:
+`and`, `or`, `not`, `true`, `false` and `null` are always keywords. The operator words added in 1.7.0 (`in`, `contains`, `startswith`, `endswith`, `exists`, `is`, `empty`) are keywords only where an operator is expected; where a value is expected they are read as variable names, so a variable named `Exists` or `Empty` keeps working.
+
+To refer to a variable whose name is a keyword, put it in square brackets. This works for every keyword:
 
 ```
-and, or, not, in, contains, startswith, endswith, exists, is, empty
+{{([Empty] = "yes")}}
+{{(not [Not])}}
 ```
 
-Because of this, **string literals must be quoted**. Write `= "empty"`, not `= empty`:
+**Unquoted words fall back to text.** In a comparison, a word that is not a variable in your data is compared as its own text: `{{(Status = Active)}}` works like `{{(Status = "Active")}}` as long as there is no variable named `Active`. Both sides are resolved this way, so in `{{(A = B)}}` both `A` and `B` are looked up in your data. Quote a side (`{{(A = "B")}}`) when you mean the literal text. Always quote text values: an unquoted word silently changes meaning when a variable with that name is added to the data, and a misspelled variable name is compared as text instead of being reported.
 
-```
-Status is missing: {{(Category = "empty"):yesno}}   ← compares against the text "empty"
-```
+**Quotes:** use double quotes (`"text"`) or, in inline expressions only, single quotes (`'text'`). Inside a quoted value, `\"` is a quote and `\\` a backslash. Word's typographic quotes (`“…”`, `‘…’`) are converted to straight quotes automatically.
 
-If you leave a reserved word unquoted (for example `{{(Category = empty)}}`), Templify reads `empty` as the reserved keyword rather than as the literal text `empty`, and the expression will not evaluate as you intended. Always quote string literals that could collide with a reserved word.
+## Differences from `{{#if}}` Conditions
 
-In inline `{{(...)}}` expressions, **both sides of a comparison are resolved as variables-or-literals**. In `{{(A = B)}}`, both `A` and `B` are looked up in your data; the comparison succeeds when the two resolved values are equal. Quote a side (`{{(A = "B")}}`) when you mean the literal text rather than a variable lookup.
+Inline `{{(...)}}` expressions support the same operators and precedence as `{{#if}}`, but evaluate some values differently:
+
+| | `{{#if ...}}` | `{{(...)}}` |
+|---|---|---|
+| A value used on its own (`{{#if Count}}` / `{{(Count)}}`) | Truthy unless `null`, `false`, empty text, `"false"`, `"0"`, numeric zero, `NaN` or an empty list | Only the boolean `true` is true; numbers and text (even `"true"`) are `False` |
+| `=` with a number and numeric text (`Age = 25` with `"Age": "25"`) | True (compared as text) | False (a number never equals text) |
+| `=` with booleans and text (`IsActive = "True"`) | True (case-insensitive) | False |
+| `>`, `<`, `>=`, `<=` with numeric text (`"25" > 18`) | Numeric text is read as a number | Numbers compare as numbers; texts compare with each other; a number and text are not comparable (false) |
+| Single-quoted text (`'Active'`) | Not a string | A string |
+
+Numbers of different types (`5`, `5L`, `5.0m`, JSON numbers) compare by value in both. `in`, `contains`, `startswith`, `endswith`, `exists` and `is empty` behave the same in both.
 
 ## Combining with Format Specifiers
 
@@ -987,17 +1004,15 @@ Risk Level:
 
 ## Operator Precedence
 
-Expressions are evaluated with standard operator precedence:
+From loosest to tightest binding (the same for `{{#if}}` and inline expressions):
 
-1. **Parentheses** `()` - Highest priority
-2. **NOT** `not`
-3. **Comparison** `>`, `>=`, `<`, `<=`, `=`, `==`, `!=`, `in`, `contains`, `startswith`, `endswith`
-4. **AND** `and`
-5. **OR** `or` - Lowest priority
+1. **OR** `or` - loosest
+2. **AND** `and`
+3. **NOT** `not`
+4. **Comparison** `>`, `>=`, `<`, `<=`, `=`, `==`, `!=`, `in`, `contains`, `startswith`, `endswith`
+5. **Postfix** `exists`, `is empty`, `is not empty` - tightest; they attach directly to the value before them (e.g. `Notes is empty`)
 
-`and` always binds tighter than `or`. Use parentheses to override the default grouping.
-
-`exists`, `is empty`, and `is not empty` are postfix operators — they attach directly to the variable that precedes them (e.g. `Notes is empty`), so they behave like a comparison result and combine with `and`/`or` the same way.
+**Parentheses** `()` group explicitly and override all of the above. `and` always binds tighter than `or`, and a comparison is evaluated before `not` is applied to it.
 
 ### Examples
 
@@ -1008,7 +1023,10 @@ Expressions are evaluated with standard operator precedence:
 **Evaluation:** Parentheses force OR first
 
 **Expression:** `not var1 and var2`
-**Evaluation:** `(not var1) and var2` ← NOT binds tightest
+**Evaluation:** `(not var1) and var2` ← NOT binds tighter than AND
+
+**Expression:** `not Status = "Active"`
+**Evaluation:** `not (Status = "Active")` ← the comparison is evaluated first
 
 ## Summary
 
@@ -1026,6 +1044,6 @@ Boolean expressions enable powerful inline logic in your templates:
 
 For more information, see:
 - [Format Specifiers Guide](format-specifiers.md) - Format boolean output
-- [API Reference](../../TriasDev.Templify/README.md) - Complete API documentation
-- [Examples](../../TriasDev.Templify/Examples.md) - More code examples
+- [API Reference](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/README.md) - Complete API documentation
+- [Examples](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/Examples.md) - More code examples
 - [FAQ](../FAQ.md) - Common questions

@@ -22,7 +22,16 @@ The content between `{{#foreach}}` and `{{/foreach}}` will be repeated once for 
 {{/foreach}}
 ```
 
-This syntax gives the current item an explicit name (`item`), which you can use to access its properties. This is especially useful in [nested loops](#named-iteration-variables) where you need to access parent loop variables.
+This syntax gives the current item an explicit name (`item`), which you can use to access its properties. This is especially useful in [nested loops](#named-iteration-variables) where you need to access parent loop variables. The name `in` and names starting with `@` cannot be used as iteration variables.
+
+### Where to Put the Markers
+
+A loop repeats **whole paragraphs** (or whole table rows):
+
+- Put `{{#foreach ...}}` and `{{/foreach}}` in **their own paragraphs**, above and below the content to repeat.
+- The marker paragraphs are removed from the output, including any other text in them: in `Items: {{#foreach Items}}`, the text `Items:` is lost.
+- A loop whose start and end marker are in the **same paragraph** (`{{#foreach Tags}}{{.}}, {{/foreach}}`) produces no output. To show a list on a single line, provide the joined text in your data (for example `"TagList": "red, green, blue"`).
+- Marker keywords are case-insensitive (`{{#FOREACH Items}}` works); collection names are not.
 
 ## Simple Lists
 
@@ -75,7 +84,7 @@ Available Fruits:
 Instructions:
 
 {{#foreach Steps}}
-{{@index}}. {{.}}
+{{@number}}. {{.}}
 {{/foreach}}
 ```
 
@@ -83,13 +92,13 @@ Instructions:
 ```
 Instructions:
 
-0. Preheat oven to 350°F
-1. Mix dry ingredients
-2. Add wet ingredients
-3. Bake for 30 minutes
+1. Preheat oven to 350°F
+2. Mix dry ingredients
+3. Add wet ingredients
+4. Bake for 30 minutes
 ```
 
-**Note:** `{{@index}}` starts at 0. For 1-based numbering, see [Loop Variables](#loop-variables) below.
+**Note:** `{{@number}}` starts at 1 (since 1.8.0); `{{@index}}` starts at 0. See [Loop Variables](#loop-variables) below. Word's own automatic numbering (a numbered list style on the repeated paragraph) also works.
 
 ## Looping Through Objects
 
@@ -196,7 +205,9 @@ One of the most powerful features is repeating table rows:
 | {{Name}} | ${{Price}} | {{Stock}} |
 | {{/foreach}} | | |
 
-Put `{{#foreach}}` and `{{/foreach}}` in **their own rows**. The rows between them are repeated for each item and the marker rows are removed. (A loop whose start and end markers are both inside one cell repeats paragraphs inside that cell instead.)
+Put `{{#foreach}}` and `{{/foreach}}` in **their own rows**. The rows between them are repeated for each item and the marker rows are removed. Putting `{{#foreach}}` in the first cell and `{{/foreach}}` in the last cell of the **same row** is not supported (processing fails). A loop whose start and end markers are both inside one cell (in separate paragraphs) repeats paragraphs inside that cell instead.
+
+If a table loses all its rows (for example, an empty collection and no header row), the whole table is removed. Conditional rows (`{{#if}}` marker rows, see [Conditional Table Rows](conditionals.md#conditional-table-rows)) also work inside a row loop and are evaluated per item.
 
 **JSON:**
 ```json
@@ -249,7 +260,7 @@ Put `{{#foreach}}` and `{{/foreach}}` in **their own rows**. The rows between th
 
 ## Loop Variables
 
-Special variables are available inside loops:
+Special variables are available inside loops. They only work inside a loop (outside a loop, `{{@count}}` is left unchanged and reported as missing), and in nested loops they always refer to the **innermost** loop:
 
 ### `{{@index}}` - Current Index
 
@@ -273,7 +284,7 @@ For 1-based numbering, use `{{@number}}`.
 
 ### `{{@number}}` - Current Number (1-based)
 
-One-based position of the current item (`@index + 1`), for numbered lists:
+One-based position of the current item (`@index + 1`), for numbered lists (since 1.8.0):
 
 **Template:**
 ```
@@ -330,7 +341,9 @@ True for the last iteration only:
 
 **Template:**
 ```
-{{#foreach Tags}}{{.}}{{#if not @last}}, {{/if}}{{/foreach}}
+{{#foreach Tags}}
+{{.}}{{#if not @last}},{{/if}}
+{{/foreach}}
 ```
 
 **JSON:**
@@ -340,9 +353,12 @@ True for the last iteration only:
 }
 ```
 
-**Output:**
+**Output** (one paragraph per item):
 ```
-JavaScript, Python, Java, C#
+JavaScript,
+Python,
+Java,
+C#
 ```
 
 (Notice no comma after the last item!)
@@ -353,10 +369,8 @@ Total number of items in the loop:
 
 **Template:**
 ```
-Processing {{@count}} orders:
-
 {{#foreach Orders}}
-Order {{@index}} of {{@count}}: {{OrderNumber}}
+Order {{@number}} of {{@count}}: {{OrderNumber}}
 {{/foreach}}
 ```
 
@@ -373,12 +387,12 @@ Order {{@index}} of {{@count}}: {{OrderNumber}}
 
 **Output:**
 ```
-Processing 3 orders:
-
-Order 0 of 3: ORD-001
-Order 1 of 3: ORD-002
-Order 2 of 3: ORD-003
+Order 1 of 3: ORD-001
+Order 2 of 3: ORD-002
+Order 3 of 3: ORD-003
 ```
+
+`{{@count}}` is not available outside the loop. To show the total before the list, add it to your data (for example `"OrderCount": 3`).
 
 ## Nested Loops
 
@@ -860,6 +874,8 @@ Items:
 
 The loop body simply doesn't execute when the array is empty.
 
+When the collection is **missing** from the data or is `null`, the loop is removed in the same way, and the developer gets a warning (`MissingLoopCollection` / `NullLoopCollection`). When the value is not a list at all (for example a text or a number), processing fails with an error such as `Variable 'Items' is not a collection`.
+
 ### Handling Empty Arrays
 
 **Template:**
@@ -888,29 +904,28 @@ Arrays may contain `null` entries, and item properties may be `null`:
 ```
 
 - A `null` entry is iterated like any other item: `{{.}}` / `{{this}}` (and `{{item}}` / `{{item.Name}}` with a named iteration variable) render empty, `{{#if .}}` is false, and `{{@index}}` / `{{@count}}` count it.
-- A property that exists on the item with a `null` value renders empty. It does **not** fall back to a variable of the same name in an outer scope: with the data above, `{{#foreach Items}}{{Name}}:{{Notes}}{{/foreach}}` renders `A:`, not `A:Global note`. `{{#if Notes exists}}` is true for such a property.
+- A property that exists on the item with a `null` value renders empty. It does **not** fall back to a variable of the same name in an outer scope: with the data above, a loop over `Items` whose content paragraph is `{{Name}}:{{Notes}}` renders `A:`, not `A:Global note`. `{{#if Notes exists}}` is true for such a property.
 - A `null` entry has no properties, so implicit names like `{{Company}}` inside the loop still resolve from outer scopes.
 
 ## Common Patterns
 
 ### Comma-Separated List
 
+Loops repeat whole paragraphs, so a list on a single line (`Authors: Alice Johnson, Bob Smith, Charlie Brown`) cannot be built with `{{#foreach}}`. Provide the joined text in your data instead:
+
 **JSON:**
 ```json
 {
-  "Authors": ["Alice Johnson", "Bob Smith", "Charlie Brown"]
+  "AuthorList": "Alice Johnson, Bob Smith, Charlie Brown"
 }
 ```
 
 **Template:**
 ```
-Authors: {{#foreach Authors}}{{.}}{{#if not @last}}, {{/if}}{{/foreach}}
+Authors: {{AuthorList}}
 ```
 
-**Output:**
-```
-Authors: Alice Johnson, Bob Smith, Charlie Brown
-```
+A one-item-per-paragraph list with separators is shown under [`{{@last}}`](#last-last-item).
 
 ### Bulleted List
 
@@ -924,15 +939,15 @@ Key Features:
 
 ### Numbered List (1-based)
 
-Since `{{@index}}` is zero-based, here's a workaround for 1-based numbering:
+Use `{{@number}}` (since 1.8.0):
 
 **JSON:**
 ```json
 {
   "Tasks": [
-    { "Number": 1, "Task": "First task" },
-    { "Number": 2, "Task": "Second task" },
-    { "Number": 3, "Task": "Third task" }
+    { "Task": "First task" },
+    { "Task": "Second task" },
+    { "Task": "Third task" }
   ]
 }
 ```
@@ -940,11 +955,9 @@ Since `{{@index}}` is zero-based, here's a workaround for 1-based numbering:
 **Template:**
 ```
 {{#foreach Tasks}}
-{{Number}}. {{Task}}
+{{@number}}. {{Task}}
 {{/foreach}}
 ```
-
-Or include a calculated number in your JSON data.
 
 ### Alternating Rows
 
@@ -1035,11 +1048,11 @@ BILL TO:
 {{Customer.Address}}
 
 ITEMS:
-| Description | Qty | Rate | Amount |
-|-------------|-----|------|--------|
-{{#foreach LineItems}}
-| {{Description}} | {{Quantity}} | ${{Rate}} | ${{Amount}} |
-{{/foreach}}
+(Word table)
+| Description         | Qty          | Rate      | Amount      |
+| {{#foreach LineItems}} |           |           |             |
+| {{Description}}     | {{Quantity}} | ${{Rate}} | ${{Amount}} |
+| {{/foreach}}        |              |           |             |
 
 Subtotal: ${{Subtotal}}
 Tax: ${{Tax}}
@@ -1143,6 +1156,7 @@ PRODUCT CATALOG
 1. JSON has an array: `"Items": [...]` not `"Items": {...}`
 2. Array name matches exactly (case-sensitive)
 3. Closing tag is present: `{{/foreach}}`
+4. `{{#foreach}}` and `{{/foreach}}` are in their own paragraphs (or their own table rows), not in the same paragraph
 
 ### Wrong Data Appears
 

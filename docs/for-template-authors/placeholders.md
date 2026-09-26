@@ -15,8 +15,9 @@ A placeholder consists of:
 
 **Important rules:**
 - Use exactly **two** curly braces on each side
-- No spaces inside the braces: `{{Name}}` not `{{ Name }}`
+- No spaces inside the braces: `{{Name}}` not `{{ Name }}` (a placeholder with spaces is left unchanged)
 - Names are **case-sensitive**: `{{Name}}` ≠ `{{name}}`
+- Names may contain letters, digits and underscores; dots (`.`) and square brackets (`[0]`) navigate into nested data. Hyphens, spaces and other characters are not allowed (`{{first-name}}` is not a placeholder)
 
 ## Simple Placeholders
 
@@ -42,7 +43,7 @@ Active: {{IsActive}}
 ```
 Company: Acme Corporation
 Year: 2024
-Active: true
+Active: True
 ```
 
 ### Text Replacement
@@ -66,7 +67,7 @@ Contact: {{Email}} or {{PhoneNumber}}
 
 ### Numbers
 
-Numbers are converted to text automatically:
+Numbers are converted to text automatically, using the culture configured by the developer (for example, `19.99` becomes `19,99` with a German culture):
 
 **JSON:**
 ```json
@@ -96,7 +97,7 @@ Total: $84.96
 
 ### Boolean Values
 
-True/false values are shown as "true" or "false":
+True/false values are shown as "True" or "False":
 
 **JSON:**
 ```json
@@ -114,8 +115,8 @@ Has Discount: {{HasDiscount}}
 
 **Output:**
 ```
-VIP Status: true
-Has Discount: false
+VIP Status: True
+Has Discount: False
 ```
 
 **Tip:** Use format specifiers for better display (see [Format Specifiers](format-specifiers.md)):
@@ -307,11 +308,13 @@ Language: {{Settings.Language}}
 Timezone: {{Settings.Timezone}}
 ```
 
-Or with brackets (useful for keys with special characters):
+Or with brackets:
 ```
 Theme: {{Settings[Theme]}}
 Language: {{Settings[Language]}}
 ```
+
+Bracket keys follow the same rules as names: letters, digits and underscores only. Keys with spaces or special characters (`{{Settings[My Key]}}`) are not supported; use keys like `MyKey` or `My_Key` instead.
 
 ## Combining Techniques
 
@@ -383,7 +386,7 @@ Name: {{FirstName}} {{LastName}}
 Name: Alice {{LastName}}
 ```
 
-The placeholder remains unchanged if the data is missing. This helps you spot missing data easily.
+The placeholder remains unchanged if the data is missing. This helps you spot missing data easily. Developers can change this (`MissingVariableBehavior`): replace missing placeholders with empty text, or stop processing with an error. Missing variables are also reported to the developer as warnings.
 
 ### Null Values
 
@@ -402,7 +405,7 @@ If a value is explicitly null in JSON:
 Full Name: {{Name}} {{MiddleName}}
 ```
 
-The null value is treated as empty text.
+The null value is treated as empty text. Unlike a missing value, it is not reported as missing.
 
 ### Empty Strings
 
@@ -437,7 +440,7 @@ Placeholder name matching depends on your data structure:
 {{customername}}  → {{customername}} (not found!)
 ```
 
-**Note for developers:** If your data comes from code (not JSON files), property names may be case-insensitive depending on how the data is structured.
+**Note for developers:** Dictionary keys (including all JSON data) are matched case-sensitively. Properties of C# objects are matched case-insensitively: `{{Customer.name}}` finds a `Name` property of a `Customer` object, but the top-level key `Customer` itself must match exactly.
 
 **Best practice for template authors:** Always match the exact case used in your JSON keys to avoid confusion and ensure templates work reliably.
 
@@ -471,7 +474,7 @@ Active: {{IsActive:yesno}}
 Date: {{OrderDate:date:MMMM d, yyyy}}
 ```
 
-**Output:**
+**Output (en-US culture):**
 ```
 Name: ALICE JOHNSON
 Price: $1,234.57
@@ -797,7 +800,7 @@ This makes it obvious if placeholders are working.
 
 Instead of raw boolean values:
 ```
-Status: {{IsActive}}  → Status: true
+Status: {{IsActive}}  → Status: True
 ```
 
 Use format specifiers:
@@ -812,8 +815,9 @@ Status: {{IsActive:yesno}}  → Status: Yes
 **Check:**
 1. Exact spelling (case-sensitive): `{{Name}}` vs `{{name}}`
 2. Proper syntax: `{{Name}}` not `{Name}` or `{{ Name }}`
-3. JSON has the key: `"Name": "..."`
-4. JSON is valid (use jsonlint.com)
+3. The name contains only letters, digits, underscores, dots and `[index]` (no hyphens or spaces)
+4. JSON has the key: `"Name": "..."`
+5. JSON is valid (use jsonlint.com)
 
 ### Wrong Value Appears
 
@@ -827,6 +831,7 @@ Status: {{IsActive:yesno}}  → Status: Yes
 **Check:**
 1. Format specifier syntax: `{{Value:format}}` not `{{Value format}}`
 2. Format specifier name is correct (see [Format Specifiers](format-specifiers.md))
+3. The value has the right type: `:currency` and `:number` only format numbers, not numbers stored as text (`"19.99"`)
 
 ## Real-World Examples
 
