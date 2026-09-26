@@ -267,21 +267,28 @@ internal sealed class OdtTemplateValidator
             }
 
             IReadOnlyList<OdtLoopBlock> loops;
+            IReadOnlyList<OdtConditionalBlock> conditionals;
             if (blocks.All(OdtMarkerText.IsRow))
             {
                 loops = Detect(() => OdtLoopDetector.DetectTableRowLoops(blocks));
-                Detect(() => OdtConditionalDetector.DetectTableRowConditionals(blocks));
+                conditionals = Detect(() => OdtConditionalDetector.DetectTableRowConditionals(blocks));
             }
             else if (blocks.All(IsListItem))
             {
                 loops = Detect(() => OdtLoopDetector.DetectListItemLoops(blocks));
-                Detect(() => OdtConditionalDetector.DetectListItemConditionals(blocks));
+                conditionals = Detect(() => OdtConditionalDetector.DetectListItemConditionals(blocks));
             }
             else
             {
                 loops = Detect(() => OdtLoopDetector.DetectLoops(blocks));
-                Detect(() => OdtConditionalDetector.DetectConditionals(blocks));
+                conditionals = Detect(() => OdtConditionalDetector.DetectConditionals(blocks));
             }
+
+            // Marker blocks are removed by processing. A marker row or list item holds its marker in a paragraph of
+            // its own, which must not be detected again as an unmatched marker inside the cell or item.
+            HashSet<XElement> markers = new HashSet<XElement>(
+                loops.SelectMany(l => new[] { l.StartMarker, l.EndMarker })
+                    .Concat(conditionals.SelectMany(c => c.Branches.Select(b => b.Marker).Append(c.EndMarker))));
 
             foreach (OdtLoopBlock loop in loops)
             {
@@ -293,6 +300,11 @@ internal sealed class OdtTemplateValidator
 
             foreach (XElement block in blocks)
             {
+                if (markers.Contains(block))
+                {
+                    continue;
+                }
+
                 foreach (List<XElement> sequence in GetChildSequences(block))
                 {
                     WalkBlocks(sequence);

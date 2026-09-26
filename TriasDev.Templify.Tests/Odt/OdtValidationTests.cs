@@ -104,6 +104,45 @@ public sealed class OdtValidationTests
     }
 
     [Fact]
+    public void TableRowAndListItemBlocks_AreValid()
+    {
+        // The marker rows and items hold the markers in their own paragraphs; those paragraphs are not markers of
+        // a loop or conditional inside the cell or item.
+        OdtDocumentBuilder template = new OdtDocumentBuilder()
+            .AddTable(new[] { "{{#foreach Rows}}", "" }, new[] { "{{Cell}}", "{{@index}}" }, new[] { "{{/foreach}}", "" })
+            .AddTable(new[] { "{{#if Flag}}" }, new[] { "x" }, new[] { "{{#else}}" }, new[] { "y" }, new[] { "{{/if}}" })
+            .AddXml("<text:list><text:list-item><text:p>{{#foreach item in Items}}</text:p></text:list-item>"
+                + "<text:list-item><text:p>{{item}}</text:p></text:list-item>"
+                + "<text:list-item><text:p>{{/foreach}}</text:p></text:list-item></text:list>")
+            .AddXml("<text:list><text:list-item><text:p>{{#if Flag}}</text:p></text:list-item>"
+                + "<text:list-item><text:p>a</text:p></text:list-item>"
+                + "<text:list-item><text:p>{{/if}}</text:p></text:list-item></text:list>");
+
+        ValidationResult result = Validate(template);
+        ValidationResult withData = Validate(template, new Dictionary<string, object>
+        {
+            ["Rows"] = new List<Dictionary<string, object>> { new() { ["Cell"] = "c" } },
+            ["Items"] = new List<string> { "a" },
+            ["Flag"] = true,
+        });
+
+        Assert.True(result.IsValid, string.Join("; ", result.Errors.Select(e => e.Message)));
+        Assert.True(withData.IsValid, string.Join("; ", withData.Errors.Select(e => e.Message)));
+        Assert.Empty(withData.MissingVariables);
+    }
+
+    [Fact]
+    public void TableRowLoop_UnmatchedInsideCell_IsStillReported()
+    {
+        OdtDocumentBuilder template = new OdtDocumentBuilder()
+            .AddTable(new[] { "{{#foreach Rows}}" }, new[] { "{{#if A}}" }, new[] { "{{/foreach}}" });
+
+        ValidationResult result = Validate(template);
+
+        Assert.Contains(result.Errors, e => e.Message.Contains("'{{#if A}}'", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void ReadOnlyDictionaryOverload_Works()
     {
         OdtTemplateProcessor processor = new OdtTemplateProcessor();
