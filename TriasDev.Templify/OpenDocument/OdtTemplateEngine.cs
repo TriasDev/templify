@@ -8,7 +8,8 @@ namespace TriasDev.Templify.OpenDocument;
 
 /// <summary>
 /// Walks the block containers of an OpenDocument Text document and processes the template
-/// constructs in them.
+/// constructs in them, in the order of the Word pipeline: conditionals (deepest first), then
+/// placeholders.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -22,6 +23,7 @@ namespace TriasDev.Templify.OpenDocument;
 internal sealed class OdtTemplateEngine
 {
     private readonly OdtPlaceholderProcessor _placeholders;
+    private readonly OdtConditionalProcessor _conditionals;
 
     public OdtTemplateEngine(
         PlaceholderReplacementOptions options,
@@ -29,6 +31,7 @@ internal sealed class OdtTemplateEngine
         IWarningCollector warningCollector)
     {
         _placeholders = new OdtPlaceholderProcessor(options, missingVariables, warningCollector);
+        _conditionals = new OdtConditionalProcessor(warningCollector);
     }
 
     /// <summary>Gets the number of placeholders replaced.</summary>
@@ -47,7 +50,7 @@ internal sealed class OdtTemplateEngine
             throw new InvalidOdtPackageException("Invalid document: content.xml has no text body (office:text).");
         }
 
-        ProcessContainer(body, context);
+        ProcessBlocks(body.Elements().ToList(), context);
 
         XDocument? styles = package.GetXml(OdtPackage.StylesEntry);
         if (styles?.Root != null)
@@ -73,18 +76,51 @@ internal sealed class OdtTemplateEngine
             .ToList();
 
     /// <summary>
-    /// Processes the blocks of a container (body, cell, list item, section, text box, note, header, …).
+    /// Processes the blocks of a container (cell, list item, section, text box, note, header, …). A container
+    /// whose content was removed entirely gets an empty paragraph, so it stays editable in LibreOffice.
     /// </summary>
     internal void ProcessContainer(XElement container, IEvaluationContext context)
     {
+        bool hadContent = HasBlockContent(container);
+
         ProcessBlocks(container.Elements().ToList(), context);
+
+        EnsureContent(container, hadContent);
     }
 
     /// <summary>
-    /// Processes a sequence of sibling blocks.
+    /// Appends an empty paragraph to a container that had content before processing and has none now.
     /// </summary>
+    private static void EnsureContent(XElement container, bool hadContent)
+    {
+        if (hadContent && container.Parent != null && !HasBlockContent(container) && container.Name != OdfNames.CoveredTableCell)
+        {
+            container.Add(new XElement(OdfNames.Paragraph));
+        }
+    }
+
+    private static bool HasBlockContent(XElement container) =>
+        container.Elements().Any(e => e.Name != OdfNames.SoftPageBreak && e.Name != OdfNames.Number);
+
+    /// <summary>
+    /// Processes a sequence of sibling blocks: conditionals (deepest first), then the remaining blocks
+    /// (placeholders, tables, nested containers).
+    /// </summary>
+    /// <remarks>
+    /// A sequence consisting only of table rows uses row-aware detection: markers confined to a single
+    /// cell are cell-level constructs, not row-level blocks.
+    /// </remarks>
     internal void ProcessBlocks(IReadOnlyList<XElement> blocks, IEvaluationContext context)
     {
+        if (blocks.Count > 0 && blocks.All(OdtMarkerText.IsRow))
+        {
+            ProcessRows(blocks, context);
+            return;
+        }
+
+        IReadOnlyList<OdtConditionalBlock> conditionals = OdtConditionalDetector.DetectConditionals(blocks);
+        ProcessConditionals(conditionals, new HashSet<XElement>(), context);
+
         foreach (XElement block in blocks)
         {
             if (block.Parent == null)
@@ -93,6 +129,31 @@ internal sealed class OdtTemplateEngine
             }
 
             ProcessBlock(block, context);
+        }
+    }
+
+    /// <summary>
+    /// Processes conditional blocks from the deepest nesting level up, skipping blocks already removed by
+    /// an enclosing block and blocks inside loops (those are processed with the loop's context).
+    /// </summary>
+    private void ProcessConditionals(
+        IReadOnlyList<OdtConditionalBlock> conditionals,
+        HashSet<XElement> elementsInsideLoops,
+        IEvaluationContext context)
+    {
+        foreach (OdtConditionalBlock conditional in conditionals.OrderByDescending(c => c.NestingLevel))
+        {
+            if (conditional.StartMarker.Parent == null || conditional.EndMarker.Parent == null)
+            {
+                continue;
+            }
+
+            if (elementsInsideLoops.Contains(conditional.StartMarker))
+            {
+                continue;
+            }
+
+            _conditionals.Process(conditional, context);
         }
     }
 
@@ -108,12 +169,7 @@ internal sealed class OdtTemplateEngine
         }
         else if (block.Name == OdfNames.List)
         {
-            foreach (XElement item in block.Elements()
-                .Where(e => e.Name == OdfNames.ListItem || e.Name == OdfNames.ListHeader)
-                .ToList())
-            {
-                ProcessContainer(item, context);
-            }
+            ProcessList(block, context);
         }
         else if (block.Name == OdfNames.Section
                  || block.Name == OdfNames.NumberedParagraph
@@ -144,12 +200,69 @@ internal sealed class OdtTemplateEngine
         }
     }
 
+    /// <summary>
+    /// Processes a list: list-item conditionals (markers in their own items, like table rows), then the
+    /// content of the remaining items. An item whose content was removed entirely is removed (so no empty
+    /// bullet is left behind), and a list left without items is removed.
+    /// </summary>
+    private void ProcessList(XElement list, IEvaluationContext context)
+    {
+        List<XElement> items = GetListItems(list).ToList();
+
+        IReadOnlyList<OdtConditionalBlock> conditionals = OdtConditionalDetector.DetectListItemConditionals(items);
+        ProcessConditionals(conditionals, new HashSet<XElement>(), context);
+
+        foreach (XElement item in items)
+        {
+            if (item.Parent == null)
+            {
+                continue;
+            }
+
+            bool hadContent = HasBlockContent(item);
+            ProcessBlocks(item.Elements().ToList(), context);
+            if (hadContent && !HasBlockContent(item))
+            {
+                item.Remove();
+            }
+        }
+
+        if (items.Count > 0 && !GetListItems(list).Any())
+        {
+            list.Remove();
+        }
+    }
+
+    private static IEnumerable<XElement> GetListItems(XElement list) =>
+        list.Elements().Where(e => e.Name == OdfNames.ListItem || e.Name == OdfNames.ListHeader);
+
     private void ProcessParagraph(XElement paragraph, IEvaluationContext context)
     {
         // Text boxes, shapes and notes anchored in the paragraph hold their own blocks.
         ProcessNestedContainers(paragraph, context);
 
+        // Marker paragraphs are processed by the block constructs; leftovers are not placeholder text.
+        if (IsMarkerParagraph(paragraph))
+        {
+            return;
+        }
+
         _placeholders.ProcessParagraph(paragraph, context);
+    }
+
+    /// <summary>
+    /// Checks whether a paragraph contains a conditional or loop marker (as the Word pipeline does).
+    /// </summary>
+    private static bool IsMarkerParagraph(XElement paragraph)
+    {
+        string text = OdtParagraphTextModel.GetText(paragraph);
+        return text.Contains("{{#if", StringComparison.Ordinal)
+            || text.Contains("{{#else}}", StringComparison.Ordinal)
+            || text.Contains("{{/if}}", StringComparison.Ordinal)
+            || text.Contains("{{#foreach", StringComparison.Ordinal)
+            || text.Contains("{{/foreach}}", StringComparison.Ordinal)
+            || text.Contains("{{#empty}}", StringComparison.Ordinal)
+            || text.Contains("{{/empty}}", StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -195,13 +308,63 @@ internal sealed class OdtTemplateEngine
         || (element.Name.Namespace == OdfNames.Draw
             && element.Elements().Any(c => OdfNames.IsParagraph(c) || c.Name == OdfNames.List));
 
+    /// <summary>
+    /// Processes a table: row-level constructs per row container, then the cells. A table whose rows
+    /// were all removed is removed, since ODF requires at least one row.
+    /// </summary>
     private void ProcessTable(XElement table, IEvaluationContext context)
     {
-        foreach (XElement row in GetRows(table).ToList())
+        bool hadRows = GetRows(table).Any();
+
+        ProcessRowContainer(table, context);
+
+        if (hadRows && !GetRows(table).Any())
         {
-            foreach (XElement cell in row.Elements()
-                .Where(e => e.Name == OdfNames.TableCell || e.Name == OdfNames.CoveredTableCell)
-                .ToList())
+            table.Remove();
+        }
+    }
+
+    /// <summary>
+    /// Processes the rows of a row container (a table, header rows, a row group). Nested row containers
+    /// are processed on their own; one left without rows is removed.
+    /// </summary>
+    private void ProcessRowContainer(XElement container, IEvaluationContext context)
+    {
+        ProcessRows(container.Elements(OdfNames.TableRow).ToList(), context);
+
+        foreach (XElement group in container.Elements().Where(IsRowGroup).ToList())
+        {
+            bool hadRows = GetRows(group).Any();
+            ProcessRowContainer(group, context);
+            if (hadRows && !GetRows(group).Any())
+            {
+                group.Remove();
+            }
+        }
+    }
+
+    private static bool IsRowGroup(XElement element) =>
+        element.Name == OdfNames.TableHeaderRows
+        || element.Name == OdfNames.TableRows
+        || element.Name == OdfNames.TableRowGroup;
+
+    /// <summary>
+    /// Processes sibling rows: table-row conditionals (markers in their own rows), then the cells of the
+    /// remaining rows.
+    /// </summary>
+    private void ProcessRows(IReadOnlyList<XElement> rows, IEvaluationContext context)
+    {
+        IReadOnlyList<OdtConditionalBlock> conditionals = OdtConditionalDetector.DetectTableRowConditionals(rows);
+        ProcessConditionals(conditionals, new HashSet<XElement>(), context);
+
+        foreach (XElement row in rows)
+        {
+            if (row.Parent == null)
+            {
+                continue;
+            }
+
+            foreach (XElement cell in OdtMarkerText.GetRowCells(row).ToList())
             {
                 ProcessContainer(cell, context);
             }
@@ -220,9 +383,7 @@ internal sealed class OdtTemplateEngine
             {
                 yield return child;
             }
-            else if (child.Name == OdfNames.TableHeaderRows
-                     || child.Name == OdfNames.TableRows
-                     || child.Name == OdfNames.TableRowGroup)
+            else if (IsRowGroup(child))
             {
                 foreach (XElement row in GetRows(child))
                 {
