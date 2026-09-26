@@ -38,11 +38,15 @@ namespace TriasDev.Templify.Core;
 /// items). Missing or null collections remove the loop with a warning; a value that is not a collection fails.
 /// </para>
 /// <para>
-/// Markdown in values is inserted as literal text.
+/// Markdown in values (<c>**bold**</c>, <c>*italic*</c>, <c>~~strikethrough~~</c>) is rendered with automatic text
+/// styles nested in the template formatting (<see cref="PlaceholderReplacementOptions.EnableMarkdown"/>; the
+/// <c>:raw</c> format specifier disables it per placeholder). Frame, table and section names and note ids copied by
+/// loops are made unique. <see cref="PlaceholderReplacementOptions.DocumentProperties"/> are written to the document
+/// metadata (<c>meta.xml</c>).
 /// </para>
 /// <para>
-/// <see cref="PlaceholderReplacementOptions.UpdateFieldsOnOpen"/> and
-/// <see cref="PlaceholderReplacementOptions.DocumentProperties"/> are not applied to OpenDocument output.
+/// <see cref="PlaceholderReplacementOptions.UpdateFieldsOnOpen"/> is not applied: LibreOffice updates page and
+/// date fields on load, and ODF has no portable update-on-open setting.
 /// </para>
 /// </remarks>
 public sealed class OdtTemplateProcessor
@@ -323,6 +327,57 @@ public sealed class OdtTemplateProcessor
     }
 
     /// <summary>
+    /// Validates an OpenDocument Text template for syntax errors (unmatched markers, invalid conditions,
+    /// invalid iteration variables). Does not check for missing variables since no data is provided.
+    /// </summary>
+    /// <param name="templateStream">Stream containing the template .odt or .ott file. Must be readable.</param>
+    /// <returns>
+    /// A <see cref="ValidationResult"/> containing any errors found and all placeholders. A template that is not an
+    /// OpenDocument Text package is reported as an error.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">Thrown when templateStream is null.</exception>
+    public ValidationResult ValidateTemplate(Stream templateStream)
+    {
+        ArgumentNullException.ThrowIfNull(templateStream);
+
+        return new OdtTemplateValidator(_options).Validate(templateStream, data: null);
+    }
+
+    /// <summary>
+    /// Validates an OpenDocument Text template for syntax errors and missing variables.
+    /// Checks that all placeholders in the template have corresponding values in the data, scoped to loop items
+    /// inside loops.
+    /// </summary>
+    /// <param name="templateStream">Stream containing the template .odt or .ott file. Must be readable.</param>
+    /// <param name="data">Dictionary containing variable names and their values for validation.</param>
+    /// <returns>A <see cref="ValidationResult"/> containing any errors found, all placeholders, and missing variables.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
+    public ValidationResult ValidateTemplate(Stream templateStream, Dictionary<string, object> data)
+    {
+        ArgumentNullException.ThrowIfNull(templateStream);
+        ArgumentNullException.ThrowIfNull(data);
+
+        return new OdtTemplateValidator(_options).Validate(templateStream, data);
+    }
+
+    /// <summary>
+    /// Validates an OpenDocument Text template for syntax errors and missing variables, using read-only data.
+    /// </summary>
+    /// <param name="templateStream">Stream containing the template .odt or .ott file. Must be readable.</param>
+    /// <param name="data">
+    /// Variable names and their values for validation. Not copied: lookups use the dictionary's own key comparer.
+    /// </param>
+    /// <returns>A <see cref="ValidationResult"/> containing any errors found, all placeholders, and missing variables.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
+    public ValidationResult ValidateTemplate(Stream templateStream, IReadOnlyDictionary<string, object?> data)
+    {
+        ArgumentNullException.ThrowIfNull(templateStream);
+        ArgumentNullException.ThrowIfNull(data);
+
+        return new OdtTemplateValidator(_options).Validate(templateStream, AsNonNullValues(data));
+    }
+
+    /// <summary>
     /// Processes the template into the output stream. Arguments are already null-checked.
     /// </summary>
     private ProcessingResult ProcessTemplateCore(
@@ -354,6 +409,11 @@ public sealed class OdtTemplateProcessor
             OdtTemplateEngine engine = new OdtTemplateEngine(_options, missingVariables, warningCollector);
 
             engine.Process(package, new GlobalEvaluationContext(data));
+
+            if (_options.DocumentProperties != null)
+            {
+                OdtDocumentProperties.Apply(package, _options.DocumentProperties);
+            }
 
             package.Save(outputStream);
 

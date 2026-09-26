@@ -19,6 +19,7 @@ internal sealed class OdtPlaceholderProcessor
     private readonly PlaceholderReplacementOptions _options;
     private readonly HashSet<string> _missingVariables;
     private readonly IWarningCollector _warningCollector;
+    private readonly OdtTextStyles _styles = new OdtTextStyles();
 
     public OdtPlaceholderProcessor(
         PlaceholderReplacementOptions options,
@@ -91,22 +92,24 @@ internal sealed class OdtPlaceholderProcessor
         // Characters invalid in XML 1.0 would make the part unserializable.
         replacementValue = XmlCharacterSanitizer.Sanitize(replacementValue)!;
 
-        // Markdown rendering via automatic styles is not supported yet: values are inserted as text.
+        // Markdown becomes nested spans with automatic text styles (see OdtTextStyles).
         ReplacementContent content = ReplacementContent.FromValue(
             replacementValue,
             _options.EnableNewlineSupport,
-            parseMarkdown: false);
+            parseMarkdown: _options.EnableMarkdown && !isRaw);
 
         Replace(paragraph, placeholder, content);
     }
 
     private void Replace(XElement paragraph, PlaceholderToken placeholder, ReplacementContent content)
     {
+        XDocument? part = paragraph.Document;
         OdtParagraphTextRewriter.Replace(
             paragraph,
             placeholder.StartIndex,
             placeholder.StartIndex + placeholder.Length,
-            content);
+            content,
+            part != null ? piece => _styles.GetStyleName(part, piece) : null);
         ReplacementCount++;
     }
 }

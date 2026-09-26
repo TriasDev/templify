@@ -212,6 +212,63 @@ public sealed class OdtLibreOfficeRoundTripTests
         Assert.Contains("section B", all, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void MarkdownAndDocumentProperties_SurviveLibreOfficeResave()
+    {
+        LibreOfficeRunner.RequireExecutable();
+
+        OdtDocumentBuilder template = new OdtDocumentBuilder()
+            .AddAutomaticStyles("<style:style style:name=\"Red\" style:family=\"text\"><style:text-properties fo:color=\"#ff0000\"/></style:style>")
+            .AddXml("<text:p>Note: <text:span text:style-name=\"Red\">{{Message}}</text:span></text:p>");
+
+        OdtTemplateProcessor processor = new OdtTemplateProcessor(new PlaceholderReplacementOptions
+        {
+            Culture = CultureInfo.InvariantCulture,
+            DocumentProperties = new DocumentProperties { Title = "Generated offer", Author = "Templify" },
+        });
+        ProcessingResult result = processor.ProcessTemplate(
+            template.ToBytes(),
+            new Dictionary<string, object> { ["Message"] = "plain **bold** and *italic*" },
+            out byte[] output);
+        Assert.True(result.IsSuccess, result.ErrorMessage);
+
+        Assert.Equal("Note: plain bold and italic", LibreOfficeRunner.ConvertToTextLines(output)[0]);
+
+        // After LibreOffice loads and saves the document, "bold" is still bold and red, "italic" italic.
+        OdtDocumentVerifier resaved = new OdtDocumentVerifier(LibreOfficeRunner.Convert(output, "odt", "odt", "odt"));
+        Assert.Contains("<dc:title>Generated offer</dc:title>", resaved.GetEntryString("meta.xml"), StringComparison.Ordinal);
+        Assert.Equal("bold", GetEffectiveProperty(resaved, "bold", OdtDocumentVerifier.Fo + "font-weight"));
+        Assert.Equal("#ff0000", GetEffectiveProperty(resaved, "bold", OdtDocumentVerifier.Fo + "color"));
+        Assert.Equal("italic", GetEffectiveProperty(resaved, "italic", OdtDocumentVerifier.Fo + "font-style"));
+        Assert.Null(GetEffectiveProperty(resaved, "plain", OdtDocumentVerifier.Fo + "font-weight"));
+    }
+
+    /// <summary>
+    /// Gets a text property of the innermost span holding <paramref name="text"/>, following the span's
+    /// ancestors (nested spans combine), from the automatic styles of content.xml.
+    /// </summary>
+    private static string? GetEffectiveProperty(OdtDocumentVerifier document, string text, System.Xml.Linq.XName property)
+    {
+        System.Xml.Linq.XElement? automaticStyles = document.ContentXml.Root!.Element(OdtDocumentVerifier.Office + "automatic-styles");
+        System.Xml.Linq.XElement span = document.Body.Descendants(OdtDocumentVerifier.Text + "span")
+            .Last(s => s.Nodes().OfType<System.Xml.Linq.XText>().Any(t => t.Value.Contains(text, StringComparison.Ordinal)));
+
+        foreach (System.Xml.Linq.XElement candidate in span.AncestorsAndSelf(OdtDocumentVerifier.Text + "span"))
+        {
+            string? styleName = (string?)candidate.Attribute(OdtDocumentVerifier.Text + "style-name");
+            string? value = automaticStyles?.Elements(OdtDocumentVerifier.Style + "style")
+                .Where(s => (string?)s.Attribute(OdtDocumentVerifier.Style + "name") == styleName)
+                .Select(s => (string?)s.Element(OdtDocumentVerifier.Style + "text-properties")?.Attribute(property))
+                .FirstOrDefault();
+            if (value != null)
+            {
+                return value;
+            }
+        }
+
+        return null;
+    }
+
     private static byte[] ProcessToBytes(OdtDocumentBuilder template, Dictionary<string, object> data)
     {
         OdtTemplateProcessor processor = new OdtTemplateProcessor(new PlaceholderReplacementOptions { Culture = CultureInfo.InvariantCulture });
