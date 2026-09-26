@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0](https://github.com/TriasDev/templify/compare/v1.7.0...v1.8.0) (2026-09-26)
+
+
+### Features
+
+* **api:** add IReadOnlyDictionary/file/byte[] overloads; deprecate fake-async and internal parsing helpers ([#156](https://github.com/TriasDev/templify/issues/156)) ([#195](https://github.com/TriasDev/templify/issues/195)) ([699bf57](https://github.com/TriasDev/templify/commit/699bf57960a648cf0a4123571601e107209e57cf))
+* **loops:** add 1-based {{[@number](https://github.com/number)}} loop metadata; converter maps variable_index to it ([#174](https://github.com/TriasDev/templify/issues/174)) ([#175](https://github.com/TriasDev/templify/issues/175)) ([5633f57](https://github.com/TriasDev/templify/commit/5633f572a2741f71076befb61dba2a317e865dd9))
+* **markdown:** add EnableMarkdown option and :raw format specifier; emit schema-valid run properties ([#148](https://github.com/TriasDev/templify/issues/148)) ([#166](https://github.com/TriasDev/templify/issues/166)) ([dd3fee9](https://github.com/TriasDev/templify/commit/dd3fee92861210c97afcb2c18461cffc5174b30d))
+
+
+### Bug Fixes
+
+* **conditionals:** inline conditionals keep hyperlinks, fields, breaks, drawings and bookmarks ([#143](https://github.com/TriasDev/templify/issues/143)) ([#173](https://github.com/TriasDev/templify/issues/173)) ([338c957](https://github.com/TriasDev/templify/commit/338c957ae72b8b874e563fa98c0d02c0fd2a592b))
+* **conditionals:** numeric equality and truthiness across numeric types; contains on collections checks membership ([#142](https://github.com/TriasDev/templify/issues/142)) ([#185](https://github.com/TriasDev/templify/issues/185)) ([895bb03](https://github.com/TriasDev/templify/commit/895bb038dedb47a551d96991448b3d8d7ea94f54))
+* consistent error model, warnings for malformed conditions, AST-based template validation ([#149](https://github.com/TriasDev/templify/issues/149)) ([#180](https://github.com/TriasDev/templify/issues/180)) ([8b568a7](https://github.com/TriasDev/templify/commit/8b568a7cb156d4e1e8ce97122611da52d59cbeee))
+* **converter:** prevent data loss and wrong conversions; add Converter.Tests ([#169](https://github.com/TriasDev/templify/issues/169)) ([f027039](https://github.com/TriasDev/templify/commit/f0270398ad5d7e95baf7f059f64f87c89169a11d)), closes [#151](https://github.com/TriasDev/templify/issues/151)
+* **fields:** detect simple fields (w:fldSimple) for UpdateFieldsOnOpenMode.Auto ([#196](https://github.com/TriasDev/templify/issues/196)) ([#205](https://github.com/TriasDev/templify/issues/205)) ([db415bd](https://github.com/TriasDev/templify/commit/db415bd64f65ac5a049b8a5e676cc2899f26d4a5))
+* **gui:** fix output handling, command states and progress; add ViewModel tests ([#168](https://github.com/TriasDev/templify/issues/168)) ([f5876cd](https://github.com/TriasDev/templify/commit/f5876cd93454a6d821a0f65473b62e07abf761bf))
+* **i18n:** make conditions, keywords and dates culture/timezone independent ([#141](https://github.com/TriasDev/templify/issues/141)) ([#163](https://github.com/TriasDev/templify/issues/163)) ([4c22577](https://github.com/TriasDev/templify/commit/4c22577cf3034ca5d483bae669d9452505744dfe))
+* **loops:** assign unique drawing object ids to cloned loop content ([#178](https://github.com/TriasDev/templify/issues/178)) ([#179](https://github.com/TriasDev/templify/issues/179)) ([7a9c0b4](https://github.com/TriasDev/templify/commit/7a9c0b4c4b63f50d51aa81b1e89224b74ed24549))
+* **loops:** do not re-process table rows produced by loop expansion ([#140](https://github.com/TriasDev/templify/issues/140)) ([#161](https://github.com/TriasDev/templify/issues/161)) ([f589fed](https://github.com/TriasDev/templify/commit/f589fed212f33326d726bba6066ef20cb231a231))
+* **loops:** support null items and null item properties without parent-scope fallthrough ([#147](https://github.com/TriasDev/templify/issues/147)) ([#162](https://github.com/TriasDev/templify/issues/162)) ([0423141](https://github.com/TriasDev/templify/commit/04231419248381b0f0caf8ab57082e205afaf0ea))
+* **paths:** dictionary keys take precedence over dictionary properties; support ExpandoObject, IReadOnlyDictionary and typed keys ([#146](https://github.com/TriasDev/templify/issues/146)) ([#165](https://github.com/TriasDev/templify/issues/165)) ([c981923](https://github.com/TriasDev/templify/commit/c981923fc0b7a1b74760504388c4b246ebbdcf3a))
+* **scripts:** run converter scripts from any directory; fix batch examples ([#172](https://github.com/TriasDev/templify/issues/172)) ([bb42961](https://github.com/TriasDev/templify/commit/bb429616e6f888f8205963451f3919d81291c1aa)), closes [#152](https://github.com/TriasDev/templify/issues/152)
+* **tables:** row detection handles cell content controls and ignores text box content ([#178](https://github.com/TriasDev/templify/issues/178)) ([#188](https://github.com/TriasDev/templify/issues/188)) ([903dfea](https://github.com/TriasDev/templify/commit/903dfeabd074e9f30105312a21270a0a4e86ebbd))
+* **tables:** support conditional table rows and named loops in single cells ([#145](https://github.com/TriasDev/templify/issues/145)) ([#167](https://github.com/TriasDev/templify/issues/167)) ([8961ff0](https://github.com/TriasDev/templify/commit/8961ff0b433642dd4f1e619ce262dbbd21c977b6))
+* **text:** TextTemplateProcessor parity with the Word processor ([#150](https://github.com/TriasDev/templify/issues/150)) ([#186](https://github.com/TriasDev/templify/issues/186)) ([3bec733](https://github.com/TriasDev/templify/commit/3bec733604812c51843aa876a37208f87b1211c8))
+* **tools:** DocumentGenerator, Demo and Benchmarks fixes ([#171](https://github.com/TriasDev/templify/issues/171)) ([c34d3a3](https://github.com/TriasDev/templify/commit/c34d3a392bdf82dac51ba4861e89d51da4a6c920))
+* **validation:** scope table-row loop item variables in ValidateTemplate ([#198](https://github.com/TriasDev/templify/issues/198)) ([#206](https://github.com/TriasDev/templify/issues/206)) ([fbf6ddb](https://github.com/TriasDev/templify/commit/fbf6ddb7a7efabc9d0fc505f36f2583806f4989f))
+* **walker:** process text boxes, content controls, footnotes and endnotes ([#144](https://github.com/TriasDev/templify/issues/144)) ([#176](https://github.com/TriasDev/templify/issues/176)) ([936b5c9](https://github.com/TriasDev/templify/commit/936b5c9e7d9ade16a7fc39d3fe20dfbf0368e575))
+
+
+### Performance Improvements
+
+* cache parsed condition ASTs and default boolean formatters; source-generated regexes ([#155](https://github.com/TriasDev/templify/issues/155)) ([#193](https://github.com/TriasDev/templify/issues/193)) ([398d55c](https://github.com/TriasDev/templify/commit/398d55c2f3219c42135f4484da03f1d69ad1a11b))
+
 ## [1.7.0](https://github.com/TriasDev/templify/compare/v1.6.2...v1.7.0) (2026-07-21)
 
 
