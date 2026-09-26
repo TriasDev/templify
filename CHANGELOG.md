@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Features
 
 * **conditionals:** extensible operator engine + in/string/existence operators + grouping ([#128](https://github.com/TriasDev/templify/issues/128)) ([#129](https://github.com/TriasDev/templify/issues/129)) ([035669c](https://github.com/TriasDev/templify/commit/035669c90ee2c106d33b216d96ea1e789b56a9b1))
+  * New operators in `{{#if}}`, inline `{{(...)}}`, text templates and `ConditionEvaluator`: `in` (list literal `(a, b)`, collection or comma-separated string), `contains` / `startswith` / `endswith`, postfix `exists`, `is empty`, `is not empty`, and parentheses for grouping.
+  * One precedence table for all entry points (loosest to tightest): `or`, `and`, `not`, comparisons / `in` / string operators, postfix `exists` / `is empty`. `and` now binds tighter than `or` in `{{#if}}` too (before, `{{#if}}` evaluated `and`/`or` left to right with equal precedence), and `not A = B` means `not (A = B)`.
+  * The new operator words (`in`, `is`, `empty`, `exists`, `contains`, `startswith`, `endswith`) became keywords, so variables with these names could no longer be used bare in conditions. Since 1.8.0 they are read as variables again where an operand is expected, and `[Name]` escapes any keyword.
 
 ## [1.6.2](https://github.com/TriasDev/templify/compare/v1.6.1...v1.6.2) (2026-07-03)
 
@@ -26,9 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * sanitize invalid XML characters in template values ([#87](https://github.com/TriasDev/templify/issues/87)) ([71a1fa6](https://github.com/TriasDev/templify/commit/71a1fa689c24bf27c86b24a096332c7f720a2b78))
 
-## [Unreleased]
-
-## [1.6.0] - 2026-03-16
+## [1.6.0](https://github.com/TriasDev/templify/compare/v1.5.0...v1.6.0) - 2026-03-16
 
 ### Added
 - **Header & Footer Support** - Process placeholders, conditionals, and loops in document headers and footers (#15)
@@ -49,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Improved
 - Test coverage increased to 1,095 tests
 
-## [1.5.0] - 2026-02-13
+## [1.5.0](https://github.com/TriasDev/templify/compare/v1.4.2...v1.5.0) - 2026-02-13
 
 ### Added
 - **DocumentProperties Option** - Set document metadata properties on the output document (#77)
@@ -61,7 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Improved
 - Test coverage increased to 972 tests
 
-## [1.4.2] - 2026-02-09
+## [1.4.2](https://github.com/TriasDev/templify/compare/v1.4.1...v1.4.2) - 2026-02-09
 
 ### Fixed
 - **Case-insensitive boolean comparison** in ConditionalEvaluator - boolean values like `True`/`False`/`TRUE`/`FALSE` are now correctly compared regardless of case, while preserving case-sensitive string comparisons (#72)
@@ -69,7 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Improved
 - Test coverage increased to 965 tests
 
-## [1.4.1] - 2026-01-07
+## [1.4.1](https://github.com/TriasDev/templify/compare/v1.4.0...v1.4.1) - 2026-01-07
 
 ### Added
 - **Processing Warnings System** - Collect non-fatal warnings during template processing
@@ -82,7 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Improved
 - Test coverage increased to 953 tests
 
-## [1.4.0] - 2026-01-07
+## [1.4.0](https://github.com/TriasDev/templify/compare/v1.3.0...v1.4.0) - 2026-01-07
 
 ### Added
 - **UpdateFieldsOnOpen Option** - Automatically prompt Word to refresh TOC and dynamic fields when documents are opened
@@ -97,7 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New test helpers: DocumentBuilder and DocumentVerifier for cleaner TOC testing
 - Updated DocumentFormat.OpenXml to 3.4.1 (performance improvements)
 
-## [1.3.0] - 2026-01-05
+## [1.3.0](https://github.com/TriasDev/templify/compare/v1.2.0...v1.3.0) - 2026-01-05
 
 ### Added
 - **Text Replacement Lookup Tables** - Pre-process text before template processing
@@ -131,12 +132,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Test coverage increased to 929 tests
 - Updated NuGet dependencies
 
-## [1.2.0] - 2025-12-15
+## [1.2.0](https://github.com/TriasDev/templify/compare/v1.1.0...v1.2.0) - 2025-12-15
 
 ### Added
 - **TextTemplateProcessor** - Process email and plain text templates using the same syntax as Word documents
 
-## [1.1.0] - 2025-12-02
+## [1.1.0](https://github.com/TriasDev/templify/compare/v1.0.0...v1.1.0) - 2025-12-02
 
 ### Added
 - **Standalone Condition Evaluation API** - Use Templify's condition engine without processing Word documents
@@ -159,7 +160,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Code quality enforcement via `.editorconfig` rules
 - Test coverage increased to 743 tests
 
-## [1.0.0] - 2025-11-20
+## [1.0.0](https://github.com/TriasDev/templify/releases/tag/v1.0.0) - 2025-11-20
 
 ### Added
 - Initial public release of Templify - a high-performance Word document templating engine for .NET
@@ -215,14 +216,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Works with Word 2007+ documents (.docx)
 - Cross-platform: Windows, Linux, macOS
 - No Microsoft Word installation required
-
-[Unreleased]: https://github.com/TriasDev/templify/compare/v1.6.0...HEAD
-[1.6.0]: https://github.com/TriasDev/templify/compare/v1.5.0...v1.6.0
-[1.5.0]: https://github.com/TriasDev/templify/compare/v1.4.2...v1.5.0
-[1.4.2]: https://github.com/TriasDev/templify/compare/v1.4.1...v1.4.2
-[1.4.1]: https://github.com/TriasDev/templify/compare/v1.4.0...v1.4.1
-[1.4.0]: https://github.com/TriasDev/templify/compare/v1.3.0...v1.4.0
-[1.3.0]: https://github.com/TriasDev/templify/compare/v1.2.0...v1.3.0
-[1.2.0]: https://github.com/TriasDev/templify/compare/v1.1.0...v1.2.0
-[1.1.0]: https://github.com/TriasDev/templify/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/TriasDev/templify/releases/tag/v1.0.0
