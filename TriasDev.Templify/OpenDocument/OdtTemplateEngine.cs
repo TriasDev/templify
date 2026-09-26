@@ -1,6 +1,7 @@
 // Copyright (c) 2026 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Globalization;
 using System.Xml.Linq;
 using TriasDev.Templify.Core;
 using TriasDev.Templify.Loops;
@@ -15,17 +16,24 @@ namespace TriasDev.Templify.OpenDocument;
 /// <remarks>
 /// <para>
 /// Walked are the body (<c>office:body/office:text</c> in <c>content.xml</c>) and the headers and
-/// footers of the master pages (<c>styles.xml</c>). Within them: paragraphs and headings, tables
-/// (including header rows and row groups, cells and covered cells), lists, sections, numbered
-/// paragraphs, index bodies, page-anchored frames, and the text boxes, shapes and notes anchored in
-/// paragraphs. Annotations (comments) and tracked deletions are not walked.
+/// footers of the master pages (<c>styles.xml</c>), including their left, center and right regions.
+/// Within them: paragraphs and headings, tables (including header rows and row groups, cells and
+/// covered cells), lists, sections, numbered paragraphs, index bodies, page-anchored frames, and the
+/// text boxes, shapes and notes anchored in paragraphs. Annotations (comments) and tracked deletions are not walked.
 /// </para>
 /// </remarks>
 internal sealed class OdtTemplateEngine
 {
+    private static readonly XName _xmlId = XNamespace.Xml + "id";
+    private static readonly XName _continueList = OdfNames.Text + "continue-list";
+    private static readonly XName _continueNumbering = OdfNames.Text + "continue-numbering";
+
     private readonly OdtPlaceholderProcessor _placeholders;
     private readonly OdtConditionalProcessor _conditionals;
     private readonly IWarningCollector _warningCollector;
+
+    /// <summary>Whether a loop cloned a list (see <see cref="ContinueListNumbering"/>).</summary>
+    private bool _listsCloned;
 
     public OdtTemplateEngine(
         PlaceholderReplacementOptions options,
@@ -68,6 +76,8 @@ internal sealed class OdtTemplateEngine
         List<XElement> roots = new List<XElement> { body };
         roots.AddRange(headersAndFooters);
         OdtUniqueNames.EnsureUnique(roots);
+
+        ContinueListNumbering(new[] { content, styles });
     }
 
     /// <summary>
@@ -226,12 +236,27 @@ internal sealed class OdtTemplateEngine
             loop.IterationVariableName,
             parent: null);
 
+        // Each clone of a list is marked with the template list it comes from, also through nested loops.
+        // Lists inside a list (list-item loops, loops in a list item) are sub-lists numbered by their parent list.
+        List<ListSource> listSources = loop.EndMarker.Ancestors(OdfNames.List).Any()
+            ? new List<ListSource>()
+            : loop.ContentElements.SelectMany(FindOutermostLists).Select(ListSource.Of).ToList();
+        _listsCloned |= listSources.Count > 0;
+
         // Last item first: each iteration is inserted directly after the end marker, so the
         // iterations end up in document order.
         for (int i = iterations.Count - 1; i >= 0; i--)
         {
             LoopEvaluationContext iterationContext = new LoopEvaluationContext(iterations[i], context);
             List<XElement> clones = loop.ContentElements.Select(e => new XElement(e)).ToList();
+            if (listSources.Count > 0)
+            {
+                List<XElement> clonedLists = clones.SelectMany(FindOutermostLists).ToList();
+                for (int l = 0; l < clonedLists.Count; l++)
+                {
+                    clonedLists[l].AddAnnotation(listSources[l]);
+                }
+            }
 
             XElement insertAfter = loop.EndMarker;
             foreach (XElement clone in clones)
@@ -244,6 +269,114 @@ internal sealed class OdtTemplateEngine
         }
 
         RemoveLoop(loop);
+    }
+
+    /// <summary>
+    /// Finds the lists in an element that are not nested in another list (nor in an annotation).
+    /// </summary>
+    private static IEnumerable<XElement> FindOutermostLists(XElement element)
+    {
+        if (element.Name == OdfNames.List)
+        {
+            yield return element;
+            yield break;
+        }
+
+        foreach (XElement child in element.Elements())
+        {
+            if (child.Name == OdfNames.OfficeAnnotation)
+            {
+                continue;
+            }
+
+            foreach (XElement list in FindOutermostLists(child))
+            {
+                yield return list;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Makes the loop copies of a list continue the numbering of the first copy, as in the Word pipeline (cloned
+    /// numbered paragraphs keep their numbering instance, so a loop over a numbered item produces 1., 2., 3.).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Each copy is a separate <c>text:list</c>, which LibreOffice numbers from 1 again. For the copies of one
+    /// template list (also across nested loops, where Word numbering continues as well), the first copy keeps or
+    /// gets an <c>xml:id</c>, and every later copy gets <c>text:continue-list</c> referring to it. This links the
+    /// copies even when other lists come between them. Other lists are not changed, so lists meant to restart
+    /// still do.
+    /// </para>
+    /// <para>
+    /// Runs after <see cref="OdtUniqueNames.EnsureUnique"/>, which removes the duplicate <c>xml:id</c> values
+    /// copied by the cloning, so the ids referred to here are unique.
+    /// </para>
+    /// </remarks>
+    private void ContinueListNumbering(IReadOnlyList<XDocument?> documents)
+    {
+        if (!_listsCloned)
+        {
+            return;
+        }
+
+        List<XElement> elements = documents.OfType<XDocument>().SelectMany(d => d.Descendants()).ToList();
+        HashSet<string> usedIds = new HashSet<string>(
+            elements.Select(e => (string?)e.Attribute(_xmlId)).OfType<string>(),
+            StringComparer.Ordinal);
+        int nextId = 1;
+
+        // Copies removed again (by a conditional, as an emptied list, or as an outer loop's source content)
+        // are no longer in a document and not found here.
+        IEnumerable<IGrouping<ListSource, XElement>> copiesBySource = elements
+            .Where(e => e.Name == OdfNames.List && e.Annotation<ListSource>() != null)
+            .GroupBy(e => e.Annotation<ListSource>()!);
+
+        foreach (List<XElement> copies in copiesBySource.Select(g => g.ToList()).Where(g => g.Count > 1))
+        {
+            XElement first = copies[0];
+            string? id = (string?)first.Attribute(_xmlId);
+            if (id == null)
+            {
+                do
+                {
+                    id = "templify-list" + nextId.ToString(CultureInfo.InvariantCulture);
+                    nextId++;
+                }
+                while (!usedIds.Add(id));
+
+                first.SetAttributeValue(_xmlId, id);
+            }
+
+            foreach (XElement copy in copies.Skip(1))
+            {
+                copy.Attribute(_xmlId)?.Remove();
+                copy.Attribute(_continueNumbering)?.Remove();
+                copy.SetAttributeValue(_continueList, id);
+            }
+        }
+
+        _listsCloned = false;
+    }
+
+    /// <summary>
+    /// Identifies the template list that loop copies of a list come from (an annotation on the list elements;
+    /// annotations are not copied with an element, so every copy is marked explicitly).
+    /// </summary>
+    private sealed class ListSource
+    {
+        /// <summary>Gets the source of a list: the one it was copied from, or the list itself.</summary>
+        public static ListSource Of(XElement list)
+        {
+            ListSource? source = list.Annotation<ListSource>();
+            if (source == null)
+            {
+                source = new ListSource();
+                list.AddAnnotation(source);
+            }
+
+            return source;
+        }
     }
 
     private static void RemoveLoop(OdtLoopBlock loop)
@@ -285,7 +418,8 @@ internal sealed class OdtTemplateEngine
         else if (block.Name == OdfNames.Section
                  || block.Name == OdfNames.NumberedParagraph
                  || block.Name == OdfNames.IndexBody
-                 || block.Name == OdfNames.IndexTitle)
+                 || block.Name == OdfNames.IndexTitle
+                 || OdfNames.IsHeaderFooterRegion(block))
         {
             ProcessContainer(block, context);
         }
@@ -382,9 +516,7 @@ internal sealed class OdtTemplateEngine
             || text.Contains("{{#else}}", StringComparison.Ordinal)
             || text.Contains("{{/if}}", StringComparison.Ordinal)
             || text.Contains("{{#foreach", StringComparison.Ordinal)
-            || text.Contains("{{/foreach}}", StringComparison.Ordinal)
-            || text.Contains("{{#empty}}", StringComparison.Ordinal)
-            || text.Contains("{{/empty}}", StringComparison.Ordinal);
+            || text.Contains("{{/foreach}}", StringComparison.Ordinal);
     }
 
     /// <summary>

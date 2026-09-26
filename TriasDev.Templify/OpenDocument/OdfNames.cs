@@ -75,6 +75,9 @@ internal static class OdfNames
 
     // style:
     public static readonly XName MasterPage = Style + "master-page";
+    public static readonly XName RegionLeft = Style + "region-left";
+    public static readonly XName RegionCenter = Style + "region-center";
+    public static readonly XName RegionRight = Style + "region-right";
 
     // manifest:
     public static readonly XName ManifestFileEntry = Manifest + "file-entry";
@@ -96,6 +99,13 @@ internal static class OdfNames
         Text + "alphabetical-index",
         Text + "bibliography",
     };
+
+    /// <summary>
+    /// Checks whether an element is a header or footer region (<c>style:region-left</c>, <c>-center</c>,
+    /// <c>-right</c>), which holds paragraphs like the header or footer itself.
+    /// </summary>
+    public static bool IsHeaderFooterRegion(XElement element) =>
+        element.Name == RegionLeft || element.Name == RegionCenter || element.Name == RegionRight;
 
     /// <summary>Checks whether an element is a paragraph or a heading.</summary>
     public static bool IsParagraph(XElement element) =>
