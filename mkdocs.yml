@@ -62,6 +62,22 @@ plugins:
   - search:
       lang: en
 
+# Internal planning material that lives in docs/ but is not published on the site.
+exclude_docs: |
+  superpowers/
+  archive/
+
+# Report broken links and anchors as warnings, so `mkdocs build --strict` fails on them.
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+  links:
+    not_found: warn
+    anchors: warn
+    absolute_links: info
+    unrecognized_links: warn
+
 extra:
   social:
     - icon: fontawesome/brands/github
@@ -85,6 +101,7 @@ nav:
     - Quick Start: for-developers/quick-start.md
     - Text Template Processing: for-developers/text-templates.md
     - Condition Evaluation: for-developers/condition-evaluation.md
+    - Processing Warnings: for-developers/processing-warnings.md
   - Tutorials:
     - tutorials/index.md
     - Hello World: tutorials/01-hello-world.md

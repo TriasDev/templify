@@ -1,944 +1,246 @@
 # Templify Architecture
 
-**Last Updated**: 2025-11-09
-**Current Version**: Post-Phase 2 Refactoring (Visitor Pattern)
+This document describes how the `TriasDev.Templify` library processes templates. It is written for contributors;
+for template syntax and API usage see the [documentation site](https://triasdev.github.io/templify/) and the
+[library README](README.md).
 
-## Current State (November 2025)
+Paths below are relative to `TriasDev.Templify/`. Everything not listed in `PublicAPI.Shipped.txt` /
+`PublicAPI.Unshipped.txt` is `internal` and may change at any time.
 
-Templify now uses a **visitor pattern architecture** for processing Word document templates. This architecture was implemented as part of Phase 2 refactoring to enable:
-- ✅ Conditionals inside loops
-- ✅ Nested loops (arbitrary depth)
-- ✅ Table row loops
-- ✅ Clean, extensible architecture with no code duplication
+## Design Principles
 
-**Key Changes from Original Architecture**:
-- Unified visitor-based processing (replaced separate processor classes)
-- Context-aware evaluation (IEvaluationContext) for proper variable scoping
-- DocumentWalker for unified document traversal
-- Composite visitor pattern for flexible feature composition
+1. **Single responsibility** - small classes with one purpose (detectors, visitors, operators, resolvers)
+2. **Composition over inheritance** - visitors and operators are composed, not subclassed
+3. **Immutability** - options (`init` properties), results and parsed condition ASTs are immutable
+4. **Explicit behavior** - template and data errors are reported, not guessed around
+5. **Testability** - `InternalsVisibleTo` gives the test project access to internal components
 
-## Design Philosophy
-
-Templify is intentionally designed to be **simple, focused, and maintainable**. This library provides the essential features most applications need: variable replacement, nested data structures, conditionals, and collection iteration, without the complexity of advanced templating engines.
-
-### Design Principles
-
-1. **Single Responsibility**: Each class has one clear purpose
-2. **Composition over Inheritance**: Prefer small, composable classes
-3. **Immutability**: Configuration objects are immutable after creation
-4. **Fail-Fast**: Clear error messages, no silent failures
-5. **Testability**: Pure functions and dependency injection where appropriate
-6. **No Magic**: Explicit behavior, predictable results
-
-## Current Architecture (Visitor Pattern - November 2025)
-
-### High-Level Overview
-
-```mermaid
-graph TB
-    Client[Client Application] --> Processor[DocumentTemplateProcessor<br/>Main Entry Point]
-    Processor -->|Creates| Context[GlobalEvaluationContext]
-    Processor -->|Constructs| Composite[CompositeVisitor]
-    Processor -->|Delegates to| Walker[DocumentWalker<br/>Document Traversal]
-
-    Walker -->|Detects| CV[ConditionalVisitor]
-    Walker -->|Detects| LV[LoopVisitor]
-    Walker -->|Detects| PV[PlaceholderVisitor]
-
-    CV -->|Evaluates| Condition{Condition?}
-    Condition -->|True| Keep[Keep Content]
-    Condition -->|False| Remove[Remove Content]
-
-    LV -->|For Each Item| Clone[Clone Content]
-    Clone -->|Creates| LoopCtx[LoopEvaluationContext]
-    LoopCtx -->|Recursive| Walker
-
-    PV -->|Resolves from| Context
-    PV -->|Replaces| Text[Text in Document]
-
-    style Processor fill:#e1f5ff
-    style Walker fill:#fff4e1
-    style CV fill:#ffe1f5
-    style LV fill:#e1ffe1
-    style PV fill:#f5e1ff
-    style Context fill:#ffe1e1
-```
-
-#### Architecture Flow
-
-The processing follows this sequence:
-
-1. **Client** provides template and data
-2. **DocumentTemplateProcessor** orchestrates the process
-3. **DocumentWalker** traverses the document tree
-4. **Visitors** process template elements in order: Conditionals → Loops → Placeholders
-5. **EvaluationContext** provides variable resolution with proper scoping
-
-### ASCII Diagram (Alternative View)
+## Overview
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Client Application                        │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│              DocumentTemplateProcessor                       │
-│           (Main Entry Point - Orchestration)                │
-│  • Creates GlobalEvaluationContext                          │
-│  • Constructs Visitor Composite                             │
-│  • Delegates to DocumentWalker                              │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  DocumentWalker                              │
-│            (Unified Document Traversal)                      │
-│  • Walks document tree (body, tables, rows, cells)         │
-│  • Detects template elements (conditionals, loops, placeholders)│
-│  • Dispatches to appropriate visitors                       │
-└───┬─────────────┬────────────────┬─────────────┬────────────┘
-    │             │                │             │
-    │ Conditional │  Loop          │ Placeholder │ Paragraph
-    │ detected    │  detected      │ detected    │ (no template)
-    │             │                │             │
-    ▼             ▼                ▼             ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  CompositeVisitor                            │
-│            (Delegates to all visitors)                       │
-└───┬─────────────┬────────────────┬─────────────────────────┘
-    │             │                │
-    ▼             ▼                ▼
-┌────────────┐ ┌────────────┐ ┌────────────────────┐
-│Conditional │ │LoopVisitor │ │PlaceholderVisitor  │
-│Visitor     │ │            │ │                    │
-│            │ │• Resolves  │ │• Resolves variables│
-│• Evaluates │ │  collection│ │  from context      │
-│  conditions│ │• Clones    │ │• Replaces text     │
-│• Removes   │ │  content   │ │• Tracks count      │
-│  branches  │ │• Creates   │ │                    │
-│            │ │  LoopContext│ │                    │
-│            │ │• Recursively│ │                    │
-│            │ │  processes │ │                    │
-│            │ │  with walker│ │                    │
-└────────────┘ └────────────┘ └────────────────────┘
-                      │
-                      │ (nested processing)
-                      ▼
-┌────────────────────────────────────────────────────────┐
-│            IEvaluationContext Hierarchy                 │
-│  ┌──────────────────────────────────────────────────┐ │
-│  │ GlobalEvaluationContext (root data)              │ │
-│  │   ↑                                              │ │
-│  │   └─ LoopEvaluationContext (loop item + parent) │ │
-│  │        ↑                                         │ │
-│  │        └─ LoopEvaluationContext (nested loop)   │ │
-│  └──────────────────────────────────────────────────┘ │
-│                                                        │
-│  • Context-aware variable resolution                  │
-│  • Hierarchical scoping (inner scopes shadow outer)  │
-│  • Loop metadata (@index, @first, @last, @count)     │
-└────────────────────────────────────────────────────────┘
+DocumentTemplateProcessor.ProcessTemplate(...)          Core/DocumentTemplateProcessor.cs
+ ├─ validate streams, copy template → output stream
+ ├─ TemplatePipeline.Create(options, missingVariables, warningCollector)
+ │    ConditionalVisitor + LoopVisitor + PlaceholderVisitor in a CompositeVisitor, one DocumentWalker
+ ├─ open the output with the Open XML SDK, create GlobalEvaluationContext(data)
+ ├─ pipeline.Process(document, context)
+ │    Walk (body) → WalkHeadersAndFooters → WalkFootnotesAndEndnotes
+ ├─ DrawingIdAllocator.EnsureUniqueIds(document)          (loop clones duplicate drawing ids)
+ ├─ UpdateFieldsOnOpen (Never / Always / Auto), DocumentProperties
+ └─ ProcessingResult.Success(replacementCount, missingVariables, warnings) or Failure(message)
 ```
 
-### Visitor Pattern Flow
-
-```
-1. DocumentTemplateProcessor.ProcessTemplate()
-   │
-   ├─▶ Create GlobalEvaluationContext(data)
-   │
-   ├─▶ Create DocumentWalker
-   │
-   ├─▶ Create ConditionalVisitor, PlaceholderVisitor
-   │
-   ├─▶ Create tempComposite (conditional + placeholder)
-   │
-   ├─▶ Create tempLoopVisitor(walker, tempComposite)
-   │
-   ├─▶ Create finalComposite (conditional + tempLoop + placeholder)
-   │
-   ├─▶ Create loopVisitor(walker, finalComposite)  ← Can process nested loops!
-   │
-   ├─▶ Create composite (conditional + loop + placeholder)
-   │
-   └─▶ walker.Walk(document, composite, globalContext)
-       │
-       ├─▶ Walk body elements
-       │   ├─▶ Step 1: Detect & visit conditionals (deepest first)
-       │   ├─▶ Step 2: Detect & visit loops
-       │   └─▶ Step 3: Visit paragraphs for placeholders
-       │
-       └─▶ Walk tables
-           ├─▶ Step 1: Detect & visit table row loops
-           └─▶ Step 2: Walk remaining rows/cells
-               └─▶ (Recursive: detect conditionals, loops, placeholders)
-
-2. When LoopVisitor processes a loop:
-   │
-   ├─▶ Resolve collection from context
-   │
-   ├─▶ For each item:
-   │   ├─▶ Create LoopContext(item, index, count, parent)
-   │   ├─▶ Create LoopEvaluationContext(loopContext, parentContext)
-   │   ├─▶ Clone content elements
-   │   ├─▶ Insert cloned elements into document
-   │   └─▶ walker.WalkElements(clonedElements, nestedVisitor, loopEvalContext)
-   │       │
-   │       └─▶ Processes nested conditionals, loops, placeholders
-   │           with loop-scoped variables!
-   │
-   └─▶ Remove original loop block (markers + content)
-```
-
-### Processing Sequence Diagram
-
-Here's how a template with conditionals, loops, and placeholders is processed:
-
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant P as DocumentTemplateProcessor
-    participant W as DocumentWalker
-    participant CV as ConditionalVisitor
-    participant LV as LoopVisitor
-    participant PV as PlaceholderVisitor
-    participant Ctx as EvaluationContext
-
-    C->>P: ProcessTemplate(template, data)
-    P->>Ctx: Create GlobalEvaluationContext(data)
-    P->>W: Create DocumentWalker
-    P->>P: Build Visitor Composite
-    P->>W: Walk(document, visitors, context)
-
-    loop For each element in document
-        W->>W: Detect element type
-
-        alt Is Conditional Block
-            W->>CV: VisitConditional(element, context)
-            CV->>Ctx: Resolve condition variable
-            Ctx-->>CV: Variable value
-            CV->>CV: Evaluate condition
-            alt Condition is true
-                CV->>CV: Keep content, remove markers
-            else Condition is false
-                CV->>CV: Remove entire block
-            end
-        end
-
-        alt Is Loop Block
-            W->>LV: VisitLoop(element, context)
-            LV->>Ctx: Resolve collection
-            Ctx-->>LV: Collection items
-            loop For each item in collection
-                LV->>LV: Clone content
-                LV->>Ctx: Create LoopEvaluationContext(item)
-                LV->>W: Walk cloned content (recursive)
-                Note over W,PV: Process nested conditionals,<br/>loops, placeholders
-            end
-            LV->>LV: Remove original loop block
-        end
-
-        alt Is Placeholder
-            W->>PV: VisitPlaceholder(element, context)
-            PV->>Ctx: Resolve variable path
-            Ctx-->>PV: Variable value
-            PV->>PV: Replace text with value
-        end
-    end
-
-    W-->>P: Processing complete
-    P-->>C: ProcessingResult
-```
-
-**Key Points**:
-- Processing order: **Conditionals → Loops → Placeholders**
-- Loop processing is **recursive** (enables nested loops)
-- Each loop iteration creates a new **LoopEvaluationContext**
-- Context hierarchy enables proper variable scoping
-
-### Context Hierarchy Visualization
-
-```mermaid
-graph TD
-    Global[GlobalEvaluationContext<br/>User: 'John Doe'<br/>Date: '2025-01-15'] --> Loop1[LoopEvaluationContext<br/>OrderID: 'ORD-001'<br/>@index: 0]
-    Global --> Loop2[LoopEvaluationContext<br/>OrderID: 'ORD-002'<br/>@index: 1]
-
-    Loop1 --> Nested1[LoopEvaluationContext<br/>Item: 'Product A'<br/>@index: 0<br/>Parent: ORD-001]
-    Loop1 --> Nested2[LoopEvaluationContext<br/>Item: 'Product B'<br/>@index: 1<br/>Parent: ORD-001]
-
-    style Global fill:#e1f5ff
-    style Loop1 fill:#e1ffe1
-    style Loop2 fill:#e1ffe1
-    style Nested1 fill:#fff4e1
-    style Nested2 fill:#fff4e1
-```
-
-**Variable Resolution**:
-- Inner contexts **shadow** outer contexts
-- Special variables (`@index`, `@first`, `@last`, `@count`) are loop-specific
-- Parent context accessible when variable not found in current scope
-
-## Legacy Architecture (Pre-Phase 2 - Deprecated)
-
-> **Note**: This architecture was used before November 2025 and is documented here for reference only.
-> The current codebase uses the Visitor Pattern architecture described above.
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Client Application                        │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│              DocumentTemplateProcessor                       │
-│  (Main Entry Point - Orchestrates the process)              │
-└────┬───────────┬──────────────┬──────────────┬──────────────┘
-     │           │              │              │
-     │           │              │              │
-     ▼           ▼              ▼              ▼
-┌─────────┐ ┌────────┐  ┌──────────┐  ┌────────────┐
-│  Loop   │ │ Placeholder│DocumentBody││  Table     │
-│ Detector│ │   Finder   │  Replacer  ││  Replacer  │
-│         │ │            │            ││            │
-│ - Find  │ │ - Find     │ - Replace  ││ - Replace  │
-│   loops │ │   patterns │   in body  ││   in tables│
-└────┬────┘ │ - Extract  │   paragraphs││           │
-     │      │   names    │            ││            │
-     ▼      └─────┬──────┘ └─────┬─────┘ └────┬─────┘
-┌─────────┐      │              │            │
-│  Loop   │      │              │            │
-│Processor│      │              │            │
-│         │      │              │            │
-│ - Clone │◀─────┼──────────────┴────────────┘
-│   content      │
-│ - Create │     │
-│   contexts│    │
-└────┬────┘     │
-     │          │
-     ▼          ▼
-┌──────────────────┐
-│   ValueResolver  │
-│PropertyPathResolver│
-│                  │
-│ - Nested paths  │
-│ - Collections   │
-│ - Dictionaries  │
-└────────┬─────────┘
-         │
-         ▼
-┌────────────────────┐
-│  OpenXML SDK API   │
-│  WordprocessingML  │
-└────────────────────┘
-```
-
-## Core Components
-
-> **Note (December 2025):** The classes `DocumentBodyReplacer` (§3), `TableReplacer` (§4),
-> `LoopProcessor` (§7), and `ConditionalProcessor` were **removed** from the codebase. They
-> were the pre-Phase 2 processing path and had been kept only for reference after the visitor
-> pattern superseded them. Their responsibilities now live in `PlaceholderVisitor`,
-> `LoopVisitor`, and `ConditionalVisitor` (see *Current Architecture* above). The sections
-> below are retained as a description of the historical design.
-
-### 1. DocumentTemplateProcessor
-
-**Purpose**: Main entry point and orchestrator
-
-**Responsibilities**:
-- Accept template stream, output stream, and data
-- Open WordprocessingDocument safely
-- Coordinate PlaceholderFinder and replacers
-- Aggregate results and errors
-- Ensure proper resource disposal
-
-**Key Methods**:
-```csharp
-ProcessingResult ProcessTemplate(
-    Stream templateStream,
-    Stream outputStream,
-    Dictionary<string, object> data)
-```
-
-**Design Notes**:
-- Uses `using` statements for proper resource management
-- Copies template to output before processing (non-destructive)
-- Catches and wraps exceptions in ProcessingResult
-
-### 2. PlaceholderFinder
-
-**Purpose**: Locate and extract placeholder patterns
-
-**Responsibilities**:
-- Search text for `{{variableName}}` patterns
-- Extract variable names
-- Validate placeholder syntax
-- Return placeholder locations
-
-**Key Methods**:
-```csharp
-IEnumerable<PlaceholderMatch> FindPlaceholders(string text)
-bool IsValidPlaceholder(string text)
-string ExtractVariableName(string placeholder)
-```
-
-**Design Notes**:
-- Uses regular expressions for pattern matching: `\{\{(\w+)\}\}`
-- Immutable result objects
-- No state, can be reused safely
-
-### 3. DocumentBodyReplacer
-
-**Purpose**: Replace placeholders in document body paragraphs
-
-**Responsibilities**:
-- Iterate through body paragraphs
-- Find and replace text in runs
-- Handle text spanning multiple runs
-- Track replacement count
-
-**Key Methods**:
-```csharp
-int ReplaceInBody(
-    WordprocessingDocument document,
-    Dictionary<string, object> data,
-    PlaceholderReplacementOptions options)
-```
-
-**Design Notes**:
-- Works with OpenXML `Paragraph` and `Run` elements
-- Handles the complexity of text being split across multiple runs
-- Returns count of replacements made
-
-### 4. TableReplacer
-
-**Purpose**: Replace placeholders in table cells
-
-**Responsibilities**:
-- Iterate through all tables
-- Process each cell's paragraphs
-- Delegate to body replacer logic for cell content
-- Track replacement count
-
-**Key Methods**:
-```csharp
-int ReplaceInTables(
-    WordprocessingDocument document,
-    Dictionary<string, object> data,
-    PlaceholderReplacementOptions options)
-```
-
-**Design Notes**:
-- Reuses paragraph processing logic from DocumentBodyReplacer
-- Handles nested tables
-- Processes cells left-to-right, top-to-bottom
-
-### 5. LoopDetector
-
-**Purpose**: Detect and parse loop blocks in documents
-
-**Responsibilities**:
-- Find `{{#foreach CollectionName}}` markers
-- Find matching `{{/foreach}}` end markers
-- Handle nested loops (track nesting depth)
-- Extract collection names
-- Build LoopBlock structures
-
-**Key Methods**:
-```csharp
-IReadOnlyList<LoopBlock> DetectLoops(WordprocessingDocument document)
-```
-
-**Design Notes**:
-- Static utility class
-- Uses regex patterns for marker detection
-- Properly handles nested foreach blocks by tracking depth
-- Returns loop blocks in document order
-
-### 6. LoopBlock
-
-**Purpose**: Represent a parsed loop structure
-
-**Properties**:
-```csharp
-string CollectionName { get; }
-IReadOnlyList<OpenXmlElement> ContentElements { get; }
-OpenXmlElement StartMarker { get; }
-OpenXmlElement EndMarker { get; }
-bool IsTableRowLoop { get; }
-LoopBlock? EmptyBlock { get; }
-```
-
-**Design Notes**:
-- Immutable data structure
-- Contains references to OpenXML elements to be cloned
-- Supports both paragraph and table row loops
-
-### 7. LoopProcessor
-
-**Purpose**: Execute loop blocks by cloning content
-
-**Responsibilities**:
-- Resolve collection from data dictionary
-- Create LoopContext for each item
-- Clone content elements for each iteration
-- Process placeholders in cloned content
-- Remove loop markers after processing
-- Handle empty collections
-
-**Key Methods**:
-```csharp
-int ProcessLoops(
-    IReadOnlyList<LoopBlock> loops,
-    Dictionary<string, object> data,
-    List<string> missingVariables)
-```
-
-**Design Notes**:
-- Processes loops before simple placeholder replacement
-- Uses ValueResolver for collection lookup
-- Clones OpenXML elements (deep copy)
-- Handles nested loops through context chaining
-
-### 8. LoopContext
-
-**Purpose**: Maintain loop iteration state
-
-**Properties**:
-```csharp
-object CurrentItem { get; }
-int Index { get; }
-int Count { get; }
-string CollectionName { get; }
-LoopContext? Parent { get; }
-bool IsFirst { get; }
-bool IsLast { get; }
-```
-
-**Key Methods**:
-```csharp
-static IReadOnlyList<LoopContext> CreateContexts(
-    IEnumerable collection,
-    string collectionName,
-    LoopContext? parent)
-
-bool TryResolveVariable(string variableName, out object? value)
-```
-
-**Design Notes**:
-- Immutable context per iteration
-- Supports nested loops via Parent reference
-- Resolves variables from current item first, then parent contexts
-- Handles metadata variables (@index, @first, @last, @count)
-
-### 9. PropertyPath & PropertyPathResolver
-
-**Purpose**: Navigate nested data structures
-
-**Responsibilities**:
-- Parse property paths with mixed notation (dots and brackets)
-- Navigate through objects, collections, and dictionaries
-- Resolve nested properties using reflection
-
-**Key Methods**:
-```csharp
-PropertyPath Parse(string path)
-object? ResolvePath(object? root, PropertyPath path)
-```
-
-**Design Notes**:
-- Supports dot notation: `Customer.Address.City`
-- Supports array indexing: `Items[0]`
-- Supports dictionary access: `Settings[Theme]`
-- Static methods for efficiency
-- Null-safe traversal
-
-### 10. ValueResolver
-
-**Purpose**: Centralized value lookup from data dictionary
-
-**Responsibilities**:
-- Check direct dictionary keys first (fast path)
-- Parse and resolve nested property paths
-- Handle both simple and complex data access patterns
-
-**Key Methods**:
-```csharp
-bool TryResolveValue(
-    Dictionary<string, object> data,
-    string variablePath,
-    out object? value)
-```
-
-**Design Notes**:
-- Fast path for direct dictionary lookups
-- Backward compatible with simple keys
-- Uses PropertyPathResolver for nested paths
-
-### 11. FormattingPreserver
-
-**Purpose**: Preserve and apply text formatting (character and paragraph styles)
-
-**Responsibilities**:
-- Extract RunProperties from original runs
-- Clone RunProperties for reuse
-- Apply RunProperties to new runs
-- Ensure formatting is preserved during text replacement
-
-**Key Methods**:
-```csharp
-static RunProperties? ExtractRunProperties(IEnumerable<Run> runs)
-static RunProperties? CloneRunProperties(RunProperties? originalProperties)
-static void ApplyRunProperties(Run run, RunProperties? properties)
-static RunProperties? ExtractAndCloneRunProperties(IEnumerable<Run> runs)
-```
-
-**Design Notes**:
-- Static utility class for formatting operations
-- Extracts properties from first run that has any
-- Uses deep cloning to avoid reference issues
-- Preserves all character formatting: bold, italic, font, color, size, underline, etc.
-- Works with both DocumentBodyReplacer and LoopProcessor
-
-**Formatting Flow**:
-```
-1. Before removing runs:
-   - Extract RunProperties from first run
-   - Clone properties (deep copy)
-
-2. Create new run with replacement text
-
-3. Apply cloned properties to new run
-   - Formatting is preserved
-   - Replacement inherits placeholder's style
-```
-
-### 12. ValueConverter
-
-**Purpose**: Convert various .NET types to string representations
-
-**Responsibilities**:
-- Convert objects to strings for document output
-- Handle null values
-- Format numbers, dates, booleans appropriately
-
-**Design Notes**:
-- Static utility class
-- Uses ToString() for most types
-- Culture-aware formatting
-
-### 13. PlaceholderReplacementOptions
-
-**Purpose**: Configuration object for template processing
-
-**Properties**:
-```csharp
-MissingVariableBehavior MissingVariableBehavior { get; init; }
-```
-
-**Design Notes**:
-- Immutable (init-only properties)
-- Provides sensible defaults
-- Can be extended with additional options in future
-
-### 6. ProcessingResult
-
-**Purpose**: Encapsulate processing outcome and metrics
-
-**Properties**:
-```csharp
-bool IsSuccess { get; init; }
-int ReplacementCount { get; init; }
-string? ErrorMessage { get; init; }
-IReadOnlyList<string> MissingVariables { get; init; }
-```
-
-**Design Notes**:
-- Immutable result object
-- Combines success/failure with metrics
-- Enables detailed error reporting
-
-## Enumerations
-
-### MissingVariableBehavior
-
-Defines how to handle placeholders without corresponding data:
+`TextTemplateProcessor` (plain text) and `TemplateValidator` (`ValidateTemplate`) reuse the same detectors, patterns,
+condition engine, contexts and value conversion; see [Other Entry Points](#other-entry-points).
+
+## Entry Point: DocumentTemplateProcessor
+
+`Core/DocumentTemplateProcessor.cs` is the public entry point. `ProcessTemplate` has overloads for
+`Stream` + `Stream` and `byte[]` + `out byte[]`, and `ProcessTemplateFile` works on file paths; each takes the data as
+`Dictionary<string, object>`, `IReadOnlyDictionary<string, object?>` or a JSON string (parsed by
+`Utilities/JsonDataParser.cs`). All overloads end in `ProcessTemplateCore`:
+
+- The template stream must be readable; the output stream must be readable, writable and seekable. Unusable streams
+  return a failed result before anything is written.
+- The template is copied into the output stream and edited in place; the template itself is never modified.
+  `ProcessTemplateFile` processes in memory and writes the output file only on success.
+- `ValidateTemplate` delegates to `TemplateValidator` (syntax errors, placeholders, and missing variables when data is
+  given).
+
+### Error Model
+
+| Situation | Result |
+|-----------|--------|
+| Template syntax error (unmatched `{{#if}}`/`{{#foreach}}`, `{{#elseif}}` after `{{#else}}`, invalid iteration variable, row markers sharing a row) | `ProcessingResult.Failure("Processing failed: ...")` |
+| Data error (`{{#foreach}}` over a value that is not a collection) | `Failure` |
+| Any other exception during processing (including Open XML errors) | `Failure` |
+| Missing variable with `MissingVariableBehavior.ThrowException` | throws `InvalidOperationException` (the only exception) |
+| Malformed `{{#if}}` / `{{#elseif}}` condition | condition is false, `ExpressionFailed` warning |
+| Malformed inline `{{(...)}}` expression | treated as a missing variable, `ExpressionFailed` + `MissingVariable` warnings |
+| Missing / null loop collection | loop removed, `MissingLoopCollection` / `NullLoopCollection` warning |
+| Invalid JSON passed to a JSON overload | `JsonException` / `ArgumentException` from `JsonDataParser` (thrown before processing) |
+
+Internally, `Core/TemplateExceptions.cs` defines `MissingVariableException`, `TemplateSyntaxException` (carrying a
+`ValidationErrorType`, so `TemplateValidator` can map it) and `TemplateDataException`, all deriving from
+`InvalidOperationException`. The processors classify by type: only `MissingVariableException` is rethrown, as a plain
+`InvalidOperationException` with the same message.
+
+Warnings are collected by `WarningCollector` (`Core/IWarningCollector.cs`) and returned as
+`ProcessingResult.Warnings` (`Core/ProcessingWarning.cs`). `GetWarningReport()` / `GetWarningReportBytes()` render them
+into a Word document through `Core/WarningReportGenerator.cs`, which processes an embedded template with Templify
+itself.
+
+## TemplatePipeline and Visitors
+
+`Visitors/TemplatePipeline.cs` builds the visitor graph used by the processor:
 
 ```csharp
-public enum MissingVariableBehavior
-{
-    LeaveUnchanged,  // Keep {{placeholder}} in document
-    ReplaceWithEmpty, // Remove placeholder (replace with "")
-    ThrowException    // Fail fast with exception
-}
+PlaceholderVisitor placeholderVisitor = new PlaceholderVisitor(options, missingVariables, warningCollector);
+DocumentWalker walker = new DocumentWalker();
+ConditionalVisitor conditionalVisitor = new ConditionalVisitor(warningCollector);
+
+// LoopVisitor needs the final composite (which contains itself) to process nested constructs
+CompositeVisitor tempComposite = new CompositeVisitor(conditionalVisitor, placeholderVisitor);
+LoopVisitor loopVisitor = new LoopVisitor(walker, tempComposite, warningCollector);
+CompositeVisitor composite = new CompositeVisitor(conditionalVisitor, loopVisitor, placeholderVisitor);
+loopVisitor.SetNestedVisitor(composite);
 ```
 
-## Processing Flow
+All visitors implement `ITemplateElementVisitor` (`VisitConditional`, `VisitLoop`, `VisitPlaceholder`,
+`VisitParagraph`); `CompositeVisitor` forwards each call to its children.
+
+| Visitor | Responsibility |
+|---------|----------------|
+| `ConditionalVisitor` | Evaluates `{{#if}}` / `{{#elseif}}` / `{{#else}}` branches and removes the ones not taken. Block conditionals remove whole elements (paragraphs, tables, rows); inline conditionals inside one paragraph are parsed by `Conditionals/InlineConditionalParser.cs` and removed with `ParagraphTextRewriter`. Keeps table cells valid (a cell must end with a paragraph). |
+| `LoopVisitor` | Resolves the collection, creates a `LoopContext` + `LoopEvaluationContext` per item, clones the loop content (`TemplateElementHelper.CloneElements`), inserts the clones and walks them with the nested composite, then removes the original block. |
+| `PlaceholderVisitor` | Resolves a variable or inline expression, converts the value (`ValueConverter`, `TextReplacements`, `XmlCharacterSanitizer`) and rewrites the placeholder's text range. Counts replacements; records missing variables. |
+
+## DocumentWalker
+
+`Visitors/DocumentWalker.cs` traverses the document and dispatches to the visitor. `WalkElements` processes a list of
+sibling elements in three steps:
+
+1. **Conditionals** (`ConditionalDetector`), deepest first. Conditionals inside a loop block are skipped here and
+   evaluated when the loop expands, with the item's context.
+2. **Loops** (`LoopDetector`). Loop blocks whose markers were removed by a conditional are skipped.
+3. **Placeholders** in the remaining paragraphs. Marker paragraphs are skipped; placeholders are found by
+   `Placeholders/PlaceholderScanner.cs` in the paragraph's own text and visited from last to first so earlier offsets
+   stay valid.
+
+What is walked:
+
+- **Body**, recursively into **tables** (rows and cells, nested tables).
+- **Table rows** get row-aware detection: `{{#foreach}}` / `{{#if}}` markers that occupy their own row and are not
+  closed in the same cell form row loops / row conditionals. Rows produced by a row loop are not re-processed. When
+  processing removes every row of a table, the table is removed (Word rejects a table without rows), and an empty
+  paragraph is added where a cell, header or footer would otherwise be left without one.
+- **Content controls**: `SdtBlock` content, row-level `SdtRow` and cell-level `SdtCell`. A content control that
+  contains a complete loop is not treated as a loop marker.
+- **Text boxes** anchored in a paragraph (VML and DrawingML, both `mc:Choice` and `mc:Fallback`) are walked as separate
+  block containers; their text does not count as the outer paragraph's text.
+- **Headers and footers** (`WalkHeadersAndFooters`, all types) and **footnotes and endnotes**
+  (`WalkFootnotesAndEndnotes`, separator notes skipped).
+- **Comments are not processed** (they are reviewer notes, not document content).
+
+Marker text for block detection comes from `Utilities/TemplateElementText.cs`; marker regexes are shared through
+`Conditionals/ConditionalPatterns.cs` and `LoopDetector`.
+
+## Paragraph Text Model and Rewriting
+
+Word splits text into runs, so a placeholder can span several `w:t` elements with different formatting.
+
+- `Utilities/ParagraphTextModel.cs` builds a paragraph's **own** text (not text boxes) as a list of text segments
+  (`ParagraphTextSegment`: text element, owning run, offset) and non-text inline content (tabs, breaks, drawings, field
+  characters, bookmarks) at their offsets.
+- `Utilities/ParagraphTextRewriter.cs` replaces or removes character ranges in place: only the text elements that
+  overlap a range change; runs outside the range, hyperlinks, fields, drawings and bookmarks stay untouched.
+  Replacement text takes the formatting of the run holding the first replaced character.
+- `Utilities/ReplacementContent.cs` describes the replacement as text pieces and line breaks: newlines become `w:br`
+  when `EnableNewlineSupport` is on, and markdown (`Markdown/MarkdownParser.cs` → `MarkdownSegment`) becomes bold /
+  italic / strikethrough pieces when `EnableMarkdown` is on and the placeholder is not `:raw`.
+- `Utilities/FormattingPreserver.cs` clones run properties and merges markdown formatting into them in schema order.
+
+## Condition Engine
+
+`{{#if}}` / `{{#elseif}}`, inline `{{(...)}}` expressions, text templates and the public `ConditionEvaluator` share
+one engine in `Conditionals/Engine/`:
 
 ```
-1. Client calls ProcessTemplate()
-   │
-   ▼
-2. DocumentTemplateProcessor copies template to output stream
-   │
-   ▼
-3. Open WordprocessingDocument for editing
-   │
-   ▼
-4. LoopDetector scans for {{#foreach}}...{{/foreach}} blocks
-   │
-   ├─▶ Find all loop start/end markers
-   │
-   ├─▶ Build LoopBlock structures with content elements
-   │
-   └─▶ Handle nested loops (track depth)
-   │
-   ▼
-5. LoopProcessor executes each loop
-   │
-   ├─▶ Resolve collection from data dictionary
-   │
-   ├─▶ Create LoopContext for each item
-   │
-   ├─▶ Clone content elements for each iteration
-   │   │
-   │   └─▶ Process placeholders in cloned content
-   │       │
-   │       ├─▶ Try resolve from LoopContext (current item + metadata)
-   │       │
-   │       └─▶ Fallback to root data dictionary
-   │
-   └─▶ Remove loop markers and original content
-   │
-   ▼
-6. DocumentBodyReplacer processes remaining placeholders in body
-   │
-   ├─▶ PlaceholderFinder identifies {{variables}}
-   │
-   ├─▶ ValueResolver looks up values (nested path support)
-   │
-   └─▶ Replace text in runs with data values
-   │
-   ▼
-7. TableReplacer processes remaining placeholders in tables
-   │
-   ├─▶ For each table cell
-   │   │
-   │   ├─▶ PlaceholderFinder identifies {{variables}}
-   │   │
-   │   ├─▶ ValueResolver looks up values
-   │   │
-       │   └─▶ Replace text in runs with data values
-       │
-       └─▶ Handle nested tables recursively
-   │
-   ▼
-5. Save document
-   │
-   ▼
-6. Return ProcessingResult with metrics
+expression string
+  → ConditionLexer        tokens; ASCII/typographic quote normalization, string escapes (\" and \\),
+                          [Name] bracket escape for keywords, numbers, true/false/null
+  → ConditionParser       Pratt (precedence-climbing) parser → ConditionNode AST
+                          (OperatorNode, VariableNode, LiteralNode, ListNode for "(a, b)")
+  → ConditionEvaluatorCore walks the AST with a ConditionDialect
 ```
 
-## Text Replacement Strategy
+- **Operators** are classes implementing `IConditionOperator` (tokens, precedence, fixity, `Evaluate`), registered in
+  `ConditionOperatorRegistry` - the single source of truth used by the lexer, parser and `Validate`. Operators live in
+  `Engine/Operators/`: logical (`or`, `and`, `not`), comparison (`=`, `==`, `!=`, `>`, `<`, `>=`, `<=`), membership
+  (`in`), string (`contains`, `startswith`, `endswith`; `contains` on a collection is a membership test) and postfix
+  existence (`exists`, `is empty`, `is not empty`).
+- **Precedence** (`OperatorPrecedence.cs`, loosest to tightest): `or` = 1, `and` = 2, `not` = 3, comparisons / `in` /
+  string operators = 4, postfix = 5. So `not A = B` is `not (A = B)`.
+- **Keywords in operand position**: the words added in 1.7.0 (`in`, `is`, `empty`, `exists`, `contains`,
+  `startswith`, `endswith`) are read as variable names where an operand is expected; `[Name]` escapes any keyword.
+- **Operand resolution**: comparison operands that do not resolve fall back to their own text (bareword literals, so
+  `Status = Active` works); `in`, string and emptiness operators resolve strictly (missing = null); a bare missing
+  variable is false.
+- **Dialects** (`ConditionDialect.cs`) keep the two historical value policies:
+  - `DefaultConditionDialect` (`{{#if}}`, text templates, `ConditionEvaluator`): rich truthiness (`"false"`, `"0"`,
+    blank strings, numeric zero, NaN and empty collections are false), numeric comparison with invariant parsing of
+    numeric strings.
+  - `InlineConditionDialect` (`{{(...)}}`): only `true` is truthy; equality is numeric across numeric types, otherwise
+    `object.Equals`; ordering via numbers or `IComparable`. The inline lexer also accepts single-quoted strings.
+- `Utilities/NumericValue.cs` normalizes all CLR numeric types and `JsonElement` numbers, so `10 = 10.00m` and JSON
+  `10.50 = 10.5`.
+- `ConditionAstCache.cs` caches parsed ASTs process-wide (bounded, thread-safe); loops evaluate the same expression
+  per item without re-parsing.
+- `Conditionals/ConditionalEvaluator.cs` is the internal facade for `{{#if}}` (evaluation with warnings, parser-based
+  `Validate` with typed `ConditionValidationIssue`s). `Placeholders/ExpressionPlaceholderEvaluator.cs` evaluates inline
+  expressions. The public `ConditionEvaluator` / `ConditionContext` (`IConditionEvaluator`, `IConditionContext`) expose
+  evaluation and validation without a document.
 
-### Challenge: Text Spans Multiple Runs
+## Evaluation Contexts and Value Resolution
 
-OpenXML splits text into `Run` elements for formatting. A placeholder like `{{CompanyName}}` might be split as:
+- `IEvaluationContext` (public) resolves variable paths. `GlobalEvaluationContext` wraps the root data;
+  `Loops/LoopEvaluationContext.cs` first asks its `LoopContext`, then its parent context.
+- `Loops/LoopContext.cs` holds the current item, index and count and resolves `@index`, `@number` (1-based), `@first`,
+  `@last`, `@count`, `.` / `this`, the named iteration variable (`item`, `item.Name`) and the item's properties. A
+  property that exists with a null value resolves as null and does not fall through to outer scopes; implicit names on a
+  null item resolve from outer scopes.
+- `Placeholders/ValueResolver.cs` looks up the root key (exact key first), then navigates with
+  `PropertyPaths/PropertyPath.cs` / `PropertyPathResolver.cs`: properties and fields (case-insensitive), dictionary keys
+  (dictionary comparer, keys win over dictionary members), `IReadOnlyDictionary`, `ExpandoObject`, list indexes, typed
+  dictionary keys, and `JsonElement` objects/arrays (materialized as dictionaries/lists).
+- `Placeholders/ValueConverter.cs` converts values to text with the configured culture: boolean formatters
+  (`Formatting/BooleanFormatterRegistry.cs`, culture-aware `yesno`, `truefalse`, `onoff`, `enabled`, `active`, and
+  `checkbox`, `checkmark`/`check`), `uppercase` / `lowercase`, `currency`, `number:FORMAT`, `date:FORMAT`.
+- `Replacements/TextReplacements.cs` applies `PlaceholderReplacementOptions.TextReplacements` (e.g. the built-in
+  `HtmlEntities` table); `Utilities/XmlCharacterSanitizer.cs` removes characters that are invalid in XML 1.0.
 
-```xml
-<w:p>
-  <w:r><w:t>{{Company</w:t></w:r>
-  <w:r><w:t>Name}}</w:t></w:r>
-</w:p>
-```
+## Other Entry Points
 
-### Solution: Shared Paragraph Text Rewriter
+- **`Core/TextTemplateProcessor.cs`** processes plain text with the same syntax: a single-pass block parser and
+  renderer that reuses the marker patterns, `LoopDetector` validation, `ConditionalEvaluator`, loop contexts,
+  `ExpressionPlaceholderEvaluator`, `ValueConverter` and `TextReplacements`. Conditionals are evaluated before their
+  content; markdown and Word-only features (formatting, tables, fields, document properties) do not apply. Results are
+  `TextProcessingResult` with the same error model and warnings.
+- **`Core/TemplateValidator.cs`** (`ValidateTemplate`) walks body, headers/footers and notes: it reports unmatched
+  markers and invalid conditions (`ValidationError`), collects `AllPlaceholders` (condition variables are taken from the
+  AST), and with data reports `MissingVariables` plus warnings (`EmptyLoopCollection` when
+  `WarnOnEmptyLoopCollections` is on, `ReservedWordAsVariable`).
 
-Placeholder replacement and inline conditionals share one internal component
-(`Utilities/ParagraphTextModel.cs`, `Utilities/ParagraphTextRewriter.cs`):
+## Post-Processing
 
-1. **Model**: `ParagraphTextModel.Build(paragraph)` concatenates the paragraph's *own* text:
-   the `w:t` elements of its runs, including runs nested in hyperlinks, simple fields, inline
-   content controls, custom XML and tracked insertions. Field instructions (`w:instrText`),
-   deleted text and nested paragraphs (text boxes) are not part of it. Each text segment knows
-   its `w:t` element, owning run and offset; every non-text element (tab, break, drawing, field
-   character, bookmark, …) is recorded as an anchor at its offset.
-2. **Find**: placeholders and inline conditional markers are located in the model text
-   (`PlaceholderFinder`, `InlineConditionalParser`).
-3. **Rewrite**: `ParagraphTextRewriter.Replace(paragraph, start, end, content)` changes only the
-   text elements overlapping `[start, end)`:
-   - replacement text takes the formatting of the run holding the first replaced character;
-     text after the range keeps its own run and formatting;
-   - `ReplacementContent` describes the new text as pieces (text with optional markdown
-     formatting, line breaks); for non-plain content the first run is split and new runs are
-     inserted in between;
-   - untouched runs and non-text content stay in place; inline content strictly inside the
-     range (tabs, breaks, symbols, drawings, note references, complete fields) is removed with it,
-     while bookmarks and comment ranges are always kept; emptied runs and wrappers (e.g. a
-     hyperlink that lost all its text) are pruned.
+- **`Utilities/DrawingIdAllocator.cs`** renumbers duplicate drawing (`wp:docPr`) and VML shape ids across all story
+  parts after loop cloning; the first occurrence keeps its id.
+- **Fields**: `UpdateFieldsOnOpen` (`Never`, `Always`, `Auto` = only when the document has dynamic fields such as TOC or
+  PAGE) sets `w:updateFields` so Word refreshes fields on open.
+- **Document properties**: non-null values of `PlaceholderReplacementOptions.DocumentProperties` overwrite the package
+  properties.
 
-```
-[Run1: "Hi {{Na"] [Run2: "me}}!"]  →  [Run1: "Hi Alice"] [Run2: "!"]
-[Run: "C{{Value}}"]                 →  [Run: "CAlice"]  (all run formatting preserved)
-```
+## Source Layout
 
-Inline conditionals are resolved by removing ranges only (markers and non-matching branches),
-so the kept text retains its original runs and formatting exactly.
+| Folder | Contents |
+|--------|----------|
+| `Core/` | Processors, options, results, warnings, validation, contexts, exceptions, warning report |
+| `Visitors/` | `DocumentWalker`, `TemplatePipeline`, visitors, `TemplateElementHelper` |
+| `Conditionals/` | Block/inline detection, `ConditionalEvaluator`, public `ConditionEvaluator` / `ConditionContext` |
+| `Conditionals/Engine/` | Lexer, parser, AST, registry, operators, dialects, AST cache |
+| `Loops/` | `LoopDetector`, `LoopBlock`, `LoopContext`, `LoopEvaluationContext` |
+| `Placeholders/` | `PlaceholderScanner`, `ValueResolver`, `ValueConverter`, inline expression evaluation (`PlaceholderFinder` is obsolete) |
+| `PropertyPaths/` | Path parsing and resolution |
+| `Formatting/` | Boolean formatters |
+| `Markdown/` | Markdown parsing |
+| `Replacements/` | Text replacement tables |
+| `Utilities/` | Paragraph text model/rewriter, formatting, JSON parsing, numeric values, sanitizing, drawing ids |
 
-The model and parser are plain-text based; only the model builder and the rewriter are
-OpenXML-specific, which keeps the door open for other document formats.
+## Constraints and Trade-offs
 
-## Value Conversion Strategy
-
-```csharp
-object value → string representation
-
-- string         → as-is
-- null           → "" or error (based on options)
-- DateTime       → culture-specific format
-- numbers        → culture-specific format
-- bool           → "True" / "False"
-- other          → ToString()
-```
-
-## Error Handling Strategy
-
-### Levels of Error Handling:
-
-1. **Invalid Placeholder Syntax**: Ignored (treated as regular text)
-2. **Missing Variable**: Configurable (options)
-3. **File/Stream Errors**: Thrown immediately
-4. **OpenXML Errors**: Caught, wrapped in ProcessingResult
-
-### Philosophy:
-
-- **Fail Fast**: Don't silently corrupt documents
-- **Clear Messages**: Specific error descriptions
-- **Graceful Degradation**: Return partial results when possible
-- **No Silent Failures**: Always communicate what happened
-
-## Comparison to OpenXMLTemplates V1
-
-| Aspect | V1 (Original) | V2 (This Library) |
-|--------|---------------|-------------------|
-| **Approach** | Content Controls | Text Replacement |
-| **Complexity** | High (25+ files) | Low (6 core classes) |
-| **Features** | Loops, conditionals, images | Variable replacement only |
-| **Learning Curve** | Steep | Minimal |
-| **Template Setup** | Must use content controls | Just type `{{variable}}` |
-| **Designer Friendly** | Requires training | Intuitive |
-| **Use Case** | Complex documents | Simple variable replacement |
-| **Target** | .NET Standard 2.0 | .NET 9.0 |
-| **Pattern** | Strategy + Chain of Responsibility | Direct processing |
-
-## Extension Points
-
-While the MVP is intentionally limited, the architecture supports future extensions:
-
-### 1. Additional Replacers
-- ~~Headers/Footers~~ (implemented via `DocumentWalker.WalkHeadersAndFooters`)
-- Text boxes
-- Footnotes
-- Custom XML parts
-
-### 2. Value Formatters
-Add custom formatting strategies:
-```csharp
-options.AddFormatter<DateTime>(dt => dt.ToString("yyyy-MM-dd"));
-options.AddFormatter<decimal>(d => d.ToString("C2", culture));
-```
-
-### 3. Placeholder Validation
-Add validation hooks:
-```csharp
-options.OnPlaceholderFound += (placeholder) => ValidateAgainstSchema(placeholder);
-```
-
-### 4. Custom Placeholder Syntax
-Support alternative patterns:
-```csharp
-options.PlaceholderPattern = new Regex(@"\[\[(\w+)\]\]"); // Use [[variable]]
-```
-
-## Performance Considerations
-
-### Current Design Trade-offs:
-
-1. **Memory**: Loads entire document into memory
-   - **Pro**: Simple, reliable
-   - **Con**: Not suitable for very large documents (>50MB)
-
-2. **Text Reconstruction**: Rebuilds paragraph runs
-   - **Pro**: Guarantees correct replacement
-   - **Con**: May lose some complex formatting
-
-3. **Linear Search**: O(n) through all paragraphs and tables
-   - **Pro**: Simple, predictable
-   - **Con**: Slower for documents with thousands of placeholders
-
-### Future Optimizations (if needed):
-
-- Parallel processing of independent tables
-- Streaming API for large documents
-- Placeholder caching for repeated templates
-- Lazy evaluation of value conversions
-
-## Testing Strategy
-
-### Unit Tests
-
-- **PlaceholderFinder**: Pattern matching, edge cases
-- **Value Conversion**: All data types
-- **Error Handling**: All error scenarios
-- **Options**: Each MissingVariableBehavior mode
-
-### Integration Tests
-
-- **Real Documents**: Process actual .docx files
-- **Complex Tables**: Nested tables, merged cells
-- **Formatting Preservation**: Bold, italic, colors
-- **Large Documents**: Performance benchmarks
-
-## Dependencies
-
-- **DocumentFormat.OpenXml** (3.3.0+)
-  - Used for: Reading/writing Word documents
-  - License: MIT
-  - Stable, well-maintained by Microsoft
-
-- **.NET 9.0**
-  - Modern C# features (init-only properties, records, file-scoped namespaces)
-  - Performance improvements
-  - Enhanced nullable reference types
-
-## Future Considerations
-
-### Potential Features (Not in MVP):
-
-1. **Conditional Content**: `{{if IsApproved}}...{{/if}}`
-2. **Loops**: `{{each Items}}...{{/each}}`
-3. **Nested Objects**: `{{Customer.Address.City}}`
-4. **Image Replacement**: `{{image:LogoPath}}`
-5. **Calculated Fields**: `{{Amount * Tax}}`
-6. **Localization**: Culture-specific formatting rules
-7. **Template Validation**: Pre-flight checks before processing
-
-### Migration Path:
-
-If complex features are needed, consider:
-- Using this library for simple cases
-- Using OpenXMLTemplates V1 for complex scenarios
-- Or gradually extending V2 with new replacer strategies
-
-## Conclusion
-
-Templify prioritizes **simplicity** and **maintainability** over feature completeness. By focusing on the most common use case (variable replacement), we achieve:
-
-- Easy to understand and modify
-- Quick to test and debug
-- Low barrier to entry for new developers
-- Predictable behavior
-- Minimal dependencies
-
-For complex templating needs, the original OpenXMLTemplates library remains available.
+- The whole document is loaded into memory (Open XML SDK DOM); very large documents need correspondingly more memory.
+- Loop markers must be block-level (their own paragraph or table row); inline conditionals may share a paragraph with
+  other text.
+- When a placeholder spans runs with different formatting, the replacement takes the formatting of the first run.
+- Processing is single-threaded per document; a `DocumentTemplateProcessor` instance holds only options and can be
+  reused, and the shared caches (condition ASTs, default boolean formatters) are thread-safe.

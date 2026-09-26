@@ -28,13 +28,15 @@ I work with Word documents and need to create templates with placeholders like `
 
 I'm a software developer who wants to use the Templify library in my C# application to programmatically generate Word documents from templates.
 
-**→ [Get Started as a Developer](for-developers/quick-start.md)** *(Coming soon)*
+**→ [Get Started as a Developer](for-developers/quick-start.md)**
 
 **Quick Links:**
-- [Installation Guide](for-developers/installation.md) *(Coming soon)*
-- [API Reference](for-developers/api-reference.md) *(Coming soon)*
-- [Code Examples](for-developers/examples.md) *(Coming soon)*
-- [Architecture Overview](for-developers/architecture.md) *(Coming soon)*
+- [Developer Quick Start](for-developers/quick-start.md) - Installation, API overview, options
+- [Processing Warnings](for-developers/processing-warnings.md) - Missing variables, loop and expression warnings
+- [Text Template Processing](for-developers/text-templates.md) - Templates for plain text and emails
+- [Condition Evaluation](for-developers/condition-evaluation.md) - Evaluate conditions without a document
+- [Code Examples](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/Examples.md) - Extensive C# samples (GitHub)
+- [Architecture Overview](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/ARCHITECTURE.md) - How the library works internally (GitHub)
 
 ---
 
@@ -54,7 +56,7 @@ Templify lets you create Word document templates with special placeholders that 
 🔁 **Loops** - Repeat sections with `{{#foreach}}...{{/foreach}}`
 ⚡ **Conditionals** - Dynamic content with `{{#if}}...{{#else}}...{{/if}}`
 📊 **Table Support** - Loop through table rows
-🎨 **Formatting** - Preserves Word styling and supports markdown
+🎨 **Formatting** - Preserves Word styling, supports markdown and format specifiers
 🚀 **No Word Required** - Uses Open XML SDK (template authors still use Word to create templates)
 
 ## Quick Example
@@ -102,11 +104,8 @@ Items:
 ### ❓ [FAQ](FAQ.md)
 Common questions and troubleshooting tips
 
-### 🎓 [Tutorials](tutorials/)
-Step-by-step guides from basics to advanced features
-
-### 📖 [Quick Start Guide](quick-start.md)
-Create your first document in 5 minutes
+### 🎓 [Tutorials](tutorials/index.md)
+Step-by-step guides from the basics to a complete invoice generator
 
 ## Open Source
 

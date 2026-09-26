@@ -1,3 +1,5 @@
+> Historical document, not maintained. Kept for reference only; it does not describe the current state of Templify.
+
 # Documentation Example System
 
 This document describes the automated system for generating example documents and images for Templify documentation.
