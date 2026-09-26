@@ -64,7 +64,9 @@ internal static class TemplateFormatDetector
             odfMediaType = ReadOdfMediaType(archive);
             if (odfMediaType != null)
             {
-                return odfMediaType is OdfNames.TextMediaType or OdfNames.TextTemplateMediaType
+                // Media types are case-insensitive (RFC 2045), as in OdtPackage.
+                return string.Equals(odfMediaType, OdfNames.TextMediaType, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(odfMediaType, OdfNames.TextTemplateMediaType, StringComparison.OrdinalIgnoreCase)
                     ? TemplateFormat.Odt
                     : TemplateFormat.Unknown;
             }

@@ -90,7 +90,12 @@ public sealed class OdtLibreOfficeRoundTripTests
 
         Assert.True(result.IsSuccess, result.ErrorMessage);
         Assert.Equal(3, result.ReplacementCount);
-        new OdtDocumentVerifier(output).AssertValidOdtPackage();
+        OdtDocumentVerifier verifier = new OdtDocumentVerifier(output);
+        verifier.AssertValidOdtPackage();
+
+        // The template's preview thumbnail (showing the placeholders) is not carried over.
+        Assert.Contains(new OdtDocumentVerifier(template).EntryNames, n => n == "Thumbnails/thumbnail.png");
+        Assert.DoesNotContain(verifier.EntryNames, n => n.StartsWith("Thumbnails/", StringComparison.Ordinal));
 
         string[] lines = LibreOfficeRunner.ConvertToTextLines(output);
         Assert.Equal("Hello World  and  x", lines[0]);

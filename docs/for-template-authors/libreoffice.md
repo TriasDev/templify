@@ -81,6 +81,13 @@ A few things behave differently from Word templates, mostly because of how the O
 - **Comments are not processed.** Placeholders inside comments (annotations) stay as they are, as in Word templates.
 - **Digital signatures are removed.** A signed template produces an unsigned document, because the content has
   changed.
+- **The preview thumbnail is removed.** The thumbnail in a template shows the template itself, with its `{{...}}`
+  markers. The output has no thumbnail, so file managers show a generic icon until LibreOffice saves the document
+  again.
+- **Document statistics are not updated.** The page, word and character counts in the document properties
+  (`meta:document-statistic`) are those of the template. LibreOffice recounts them when it saves the document.
+- **Damaged or unusual packages are rejected.** A package that contains an entry name twice, or an entry path that is
+  absolute or contains `..`, fails with a clear message. LibreOffice does not write such packages.
 - **Password-protected documents are not supported.** Processing fails with a clear message.
 - **Flat OpenDocument (`.fodt`) is not supported.** Save the template as `.odt` or `.ott`.
 
