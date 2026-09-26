@@ -55,15 +55,19 @@ ProcessingResult bytesResult = processor.ProcessTemplate(template, data, out byt
 
 // Streams: the output stream only has to be writable.
 using var templateStream = File.OpenRead("template.ott");
-using var outputStream = File.OpenWrite("output.odt");
+using var outputStream = File.Create("output.odt"); // creates or truncates the file
 ProcessingResult streamResult = processor.ProcessTemplate(templateStream, outputStream, data);
 ```
 
 The requirements are looser than for Word documents:
 
 - The template stream must be readable. It does not have to be seekable.
-- The output stream only has to be **writable** (`File.OpenWrite` works). The document is built in memory and written
-  in one go, and **only when processing succeeds**. On failure nothing is written.
+- The output stream only has to be **writable**; it does not have to be readable or seekable. The document is built
+  in memory and written in one go, and **only when processing succeeds**. On failure nothing is written.
+- To write a file, open it with **`File.Create`**, which creates the file or truncates an existing one.
+  `File.OpenWrite` does not truncate: it writes over an existing file from the start and keeps any bytes after the
+  new content, which leaves a corrupt ZIP file when the old file was longer. Templify cuts off seekable outputs after
+  the document (see [Memory Use](#memory-use)), but `File.Create` does not depend on that.
 
 A template that is not an OpenDocument Text package is reported as a failed result, with an `ErrorMessage` that
 names what was found. This covers a Word file, a spreadsheet, a flat `.fodt` file or a password-protected document.
@@ -81,8 +85,9 @@ these limits fails with an `ErrorMessage` such as `content.xml exceeds the maxim
 are far below these limits. Treat templates from untrusted sources with care anyway: an entry that unpacks to a very
 large size is not held in memory, but it still costs time to copy.
 
-When the output stream is seekable (a file or a `MemoryStream`), it is cut off after the written document, so an
-existing, longer file opened with `File.OpenWrite` does not keep bytes of its earlier content.
+When the output stream is seekable (a file or a `MemoryStream`), it is cut off after the written document, so even
+an existing, longer file opened with `File.OpenWrite` does not keep bytes of its earlier content. Prefer
+`File.Create` anyway.
 
 ### Options
 
