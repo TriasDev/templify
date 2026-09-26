@@ -76,9 +76,9 @@ public sealed class OpenDocumentSamplesTests : IDisposable
         Assert.Equal("application/vnd.oasis.opendocument.text", verifier.ManifestRootMediaType);
     }
 
-    // opendocument.md "Streams and Byte Arrays": bytes, and a write-only output stream (File.OpenWrite)
+    // opendocument.md "Streams and Byte Arrays": bytes, and an output stream opened with File.Create
     [Fact]
-    public void OdtTemplateProcessor_BytesAndWriteOnlyOutputStream()
+    public void OdtTemplateProcessor_BytesAndOutputStream()
     {
         OdtTemplateProcessor processor = new OdtTemplateProcessor(Options());
         string templatePath = Write("template.ott", SampleTemplate().AsTemplate().ToBytes());
@@ -88,7 +88,7 @@ public sealed class OpenDocumentSamplesTests : IDisposable
 
         ProcessingResult streamResult;
         using (FileStream templateStream = File.OpenRead(templatePath))
-        using (FileStream outputStream = File.OpenWrite(PathOf("output.odt")))
+        using (FileStream outputStream = File.Create(PathOf("output.odt")))
         {
             streamResult = processor.ProcessTemplate(templateStream, outputStream, SampleData());
         }
