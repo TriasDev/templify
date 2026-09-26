@@ -554,17 +554,6 @@ public sealed class OdtPlaceholderTests
     }
 
     [Fact]
-    public void LoopMarkers_AreLeftAsText_ForNow()
-    {
-        (_, OdtDocumentVerifier output) = OdtTestHelper.Process(
-            new OdtDocumentBuilder().AddParagraph("{{#foreach Items}}{{Name}}{{/foreach}}"),
-            new Dictionary<string, object> { ["Items"] = new List<string> { "a" }, ["Name"] = "N" });
-
-        // Marker paragraphs are not processed for placeholders, as in Word documents.
-        Assert.Equal("{{#foreach Items}}{{Name}}{{/foreach}}", output.GetParagraphTexts()[0]);
-    }
-
-    [Fact]
     public void ReplacedValue_IsNotReprocessedAsTemplate()
     {
         (_, OdtDocumentVerifier output) = OdtTestHelper.Process(

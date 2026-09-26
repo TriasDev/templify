@@ -46,7 +46,7 @@ An ODT document is a ZIP package:
 | comment | separate part | `office:annotation` / `office:annotation-end` | a kept anchor. The content is not processed, as for DOCX. |
 | image / text box / shape | `w:drawing`, VML, `wps:txbx` | `draw:frame` (`draw:image`, `draw:text-box`), `draw:custom-shape`, … | an opaque anchor. A `draw:text-box` or a shape with paragraphs is walked as a block container. |
 | table | `w:tbl`/`w:tr`/`w:tc` | `table:table` / `table:table-row` / `table:table-cell` | rows can be grouped in `table:table-header-rows`, `table:table-rows`, `table:table-row-group`. `table:covered-table-cell` is the covered part of a merged cell. |
-| repeated rows/cells | none | `table:number-rows-repeated`, `table:number-columns-repeated` | a repeated row or cell is expanded before it is cloned or removed (PR 3). |
+| repeated rows/cells | none | `table:number-rows-repeated`, `table:number-columns-repeated` | a repeated row stands for identical rows, so it is cloned or removed as a unit, keeping the attribute; no expansion is needed (decided in PR 3). |
 | list | numbering properties on `w:p` | `text:list` / `text:list-item` / `text:list-header` | a list item is a block container. A list is a sequence of items, like table rows (PR 4). |
 | section | `w:sectPr` | `text:section` | a block container |
 | table of contents and other indexes | field + result paragraphs | `text:table-of-content` etc. with `text:index-body` | the index body is walked like DOCX result paragraphs |
@@ -117,7 +117,7 @@ This mirrors `DocumentWalker.WalkElements`/`WalkRows`, including the #140 rule: 
 | `OdtMarkerText` | the marker text of a block (paragraph, list item, row, cell), excluding nested text boxes and notes. This is the counterpart of `TemplateElementText`. | 2 |
 | `OdtConditionalDetector`, `OdtConditionalBlock` | block and table-row conditionals over `XElement` siblings. They reuse `ConditionalPatterns` and have the same errors and messages as `ConditionalDetector`. | 2 |
 | `OdtLoopDetector`, `OdtLoopBlock` | body, table-row and list-item loops. They reuse the `LoopDetector` patterns and name validation. | 3 |
-| `OdtTableRows` | expands `number-rows-repeated` and `number-columns-repeated` before a row is cloned or removed, and keeps covered cells consistent | 3 |
+| `OdtLoopDetector`, `OdtLoopBlock` (row loops) | a repeated row is cloned and removed as a unit, and covered cells are cloned with their row (no separate component needed) | 3 |
 | `OdtDrawingNames` | makes `draw:name` of frames and shapes unique after cloning (the counterpart of `DrawingIdAllocator`, #178). Duplicate names make LibreOffice rename objects on load and break references. | 5 |
 | `OdtTextStyles` | the automatic-style registry per part (`content.xml` and `styles.xml` each have their own). It creates or reuses `T…` text styles for bold, italic, strikethrough and their combinations. | 5 |
 | `OdtTemplateValidator` | the ODT counterpart of `TemplateValidator` / `ScopedVariableValidator` | 5 |

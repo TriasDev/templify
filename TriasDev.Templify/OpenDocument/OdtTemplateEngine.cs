@@ -3,6 +3,7 @@
 
 using System.Xml.Linq;
 using TriasDev.Templify.Core;
+using TriasDev.Templify.Loops;
 
 namespace TriasDev.Templify.OpenDocument;
 
@@ -24,6 +25,7 @@ internal sealed class OdtTemplateEngine
 {
     private readonly OdtPlaceholderProcessor _placeholders;
     private readonly OdtConditionalProcessor _conditionals;
+    private readonly IWarningCollector _warningCollector;
 
     public OdtTemplateEngine(
         PlaceholderReplacementOptions options,
@@ -32,6 +34,7 @@ internal sealed class OdtTemplateEngine
     {
         _placeholders = new OdtPlaceholderProcessor(options, missingVariables, warningCollector);
         _conditionals = new OdtConditionalProcessor(warningCollector);
+        _warningCollector = warningCollector;
     }
 
     /// <summary>Gets the number of placeholders replaced.</summary>
@@ -118,8 +121,18 @@ internal sealed class OdtTemplateEngine
             return;
         }
 
+        if (blocks.Count > 0 && blocks.All(IsListItem))
+        {
+            ProcessListItems(blocks, context);
+            return;
+        }
+
+        // Loops are detected first, so conditionals inside loop content are left for the iterations
+        // (they are evaluated with the loop's context).
+        IReadOnlyList<OdtLoopBlock> loops = OdtLoopDetector.DetectLoops(blocks);
         IReadOnlyList<OdtConditionalBlock> conditionals = OdtConditionalDetector.DetectConditionals(blocks);
-        ProcessConditionals(conditionals, new HashSet<XElement>(), context);
+        ProcessConditionals(conditionals, GetElementsInsideLoops(loops), context);
+        ProcessLoops(loops, context);
 
         foreach (XElement block in blocks)
         {
@@ -156,6 +169,99 @@ internal sealed class OdtTemplateEngine
             _conditionals.Process(conditional, context);
         }
     }
+
+    private static HashSet<XElement> GetElementsInsideLoops(IReadOnlyList<OdtLoopBlock> loops) =>
+        new HashSet<XElement>(loops.SelectMany(l => l.ContentElements));
+
+    /// <summary>
+    /// Expands loops that are still in the document (a conditional may have removed them).
+    /// </summary>
+    private void ProcessLoops(IReadOnlyList<OdtLoopBlock> loops, IEvaluationContext context)
+    {
+        foreach (OdtLoopBlock loop in loops)
+        {
+            if (loop.StartMarker.Parent == null || loop.EndMarker.Parent == null)
+            {
+                continue;
+            }
+
+            ExpandLoop(loop, context);
+        }
+    }
+
+    /// <summary>
+    /// Expands a loop: the content is cloned once per item, inserted after the end marker and processed with
+    /// the item's loop context; then the original markers and content are removed. The counterpart of
+    /// <c>LoopVisitor.VisitLoop</c>, with the same warnings and errors.
+    /// </summary>
+    private void ExpandLoop(OdtLoopBlock loop, IEvaluationContext context)
+    {
+        if (!context.TryResolveVariable(loop.CollectionName, out object? collectionObject))
+        {
+            _warningCollector.AddWarning(ProcessingWarning.MissingLoopCollection(loop.CollectionName));
+            RemoveLoop(loop);
+            return;
+        }
+
+        if (collectionObject == null)
+        {
+            _warningCollector.AddWarning(ProcessingWarning.NullLoopCollection(loop.CollectionName));
+            RemoveLoop(loop);
+            return;
+        }
+
+        if (collectionObject is string || collectionObject is not System.Collections.IEnumerable collection)
+        {
+            throw new TemplateDataException($"Variable '{loop.CollectionName}' is not a collection. Cannot iterate.");
+        }
+
+        IReadOnlyList<LoopContext> iterations = LoopContext.CreateContexts(
+            collection,
+            loop.CollectionName,
+            loop.IterationVariableName,
+            parent: null);
+
+        // Last item first: each iteration is inserted directly after the end marker, so the
+        // iterations end up in document order.
+        for (int i = iterations.Count - 1; i >= 0; i--)
+        {
+            LoopEvaluationContext iterationContext = new LoopEvaluationContext(iterations[i], context);
+            List<XElement> clones = loop.ContentElements.Select(e => new XElement(e)).ToList();
+
+            XElement insertAfter = loop.EndMarker;
+            foreach (XElement clone in clones)
+            {
+                insertAfter.AddAfterSelf(clone);
+                insertAfter = clone;
+            }
+
+            ProcessBlocks(clones, iterationContext);
+        }
+
+        RemoveLoop(loop);
+    }
+
+    private static void RemoveLoop(OdtLoopBlock loop)
+    {
+        SafeRemove(loop.StartMarker);
+        foreach (XElement element in loop.ContentElements)
+        {
+            SafeRemove(element);
+        }
+
+        SafeRemove(loop.EndMarker);
+    }
+
+    private static void SafeRemove(XElement element)
+    {
+        if (element.Parent != null)
+        {
+            element.Remove();
+        }
+    }
+
+    private static bool IsListItem(XElement element) =>
+        element.Name == OdfNames.ListItem || element.Name == OdfNames.ListHeader;
 
     private void ProcessBlock(XElement block, IEvaluationContext context)
     {
@@ -209,8 +315,24 @@ internal sealed class OdtTemplateEngine
     {
         List<XElement> items = GetListItems(list).ToList();
 
+        ProcessListItems(items, context);
+
+        if (items.Count > 0 && !GetListItems(list).Any())
+        {
+            list.Remove();
+        }
+    }
+
+    /// <summary>
+    /// Processes sibling list items (the items of a list, or the cloned items of a list-item loop):
+    /// item-level conditionals and loops, then the content of the original items still present.
+    /// </summary>
+    private void ProcessListItems(IReadOnlyList<XElement> items, IEvaluationContext context)
+    {
+        IReadOnlyList<OdtLoopBlock> loops = OdtLoopDetector.DetectListItemLoops(items);
         IReadOnlyList<OdtConditionalBlock> conditionals = OdtConditionalDetector.DetectListItemConditionals(items);
-        ProcessConditionals(conditionals, new HashSet<XElement>(), context);
+        ProcessConditionals(conditionals, GetElementsInsideLoops(loops), context);
+        ProcessLoops(loops, context);
 
         foreach (XElement item in items)
         {
@@ -225,11 +347,6 @@ internal sealed class OdtTemplateEngine
             {
                 item.Remove();
             }
-        }
-
-        if (items.Count > 0 && !GetListItems(list).Any())
-        {
-            list.Remove();
         }
     }
 
@@ -354,8 +471,12 @@ internal sealed class OdtTemplateEngine
     /// </summary>
     private void ProcessRows(IReadOnlyList<XElement> rows, IEvaluationContext context)
     {
+        // Rows produced by a row loop are processed by the loop with its context and are not in
+        // this list, so they are never processed again with the outer context (#140).
+        IReadOnlyList<OdtLoopBlock> loops = OdtLoopDetector.DetectTableRowLoops(rows);
         IReadOnlyList<OdtConditionalBlock> conditionals = OdtConditionalDetector.DetectTableRowConditionals(rows);
-        ProcessConditionals(conditionals, new HashSet<XElement>(), context);
+        ProcessConditionals(conditionals, GetElementsInsideLoops(loops), context);
+        ProcessLoops(loops, context);
 
         foreach (XElement row in rows)
         {

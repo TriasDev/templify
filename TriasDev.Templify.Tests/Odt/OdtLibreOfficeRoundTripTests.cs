@@ -139,6 +139,43 @@ public sealed class OdtLibreOfficeRoundTripTests
         Assert.Equal("End", lines[^1]);
     }
 
+    [Fact]
+    public void Loops_RoundTripThroughLibreOffice()
+    {
+        LibreOfficeRunner.RequireExecutable();
+
+        OdtDocumentBuilder template = new OdtDocumentBuilder()
+            .AddParagraph("{{#foreach Items}}")
+            .AddXml("<text:p>{{@number}}. <text:span text:style-name=\"T1\">{{Name}}</text:span></text:p>")
+            .AddParagraph("{{/foreach}}")
+            .AddTable(new[] { "Name" }, new[] { "{{#foreach Items}}" }, new[] { "Row {{Name}}" }, new[] { "{{/foreach}}" })
+            .AddXml(
+                "<text:list><text:list-item><text:p>{{#foreach Items}}</text:p></text:list-item>" +
+                "<text:list-item><text:p>Bullet {{Name}}</text:p></text:list-item>" +
+                "<text:list-item><text:p>{{/foreach}}</text:p></text:list-item></text:list>")
+            .AddParagraph("End");
+
+        byte[] output = ProcessToBytes(template, new Dictionary<string, object>
+        {
+            ["Items"] = new List<Dictionary<string, object>>
+            {
+                new() { ["Name"] = "Alpha" },
+                new() { ["Name"] = "Beta" },
+            },
+        });
+
+        string[] lines = LibreOfficeRunner.ConvertToTextLines(output);
+        string all = string.Join("\n", lines);
+        Assert.Equal("1. Alpha", lines[0]);
+        Assert.Equal("2. Beta", lines[1]);
+        Assert.Contains("Row Alpha", all, StringComparison.Ordinal);
+        Assert.Contains("Row Beta", all, StringComparison.Ordinal);
+        Assert.Contains("Bullet Alpha", all, StringComparison.Ordinal);
+        Assert.Contains("Bullet Beta", all, StringComparison.Ordinal);
+        Assert.DoesNotContain("{{", all, StringComparison.Ordinal);
+        Assert.Equal("End", lines[^1]);
+    }
+
     private static byte[] ProcessToBytes(OdtDocumentBuilder template, Dictionary<string, object> data)
     {
         OdtTemplateProcessor processor = new OdtTemplateProcessor(new PlaceholderReplacementOptions { Culture = CultureInfo.InvariantCulture });
