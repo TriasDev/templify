@@ -16,11 +16,16 @@ This document provides practical examples for common use cases.
 10. [Nested Conditionals](#nested-conditionals)
 11. [Handling Missing Variables](#handling-missing-variables)
 12. [Error Handling](#error-handling)
-13. [Processing Multiple Templates](#processing-multiple-templates)
-14. [Web Application Integration](#web-application-integration)
-15. [Report Generation](#report-generation)
-16. [Document Properties](#document-properties)
-17. [Headers and Footers](#headers-and-footers)
+13. [JSON Data](#json-data)
+14. [Validation and Warnings](#validation-and-warnings)
+15. [Processing Multiple Templates](#processing-multiple-templates)
+16. [Web Application Integration](#web-application-integration)
+17. [Report Generation](#report-generation)
+18. [Document Properties](#document-properties)
+19. [Best Practices](#best-practices)
+20. [Culture-Specific Formatting Examples](#culture-specific-formatting-examples)
+21. [Headers and Footers](#headers-and-footers)
+22. [Troubleshooting Common Issues](#troubleshooting-common-issues)
 
 ---
 
@@ -29,7 +34,7 @@ This document provides practical examples for common use cases.
 ### Simple Invoice Generation
 
 ```csharp
-using TriasDev.Templify;
+using TriasDev.Templify.Core;
 
 // Prepare invoice data
 var data = new Dictionary<string, object>
@@ -71,7 +76,7 @@ Total Amount: {{TotalAmount}} EUR
 ### Data Type Conversion Examples
 
 ```csharp
-using TriasDev.Templify;
+using TriasDev.Templify.Core;
 
 var data = new Dictionary<string, object>
 {
@@ -91,8 +96,9 @@ var data = new Dictionary<string, object>
     ["IsPublicCompany"] = false,
     ["HasCertification"] = true,
 
-    // Null values - handled based on options
-    ["OptionalField"] = null
+    // Null values - the variable exists, so it renders as an empty string
+    // (MissingVariableBehavior only applies to variables that are not in the data at all)
+    ["OptionalField"] = null!
 };
 
 var processor = new DocumentTemplateProcessor();
@@ -144,7 +150,7 @@ Templify supports markdown syntax in variable values for text formatting. This a
 ### Basic Markdown Syntax
 
 ```csharp
-using TriasDev.Templify;
+using TriasDev.Templify.Core;
 
 // Template: {{Message}}
 
@@ -240,9 +246,10 @@ var data = new Dictionary<string, object>
 ### Order Items Table
 
 ```csharp
-using TriasDev.Templify;
+using TriasDev.Templify.Core;
 
-// Note: MVP doesn't support loops, so each item needs explicit placeholders
+// Placeholders work in table cells like anywhere else. For a variable number of rows,
+// use a table row loop instead (see "Table Loop Example" below).
 var data = new Dictionary<string, object>
 {
     // Header
@@ -291,7 +298,7 @@ var result = processor.ProcessTemplate(templateStream, outputStream, data);
 ### Invoice with Line Items Loop
 
 ```csharp
-using TriasDev.Templify;
+using TriasDev.Templify.Core;
 
 public class LineItem
 {
@@ -401,7 +408,7 @@ Total: 4153.10 EUR
 ### Table Loop Example
 
 ```csharp
-using TriasDev.Templify;
+using TriasDev.Templify.Core;
 
 var data = new Dictionary<string, object>
 {
@@ -432,6 +439,8 @@ var result = processor.ProcessTemplate(templateStream, outputStream, data);
 | {{/foreach}} | | | |
 | | | **Grand Total** | {{GrandTotal}} |
 
+The `{{#foreach}}` and `{{/foreach}}` markers must be in rows of their own. The rows between them are repeated once per item, and the two marker rows are removed. Putting both markers in the same row (for example `{{#foreach}}` in the first cell and `{{/foreach}}` in the last cell) is not supported and makes processing fail. If the collection is empty, the content rows are removed as well; a table that ends up without any rows is removed.
+
 ---
 
 ## Nested Loops
@@ -439,7 +448,7 @@ var result = processor.ProcessTemplate(templateStream, outputStream, data);
 ### Orders with Items
 
 ```csharp
-using TriasDev.Templify;
+using TriasDev.Templify.Core;
 
 public class Order
 {
@@ -521,12 +530,12 @@ Order Total: {{Total}} EUR
 
 ## Loop Metadata
 
-### Using @index, @first, @last, @count
+### Using @index, @number, @first, @last, @count
 
 ```csharp
-using TriasDev.Templify;
+using TriasDev.Templify.Core;
 
-public class Task
+public class ProjectTask
 {
     public string Title { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
@@ -536,12 +545,12 @@ public class Task
 var data = new Dictionary<string, object>
 {
     ["ProjectName"] = "Software Development",
-    ["Tasks"] = new List<Task>
+    ["Tasks"] = new List<ProjectTask>
     {
-        new Task { Title = "Design database schema", Status = "Completed", Assignee = "Alice" },
-        new Task { Title = "Implement API endpoints", Status = "In Progress", Assignee = "Bob" },
-        new Task { Title = "Write documentation", Status = "Pending", Assignee = "Charlie" },
-        new Task { Title = "Deploy to staging", Status = "Pending", Assignee = "Diana" }
+        new ProjectTask { Title = "Design database schema", Status = "Completed", Assignee = "Alice" },
+        new ProjectTask { Title = "Implement API endpoints", Status = "In Progress", Assignee = "Bob" },
+        new ProjectTask { Title = "Write documentation", Status = "Pending", Assignee = "Charlie" },
+        new ProjectTask { Title = "Deploy to staging", Status = "Pending", Assignee = "Diana" }
     }
 };
 
@@ -558,10 +567,10 @@ var result = processor.ProcessTemplate(templateStream, outputStream, data);
 ```
 Project: {{ProjectName}}
 
-Task List (Total: {{Tasks.@count}} tasks):
+Task List (Total: {{Tasks.Count}} tasks):
 
 {{#foreach Tasks}}
-Task {{@index}}: {{Title}}
+Task {{@number}} of {{@count}} (index {{@index}}): {{Title}}
 Status: {{Status}}
 Assigned to: {{Assignee}}
 {{#if @last}}
@@ -578,23 +587,25 @@ Project: Software Development
 
 Task List (Total: 4 tasks):
 
-Task 0: Design database schema
+Task 1 of 4 (index 0): Design database schema
 Status: Completed
 Assigned to: Alice
 
-Task 1: Implement API endpoints
+Task 2 of 4 (index 1): Implement API endpoints
 Status: In Progress
 Assigned to: Bob
 
-Task 2: Write documentation
+Task 3 of 4 (index 2): Write documentation
 Status: Pending
 Assigned to: Charlie
 
-Task 3: Deploy to staging
+Task 4 of 4 (index 3): Deploy to staging
 Status: Pending
 Assigned to: Diana
 (This is the last task)
 ```
+
+Loop metadata (`@index`, `@number`, `@first`, `@last`, `@count`) is only available inside a loop and always refers to the innermost loop. Outside a loop, use the collection's `Count` property (`{{Tasks.Count}}`). `{{@number}}` (1-based) is available since 1.8.0.
 
 ---
 
@@ -605,7 +616,7 @@ Templify fully preserves Word's bullet and numbered list formatting when used in
 ### Bullet List with Simple Strings
 
 ```csharp
-using TriasDev.Templify;
+using TriasDev.Templify.Core;
 
 Dictionary<string, object> data = new Dictionary<string, object>
 {
@@ -758,7 +769,7 @@ This means any Word formatting applied to paragraphs—including bullets, number
 ### Simple Conditional with If/Else
 
 ```csharp
-using TriasDev.Templify;
+using TriasDev.Templify.Core;
 
 public class Customer
 {
@@ -838,7 +849,7 @@ Access Level: Full Platform Access
 ### Conditional with Comparison Operators
 
 ```csharp
-using TriasDev.Templify;
+using TriasDev.Templify.Core;
 
 public class OrderInfo
 {
@@ -854,7 +865,9 @@ var data = new Dictionary<string, object>
     ["Total"] = 1500.00m,
     ["ItemCount"] = 12,
     ["ShippingCountry"] = "Germany",
-    ["IsPriorityShipping"] = true
+    ["IsPriorityShipping"] = true,
+    // Templify does not calculate: compute derived values in code
+    ["AmountToFreeShipping"] = 0m
 };
 
 var processor = new DocumentTemplateProcessor();
@@ -876,7 +889,7 @@ Order ID: {{OrderId}}
 {{/if}}
 
 {{#if Total > 500 and Total < 1000}}
-You're close to free shipping! Add ${{1000 - Total}} more.
+You're close to free shipping! Add {{AmountToFreeShipping:currency}} more.
 {{/if}}
 
 {{#if ItemCount > 10}}
@@ -923,7 +936,7 @@ Your order will be shipped within 24 hours
 Use `{{#elseif condition}}` to create multi-branch conditionals for scenarios like grade calculations, status displays, or tiered pricing.
 
 ```csharp
-using TriasDev.Templify;
+using TriasDev.Templify.Core;
 
 var data = new Dictionary<string, object>
 {
@@ -971,14 +984,14 @@ Score: 75
 Grade: C - Satisfactory
 ```
 
-**Note:** The `{{#else}}` branch must always be last. Placing `{{#elseif}}` after `{{#else}}` will result in an error.
+**Note:** The `{{#else}}` branch must always be last. Placing `{{#elseif}}` after `{{#else}}` is a template syntax error: processing fails with `IsSuccess = false` and an `ErrorMessage`.
 
 ---
 
 ### Conditional with Loops
 
 ```csharp
-using TriasDev.Templify;
+using TriasDev.Templify.Core;
 
 public class Invoice
 {
@@ -1084,7 +1097,7 @@ you'll receive priority support for this order.
 ### Multi-Level Decision Tree
 
 ```csharp
-using TriasDev.Templify;
+using TriasDev.Templify.Core;
 
 public class CustomerAccount
 {
@@ -1222,7 +1235,7 @@ Current Order: 2500.00 EUR
 ### Complex Business Logic Example
 
 ```csharp
-using TriasDev.Templify;
+using TriasDev.Templify.Core;
 
 public class ContractInfo
 {
@@ -1420,10 +1433,10 @@ try
 {
     var result = processor.ProcessTemplate(templateStream, outputStream, data);
 }
-catch (Exception ex)
+catch (InvalidOperationException ex)
 {
     Console.WriteLine($"Error: {ex.Message}");
-    // Output: Error: Missing variable: ContactEmail
+    // Output: Error: Missing variable or invalid expression: ContactEmail
 }
 ```
 
@@ -1434,7 +1447,7 @@ catch (Exception ex)
 ### Comprehensive Error Handling Example
 
 ```csharp
-using TriasDev.Templify;
+using TriasDev.Templify.Core;
 
 public class DocumentGenerator
 {
@@ -1511,6 +1524,98 @@ else
 }
 ```
 
+Template syntax errors (for example `{{#if}}` without `{{/if}}`) and data errors (for example `{{#foreach}}` over a value that is not a collection) do not throw; they are reported as `IsSuccess = false` with `ErrorMessage` set. Conditions that cannot be parsed evaluate to false and add an `ExpressionFailed` entry to `result.Warnings`.
+
+If you work with files, `ProcessTemplateFile(templatePath, outputPath, data)` writes the output file only when processing succeeds, so a failed run never leaves a half-written file behind.
+
+---
+
+## JSON Data
+
+### Processing with a JSON String
+
+Every `ProcessTemplate` / `ProcessTemplateFile` overload has a variant that takes the data as a JSON string. The root must be a JSON object:
+
+```csharp
+using TriasDev.Templify.Core;
+
+string json = File.ReadAllText("invoice-data.json");
+
+var processor = new DocumentTemplateProcessor();
+ProcessingResult result = processor.ProcessTemplateFile("invoice-template.docx", "invoice.docx", json);
+```
+
+Invalid JSON, or a root that is not an object, throws a `JsonException` (an empty string throws an `ArgumentException`); these are argument errors, not template errors.
+
+### Converting JSON Yourself
+
+`JsonDataParser` converts a JSON object into the dictionary shape Templify works with best: nested objects become `Dictionary<string, object>`, arrays become `List<object>`, numbers become `int`, `long`, `decimal` or `double`, and `null` stays `null`. Use it when you want to add or change values before processing:
+
+```csharp
+using TriasDev.Templify.Core;
+using TriasDev.Templify.Utilities;
+
+Dictionary<string, object> data = JsonDataParser.ParseJsonToDataDictionary(json);
+data["GeneratedAt"] = DateTime.Now;
+
+var result = new DocumentTemplateProcessor().ProcessTemplateFile("template.docx", "output.docx", data);
+```
+
+Avoid `JsonSerializer.Deserialize<Dictionary<string, object>>(json)`: its values are `JsonElement`s. Nested paths such as `{{Customer.Name}}` resolve through them (since 1.8.0), but a top-level JSON array cannot be used in `{{#foreach}}` (processing fails with "is not a collection"), and a `JsonElement` holding `false` counts as true in `{{#if}}`.
+
+---
+
+## Validation and Warnings
+
+### Validating a Template Before Processing
+
+`ValidateTemplate` checks a template without producing output: unmatched `{{#if}}`/`{{#foreach}}` markers, invalid conditions and, when data is passed, missing variables. `IsValid` is false when there is any error; with data, every missing variable is an error of type `MissingVariable` (and is also listed in `MissingVariables`).
+
+```csharp
+using TriasDev.Templify.Core;
+
+var processor = new DocumentTemplateProcessor();
+
+using var templateStream = File.OpenRead("template.docx");
+ValidationResult validation = processor.ValidateTemplate(templateStream, data);
+
+if (!validation.IsValid)
+{
+    foreach (ValidationError error in validation.Errors)
+    {
+        Console.WriteLine($"{error.Type}: {error.Message}");
+    }
+}
+
+Console.WriteLine($"Placeholders: {string.Join(", ", validation.AllPlaceholders)}");
+Console.WriteLine($"Missing: {string.Join(", ", validation.MissingVariables)}");
+
+foreach (ValidationWarning warning in validation.Warnings)
+{
+    // e.g. EmptyLoopCollection (see WarnOnEmptyLoopCollections), ReservedWordAsVariable
+    Console.WriteLine($"{warning.Type}: {warning.Message}");
+}
+```
+
+### Processing Warnings
+
+A successful result can still carry warnings: missing variables, missing or null loop collections, and expressions that could not be evaluated.
+
+```csharp
+ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+if (result.HasWarnings)
+{
+    foreach (ProcessingWarning warning in result.Warnings)
+    {
+        Console.WriteLine(warning); // e.g. "MissingVariable [placeholder]: Variable 'Email' was not found in the data."
+    }
+
+    // Or save a Word report of all warnings
+    File.WriteAllBytes("warnings.docx", result.GetWarningReportBytes());
+}
+```
+
 ---
 
 ## Processing Multiple Templates
@@ -1518,7 +1623,7 @@ else
 ### Batch Processing Example
 
 ```csharp
-using TriasDev.Templify;
+using TriasDev.Templify.Core;
 
 public class BatchProcessor
 {
@@ -1573,7 +1678,7 @@ await batch.ProcessMultipleDocumentsAsync(documents);
 
 ```csharp
 using Microsoft.AspNetCore.Mvc;
-using TriasDev.Templify;
+using TriasDev.Templify.Core;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -1667,7 +1772,7 @@ services.AddSingleton<DocumentTemplateProcessor>(sp =>
 ### Monthly Report Example
 
 ```csharp
-using TriasDev.Templify;
+using TriasDev.Templify.Core;
 
 public class MonthlyReportGenerator
 {
@@ -1745,7 +1850,7 @@ public class SalesData
 Set metadata properties on the output document to brand generated documents or track their origin.
 
 ```csharp
-using TriasDev.Templify;
+using TriasDev.Templify.Core;
 
 var data = new Dictionary<string, object>
 {
@@ -1801,19 +1906,22 @@ var options = new PlaceholderReplacementOptions
 ### 1. Reuse Processor Instances
 
 ```csharp
-// Good - Create once, reuse many times
+// Good - Create once, reuse many times (a processor only holds its options)
 var processor = new DocumentTemplateProcessor(options);
 
 foreach (var customer in customers)
 {
+    // Each document needs its own streams
+    using var templateStream = File.OpenRead("template.docx");
+    using var outputStream = File.Create($"output-{customer.Id}.docx");
     processor.ProcessTemplate(templateStream, outputStream, GetDataFor(customer));
 }
 
-// Avoid - Creating new instance each time (unless options differ)
+// Avoid - Creating a new instance for every document (unless the options differ)
 foreach (var customer in customers)
 {
-    var processor = new DocumentTemplateProcessor(); // ✗ Unnecessary
-    processor.ProcessTemplate(templateStream, outputStream, GetDataFor(customer));
+    var perDocumentProcessor = new DocumentTemplateProcessor(); // ✗ Unnecessary
+    // ...
 }
 ```
 
@@ -1855,9 +1963,13 @@ public ProcessingResult GenerateDocument(Dictionary<string, object> data)
 ```csharp
 // Good - Using statements ensure disposal
 using var templateStream = File.OpenRead(templatePath);
-using var outputStream = File.Create(outputPath);
+using var outputStream = File.Create(outputPath); // readable, writable and seekable
 
 var result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+// The output stream must be readable, writable and seekable (a MemoryStream, or a FileStream
+// opened with FileAccess.ReadWrite such as File.Create). File.OpenWrite is write-only and
+// makes processing fail with an "Invalid output stream" error.
 
 // Avoid - Manual disposal is error-prone
 var templateStream = File.OpenRead(templatePath);
@@ -1914,11 +2026,12 @@ var processor = new DocumentTemplateProcessor(options);
 processor.ProcessTemplate(templateStream, outputStream, data);
 
 // Output formatting:
-// Invoice Number: INV-2025-001
-// Issue Date: 11/7/2025 2:30:00 PM
-// Subtotal: $5999.80
-// Tax: $539.98
-// Total: $6539.78
+// {{InvoiceNumber}}       → INV-2025-001
+// {{IssueDate}}           → 11/7/2025 2:30:00 PM
+// {{Subtotal}}            → 5999.80
+// {{Subtotal:currency}}   → $5,999.80
+// {{Tax:currency}}        → $539.98
+// {{Total:currency}}      → $6,539.78
 ```
 
 ### Example 2: German Invoice with German Formatting
@@ -1950,11 +2063,11 @@ var processor = new DocumentTemplateProcessor(options);
 processor.ProcessTemplate(templateStream, outputStream, data);
 
 // Output formatting:
-// Rechnungsnummer: RE-2025-001
-// Datum: 07.11.2025 14:30:00
-// Zwischensumme: 5999,80 EUR (note: comma instead of dot)
-// MwSt (19%): 1139,96 EUR
-// Gesamtsumme: 7139,76 EUR
+// {{RechnungsNummer}}         → RE-2025-001
+// {{Datum}}                   → 07.11.2025 14:30:00
+// {{Zwischensumme}} EUR       → 5999,80 EUR (note: comma instead of dot)
+// {{MwSt:number:N2}} EUR      → 1.139,96 EUR
+// {{Gesamtsumme:currency}}    → 7.139,76 €
 ```
 
 ### Example 3: International Report with Invariant Culture
@@ -2147,9 +2260,13 @@ DRAFT - For internal use only | Page 1
 
 ### Loop in Header
 
+Loop markers must be in paragraphs of their own, in headers and footers as in the body:
+
 **Template header:**
 ```
-{{#foreach Authors}}{{Name}}{{#if @last}}{{#else}}, {{/if}}{{/foreach}}
+{{#foreach Authors}}
+{{Name}}
+{{/foreach}}
 ```
 
 **Data:**
@@ -2166,12 +2283,15 @@ var data = new Dictionary<string, object>
 
 **Result header:**
 ```
-Alice, Bob
+Alice
+Bob
 ```
+
+A loop whose markers share a paragraph with other content (for example `{{#foreach Authors}}{{Name}}, {{/foreach}}` on one line) is not supported: the marker paragraph is removed. For an inline, comma-separated list, build the string in code (`string.Join(", ", names)`) and use a single placeholder.
 
 ### Supported Header/Footer Types
 
-All Word header/footer types are processed:
+All Word header/footer types are processed (footnotes, endnotes, text boxes and content controls are processed too; comments are not):
 - **Default** - Standard header/footer for most pages
 - **First Page** - Header/footer for the first page only
 - **Even Page** - Header/footer for even-numbered pages
@@ -2205,18 +2325,18 @@ var result = processor.ProcessTemplate(templateStream, outputStream, data);
 **Problem**: `{{VariableName}}` remains in the output document
 
 **Solutions**:
-1. Check variable name spelling (case-sensitive)
+1. Check variable name spelling (dictionary keys are case-sensitive)
 2. Ensure variable is in the data dictionary
-3. Check MissingVariableBehavior setting
-4. Verify placeholder syntax (must be `{{name}}`, no spaces)
+3. Check the MissingVariableBehavior setting and `result.MissingVariables` / `result.Warnings`
+4. Verify placeholder syntax (must be `{{name}}` with no spaces inside the braces; `{{ name }}` is left unchanged)
 
 ### Formatting Lost
 
 **Problem**: Text loses bold/italic formatting after replacement
 
-**Cause**: Current MVP reconstructs runs, may lose complex formatting
+**Cause**: The replacement text takes the formatting of the run where the placeholder starts. If a placeholder is partly bold and partly plain, the whole value gets the formatting of its first character.
 
-**Workaround**: Keep placeholder in a single run (don't split across formatting changes)
+**Workaround**: Format the whole placeholder (including the braces) uniformly in Word. For formatting that depends on the data, use markdown in the value (`**bold**`, `*italic*`).
 
 ### File Locked Error
 
@@ -2241,3 +2361,4 @@ var result = processor.ProcessTemplate(templateStream, outputStream, data);
 For more information, see:
 - [README.md](README.md) - Overview and API reference
 - [ARCHITECTURE.md](ARCHITECTURE.md) - Design and implementation details
+- [Online documentation](https://triasdev.github.io/templify/) - Template syntax guides, format specifiers, FAQ

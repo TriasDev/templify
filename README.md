@@ -7,14 +7,12 @@
 [![NuGet](https://img.shields.io/nuget/v/TriasDev.Templify.svg)](https://www.nuget.org/packages/TriasDev.Templify/)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/TriasDev/templify/ci.yml?branch=main)](https://github.com/TriasDev/templify/actions)
 [![Documentation](https://img.shields.io/badge/docs-online-blue)](https://triasdev.github.io/templify/)
-[![Test Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/TriasDev/templify)
+[![codecov](https://codecov.io/gh/TriasDev/templify/branch/main/graph/badge.svg)](https://codecov.io/gh/TriasDev/templify)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![.NET](https://img.shields.io/badge/.NET-6.0%2B-purple)](https://dotnet.microsoft.com/download)
+[![.NET](https://img.shields.io/badge/.NET-8.0%20%7C%209.0%20%7C%2010.0-purple)](https://dotnet.microsoft.com/download)
 [![Changelog](https://img.shields.io/badge/changelog-Keep%20a%20Changelog-orange)](CHANGELOG.md)
 
 > A modern .NET library for processing Word document templates without Microsoft Word
-
-**High-performance, battle-tested document generation for .NET**
 
 ---
 
@@ -23,82 +21,47 @@
 Templify is a focused .NET library built on the OpenXML SDK that enables dynamic Word document generation and text template processing through simple placeholder replacement, conditionals, and loops. Unlike complex templating systems, Templify provides an intuitive API for the most common use cases: replacing `{{placeholders}}` in Word templates with actual data, and generating dynamic text content for emails and notifications.
 
 **Key Features:**
-- 📝 Simple placeholder syntax: `{{variableName}}`
+- 📝 Simple placeholder syntax: `{{variableName}}`, nested paths `{{Customer.Address.City}}` and indexing `{{Items[0].Name}}`
+- 🔀 Conditional blocks: `{{#if}}...{{#elseif}}...{{#else}}...{{/if}}`, with `and`/`or`/`not`, comparisons, `in`, `contains`, `exists`, `is empty` and more
+- 🔁 Loops: `{{#foreach Items}}...{{/foreach}}` or `{{#foreach item in Items}}...{{/foreach}}`, including table row loops and loop metadata (`@index`, `@number`, `@first`, `@last`, `@count`)
+- 🎛️ Format specifiers: `{{Amount:currency}}`, `{{Date:date:yyyy-MM-dd}}`, `{{IsActive:checkbox}}`, `{{(Age >= 18):yesno}}`
 - ✨ Markdown formatting in variable values: `**bold**`, `*italic*`, `~~strikethrough~~`
 - ↩️ Line breaks in variable values: `"Line 1\nLine 2"` renders as separate lines
-- 🔀 Conditional blocks: `{{#if}}...{{#elseif}}...{{#else}}...{{/if}}`
-- 🔁 Loops and iterations: `{{#foreach collection}}...{{/foreach}}` or `{{#foreach item in collection}}...{{/foreach}}`
-- 🌳 Nested data structures with dot notation and array indexing
 - 🎨 Automatic formatting preservation (bold, italic, fonts, colors)
-- 📊 Full table support including row loops
-- 📧 **NEW:** Text template processing for emails and notifications
+- 📄 Processes the body, tables, headers and footers, footnotes and endnotes, text boxes and content controls
+- ✅ Template validation and processing warnings, including a Word warning report
+- 📧 Text template processing for emails and notifications
 - 🚀 No Microsoft Word required (pure OpenXML processing)
 
 ---
 
 ## Why Templify?
 
-### The Problem
-Generating Word documents programmatically is typically:
-- **Complex**: Manual OpenXML manipulation requires 50-200 lines of code
-- **Error-prone**: Easy to corrupt documents with incorrect XML
-- **Hard to maintain**: Business users can't update templates
-- **Time-consuming**: Steep learning curve for XML/OpenXML
+Generating Word documents programmatically usually means manual OpenXML manipulation: many lines of code, easy to corrupt documents, and templates that business users cannot maintain. With Templify you:
 
-### The Solution
-Templify lets you:
 1. **Create templates in Word** - Use familiar tools, not code
 2. **Add simple placeholders** - Just `{{Name}}` and `{{#if}}...{{/if}}`
-3. **Process with 3 lines of code** - Clean, simple API
+3. **Process with a few lines of code** - Clean, simple API
 4. **Let business users maintain templates** - No developer needed
 
-### Comparison
-
-| Approach | Lines of Code | Template Creation | Maintainability | Learning Curve |
-|----------|---------------|-------------------|-----------------|----------------|
-| **Templify** | **~10 lines** | **In Word (visual)** | **High** | **Low** |
-| Manual OpenXML | ~200 lines | Programmatic | Low | Steep |
-| XSLT Templating | ~150 lines | XML | Medium | High |
-| DocX Library | ~50 lines | Programmatic | Medium | Medium |
-
-**Example Comparison:**
-
 <details>
-<summary><b>Manual OpenXML (200+ lines)</b></summary>
+<summary><b>Manual OpenXML vs. Templify</b></summary>
 
 ```csharp
+// Manual OpenXML: find and replace text yourself, then handle
+// placeholders split across runs, tables, loops and conditionals...
 using (var doc = WordprocessingDocument.Open(stream, true))
 {
-    var body = doc.MainDocumentPart.Document.Body;
-
-    // Find and replace text
-    foreach (var text in body.Descendants<Text>())
+    foreach (var text in doc.MainDocumentPart!.Document!.Body!.Descendants<Text>())
     {
-        if (text.Text.Contains("{{Name}}"))
-        {
-            text.Text = text.Text.Replace("{{Name}}", customerName);
-        }
+        text.Text = text.Text.Replace("{{Name}}", customerName);
     }
-
-    // Handle tables
-    foreach (var table in body.Descendants<Table>())
-    {
-        foreach (var row in table.Elements<TableRow>())
-        {
-            // ... 50+ more lines for loops
-        }
-    }
-
-    // Handle conditionals - complex XML manipulation
-    // ... 100+ more lines
+    // ... many more lines for tables, loops and conditionals
 }
 ```
-</details>
-
-<details>
-<summary><b>Templify (10 lines)</b></summary>
 
 ```csharp
+// Templify
 var data = new Dictionary<string, object>
 {
     ["Name"] = customerName,
@@ -111,8 +74,6 @@ processor.ProcessTemplate(templateStream, outputStream, data);
 ```
 </details>
 
-**Result: 95% less code, infinite times easier to maintain.**
-
 ---
 
 ## Quick Start
@@ -123,7 +84,7 @@ processor.ProcessTemplate(templateStream, outputStream, data);
 dotnet add package TriasDev.Templify
 ```
 
-### Your First Document (5 Minutes)
+### Your First Document
 
 1. **Create a Word template** with placeholders:
    ```
@@ -133,7 +94,7 @@ dotnet add package TriasDev.Templify
 
 2. **Process it**:
    ```csharp
-   using TriasDev.Templify;
+   using TriasDev.Templify.Core;
 
    var data = new Dictionary<string, object>
    {
@@ -145,12 +106,19 @@ dotnet add package TriasDev.Templify
    using var templateStream = File.OpenRead("template.docx");
    using var outputStream = File.Create("output.docx");
 
-   var result = processor.ProcessTemplate(templateStream, outputStream, data);
+   ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+   if (!result.IsSuccess)
+   {
+       Console.WriteLine($"Processing failed: {result.ErrorMessage}");
+   }
    ```
 
 3. **Done!** Open `output.docx` and see the result.
 
-### Markdown Formatting (New!)
+The output stream must be readable, writable and seekable (`File.Create` or a `MemoryStream`). There are also overloads for files (`ProcessTemplateFile`), byte arrays, `IReadOnlyDictionary<string, object?>` data and JSON strings; see the [library documentation](TriasDev.Templify/README.md#api-reference).
+
+### Markdown Formatting
 
 Variable values can include markdown syntax for text formatting:
 
@@ -176,7 +144,7 @@ Because any `*`, `_` or `~` can be read as markdown, ordinary data such as `my_r
 var options = new PlaceholderReplacementOptions { EnableMarkdown = false };
 ```
 
-or opt out for a single placeholder with the `:raw` format specifier: `{{FileName:raw}}`.
+or opt out for a single placeholder with the `:raw` format specifier: `{{FileName:raw}}` (both since 1.8.0).
 
 ### Line Breaks in Variable Values
 
@@ -189,38 +157,36 @@ var data = new Dictionary<string, object>
 };
 ```
 
-All newline formats are supported: `\n` (Unix), `\r\n` (Windows), `\r` (old Mac).
+All newline formats are supported: `\n` (Unix), `\r\n` (Windows), `\r` (old Mac). Newlines work together with markdown: `"**Bold line**\n*Italic line*"` renders as two lines with proper formatting.
 
-Newlines work together with markdown: `"**Bold line**\n*Italic line*"` renders as two lines with proper formatting.
-
-To disable (for backward compatibility):
+To disable:
 ```csharp
 var options = new PlaceholderReplacementOptions { EnableNewlineSupport = false };
 ```
 
 ### Format Specifiers
 
-Control how values are displayed using format specifiers:
+Control how values are displayed using format specifiers (outputs shown for `en-US`):
 
 ```
-{{Name:uppercase}}            → ALICE JOHNSON
-{{Code:lowercase}}            → abc-123
-{{Amount:currency}}           → $1,234.57 (en-US) or 1.234,57 € (de-DE)
-{{Value:number:N2}}           → 1,234.57
-{{Percentage:number:P}}       → 12.34 %
-{{OrderDate:date:yyyy-MM-dd}} → 2024-01-15
+{{Name:uppercase}}              → ALICE JOHNSON
+{{Code:lowercase}}              → abc-123
+{{Amount:currency}}             → $1,234.57 (en-US) or 1.234,57 € (de-DE)
+{{Value:number:N2}}             → 1,234.57
+{{Percentage:number:P2}}        → 12.34%
+{{OrderDate:date:yyyy-MM-dd}}   → 2024-01-15
 {{OrderDate:date:MMMM d, yyyy}} → January 15, 2024
-{{IsActive:checkbox}}         → ☑ or ☐
-{{IsActive:yesno}}            → Yes or No
-{{FileName:raw}}              → my_report_final.docx (no markdown interpretation)
+{{IsActive:checkbox}}           → ☑ or ☐
+{{IsActive:yesno}}              → Yes or No
+{{FileName:raw}}                → my_report_final.docx (no markdown interpretation)
 ```
 
-All format specifiers are culture-aware:
+Format specifiers use `PlaceholderReplacementOptions.Culture`, which defaults to the current culture. Set it explicitly for reproducible output:
 
 ```csharp
 var options = new PlaceholderReplacementOptions
 {
-    Culture = new CultureInfo("de-DE")  // Affects currency, numbers, dates, and localized text
+    Culture = new CultureInfo("de-DE")  // Affects currency, numbers, dates, and localized boolean words
 };
 var processor = new DocumentTemplateProcessor(options);
 ```
@@ -248,188 +214,100 @@ var context = evaluator.CreateConditionContext(data);
 bool r1 = context.Evaluate("IsActive");
 bool r2 = context.Evaluate("IsActive = true");
 bool r3 = context.Evaluate("Count > 3");
-bool r4 = context.Evaluate("Status = \"Active\"");
+bool r4 = context.Evaluate("Status in (\"Active\", \"Pending\")");
 ```
 
-**Supported operators:** `=`, `!=`, `>`, `<`, `>=`, `<=`, `and`, `or`, `not`
+**Supported operators:** `=` (or `==`), `!=`, `>`, `<`, `>=`, `<=`, `and`, `or`, `not`, `in`, `contains`, `startswith`, `endswith`, `exists`, `is empty`, `is not empty`, and parentheses for grouping. Precedence from lowest to highest: `or`, `and`, `not`, comparisons (including `in` and the text operators), `exists`/`is empty`. So `not Status = "Active"` means `not (Status = "Active")`. `&&` and `||` are not supported.
 
-📖 **[Full Condition Evaluation Guide](https://triasdev.github.io/templify/for-developers/condition-evaluation/)**
-
-📖 **[Full Quick Start Guide](docs/quick-start.md)** | 📚 **[Tutorial Series](docs/tutorials/)**
-
----
-
-## Repository Structure
-
-This repository contains multiple projects organized as a complete solution:
-
-```
-templify/
-├── TriasDev.Templify/          # Core library (net8.0, net9.0, net10.0)
-├── TriasDev.Templify.Tests/    # xUnit test suite (~1,750 tests)
-├── TriasDev.Templify.Gui/      # Cross-platform GUI application (Avalonia)
-├── TriasDev.Templify.Converter/# CLI tool for document conversion
-├── TriasDev.Templify.Benchmarks/# Performance benchmarks (BenchmarkDotNet)
-└── TriasDev.Templify.Demo/     # Demo console application
-```
+📖 **[Condition Evaluation Guide](https://triasdev.github.io/templify/for-developers/condition-evaluation/)** | **[Conditionals for template authors](https://triasdev.github.io/templify/for-template-authors/conditionals/)**
 
 ---
 
 ## Documentation
 
-🌐 **[View Full Documentation Online →](https://triasdev.github.io/templify/)**
+🌐 **[Full documentation online →](https://triasdev.github.io/templify/)** (sources in [`docs/`](docs/index.md))
 
-### 📖 For Users
-- **[Quick Start Guide](docs/quick-start.md)** - Get started in 5 minutes
-- **[Tutorial Series](docs/tutorials/)** - Step-by-step learning path
-- **[FAQ](docs/FAQ.md)** - Common questions and answers
-- **[API Reference](TriasDev.Templify/README.md)** - Complete feature documentation
-- **[Examples Collection](TriasDev.Templify/Examples.md)** - 1,900+ lines of code samples
-
-### 🏗️ For Developers
-- **[Architecture Guide](TriasDev.Templify/ARCHITECTURE.md)** - Design patterns and technical decisions
-- **[Performance Benchmarks](TriasDev.Templify/PERFORMANCE.md)** - Speed and optimization details
-- **[CLAUDE.md](CLAUDE.md)** - Development guide for AI-assisted coding
-- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to Templify
+- **For template authors:** [Getting Started](https://triasdev.github.io/templify/for-template-authors/getting-started/), [Template Syntax](https://triasdev.github.io/templify/for-template-authors/template-syntax/), [Format Specifiers](https://triasdev.github.io/templify/for-template-authors/format-specifiers/)
+- **For developers:** [Quick Start](https://triasdev.github.io/templify/for-developers/quick-start/), [Text Templates](https://triasdev.github.io/templify/for-developers/text-templates/), [Processing Warnings](https://triasdev.github.io/templify/for-developers/processing-warnings/)
+- **[Tutorials](https://triasdev.github.io/templify/tutorials/)** and **[FAQ](https://triasdev.github.io/templify/FAQ/)**
+- **[Library README](TriasDev.Templify/README.md)** - Feature and API reference (also shown on NuGet)
+- **[Examples.md](TriasDev.Templify/Examples.md)** - Extensive code samples and use cases
+- **[ARCHITECTURE.md](TriasDev.Templify/ARCHITECTURE.md)** - Design and implementation
+- **[PERFORMANCE.md](TriasDev.Templify/PERFORMANCE.md)** - Benchmarks
+- **[CHANGELOG.md](CHANGELOG.md)** - Release history
 
 ---
 
-## Development Setup
+## Repository Structure
 
-### Prerequisites
-
-**Prerequisites:**
-- .NET 10 SDK (see `global.json`)
-- Git
-- Python 3.11+ (for documentation)
-
-**Clone and build:**
-```bash
-git clone git@github.com:TriasDev/templify.git
-cd templify
-dotnet build templify.sln
 ```
-
-**Run tests:**
-```bash
-dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj
-```
-
-**Run demo:**
-```bash
-dotnet run --project TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj
-```
-
-**Build documentation locally:**
-```bash
-# Install dependencies
-pip3 install -r requirements.txt
-
-# Build static site
-mkdocs build
-
-# Or serve with live reload
-mkdocs serve
-# Opens at http://127.0.0.1:8000/templify/
+templify/
+├── TriasDev.Templify/                  # Core library (net8.0, net9.0, net10.0), published to NuGet
+├── TriasDev.Templify.Tests/            # xUnit tests for the core library (run on all library TFMs)
+├── TriasDev.Templify.Converter/        # CLI tool: migrate OpenXMLTemplates documents to Templify
+├── TriasDev.Templify.Converter.Tests/  # Tests for the converter
+├── TriasDev.Templify.Gui/              # Cross-platform desktop app for trying templates (Avalonia)
+├── TriasDev.Templify.Demo/             # Demo console application
+├── TriasDev.Templify.DocumentGenerator/# Generates the example templates and outputs used in the docs
+├── TriasDev.Templify.Tools.Tests/      # Tests for the GUI and the document generator
+├── TriasDev.Templify.Benchmarks/       # Performance benchmarks (BenchmarkDotNet)
+├── docs/                               # Documentation site (MkDocs)
+├── examples/                           # Example templates and generated outputs
+└── scripts/                            # Helper scripts for the converter
 ```
 
 ## Projects
 
 ### 📚 Templify (Core Library)
 
-The main template processing library. Provides `DocumentTemplateProcessor` for replacing placeholders, evaluating conditionals, and processing loops in Word documents.
+The template processing library: `DocumentTemplateProcessor` for Word documents, `TextTemplateProcessor` for plain text, and `ConditionEvaluator` for standalone conditions.
 
-**Architecture:** Visitor pattern with context-aware evaluation
 **Target:** net8.0, net9.0, net10.0 ([support policy](#supported-net-versions))
-**Dependencies:** DocumentFormat.OpenXml 3.3.0
+**Dependency:** DocumentFormat.OpenXml 3.5.1
 
-📖 [Full Library Documentation](TriasDev.Templify/README.md) | 🏗️ [Architecture Details](TriasDev.Templify/ARCHITECTURE.md) | 📝 [Code Examples](TriasDev.Templify/Examples.md)
+📖 [Library Documentation](TriasDev.Templify/README.md) | 🏗️ [Architecture](TriasDev.Templify/ARCHITECTURE.md) | 📝 [Code Examples](TriasDev.Templify/Examples.md)
 
 ### 🖥️ GUI Application
 
-Cross-platform desktop application built with Avalonia for visual template editing and processing.
+Cross-platform desktop application (Avalonia) to load a template and JSON data, process the template with Templify, and preview and save the result.
 
-**Run the GUI:**
 ```bash
 dotnet run --project TriasDev.Templify.Gui/TriasDev.Templify.Gui.csproj
 ```
 
-**Features:**
-- Visual template editor
-- Data input and preview
-- Real-time template processing
-- Cross-platform (Windows, macOS, Linux)
+See the [GUI README](TriasDev.Templify.Gui/README.md).
 
 ### 🔧 CLI Converter Tool
 
-Command-line tool for migrating OpenXMLTemplates documents to Templify format, with analysis, validation, and cleanup capabilities.
+Command-line tool for migrating OpenXMLTemplates documents (content controls) to Templify placeholders, with analysis, validation, and cleanup commands.
 
-**Run the converter:**
 ```bash
 # Full command
-dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- [command] [options]
+dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- <command> <document> [options]
 
-# Or use helper scripts (recommended)
-./scripts/[command].sh [options]          # macOS/Linux
-scripts\[command].cmd [options]           # Windows
+# Or use the helper scripts
+./scripts/<command>.sh <document> [options]     # macOS/Linux
+scripts\<command>.cmd <document> [options]      # Windows
 ```
 
-**Available Commands:**
+| Command | Purpose |
+|---------|---------|
+| `analyze <template> [--output report.md]` | Inspect an OpenXMLTemplates document and report its content controls |
+| `convert <template> [--output out.docx] [--unwrap-all-controls]` | Convert to Templify syntax (non-OpenXMLTemplates controls are kept unless `--unwrap-all-controls`) |
+| `validate <document>` | Check that a document is well-formed and can be opened |
+| `clean <document> [--output out.docx]` | Remove all content control (SDT) wrappers |
 
-- **`analyze`** - Inspect OpenXMLTemplates documents and identify content controls
-  ```bash
-  ./scripts/analyze.sh template.docx
-  ./scripts/analyze.sh template.docx --output report.md
-  ```
+Options: `-o`/`--output <path>`, `-v`/`--verbose`. Exit codes: `0` success, `1` the command failed, `2` invalid arguments. The converter does not process templates with data; use the library, the demo (`--template`/`--data`) or the GUI for that.
 
-- **`convert`** - Convert OpenXMLTemplates to Templify format
-  ```bash
-  ./scripts/convert.sh template.docx
-  ./scripts/convert.sh template.docx --output new-template.docx
-  ```
-
-- **`validate`** - Validate Word document structure and schema
-  ```bash
-  ./scripts/validate.sh template.docx
-  ```
-
-- **`clean`** - Remove Structured Document Tag (SDT) wrappers
-  ```bash
-  ./scripts/clean.sh template.docx
-  ./scripts/clean.sh template.docx --output cleaned.docx
-  ```
-
-**Migration Workflow Example:**
+**Migration workflow:**
 ```bash
-# Step 1: Analyze the template
-./scripts/analyze.sh old-template.docx
-
-# Step 2: Review the analysis report
-cat old-template-analysis-report.md
-
-# Step 3: Convert to Templify format
-./scripts/convert.sh old-template.docx
-
-# Step 4: Validate the converted document
-./scripts/validate.sh old-template-templify.docx
-
-# Step 5: Test with actual data
-# Use demo or custom code with Templify library
+./scripts/analyze.sh old-template.docx      # 1. analyze
+cat old-template-analysis-report.md         # 2. review the report
+./scripts/convert.sh old-template.docx      # 3. convert (writes old-template-templify.docx)
+./scripts/validate.sh old-template-templify.docx   # 4. validate
 ```
 
-**Batch Processing Example:**
-```bash
-# Convert all templates in a directory
-for template in templates/*.docx; do
-  ./scripts/convert.sh "$template"
-done
-```
-
-📖 **[Full Converter Documentation](TriasDev.Templify.Converter/README.md)** | 📜 **[Script Usage Guide](scripts/README.md)**
-
-#### Migrating from OpenXMLTemplates
-
-The converter automatically translates OpenXMLTemplates content control tags to Templify placeholders:
+The converter translates OpenXMLTemplates content control tags to Templify syntax:
 
 | OpenXMLTemplates | Templify |
 |-----------------|----------|
@@ -438,143 +316,85 @@ The converter automatically translates OpenXMLTemplates content control tags to 
 | `conditionalRemove_Count_gt_0` | `{{#if Count > 0}}...{{/if}}` |
 | `repeating_LineItems` | `{{#foreach LineItems}}...{{/foreach}}` |
 
-**Benefits of migrating:**
-- ✅ Simpler template creation (no content controls required)
-- ✅ Human-readable placeholders
-- ✅ Better Word compatibility (no SDT corruption)
-- ✅ Modern architecture with better performance
-- ✅ Easier maintenance and debugging
+📖 **[Converter Documentation](TriasDev.Templify.Converter/README.md)** | 📜 **[Script Usage Guide](scripts/README.md)**
 
 ### 🎯 Demo Application
 
-Console application demonstrating all library features with comprehensive examples.
+Console application that builds a template covering all features, processes it and writes template and output to `./output`. It can also process your own files:
 
-**Run demos:**
 ```bash
 dotnet run --project TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj
+dotnet run --project TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj -- --template my.docx --data my.json [--output out.docx]
 ```
-
-**Includes demonstrations of:**
-- Basic placeholder replacement
-- Nested data structures
-- Conditional blocks
-- Loop processing
-- Table operations
-- Formatting preservation
-- Complex real-world scenarios
 
 ### ⚡ Benchmarks
 
-Performance testing using BenchmarkDotNet for measuring template processing speed.
+Performance tests with BenchmarkDotNet (placeholders, conditionals, loops, condition engine, complex scenarios):
 
-**Run benchmarks:**
 ```bash
 dotnet run --project TriasDev.Templify.Benchmarks/TriasDev.Templify.Benchmarks.csproj -c Release
 ```
 
-**Benchmark categories:**
-- Placeholder replacement
-- Conditional evaluation
-- Loop processing
-- Complex scenarios
-
 📊 [Performance Details](TriasDev.Templify/PERFORMANCE.md)
 
-### ✅ Tests
-
-Comprehensive test suite with 109+ tests covering all features.
-
-**Test coverage:**
-- Unit tests: 70 (component-level testing)
-- Integration tests: 39 (end-to-end scenarios)
-- Coverage: 100%
-
-**Run all tests:**
-```bash
-dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj
-```
-
-**Run specific test:**
-```bash
-dotnet test --filter "FullyQualifiedName~PlaceholderVisitorTests"
-```
-
-**Run with coverage:**
-```bash
-dotnet test --collect:"XPlat Code Coverage"
-```
-
-## Documentation
-
-Comprehensive documentation is organized by purpose:
-
-- 📖 **[Library README](TriasDev.Templify/README.md)** - API reference, usage guide, feature documentation
-- 🏗️ **[ARCHITECTURE.md](TriasDev.Templify/ARCHITECTURE.md)** - Design patterns, visitor pattern flow, technical decisions
-- 📝 **[Examples.md](TriasDev.Templify/Examples.md)** - Extensive code samples and use cases
-- ⚡ **[PERFORMANCE.md](TriasDev.Templify/PERFORMANCE.md)** - Benchmark results and optimization details
-- 🤖 **[CLAUDE.md](CLAUDE.md)** - Development guide for AI-assisted coding
-- 📋 **[TODO.md](TriasDev.Templify/TODO.md)** - Feature roadmap and implementation status
-- 🔄 **[REFACTORING.md](TriasDev.Templify/REFACTORING.md)** - Refactoring history and decisions
-
-## Building & Testing
-
-### Build entire solution
-```bash
-# Debug build
-dotnet build templify.sln
-
-# Release build
-dotnet build templify.sln -c Release
-```
-
-### Run all tests
-```bash
-dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj --verbosity normal
-```
-
-### Clean solution
-```bash
-dotnet clean templify.sln
-```
-
-### Restore dependencies
-```bash
-dotnet restore templify.sln
-```
+---
 
 ## Development
 
-### Requirements
+### Prerequisites
 
-- **.NET 10 SDK** (see `global.json`)
-- **Visual Studio 2022** (optional, for GUI development) or **Rider**
-- **Git** for version control
+- .NET 10 SDK (pinned in `global.json`); the library is also built and tested for net8.0 and net9.0, so install those runtimes to run all test targets
+- Git
+- Python 3 (only for building the documentation)
 
-### Project Guidelines
+### Build and Test
 
-- **Code style:** Follow existing conventions (see CLAUDE.md)
-- **Testing:** Maintain 100% test coverage for new features
-- **Documentation:** Update relevant README and documentation files
-- **Commits:** Use descriptive commit messages
+```bash
+git clone https://github.com/TriasDev/templify.git
+cd templify
 
-### For AI-Assisted Development
+# Build (Debug); CI builds with warnings as errors:
+dotnet build templify.sln
+dotnet build templify.sln -c Release -p:ContinuousIntegrationBuild=true
 
-This repository includes **CLAUDE.md** with comprehensive guidance for AI coding assistants:
-- Common commands and workflows
-- Architecture overview
-- Design patterns and conventions
-- Testing strategies
-- Troubleshooting common issues
+# Run the core tests (all target frameworks, or one with --framework net10.0)
+dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj
 
-🤖 [Read CLAUDE.md](CLAUDE.md) for AI-assisted development guidance
+# Run all test projects
+dotnet test templify.sln
+
+# Run specific tests
+dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj --filter "FullyQualifiedName~PlaceholderVisitorTests"
+
+# Coverage
+dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj --collect:"XPlat Code Coverage"
+
+# Formatting check (required before pushing)
+dotnet format --verify-no-changes --no-restore
+```
+
+NuGet versions are managed centrally in `Directory.Packages.props`, and every project has a committed `packages.lock.json`. After changing a package, run `dotnet restore templify.sln` and commit the updated lock files.
+
+### Build the Documentation
+
+```bash
+pip3 install -r requirements.txt
+mkdocs serve          # live preview at http://127.0.0.1:8000/templify/
+mkdocs build --strict # what CI builds
+```
+
+### Guidelines
+
+- Read the **[Contributing Guide](CONTRIBUTING.md)** and the **[Code of Conduct](CODE_OF_CONDUCT.md)**
+- Add tests for new features and bug fixes, and update the documentation
+- Public API changes are tracked in `TriasDev.Templify/PublicAPI.Unshipped.txt`
+- **[CLAUDE.md](CLAUDE.md)** has development workflows and architecture notes for AI-assisted coding
 
 ## Requirements
 
 - **.NET 8.0, 9.0 or 10.0** (the library targets `net8.0`, `net9.0` and `net10.0`)
-- **DocumentFormat.OpenXml 3.3.0** (automatically restored)
-- **Avalonia 11.3.8** (for GUI project)
-- **xUnit v3** (for test projects)
-- **BenchmarkDotNet** (for benchmarks)
+- **DocumentFormat.OpenXml 3.5.1** (restored automatically)
+- GUI: **Avalonia 12**; tests: **xUnit v3**; benchmarks: **BenchmarkDotNet**
 
 ### Supported .NET Versions
 
@@ -586,72 +406,30 @@ The library targets `net8.0`, `net9.0` and `net10.0`.
 
 ## Architecture Highlights
 
-Templify uses a **visitor pattern architecture** for clean, extensible document processing:
+Templify uses a **visitor pattern architecture** for document processing:
 
-- **DocumentWalker** - Unified document traversal
+- **DocumentWalker** - Unified document traversal (body, tables, headers/footers, notes, text boxes, content controls)
 - **Visitors** - ConditionalVisitor, LoopVisitor, PlaceholderVisitor
-- **Evaluation Context** - Hierarchical variable resolution with loop scoping
+- **Condition engine** - Lexer, parser and operator registry shared by `{{#if}}`, inline expressions and `ConditionEvaluator`
+- **Evaluation contexts** - Hierarchical variable resolution with loop scoping
 - **PropertyPathResolver** - Nested data structure navigation
 
 Processing order: **Conditionals → Loops → Placeholders** (enables conditionals inside loops and nested loops)
 
 🏗️ [Full Architecture Documentation](TriasDev.Templify/ARCHITECTURE.md)
 
-## Design Philosophy
-
-Templify prioritizes:
-1. **Simplicity** - Focus on common use cases (placeholder replacement, conditionals, loops)
-2. **Maintainability** - Small, composable classes with single responsibilities
-3. **Testability** - Pure functions, dependency injection, 100% test coverage
-4. **Explicit behavior** - No magic, predictable results
-5. **Fail-fast** - Clear error messages, no silent failures
-
 ## About
 
-**Templify** is created and maintained by **TriasDev GmbH & Co. KG**.
+**Templify** is created and maintained by **TriasDev GmbH & Co. KG**. It is used in production, processing thousands of documents daily. We believe in giving back to the .NET community and providing a modern, maintainable alternative to legacy Word templating solutions.
 
-### Production-Tested
-Templify is battle-tested in production, processing thousands of documents daily with enterprise-grade reliability and performance.
-
-### Why Open Source?
-We believe in giving back to the .NET community and providing developers with a modern, maintainable alternative to legacy Word templating solutions.
+**Related project:** OpenXMLTemplates (predecessor, content-control based); the [converter](TriasDev.Templify.Converter/README.md) migrates its templates.
 
 ## Contributing
 
-We welcome contributions from the community! Whether you're fixing bugs, adding features, improving documentation, or suggesting enhancements, your contributions are appreciated.
-
-### How to Contribute
-
-1. **Report bugs** - Open an issue with detailed reproduction steps
-2. **Suggest features** - Share your ideas through GitHub issues
-3. **Submit pull requests** - Fork the repo, make changes, and submit a PR
-4. **Improve documentation** - Help make our docs clearer and more comprehensive
-
-### Getting Started
-
-- Read our **[Contributing Guide](CONTRIBUTING.md)** for detailed guidelines
-- Check our **[Code of Conduct](CODE_OF_CONDUCT.md)** for community standards
-- Review **[CLAUDE.md](CLAUDE.md)** for development workflows and architecture
-
-### Development Requirements
-
-- .NET 10 SDK (see `global.json`)
-- All contributions must maintain 100% test coverage
-- Follow existing code style and conventions
-- Update documentation for any new features
+Contributions are welcome: bug reports, feature ideas, documentation improvements and pull requests. See the **[Contributing Guide](CONTRIBUTING.md)**.
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 Copyright © 2025 TriasDev GmbH & Co. KG
-
-## Related Projects
-
-- **OpenXMLTemplates** (predecessor) - Original templating library (content controls-based)
-
----
-
-**Getting Started:** For library usage, see [TriasDev.Templify/README.md](TriasDev.Templify/README.md)
-**Contributing:** See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines and [CLAUDE.md](CLAUDE.md) for development workflows
-**Architecture:** For technical deep-dive, see [ARCHITECTURE.md](TriasDev.Templify/ARCHITECTURE.md)
