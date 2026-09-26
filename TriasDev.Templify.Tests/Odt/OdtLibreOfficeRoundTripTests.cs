@@ -433,6 +433,32 @@ public sealed class OdtLibreOfficeRoundTripTests
         Assert.Equal("bold", GetEffectiveProperty(resaved, "b", OdtDocumentVerifier.Fo + "font-weight"));
     }
 
+    [Theory]
+    [InlineData("lo-invoice.odt")]
+    [InlineData("lo-containers.odt")]
+    [InlineData("lo-long-document.odt")]
+    [InlineData("lo-from-word.odt")]
+    public void LibreOfficeFixtures_ProcessedOutput_IsReadBackUnchanged(string fixture)
+    {
+        LibreOfficeRunner.RequireExecutable();
+
+        Dictionary<string, object> data = fixture switch
+        {
+            "lo-invoice.odt" => OdtLibreOfficeFixtureTests.InvoiceData(),
+            "lo-containers.odt" => OdtLibreOfficeFixtureTests.ContainersData(),
+            "lo-long-document.odt" => OdtLibreOfficeFixtureTests.LongDocumentData(),
+            _ => OdtLibreOfficeFixtureTests.FromWordData(),
+        };
+        OdtDocumentVerifier output = OdtLibreOfficeFixtureTests.Process(fixture, data, out _);
+
+        // LibreOffice loads the processed document and saves it again: it keeps every paragraph, header and footer.
+        OdtDocumentVerifier resaved = new OdtDocumentVerifier(LibreOfficeRunner.Convert(output.ToBytes(), "odt", "odt", "odt"));
+
+        Assert.Equal(output.GetParagraphTexts(), resaved.GetParagraphTexts());
+        Assert.Equal(output.GetHeaderTexts(), resaved.GetHeaderTexts());
+        Assert.Equal(output.GetFooterTexts(), resaved.GetFooterTexts());
+    }
+
     private static string? GetEffectiveProperty(OdtDocumentVerifier document, string text, System.Xml.Linq.XName property)
     {
         System.Xml.Linq.XElement? automaticStyles = document.ContentXml.Root!.Element(OdtDocumentVerifier.Office + "automatic-styles");

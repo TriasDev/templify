@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<office:document xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0" xmlns:officeooo="http://openoffice.org/2009/office" xmlns:loext="urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0" office:version="1.3" office:mimetype="application/vnd.oasis.opendocument.text">
+ <office:meta><dc:title>Invoice template</dc:title></office:meta>
+ <office:styles>
+  <style:style style:name="Standard" style:family="paragraph" style:class="text"/>
+  <style:style style:name="Heading_20_1" style:display-name="Heading 1" style:family="paragraph" style:parent-style-name="Standard"><style:text-properties fo:font-size="18pt" fo:font-weight="bold"/></style:style>
+  <style:style style:name="Table_20_Contents" style:display-name="Table Contents" style:family="paragraph" style:parent-style-name="Standard"/>
+  <style:style style:name="Strong_20_Emphasis" style:display-name="Strong Emphasis" style:family="text"><style:text-properties fo:font-weight="bold"/></style:style>
+ </office:styles>
+ <office:automatic-styles>
+  <style:style style:name="Table1" style:family="table"><style:table-properties style:width="17cm" table:align="margins"/></style:style>
+  <style:style style:name="Table1.A" style:family="table-column"><style:table-column-properties style:column-width="8.5cm"/></style:style>
+  <style:style style:name="Table1.B" style:family="table-column"><style:table-column-properties style:column-width="4.25cm"/></style:style>
+  <style:style style:name="P1" style:family="paragraph" style:parent-style-name="Standard"><style:text-properties officeooo:rsid="0012ab34" officeooo:paragraph-rsid="0012ab34"/></style:style>
+  <style:style style:name="P2" style:family="paragraph" style:parent-style-name="Table_20_Contents"><style:paragraph-properties fo:text-align="end"/></style:style>
+  <style:style style:name="T1" style:family="text"><style:text-properties officeooo:rsid="0013cd56"/></style:style>
+  <style:style style:name="T2" style:family="text"><style:text-properties officeooo:rsid="0014ef78"/></style:style>
+  <style:style style:name="T3" style:family="text"><style:text-properties fo:color="#c9211e" officeooo:rsid="0014ef78"/></style:style>
+  <style:page-layout style:name="pm1"><style:page-layout-properties fo:page-width="21cm" fo:page-height="29.7cm" fo:margin-top="2cm" fo:margin-bottom="2cm" fo:margin-left="2cm" fo:margin-right="2cm"/><style:header-style><style:header-footer-properties fo:min-height="0cm" fo:margin-bottom="0.5cm"/></style:header-style><style:footer-style><style:header-footer-properties fo:min-height="0cm" fo:margin-top="0.5cm"/></style:footer-style></style:page-layout>
+ </office:automatic-styles>
+ <office:master-styles>
+  <style:master-page style:name="Standard" style:page-layout-name="pm1">
+   <style:header><text:p text:style-name="Standard">{{CompanyName}} – Invoice <text:span text:style-name="T1">{{Invoice</text:span>Number}}</text:p></style:header>
+   <style:footer><text:p text:style-name="Standard">Page <text:page-number text:select-page="current">1</text:page-number> · {{CompanyName:uppercase}}</text:p></style:footer>
+  </style:master-page>
+ </office:master-styles>
+ <office:body>
+  <office:text>
+   <text:sequence-decls><text:sequence-decl text:display-outline-level="0" text:name="Table"/></text:sequence-decls>
+   <text:h text:style-name="Heading_20_1" text:outline-level="1">Invoice {{InvoiceNumber}}</text:h>
+   <text:p text:style-name="P1">Dear <text:span text:style-name="T1">{{Cust</text:span><text:span text:style-name="T2">omer.Name}}</text:span>,</text:p>
+   <text:p text:style-name="P1">Date:<text:tab/>{{InvoiceDate:date:yyyy-MM-dd}}<text:s text:c="3"/>Ref: <text:span text:style-name="Strong_20_Emphasis">{{Reference}}</text:span></text:p>
+   <table:table table:name="Items" table:style-name="Table1">
+    <table:table-column table:style-name="Table1.A"/>
+    <table:table-column table:style-name="Table1.B" table:number-columns-repeated="2"/>
+    <table:table-header-rows>
+     <table:table-row>
+      <table:table-cell office:value-type="string"><text:p text:style-name="Table_20_Contents">Item</text:p></table:table-cell>
+      <table:table-cell office:value-type="string"><text:p text:style-name="Table_20_Contents">Qty</text:p></table:table-cell>
+      <table:table-cell office:value-type="string"><text:p text:style-name="Table_20_Contents">Price</text:p></table:table-cell>
+     </table:table-row>
+    </table:table-header-rows>
+    <table:table-row>
+     <table:table-cell office:value-type="string"><text:p text:style-name="Table_20_Contents">{{#foreach item in Items}}</text:p></table:table-cell>
+     <table:table-cell office:value-type="string"><text:p text:style-name="Table_20_Contents"/></table:table-cell>
+     <table:table-cell office:value-type="string"><text:p text:style-name="Table_20_Contents"/></table:table-cell>
+    </table:table-row>
+    <table:table-row>
+     <table:table-cell office:value-type="string"><text:p text:style-name="Table_20_Contents">{{@number}}. <text:span text:style-name="T2">{{item.Name}}</text:span></text:p></table:table-cell>
+     <table:table-cell office:value-type="string"><text:p text:style-name="P2">{{item.Quantity}}</text:p></table:table-cell>
+     <table:table-cell office:value-type="string"><text:p text:style-name="P2">{{item.Price:number:F2}}</text:p></table:table-cell>
+    </table:table-row>
+    <table:table-row>
+     <table:table-cell office:value-type="string"><text:p text:style-name="Table_20_Contents">{{/foreach}}</text:p></table:table-cell>
+     <table:table-cell office:value-type="string"><text:p text:style-name="Table_20_Contents"/></table:table-cell>
+     <table:table-cell office:value-type="string"><text:p text:style-name="Table_20_Contents"/></table:table-cell>
+    </table:table-row>
+    <table:table-row>
+     <table:table-cell table:number-columns-spanned="2" office:value-type="string"><text:p text:style-name="Table_20_Contents">Total</text:p></table:table-cell>
+     <table:covered-table-cell/>
+     <table:table-cell office:value-type="string"><text:p text:style-name="P2">{{Total:number:F2}}</text:p></table:table-cell>
+    </table:table-row>
+   </table:table>
+   <text:p text:style-name="P1">{{#if IsPaid}}</text:p>
+   <text:p text:style-name="P1">Paid on {{PaidOn}}. Thank you!</text:p>
+   <text:p text:style-name="P1">{{#elseif Total &gt; 1000}}</text:p>
+   <text:p text:style-name="P1"><text:span text:style-name="T3">Please pay {{Total:number:F2}} within 14 days.</text:span></text:p>
+   <text:p text:style-name="P1">{{#else}}</text:p>
+   <text:p text:style-name="P1">Please pay within 30 days.</text:p>
+   <text:p text:style-name="P1">{{/if}}</text:p>
+   <text:p text:style-name="P1">Notes: {{Notes}}</text:p>
+  </office:text>
+ </office:body>
+</office:document>
