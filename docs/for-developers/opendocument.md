@@ -116,6 +116,10 @@ if (!validation.IsValid)
 Console.WriteLine($"Missing: {string.Join(", ", validation.MissingVariables)}");
 ```
 
+A template that cannot be read as an OpenDocument Text package (not a ZIP file, a missing or malformed `content.xml`,
+an encrypted package, an unreadable stream) is an error of type `ValidationErrorType.InvalidDocument`. The other
+error types are those of Word templates (see [Validating a Template](quick-start.md#validating-a-template)).
+
 ## TemplateProcessor: Word and OpenDocument
 
 `TemplateProcessor` accepts both formats through one API. It has the same methods as the two processors.
@@ -158,7 +162,7 @@ Behavior:
 - A template stream that is not seekable is copied into memory first, because the format must be known before
   processing. `DetectFormat` itself needs a readable, seekable stream.
 - A template in any other format is a failed result (`ErrorMessage` starts with "Unsupported template format"), and
-  `ValidateTemplate` returns an invalid result. Examples are a legacy `.doc`, a flat `.fodt`, a spreadsheet, an empty
+  `ValidateTemplate` returns an invalid result with one `InvalidDocument` error. Examples are a legacy `.doc`, a flat `.fodt`, a spreadsheet, an empty
   file or random bytes. Nothing is written to the output.
 
 `DocumentTemplateProcessor` is unchanged. It still only processes Word documents.

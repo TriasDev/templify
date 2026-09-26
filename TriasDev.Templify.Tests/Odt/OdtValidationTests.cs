@@ -1,6 +1,7 @@
 // Copyright (c) 2026 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.IO.Compression;
 using System.Text;
 using TriasDev.Templify.Core;
 using TriasDev.Templify.Tests.Helpers;
@@ -161,7 +162,64 @@ public sealed class OdtValidationTests
         ValidationResult result = new OdtTemplateProcessor().ValidateTemplate(stream);
 
         Assert.False(result.IsValid);
-        Assert.Contains("not an OpenDocument Text package", result.Errors[0].Message, StringComparison.Ordinal);
+        ValidationError error = Assert.Single(result.Errors);
+        Assert.Equal(ValidationErrorType.InvalidDocument, error.Type);
+        Assert.Equal(
+            "Invalid document: the template is not an OpenDocument Text package (.odt/.ott). Flat OpenDocument (.fodt) is not supported.",
+            error.Message);
+        Assert.Empty(result.AllPlaceholders);
+    }
+
+    [Theory]
+    [InlineData("<office:document-content", "Invalid document: content.xml is not well-formed XML")]
+    [InlineData("<root/>", "Invalid document: content.xml has no text body (office:text).")]
+    public void CorruptedContent_IsInvalidDocument(string contentXml, string message)
+    {
+        using MemoryStream stream = new MemoryStream(CreateZip(("mimetype", OdtDocumentBuilder.TextMediaType), ("content.xml", contentXml)));
+
+        ValidationResult result = new OdtTemplateProcessor().ValidateTemplate(stream, new Dictionary<string, object>());
+
+        ValidationError error = Assert.Single(result.Errors);
+        Assert.Equal(ValidationErrorType.InvalidDocument, error.Type);
+        Assert.StartsWith(message, error.Message, StringComparison.Ordinal);
+        Assert.Empty(result.MissingVariables);
+    }
+
+    [Fact]
+    public void MissingContentXml_IsInvalidDocument()
+    {
+        using MemoryStream stream = new MemoryStream(CreateZip(("mimetype", OdtDocumentBuilder.TextMediaType), ("styles.xml", "<x/>")));
+
+        ValidationResult result = new OdtTemplateProcessor().ValidateTemplate(stream);
+
+        ValidationError error = Assert.Single(result.Errors);
+        Assert.Equal(ValidationErrorType.InvalidDocument, error.Type);
+        Assert.Equal("Invalid document: content.xml is missing.", error.Message);
+    }
+
+    [Fact]
+    public void UnreadableStream_IsInvalidDocument()
+    {
+        using WriteOnlyStream stream = new WriteOnlyStream();
+
+        ValidationResult result = new OdtTemplateProcessor().ValidateTemplate(stream);
+
+        ValidationError error = Assert.Single(result.Errors);
+        Assert.Equal(ValidationErrorType.InvalidDocument, error.Type);
+        Assert.Equal("Invalid template stream: the template stream must be readable.", error.Message);
+    }
+
+    [Fact]
+    public void CorruptedDocx_KeepsInvalidPlaceholderSyntax_ForCompatibility()
+    {
+        // The Word validator shipped in 1.x; its error type for unreadable input changes only in 2.0 (#156).
+        using MemoryStream stream = new MemoryStream(Encoding.UTF8.GetBytes("not a zip"));
+
+        ValidationResult result = new DocumentTemplateProcessor().ValidateTemplate(stream);
+
+        ValidationError error = Assert.Single(result.Errors);
+        Assert.Equal(ValidationErrorType.InvalidPlaceholderSyntax, error.Type);
+        Assert.StartsWith("Validation failed: ", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -191,5 +249,29 @@ public sealed class OdtValidationTests
         Assert.False(result.IsValid);
         Assert.Contains(result.Errors, e => e.Message.Contains("'{{#if B}}' has no matching", StringComparison.Ordinal));
         Assert.Equal(new[] { "Title" }, result.MissingVariables);
+    }
+
+    private static byte[] CreateZip(params (string Name, string Content)[] entries)
+    {
+        using MemoryStream stream = new MemoryStream();
+        using (ZipArchive archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            foreach ((string name, string content) in entries)
+            {
+                using Stream entryStream = archive.CreateEntry(name, CompressionLevel.NoCompression).Open();
+                entryStream.Write(Encoding.UTF8.GetBytes(content));
+            }
+        }
+
+        return stream.ToArray();
+    }
+
+    private sealed class WriteOnlyStream : MemoryStream
+    {
+        public override bool CanRead => false;
+
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        public override int Read(Span<byte> buffer) => throw new NotSupportedException();
     }
 }

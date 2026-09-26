@@ -592,7 +592,7 @@ public sealed class TemplateProcessor
 
     private static ValidationResult InvalidTemplate(string message) =>
         ValidationResult.Failure(
-            new[] { ValidationError.Create(ValidationErrorType.InvalidPlaceholderSyntax, message) },
+            new[] { ValidationError.Create(ValidationErrorType.InvalidDocument, message) },
             Array.Empty<string>());
 
     private static void ValidatePaths(string templatePath, string outputPath)
