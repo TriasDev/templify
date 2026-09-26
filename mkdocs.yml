@@ -107,4 +107,3 @@ nav:
     - Hello World: tutorials/01-hello-world.md
     - Invoice Generator: tutorials/02-invoice-generator.md
   - FAQ: FAQ.md
-  - Quick Start (Legacy): quick-start.md

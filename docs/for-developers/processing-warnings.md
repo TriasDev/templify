@@ -7,6 +7,8 @@ Templify collects non-fatal warnings during template processing, helping you ide
 Warnings are available on the `ProcessingResult` returned by `ProcessTemplate`:
 
 ```csharp
+using TriasDev.Templify.Core;
+
 var processor = new DocumentTemplateProcessor();
 var result = processor.ProcessTemplate(templateStream, outputStream, data);
 
@@ -33,21 +35,29 @@ if (result.IsSuccess)
 | `MissingVariable` | Variable not found in data | Placeholder like `{{CustomerName}}` when `CustomerName` is not in the data dictionary |
 | `MissingLoopCollection` | Loop collection not found | `{{#foreach Items}}` when `Items` is not in the data dictionary |
 | `NullLoopCollection` | Loop collection is null | `{{#foreach Items}}` when `Items` exists but is `null` |
-| `ExpressionFailed` | Expression parsing or evaluation failed | `{{(Status === "Active")}}` with invalid syntax (use `=` or `==`), or a `{{#if}}`/`{{#elseif}}` condition that cannot be parsed, e.g. `{{#if A && B}}` (context `conditional`; the condition is treated as false) |
+| `ExpressionFailed` | Expression parsing or evaluation failed | An inline expression with invalid syntax, e.g. `{{(Status === "Active")}}` (use `=` or `==`; context `expression`), or a `{{#if}}`/`{{#elseif}}` condition that cannot be parsed, e.g. `{{#if A && B}}` (context `conditional`; the condition is treated as false) |
+
+A failed **inline** expression is then handled like a missing variable: it adds an `ExpressionFailed` warning
+*and* a `MissingVariable` warning, its text (e.g. `(Status === "Active")`) is listed in
+`ProcessingResult.MissingVariables`, and `MissingVariableBehavior` decides what happens to the placeholder
+(left unchanged by default). A failed `{{#if}}` condition only adds the `ExpressionFailed` warning.
 
 ## Warning Properties
 
 Each `ProcessingWarning` contains:
 
 ```csharp
-public class ProcessingWarning
+public sealed class ProcessingWarning
 {
     public ProcessingWarningType Type { get; }    // Warning category
-    public string VariableName { get; }           // The variable/expression that caused the warning
-    public string Context { get; }                // Where it occurred (e.g., "placeholder", "loop: Items")
     public string Message { get; }                // Human-readable description
+    public string? VariableName { get; }          // The variable/expression that caused the warning
+    public string? Context { get; }               // Where it occurred: "placeholder", "loop: Items",
+                                                  // "expression" (inline) or "conditional" ({{#if}})
 }
 ```
+
+`ToString()` returns `"{Type} [{Context}]: {Message}"`, which is convenient for logging.
 
 ## Generating Warning Reports
 
@@ -106,7 +116,9 @@ if (result.HasWarnings)
 
 ## Behavior Notes
 
-- **Empty collections** do not generate warnings (they're valid, just produce no output)
+- **Empty collections** do not generate processing warnings (they're valid, just produce no output). `PlaceholderReplacementOptions.WarnOnEmptyLoopCollections` only affects `ValidateTemplate`, which reports an `EmptyLoopCollection` validation warning because the loop body cannot be checked against the data.
 - **Valid expressions with missing variables** evaluate to `false` without warnings (e.g., `{{(Price > 100)}}` where `Price` is missing returns `false`)
-- **Invalid expression syntax** generates `ExpressionFailed` (e.g., using `===` instead of `=` or `==`)
+- **Invalid expression syntax** generates `ExpressionFailed` (e.g., using `===` instead of `=` or `==`, or `&&` instead of `and`)
 - Warnings are collected even when `MissingVariableBehavior` is set to `LeaveUnchanged` or `ReplaceWithEmpty`
+- Warnings are not de-duplicated: a missing placeholder inside a loop adds one warning per iteration. `ProcessingResult.MissingVariables` is the de-duplicated, sorted list of names.
+- Template syntax errors (e.g. an unmatched `{{#if}}`) and data errors (a `{{#foreach}}` over a value that is not a collection) are not warnings: processing fails with `IsSuccess == false` and `ErrorMessage` set.

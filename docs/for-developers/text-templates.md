@@ -14,14 +14,18 @@ The `TextTemplateProcessor` class processes plain text templates with the same t
 - `TextReplacements` applied to replaced values
 - Processing warnings (`TextProcessingResult.Warnings`)
 
-Markers are case-insensitive (`{{#IF}}`, `{{/ForEach}}`), as in Word templates. Word-only features are not available: formatting and markdown (`:raw` is accepted and simply means "no format"), table rows, `UpdateFieldsOnOpen` and `DocumentProperties`.
+Markers are case-insensitive (`{{#IF}}`, `{{/ForEach}}`), as in Word templates. Word-only features are not available: formatting and markdown (markdown characters in values are inserted verbatim; `:raw` is accepted and simply means "no format"), table rows, `UpdateFieldsOnOpen` and `DocumentProperties`.
+
+Unlike Word templates, where loop markers must be in their own paragraphs, markers can appear anywhere in the
+text, also inline (`Tags: {{#foreach Tags}}[{{.}}]{{/foreach}}`). The text is kept exactly as written around
+the markers, including line breaks: a marker on its own line leaves that line's line break in the output.
 
 **Key Benefits:**
 - ✅ Same template syntax as Word documents
 - ✅ Reusable data structures across document and text templates
-- ✅ No dependencies on Word or OpenXML for text processing
+- ✅ No Word document involved: works on plain strings
 - ✅ Ideal for email generation, notifications, and dynamic content
-- ✅ High performance with simple string manipulation
+- ✅ Single linear scan of the template, no limit on the number or nesting of blocks
 
 ## Quick Start
 
@@ -52,23 +56,23 @@ if (result.IsSuccess)
 ### Email Generation Example
 
 ```csharp
-var processor = new TextTemplateProcessor();
+using System.Globalization;
+using TriasDev.Templify.Core;
+
+var processor = new TextTemplateProcessor(new PlaceholderReplacementOptions
+{
+    Culture = CultureInfo.InvariantCulture
+});
 
 string emailTemplate = @"Dear {{CustomerName}},
 
 Thank you for your order #{{OrderId}}.
 
-{{#if IsVip}}
-As a VIP customer, you'll receive free shipping!
-{{#else}}
-Your order will arrive in 3-5 business days.
-{{/if}}
+{{#if IsVip}}As a VIP customer, you'll receive free shipping!{{#else}}Your order will arrive in 3-5 business days.{{/if}}
 
 Order Details:
-{{#foreach Items}}
-- {{Name}}: ${{Price}}
+{{#foreach Items}}- {{Name}}: ${{Price}}
 {{/foreach}}
-
 Total: ${{Total}}
 
 Best regards,
@@ -98,7 +102,7 @@ if (result.IsSuccess)
 ```
 
 **Output:**
-```
+```text
 Dear Alice Smith,
 
 Thank you for your order #12345.
@@ -113,6 +117,17 @@ Total: $79.98
 
 Best regards,
 The TriasDev Team
+```
+
+### Line Breaks Around Markers
+
+The text around markers is kept exactly as written. A marker on a line of its own therefore leaves an empty line
+behind (the line break after it stays in the output). To avoid that, start the repeated or conditional text right
+after the opening marker and end it with the line break before the closing marker, as in the example above:
+
+```text
+{{#foreach Items}}- {{Name}}
+{{/foreach}}
 ```
 
 ## Features
@@ -165,7 +180,7 @@ var data = new Dictionary<string, object>
 };
 ```
 
-**Supported Operators:** the full condition syntax of Word templates, see [Condition Evaluation](condition-evaluation.md):
+**Supported Operators:** the full condition syntax of Word templates (same truthiness, precedence and reserved-word rules), see [Condition Evaluation](condition-evaluation.md):
 - Comparison: `=`, `!=`, `>`, `<`, `>=`, `<=`
 - Logical: `and`, `or`, `not`, parentheses
 - Membership, string and existence checks: `in`, `contains`, `startswith`, `endswith`, `exists`, `is empty`, `is not empty`
@@ -179,7 +194,7 @@ var data = new Dictionary<string, object>
 "{{#if Notes is not empty}}"
 ```
 
-A condition that cannot be parsed (e.g. `{{#if A && B}}`) is treated as false and reported as an `ExpressionFailed` warning.
+A condition that cannot be parsed (e.g. `{{#if A && B}}`; use `and`) is treated as false and reported as an `ExpressionFailed` warning.
 
 **Inline expressions** evaluate a condition in place and print the result (combine with a boolean format):
 
@@ -187,17 +202,17 @@ A condition that cannot be parsed (e.g. `{{#if A && B}}`) is treated as false an
 "Active: {{(IsActive and not IsExpired):yesno}}"   // Active: Yes
 ```
 
+Inline expressions use the stricter inline dialect (only boolean `true` is true, single-quoted strings allowed),
+as in Word templates; see [Inline Expressions Use a Stricter Dialect](condition-evaluation.md#inline-expressions-use-a-stricter-dialect).
+
 ### 3. Loops
 
 Iterate over collections with full support for nested data.
 
 ```csharp
-string template = @"
-Tasks for today:
-{{#foreach Tasks}}
-{{@index}}. {{Title}} - Priority: {{Priority}}
-{{/foreach}}
-";
+string template = @"Tasks for today:
+{{#foreach Tasks}}{{@number}}. {{Title}} - Priority: {{Priority}}
+{{/foreach}}";
 
 var data = new Dictionary<string, object>
 {
@@ -213,9 +228,9 @@ var data = new Dictionary<string, object>
 **Output:**
 ```
 Tasks for today:
-0. Review PR - Priority: High
-1. Update docs - Priority: Medium
-2. Fix bug - Priority: High
+1. Review PR - Priority: High
+2. Update docs - Priority: Medium
+3. Fix bug - Priority: High
 ```
 
 **Named iteration variables** give access to outer loop items in nested loops:
@@ -533,9 +548,7 @@ foreach (var customer in customers)
 }
 ```
 
-2. **Pre-compile templates** - For high-frequency processing, consider caching templates
-
-3. **Batch processing** - Process multiple templates in parallel for better throughput
+2. **Batch processing** - Process multiple templates in parallel for better throughput
 ```csharp
 var results = await Task.WhenAll(
     customers.Select(c => Task.Run(() =>
@@ -545,11 +558,9 @@ var results = await Task.WhenAll(
 
 ### Performance Characteristics
 
-- **Simple placeholders**: ~0.1ms for 10 placeholders
-- **Conditionals**: ~0.2ms per conditional block
-- **Loops**: ~0.1ms per iteration + nested content processing
-- **Memory**: Minimal allocation, efficient string building
 - **Scaling**: The template is parsed in a single linear scan; there is no limit on the number or nesting of blocks
+- **Thread safety**: A `TextTemplateProcessor` and its options can be shared by concurrent calls
+- **Conditions**: Parsed condition expressions are cached
 
 ## Comparison with Word Templates
 
@@ -564,7 +575,7 @@ var results = await Task.WhenAll(
 | `TextReplacements` | ✅ Same | ✅ Same |
 | Formatting preservation / markdown | ❌ Plain text | ✅ Rich formatting |
 | Tables | ❌ N/A | ✅ Supported |
-| Dependencies | ✅ None | OpenXML SDK |
+| Loop/condition markers | Anywhere, also inline | Own paragraphs or table rows (inline conditionals allowed) |
 | Use case | Emails, SMS, text | Reports, contracts, invoices |
 
 ## Advanced Examples
@@ -684,12 +695,11 @@ Hello {{Name}}
 
 - [Quick Start Guide](quick-start.md) - Getting started with Templify
 - [Condition Evaluation](condition-evaluation.md) - Advanced conditional expressions
-- [Word Document Templates](../for-template-authors/) - Creating Word templates
-- [API Reference](../api/) - Complete API documentation
+- [Word Document Templates](../for-template-authors/template-syntax.md) - Creating Word templates
+- [Processing Warnings](processing-warnings.md) - Warning types and reports
 
 ## Support
 
 - 📖 [Documentation](https://triasdev.github.io/templify/)
 - 💬 [GitHub Discussions](https://github.com/TriasDev/templify/discussions)
 - 🐛 [Issue Tracker](https://github.com/TriasDev/templify/issues)
-- 📧 Email: support@triasdev.com
