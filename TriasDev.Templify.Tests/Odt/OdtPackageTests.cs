@@ -339,6 +339,122 @@ public sealed class OdtPackageTests
         }
     }
 
+    [Fact]
+    public void Process_LargeUnprocessedEntry_IsStreamedWithoutInflatingIntoMemory()
+    {
+        // A 64 MB entry that processing never reads (a picture) compresses to about 64 KB. It used to be inflated
+        // into memory and buffered twice (more than 3x its inflated size was allocated).
+        byte[] template = CreateTemplateWithLargeEntry(out int entrySize);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        ProcessingResult result = new OdtTemplateProcessor().ProcessTemplate(template, _data, out byte[] output);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(result.IsSuccess, result.ErrorMessage);
+        Assert.True(allocated < entrySize / 4, $"Allocated {allocated:N0} bytes for a {entrySize:N0}-byte entry.");
+        AssertLargeEntryCopied(output, entrySize);
+    }
+
+    [Fact]
+    public void Process_NonSeekableTemplateWithLargeEntry_BuffersOnlyCompressedData()
+    {
+        byte[] template = CreateTemplateWithLargeEntry(out int entrySize);
+        using NonSeekableStream input = new NonSeekableStream(new MemoryStream(template));
+        using MemoryStream output = new MemoryStream();
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        ProcessingResult result = new OdtTemplateProcessor().ProcessTemplate(input, output, _data);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(result.IsSuccess, result.ErrorMessage);
+        Assert.True(allocated < entrySize / 4, $"Allocated {allocated:N0} bytes for a {entrySize:N0}-byte entry.");
+        AssertLargeEntryCopied(output.ToArray(), entrySize);
+    }
+
+    [Fact]
+    public void Open_XmlPartLargerThanLimit_ThrowsInvalidPackage()
+    {
+        byte[] template = new OdtDocumentBuilder().AddParagraph(new string('x', 4096)).ToBytes();
+
+        TriasDev.Templify.OpenDocument.InvalidOdtPackageException exception =
+            Assert.Throws<TriasDev.Templify.OpenDocument.InvalidOdtPackageException>(
+                () => TriasDev.Templify.OpenDocument.OdtPackage.Open(new MemoryStream(template), maxXmlPartBytes: 2048));
+
+        Assert.Equal(
+            "Invalid document: content.xml exceeds the maximum supported size (2048 bytes uncompressed).",
+            exception.Message);
+    }
+
+    [Fact]
+    public void Process_ExistingLongerOutputFile_IsTruncated()
+    {
+        // File.OpenWrite does not truncate: without cutting off, the rest of a longer earlier file stayed behind.
+        string path = Path.Combine(Path.GetTempPath(), "templify-odt-openwrite-" + Guid.NewGuid().ToString("N") + ".odt");
+        try
+        {
+            File.WriteAllBytes(path, new byte[200 * 1024]);
+            byte[] template = new OdtDocumentBuilder().AddParagraph("Hello {{Name}}").ToBytes();
+            ProcessingResult result;
+            using (FileStream output = File.OpenWrite(path))
+            {
+                result = new OdtTemplateProcessor().ProcessTemplate(new MemoryStream(template), output, _data);
+            }
+
+            Assert.True(result.IsSuccess, result.ErrorMessage);
+            byte[] written = File.ReadAllBytes(path);
+            Assert.True(written.Length < 200 * 1024);
+            OdtDocumentVerifier verifier = new OdtDocumentVerifier(written);
+            verifier.AssertValidOdtPackage();
+            Assert.Equal("Hello World", verifier.GetParagraphTexts()[0]);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Process_SeekableOutputWithPrefix_KeepsPrefixAndCutsOffTheRest()
+    {
+        byte[] template = new OdtDocumentBuilder().AddParagraph("Hello {{Name}}").ToBytes();
+        using MemoryStream output = new MemoryStream();
+        output.Write(new byte[] { 1, 2, 3 });
+        output.Write(new byte[100 * 1024]);
+        output.Position = 3;
+
+        ProcessingResult result = new OdtTemplateProcessor().ProcessTemplate(new MemoryStream(template), output, _data);
+
+        Assert.True(result.IsSuccess, result.ErrorMessage);
+        Assert.Equal(output.Position, output.Length);
+        byte[] written = output.ToArray();
+        Assert.Equal(new byte[] { 1, 2, 3 }, written[..3]);
+        Assert.Equal("Hello World", new OdtDocumentVerifier(written[3..]).GetParagraphTexts()[0]);
+    }
+
+    private static byte[] CreateTemplateWithLargeEntry(out int entrySize)
+    {
+        entrySize = 64 * 1024 * 1024;
+        return new OdtDocumentBuilder()
+            .AddParagraph("{{Name}}")
+            .AddEntry("Pictures/big.bin", new byte[entrySize])
+            .ToBytes();
+    }
+
+    private static void AssertLargeEntryCopied(byte[] output, int entrySize)
+    {
+        using ZipArchive archive = new ZipArchive(new MemoryStream(output), ZipArchiveMode.Read);
+        Assert.Equal(entrySize, archive.GetEntry("Pictures/big.bin")!.Length);
+        Assert.True(output.Length < entrySize / 100, $"Output of {output.Length:N0} bytes is not compressed.");
+        Assert.Equal("World", ReadParagraphText(archive));
+    }
+
+    private static string ReadParagraphText(ZipArchive archive)
+    {
+        using Stream content = archive.GetEntry("content.xml")!.Open();
+        System.Xml.Linq.XDocument document = System.Xml.Linq.XDocument.Load(content);
+        return document.Descendants(OdtDocumentVerifier.Text + "p").Single().Value;
+    }
+
     private static byte[] CreateZip(params (string Name, string Content)[] entries)
     {
         using MemoryStream stream = new MemoryStream();

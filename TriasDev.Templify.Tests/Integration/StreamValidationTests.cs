@@ -115,6 +115,33 @@ public sealed class StreamValidationTests
         Assert.Equal("Hello Alice!", verifier.GetParagraphText(0));
     }
 
+    [Fact]
+    public void ProcessTemplate_ExistingLongerOutputFile_IsTruncated()
+    {
+        // An existing file opened without truncation (FileMode.OpenOrCreate) used to keep its trailing bytes after
+        // the template copy, so the package could not be opened and processing failed.
+        string path = Path.Combine(Path.GetTempPath(), "templify-longer-" + Guid.NewGuid().ToString("N") + ".docx");
+        try
+        {
+            File.WriteAllBytes(path, new byte[200 * 1024]);
+            ProcessingResult result;
+            using (FileStream output = new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite))
+            {
+                result = new DocumentTemplateProcessor().ProcessTemplate(CreateTemplate(), output, _data);
+            }
+
+            Assert.True(result.IsSuccess, result.ErrorMessage);
+            byte[] written = File.ReadAllBytes(path);
+            Assert.True(written.Length < 200 * 1024);
+            using DocumentVerifier verifier = new DocumentVerifier(new MemoryStream(written));
+            Assert.Equal("Hello Alice!", verifier.GetParagraphText(0));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     private static void AssertOutputStreamFailure(ProcessingResult result)
     {
         Assert.False(result.IsSuccess);
