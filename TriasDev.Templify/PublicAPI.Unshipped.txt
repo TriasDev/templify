@@ -1,16 +1,1 @@
 #nullable enable
-TriasDev.Templify.Core.PlaceholderReplacementOptions.EnableMarkdown.get -> bool
-TriasDev.Templify.Core.PlaceholderReplacementOptions.EnableMarkdown.init -> void
-TriasDev.Templify.Core.TextProcessingResult.HasWarnings.get -> bool
-TriasDev.Templify.Core.TextProcessingResult.Warnings.get -> System.Collections.Generic.IReadOnlyList<TriasDev.Templify.Core.ProcessingWarning!>!
-TriasDev.Templify.Core.TextProcessingResult.Warnings.init -> void
-TriasDev.Templify.Core.ValidationWarningType.ReservedWordAsVariable = 1 -> TriasDev.Templify.Core.ValidationWarningType
-TriasDev.Templify.Core.DocumentTemplateProcessor.ProcessTemplate(System.IO.Stream! templateStream, System.IO.Stream! outputStream, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! data) -> TriasDev.Templify.Core.ProcessingResult!
-TriasDev.Templify.Core.DocumentTemplateProcessor.ProcessTemplate(byte[]! template, System.Collections.Generic.Dictionary<string!, object!>! data, out byte[]! output) -> TriasDev.Templify.Core.ProcessingResult!
-TriasDev.Templify.Core.DocumentTemplateProcessor.ProcessTemplate(byte[]! template, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! data, out byte[]! output) -> TriasDev.Templify.Core.ProcessingResult!
-TriasDev.Templify.Core.DocumentTemplateProcessor.ProcessTemplate(byte[]! template, string! jsonData, out byte[]! output) -> TriasDev.Templify.Core.ProcessingResult!
-TriasDev.Templify.Core.DocumentTemplateProcessor.ProcessTemplateFile(string! templatePath, string! outputPath, System.Collections.Generic.Dictionary<string!, object!>! data) -> TriasDev.Templify.Core.ProcessingResult!
-TriasDev.Templify.Core.DocumentTemplateProcessor.ProcessTemplateFile(string! templatePath, string! outputPath, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! data) -> TriasDev.Templify.Core.ProcessingResult!
-TriasDev.Templify.Core.DocumentTemplateProcessor.ProcessTemplateFile(string! templatePath, string! outputPath, string! jsonData) -> TriasDev.Templify.Core.ProcessingResult!
-TriasDev.Templify.Core.DocumentTemplateProcessor.ValidateTemplate(System.IO.Stream! templateStream, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! data) -> TriasDev.Templify.Core.ValidationResult!
-TriasDev.Templify.Core.TextTemplateProcessor.ProcessTemplate(string! templateText, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! data) -> TriasDev.Templify.Core.TextProcessingResult!

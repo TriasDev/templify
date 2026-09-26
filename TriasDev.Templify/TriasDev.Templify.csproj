@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <!-- Supported TFMs: .NET versions in Microsoft support. EOL TFMs are dropped in a minor release
-         with a release-notes notice (net6.0 dropped in 1.8.0, see #154 and CompatibilitySuppressions.xml). -->
+         with a release-notes notice (net6.0 dropped in 1.8.0, see #154). -->
     <TargetFrameworks>net10.0;net9.0;net8.0</TargetFrameworks>
 
     <!-- XML Documentation -->
@@ -30,7 +30,7 @@
     <!-- Public API guard: compare the packed API against the last released version.
          Any breaking change fails `dotnet pack`. Bump the baseline after each release. -->
     <EnablePackageValidation>true</EnablePackageValidation>
-    <PackageValidationBaselineVersion>1.7.0</PackageValidationBaselineVersion>
+    <PackageValidationBaselineVersion>1.8.0</PackageValidationBaselineVersion>
 
     <!-- Symbols and Source Link -->
     <IncludeSymbols>true</IncludeSymbols>
