@@ -158,6 +158,32 @@ internal sealed class OdtPackage
     }
 
     /// <summary>
+    /// Adds a new XML part (listed in the manifest with media type <c>text/xml</c>) and returns it for editing.
+    /// </summary>
+    public XDocument AddXml(string entryName, XDocument document)
+    {
+        _entries.Add(new PackageEntry(entryName, Array.Empty<byte>(), DateTimeOffset.Now));
+        LoadedPart part = new LoadedPart(document) { IsChanged = true };
+        document.Changed += (_, _) => part.IsChanged = true;
+        _parts[entryName] = part;
+
+        XElement? manifestRoot = FindEntry(ManifestEntry) != null ? GetXml(ManifestEntry)!.Root : null;
+        bool listed = manifestRoot?.Elements(OdfNames.ManifestFileEntry)
+            .Any(e => e.Attribute(OdfNames.ManifestFullPath)?.Value == entryName) ?? true;
+        if (listed)
+        {
+            return document;
+        }
+
+        manifestRoot!.Add(new XElement(
+            OdfNames.ManifestFileEntry,
+            new XAttribute(OdfNames.ManifestFullPath, entryName),
+            new XAttribute(OdfNames.ManifestMediaType, "text/xml")));
+
+        return document;
+    }
+
+    /// <summary>
     /// Writes the package as an OpenDocument Text document (.odt).
     /// </summary>
     public void Save(Stream output)

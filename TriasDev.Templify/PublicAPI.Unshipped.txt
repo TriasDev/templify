@@ -10,3 +10,6 @@ TriasDev.Templify.Core.OdtTemplateProcessor.ProcessTemplate(byte[]! template, st
 TriasDev.Templify.Core.OdtTemplateProcessor.ProcessTemplateFile(string! templatePath, string! outputPath, System.Collections.Generic.Dictionary<string!, object!>! data) -> TriasDev.Templify.Core.ProcessingResult!
 TriasDev.Templify.Core.OdtTemplateProcessor.ProcessTemplateFile(string! templatePath, string! outputPath, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! data) -> TriasDev.Templify.Core.ProcessingResult!
 TriasDev.Templify.Core.OdtTemplateProcessor.ProcessTemplateFile(string! templatePath, string! outputPath, string! jsonData) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.OdtTemplateProcessor.ValidateTemplate(System.IO.Stream! templateStream) -> TriasDev.Templify.Core.ValidationResult!
+TriasDev.Templify.Core.OdtTemplateProcessor.ValidateTemplate(System.IO.Stream! templateStream, System.Collections.Generic.Dictionary<string!, object!>! data) -> TriasDev.Templify.Core.ValidationResult!
+TriasDev.Templify.Core.OdtTemplateProcessor.ValidateTemplate(System.IO.Stream! templateStream, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! data) -> TriasDev.Templify.Core.ValidationResult!

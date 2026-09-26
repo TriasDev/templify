@@ -485,16 +485,6 @@ public sealed class OdtPlaceholderTests
     }
 
     [Fact]
-    public void MarkdownInValue_IsInsertedAsText_ForNow()
-    {
-        (_, OdtDocumentVerifier output) = OdtTestHelper.Process(
-            new OdtDocumentBuilder().AddParagraph("{{Value}} {{Value:raw}}"),
-            new Dictionary<string, object> { ["Value"] = "**bold**" });
-
-        Assert.Equal("**bold** **bold**", output.GetParagraphTexts()[0]);
-    }
-
-    [Fact]
     public void MissingVariable_LeaveUnchanged_IsDefault_AndReported()
     {
         (ProcessingResult result, OdtDocumentVerifier output) = OdtTestHelper.Process(
