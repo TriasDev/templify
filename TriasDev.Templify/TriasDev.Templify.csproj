@@ -14,7 +14,7 @@
 
     <!-- NuGet Package Metadata -->
     <PackageId>TriasDev.Templify</PackageId>
-    <Version>1.8.0</Version>
+    <Version>1.9.0</Version>
     <Authors>TriasDev GmbH &amp; Co. KG</Authors>
     <Company>TriasDev GmbH &amp; Co. KG</Company>
     <Description>High-performance templating engine for .NET. Process Word documents (.docx), LibreOffice / OpenDocument Text documents (.odt, .ott) and plain text templates with the same powerful syntax. Replace placeholders, evaluate conditionals, and process loops without Microsoft Word or LibreOffice. Built on the OpenXML SDK; OpenDocument support needs no extra dependency.</Description>
