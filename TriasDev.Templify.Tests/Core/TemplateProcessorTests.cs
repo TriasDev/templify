@@ -65,6 +65,17 @@ public sealed class TemplateProcessorTests
     }
 
     [Theory]
+    [InlineData("APPLICATION/VND.OASIS.OPENDOCUMENT.TEXT")]
+    [InlineData("Application/Vnd.Oasis.OpenDocument.Text-Template")]
+    [InlineData("application/vnd.oasis.opendocument.text\n")]
+    public void DetectFormat_TextMediaTypeInOtherCaseOrWithWhiteSpace_ReturnsOdt(string mediaType)
+    {
+        using MemoryStream stream = new MemoryStream(CreateZip(("mimetype", mediaType), ("content.xml", "<x/>")));
+
+        Assert.Equal(TemplateFormat.Odt, TemplateProcessor.DetectFormat(stream));
+    }
+
+    [Theory]
     [InlineData("application/vnd.oasis.opendocument.spreadsheet")]
     [InlineData("application/vnd.oasis.opendocument.presentation")]
     [InlineData("application/vnd.oasis.opendocument.text-master")]

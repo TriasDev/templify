@@ -38,7 +38,8 @@ internal sealed class InvalidOdtPackageException : Exception
 /// <para>
 /// The written package always starts with the <c>mimetype</c> entry, stored (uncompressed) and
 /// without an extra field, as ODF requires. A template (.ott) is written as a document (.odt):
-/// its <c>mimetype</c> and the manifest's root media type are rewritten.
+/// its <c>mimetype</c> and the manifest's root media type are rewritten. Document signatures and the preview
+/// thumbnail are dropped. Packages with duplicate entry names or absolute or parent-relative entry paths are rejected.
 /// </para>
 /// <para>
 /// XML is loaded with white space preserved, DTD processing prohibited and no resolver, and is
@@ -65,6 +66,12 @@ internal sealed class OdtPackage
 
     /// <summary>Name of the document signature part, which processing invalidates.</summary>
     public const string DocumentSignaturesEntry = "META-INF/documentsignatures.xml";
+
+    /// <summary>Name of the preview thumbnail, which shows the template, not the processed document.</summary>
+    public const string ThumbnailEntry = "Thumbnails/thumbnail.png";
+
+    /// <summary>Name of the (optional) directory entry of the thumbnail.</summary>
+    private const string ThumbnailsDirectoryEntry = "Thumbnails/";
 
     /// <summary>
     /// Default upper bound for the inflated size of each XML part that is loaded (256 MB). Real parts are far
@@ -143,9 +150,12 @@ internal sealed class OdtPackage
                     + $"supported number of {MaxEntryCount}.");
             }
 
+            HashSet<string> names = new HashSet<string>(StringComparer.Ordinal);
             for (int index = 0; index < archive.Entries.Count; index++)
             {
                 ZipArchiveEntry entry = archive.Entries[index];
+                EnsureUsableEntryName(entry.FullName, names);
+
                 byte[]? data = null;
                 if (entry.FullName == MimetypeEntry)
                 {
@@ -255,7 +265,13 @@ internal sealed class OdtPackage
             RewriteManifestMediaType(OdfNames.TextMediaType);
         }
 
-        RemoveDocumentSignatures();
+        // A processed document no longer matches its signature, and the template's preview thumbnail shows the
+        // unprocessed template (LibreOffice writes a new one when it saves the document).
+        RemoveEntry(DocumentSignaturesEntry);
+        if (RemoveEntry(ThumbnailEntry) && !_entries.Any(e => IsInThumbnailsDirectory(e.Name)))
+        {
+            RemoveEntry(ThumbnailsDirectoryEntry);
+        }
 
         // Build the package in memory: ZipArchive writes local headers without data descriptors only on a
         // seekable stream, and the output is written only once everything succeeded. Entries that are not
@@ -426,14 +442,20 @@ internal sealed class OdtPackage
             mediaType = ReadManifestRootMediaType(entries);
         }
 
-        if (mediaType != OdfNames.TextMediaType && mediaType != OdfNames.TextTemplateMediaType)
+        // Media types are case-insensitive (RFC 2045); the canonical spelling is kept.
+        if (string.Equals(mediaType, OdfNames.TextMediaType, StringComparison.OrdinalIgnoreCase))
         {
-            string found = string.IsNullOrEmpty(mediaType) ? "none" : $"'{mediaType}'";
-            throw new InvalidOdtPackageException(
-                $"Invalid document: the template is not an OpenDocument Text document (.odt/.ott); media type: {found}.");
+            return OdfNames.TextMediaType;
         }
 
-        return mediaType;
+        if (string.Equals(mediaType, OdfNames.TextTemplateMediaType, StringComparison.OrdinalIgnoreCase))
+        {
+            return OdfNames.TextTemplateMediaType;
+        }
+
+        string found = string.IsNullOrEmpty(mediaType) ? "none" : $"'{mediaType}'";
+        throw new InvalidOdtPackageException(
+            $"Invalid document: the template is not an OpenDocument Text document (.odt/.ott); media type: {found}.");
     }
 
     private static string? ReadManifestRootMediaType(List<PackageEntry> entries)
@@ -487,17 +509,48 @@ internal sealed class OdtPackage
         }
     }
 
-    private void RemoveDocumentSignatures()
+    /// <summary>
+    /// Removes an entry and its manifest file entry; returns whether the package had the entry.
+    /// </summary>
+    private bool RemoveEntry(string name)
     {
-        if (_entries.RemoveAll(e => e.Name == DocumentSignaturesEntry) == 0 || FindEntry(ManifestEntry) == null)
+        if (_entries.RemoveAll(e => e.Name == name) == 0)
         {
-            return;
+            return false;
         }
 
-        XDocument manifest = GetXml(ManifestEntry)!;
-        manifest.Root?.Elements(OdfNames.ManifestFileEntry)
-            .Where(e => e.Attribute(OdfNames.ManifestFullPath)?.Value == DocumentSignaturesEntry)
-            .Remove();
+        if (FindEntry(ManifestEntry) != null)
+        {
+            GetXml(ManifestEntry)!.Root?.Elements(OdfNames.ManifestFileEntry)
+                .Where(e => e.Attribute(OdfNames.ManifestFullPath)?.Value == name)
+                .Remove();
+        }
+
+        return true;
+    }
+
+    private static bool IsInThumbnailsDirectory(string name) =>
+        name.StartsWith(ThumbnailsDirectoryEntry, StringComparison.Ordinal) && name != ThumbnailsDirectoryEntry;
+
+    /// <summary>
+    /// Rejects duplicate entry names (which entry a reader uses is undefined) and absolute or parent-relative
+    /// paths (which no OpenDocument producer writes and extracting tools could resolve outside their target).
+    /// </summary>
+    private static void EnsureUsableEntryName(string name, HashSet<string> names)
+    {
+        if (!names.Add(name))
+        {
+            throw new InvalidOdtPackageException($"Invalid document: the package contains the entry '{name}' more than once.");
+        }
+
+        bool isAbsolute = name.Length == 0
+            || name[0] == '/'
+            || name[0] == '\\'
+            || (name.Length >= 2 && name[1] == ':');
+        if (isAbsolute || name.Split('/', '\\').Contains(".."))
+        {
+            throw new InvalidOdtPackageException($"Invalid document: the package contains an entry with an invalid path ('{name}').");
+        }
     }
 
     /// <summary>
