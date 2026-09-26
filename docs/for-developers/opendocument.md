@@ -68,6 +68,22 @@ The requirements are looser than for Word documents:
 A template that is not an OpenDocument Text package is reported as a failed result, with an `ErrorMessage` that
 names what was found. This covers a Word file, a spreadsheet, a flat `.fodt` file or a password-protected document.
 
+### Memory Use
+
+Only the parts that processing reads are unpacked into memory: `content.xml`, `styles.xml`, `meta.xml` and
+`META-INF/manifest.xml`. Pictures, embedded objects and all other entries are copied from the template into the
+output entry by entry, without holding them in memory. The output package is built in memory in compressed form (so
+that nothing is written on failure), and a template stream that is not seekable is buffered in compressed form. Memory
+use therefore follows the size of the `.odt` file plus the size of its XML parts, not the unpacked size of its pictures.
+
+Each XML part may be at most 256 MB when unpacked, and a package at most 65,535 entries. A template that exceeds
+these limits fails with an `ErrorMessage` such as `content.xml exceeds the maximum supported size`. Real documents
+are far below these limits. Treat templates from untrusted sources with care anyway: an entry that unpacks to a very
+large size is not held in memory, but it still costs time to copy.
+
+When the output stream is seekable (a file or a `MemoryStream`), it is cut off after the written document, so an
+existing, longer file opened with `File.OpenWrite` does not keep bytes of its earlier content.
+
 ### Options
 
 All `PlaceholderReplacementOptions` apply, with two notes:

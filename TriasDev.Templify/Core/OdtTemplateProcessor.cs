@@ -68,7 +68,8 @@ public sealed class OdtTemplateProcessor
     /// <param name="templateStream">Stream containing the template .odt or .ott file. Must be readable.</param>
     /// <param name="outputStream">
     /// Stream to write the processed .odt document to. Must be writable. The document is built in memory and
-    /// written only when processing succeeds; on failure nothing is written.
+    /// written only when processing succeeds; on failure nothing is written. A seekable stream is cut off after the
+    /// written document.
     /// </param>
     /// <param name="data">Dictionary containing variable names and their replacement values.</param>
     /// <returns>
