@@ -30,7 +30,7 @@
             <TextBox Grid.Column="1"
                      Text="{Binding TemplatePath}"
                      IsReadOnly="True"
-                     PlaceholderText="Select a .docx template file"
+                     PlaceholderText="Select a .docx, .odt or .ott template file"
                      Margin="10,0,10,0"/>
             <Button Grid.Column="2"
                     Content="Browse..."

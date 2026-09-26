@@ -17,7 +17,7 @@ public interface ITemplifyService
     /// <summary>
     /// Validates a template file with optional JSON data.
     /// </summary>
-    /// <param name="templatePath">Path to the template file (.docx).</param>
+    /// <param name="templatePath">Path to the template file (.docx, .odt or .ott).</param>
     /// <param name="jsonPath">Optional path to JSON data file for validation.</param>
     /// <param name="enableHtmlEntityReplacement">Enable HTML entity replacement (e.g., &lt;br&gt; to line break).</param>
     /// <param name="culture">Culture for formatting. Defaults to InvariantCulture.</param>
@@ -31,9 +31,9 @@ public interface ITemplifyService
     /// <summary>
     /// Processes a template with JSON data and generates output.
     /// </summary>
-    /// <param name="templatePath">Path to the template file (.docx).</param>
+    /// <param name="templatePath">Path to the template file (.docx, .odt or .ott).</param>
     /// <param name="jsonPath">Path to JSON data file.</param>
-    /// <param name="outputPath">Path for the output file.</param>
+    /// <param name="outputPath">Path for the output file (.docx for a Word template, .odt for an OpenDocument template).</param>
     /// <param name="enableHtmlEntityReplacement">Enable HTML entity replacement (e.g., &lt;br&gt; to line break).</param>
     /// <param name="culture">Culture for formatting. Defaults to InvariantCulture.</param>
     /// <param name="progress">Optional progress reporter.</param>

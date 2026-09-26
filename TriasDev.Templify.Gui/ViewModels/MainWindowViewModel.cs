@@ -137,6 +137,7 @@ public partial class MainWindowViewModel : ViewModelBase
         if (selectedFile != null)
         {
             TemplatePath = selectedFile;
+            MatchChosenOutputExtension();
             UpdateOutputPath();
         }
     }
@@ -460,6 +461,27 @@ public partial class MainWindowViewModel : ViewModelBase
         OutputPath = Path.Combine(dir, filename);
     }
 
+    /// <summary>
+    /// Keeps a user-chosen output path but switches its extension between .docx and .odt when the new template
+    /// produces the other format (an OpenDocument template never produces a .docx file, and vice versa).
+    /// </summary>
+    private void MatchChosenOutputExtension()
+    {
+        if (!_outputPathChosenByUser || string.IsNullOrEmpty(OutputPath))
+        {
+            return;
+        }
+
+        string expected = TemplifyService.GetOutputExtension(TemplatePath);
+        string current = Path.GetExtension(OutputPath);
+        bool isDocumentExtension = current.Equals(TemplifyService.DocxExtension, StringComparison.OrdinalIgnoreCase)
+            || current.Equals(TemplifyService.OdtExtension, StringComparison.OrdinalIgnoreCase);
+        if (isDocumentExtension && !current.Equals(expected, StringComparison.OrdinalIgnoreCase))
+        {
+            OutputPath = Path.ChangeExtension(OutputPath, expected);
+        }
+    }
+
     private void UpdateOutputNotice()
     {
         OutputNotice = !string.IsNullOrEmpty(OutputPath) && File.Exists(OutputPath)
@@ -472,7 +494,7 @@ public partial class MainWindowViewModel : ViewModelBase
         if (!string.IsNullOrEmpty(TemplatePath))
         {
             string templateName = Path.GetFileNameWithoutExtension(TemplatePath);
-            return $"{templateName}-output.docx";
+            return $"{templateName}-output{TemplifyService.GetOutputExtension(TemplatePath)}";
         }
 
         return "output.docx";

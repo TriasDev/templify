@@ -35,7 +35,7 @@ Write a JSON file with the values the template uses, then use one of these optio
 dotnet run --project TriasDev.Templify.Gui/TriasDev.Templify.Gui.csproj
 ```
 
-Select the template (`.docx`), the JSON data file and the output file, then click **Process Template**.
+Select the template (`.docx`, `.odt` or `.ott`), the JSON data file and the output file, then click **Process Template**.
 
 **Option B: Demo console application**
 

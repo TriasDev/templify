@@ -290,4 +290,77 @@ public sealed class MainWindowViewModelTests : IDisposable
 
         Assert.NotNull(vm.TemplatePath);
     }
+
+    [Theory]
+    [InlineData("letter.odt")]
+    [InlineData("letter.ott")]
+    public async Task BrowseTemplate_OpenDocument_DefaultOutputIsOdt(string templateName)
+    {
+        MainWindowViewModel vm = CreateViewModel();
+        _dialogs.TemplateFile = _temp.File(templateName);
+
+        await vm.BrowseTemplateCommand.ExecuteAsync(null);
+
+        Assert.Equal(_temp.File("letter-output.odt"), vm.OutputPath);
+    }
+
+    [Fact]
+    public async Task BrowseTemplate_OpenDocumentContentWithDocxName_DefaultOutputIsOdt()
+    {
+        MainWindowViewModel vm = CreateViewModel();
+        _dialogs.TemplateFile = OdtTestFile.Create(_temp.File("letter.docx"), asTemplate: false, "x");
+
+        await vm.BrowseTemplateCommand.ExecuteAsync(null);
+
+        Assert.Equal(_temp.File("letter-output.odt"), vm.OutputPath);
+    }
+
+    [Fact]
+    public async Task BrowseTemplate_OtherFormat_SwitchesExtensionOfChosenOutput()
+    {
+        MainWindowViewModel vm = CreateViewModel();
+        _dialogs.TemplateFile = _temp.File("invoice.docx");
+        _dialogs.SaveFile = _temp.File("custom.docx");
+        await vm.BrowseTemplateCommand.ExecuteAsync(null);
+        await vm.BrowseOutputCommand.ExecuteAsync(null);
+
+        _dialogs.TemplateFile = _temp.File("letter.ott");
+        await vm.BrowseTemplateCommand.ExecuteAsync(null);
+        string afterOdt = vm.OutputPath!;
+
+        _dialogs.TemplateFile = _temp.File("invoice.docx");
+        await vm.BrowseTemplateCommand.ExecuteAsync(null);
+
+        Assert.Equal(_temp.File("custom.odt"), afterOdt);
+        Assert.Equal(_temp.File("custom.docx"), vm.OutputPath);
+    }
+
+    [Fact]
+    public async Task BrowseOutput_OpenDocumentTemplate_SuggestsOdtName()
+    {
+        RecordingFileDialogService dialogs = new() { TemplateFile = _temp.File("letter.odt") };
+        MainWindowViewModel vm = new(_service, dialogs, _launcher);
+        await vm.BrowseTemplateCommand.ExecuteAsync(null);
+
+        await vm.BrowseOutputCommand.ExecuteAsync(null);
+
+        Assert.Equal("letter-output.odt", dialogs.LastSuggestedName);
+    }
+
+    private sealed class RecordingFileDialogService : Templify.Gui.Services.IFileDialogService
+    {
+        public string? TemplateFile { get; init; }
+
+        public string? LastSuggestedName { get; private set; }
+
+        public Task<string?> OpenTemplateFileAsync() => Task.FromResult(TemplateFile);
+
+        public Task<string?> OpenJsonFileAsync() => Task.FromResult<string?>(null);
+
+        public Task<string?> SaveOutputFileAsync(string defaultName)
+        {
+            LastSuggestedName = defaultName;
+            return Task.FromResult<string?>(null);
+        }
+    }
 }
