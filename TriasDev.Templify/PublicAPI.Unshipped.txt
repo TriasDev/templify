@@ -1,1 +1,12 @@
 #nullable enable
+TriasDev.Templify.Core.OdtTemplateProcessor
+TriasDev.Templify.Core.OdtTemplateProcessor.OdtTemplateProcessor(TriasDev.Templify.Core.PlaceholderReplacementOptions? options = null) -> void
+TriasDev.Templify.Core.OdtTemplateProcessor.ProcessTemplate(System.IO.Stream! templateStream, System.IO.Stream! outputStream, System.Collections.Generic.Dictionary<string!, object!>! data) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.OdtTemplateProcessor.ProcessTemplate(System.IO.Stream! templateStream, System.IO.Stream! outputStream, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! data) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.OdtTemplateProcessor.ProcessTemplate(System.IO.Stream! templateStream, System.IO.Stream! outputStream, string! jsonData) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.OdtTemplateProcessor.ProcessTemplate(byte[]! template, System.Collections.Generic.Dictionary<string!, object!>! data, out byte[]! output) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.OdtTemplateProcessor.ProcessTemplate(byte[]! template, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! data, out byte[]! output) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.OdtTemplateProcessor.ProcessTemplate(byte[]! template, string! jsonData, out byte[]! output) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.OdtTemplateProcessor.ProcessTemplateFile(string! templatePath, string! outputPath, System.Collections.Generic.Dictionary<string!, object!>! data) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.OdtTemplateProcessor.ProcessTemplateFile(string! templatePath, string! outputPath, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! data) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.OdtTemplateProcessor.ProcessTemplateFile(string! templatePath, string! outputPath, string! jsonData) -> TriasDev.Templify.Core.ProcessingResult!
