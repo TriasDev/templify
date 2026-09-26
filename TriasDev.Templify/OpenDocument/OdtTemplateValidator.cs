@@ -270,6 +270,9 @@ internal sealed class OdtTemplateValidator
     {
         private readonly HashSet<string> _allPlaceholders;
         private readonly List<ValidationError> _errors;
+        /// <summary>The marker quoted in an unmatched-marker message, e.g. <c>'{{#if A}}'</c>.</summary>
+        private static readonly Regex _quotedMarker = new Regex(@"start marker '(\{\{#[^']*\}\})'", RegexOptions.CultureInvariant);
+
         private readonly HashSet<string> _reported = new HashSet<string>(StringComparer.Ordinal);
 
         public SyntaxWalker(HashSet<string> allPlaceholders, List<ValidationError> errors)
@@ -339,7 +342,12 @@ internal sealed class OdtTemplateValidator
             }
             catch (TemplateSyntaxException ex)
             {
-                if (_reported.Add(ex.Message))
+                // A marker that fails at row or list-item level is found again inside its cell or item, with the
+                // cell-level wording ("Conditional start marker '{{#if A}}' ..."); report each marker once, with
+                // the message of the outermost level, which is the one processing fails with.
+                Match marker = _quotedMarker.Match(ex.Message);
+                string key = marker.Success ? $"{ex.ErrorType}:{marker.Groups[1].Value}" : ex.Message;
+                if (_reported.Add(key))
                 {
                     _errors.Add(ValidationError.Create(ex.ErrorType, ex.Message));
                 }

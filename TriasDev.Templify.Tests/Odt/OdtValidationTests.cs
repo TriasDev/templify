@@ -140,7 +140,46 @@ public sealed class OdtValidationTests
 
         ValidationResult result = Validate(template);
 
-        Assert.Contains(result.Errors, e => e.Message.Contains("'{{#if A}}'", StringComparison.Ordinal));
+        // Reported once, with the row-level message that processing fails with (as for Word templates).
+        ValidationError error = Assert.Single(result.Errors);
+        Assert.Equal(ValidationErrorType.UnmatchedConditionalStart, error.Type);
+        Assert.Equal("Table row conditional start marker '{{#if A}}' has no matching '{{/if}}'.", error.Message);
+    }
+
+    [Fact]
+    public void UnmatchedListItemMarkers_AreReportedOnce_WithTheMessageProcessingFailsWith()
+    {
+        OdtDocumentBuilder template = new OdtDocumentBuilder()
+            .AddXml("<text:list><text:list-item><text:p>{{#if A}}</text:p></text:list-item><text:list-item><text:p>b</text:p></text:list-item></text:list>")
+            .AddXml("<text:list><text:list-item><text:p>{{#foreach Items}}</text:p></text:list-item><text:list-item><text:p>b</text:p></text:list-item></text:list>");
+        byte[] bytes = template.ToBytes();
+
+        ValidationResult result = new OdtTemplateProcessor().ValidateTemplate(new MemoryStream(bytes));
+        ProcessingResult processing = new OdtTemplateProcessor().ProcessTemplate(
+            bytes,
+            new Dictionary<string, object> { ["A"] = true, ["Items"] = new List<int> { 1 } },
+            out _);
+
+        Assert.Equal(
+            new[]
+            {
+                "UnmatchedConditionalStart: List item conditional start marker '{{#if A}}' has no matching '{{/if}}'.",
+                "UnmatchedLoopStart: List item loop start marker '{{#foreach Items}}' has no matching '{{/foreach}}'.",
+            },
+            result.Errors.Select(e => $"{e.Type}: {e.Message}").Order(StringComparer.Ordinal));
+        Assert.False(processing.IsSuccess);
+        Assert.Contains(processing.ErrorMessage!, result.Errors.Select(e => "Processing failed: " + e.Message));
+    }
+
+    [Fact]
+    public void SameUnmatchedMarker_InTwoParagraphs_IsReportedOnce()
+    {
+        ValidationResult result = Validate(new OdtDocumentBuilder()
+            .AddTable(new[] { "{{#if A}} x" }, new[] { "y" })
+            .AddParagraph("{{#if A}}"));
+
+        ValidationError error = Assert.Single(result.Errors);
+        Assert.Equal("Conditional start marker '{{#if A}}' has no matching '{{/if}}'.", error.Message);
     }
 
     [Fact]
