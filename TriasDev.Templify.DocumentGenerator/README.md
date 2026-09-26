@@ -4,7 +4,7 @@ A tool for automatically generating example Word documents and converting them t
 
 ## What It Does
 
-1. **Generates Example Templates**: Creates .docx template files with Templify syntax
+1. **Generates Example Templates**: Creates .docx template files (and one OpenDocument .odt template) with Templify syntax
 2. **Processes Templates**: Uses Templify to generate output documents
 3. **Converts to Images**: Uses Stirling-PDF to create PNG screenshots for documentation
 
@@ -63,8 +63,8 @@ The tool generates files in the following locations:
 
 ```
 examples/
-├── templates/          # Template .docx files (with {{placeholders}})
-└── outputs/            # Processed .docx files (with actual data)
+├── templates/          # Template .docx/.odt files (with {{placeholders}})
+└── outputs/            # Processed .docx/.odt files (with actual data)
 
 docs/images/examples/
 ├── templates/          # PNG screenshots of templates (used by the MkDocs site)
@@ -114,6 +114,18 @@ docs/images/examples/
   cp examples/templates/warning-report-template.docx TriasDev.Templify/Resources/WarningReportTemplate.docx
   ```
   Then run the test suite (`ProcessingWarnings*` tests cover the report) before committing.
+
+### 6. LibreOffice Letter (`libreoffice-letter`)
+- **Purpose**: An OpenDocument Text (`.odt`) template, as LibreOffice Writer saves it, processed with the
+  format-detecting `TemplateProcessor`
+- **Features**:
+  - Placeholders with nested data and a date format
+  - Markdown in a value (`**shipped**`)
+  - `{{#if}}` / `{{#else}}` around paragraphs and a bulleted list
+  - A list-item loop (markers in their own list items) and a table-row loop
+  - A placeholder in the page footer
+- The package is written directly (ZIP + XML), with fixed timestamps, so regenerating it is deterministic. Preview
+  images are only generated for `.docx` files.
 
 ## Architecture
 

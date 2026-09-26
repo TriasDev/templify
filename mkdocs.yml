@@ -1,5 +1,5 @@
 site_name: Templify Documentation
-site_description: .NET library for replacing placeholders in Word documents without Microsoft Word
+site_description: .NET library for replacing placeholders in Word (.docx) and OpenDocument (.odt) documents without Microsoft Word or LibreOffice
 site_author: TriasDev
 site_url: https://triasdev.github.io/templify/
 repo_url: https://github.com/triasdev/templify
@@ -96,9 +96,11 @@ nav:
     - Boolean Expressions: for-template-authors/boolean-expressions.md
     - Best Practices: for-template-authors/best-practices.md
     - Headers & Footers: for-template-authors/headers-footers.md
+    - LibreOffice / OpenDocument: for-template-authors/libreoffice.md
     - Examples Gallery: for-template-authors/examples-gallery.md
   - For Developers:
     - Quick Start: for-developers/quick-start.md
+    - OpenDocument (.odt): for-developers/opendocument.md
     - Text Template Processing: for-developers/text-templates.md
     - Condition Evaluation: for-developers/condition-evaluation.md
     - Processing Warnings: for-developers/processing-warnings.md

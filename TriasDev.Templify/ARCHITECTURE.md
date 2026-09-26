@@ -214,6 +214,36 @@ expression string
   and per loop row list, cells, nested tables, text boxes, content controls) and resolves names inside a loop against
   the items of that loop and its enclosing loops (implicit properties, named iteration variables, metadata).
 
+## OpenDocument Text (.odt / .ott)
+
+OpenDocument templates are processed by a separate internal engine in `OpenDocument/`. The Word pipeline above is not
+touched. The format-agnostic components are reused unchanged: the condition engine, `InlineConditionalParser` and
+`ConditionalPatterns`, `PlaceholderScanner` and `ExpressionPlaceholderEvaluator`, `ValueConverter`, `TextReplacements`,
+the evaluation contexts, `ReplacementContent`/`MarkdownParser`, and results and warnings. The design and its decisions
+are in `docs/superpowers/specs/2026-09-26-odt-support-design.md`.
+
+```
+OdtTemplateProcessor.ProcessTemplate(...)                 Core/OdtTemplateProcessor.cs
+ ├─ OdtPackage.Open(template)       ZIP + XML parts; media type check; encrypted → failure
+ ├─ OdtTemplateEngine.Process       content.xml body, then styles.xml master pages (headers/footers)
+ │    per container: detect loops → conditionals (deepest first, not inside loops) → expand loops → placeholders
+ │    paragraphs (text:p/text:h), tables/row groups, lists (items like rows), sections, text boxes, notes, indexes
+ ├─ OdtUniqueNames                  frame/table/section names and note ids unique after cloning
+ ├─ OdtDocumentProperties           DocumentProperties → meta.xml
+ └─ package.Save(output)            mimetype first and stored; .ott → .odt; written only on success
+```
+
+- `OdtParagraphTextModel` / `OdtParagraphTextRewriter` are the ODT counterparts of the paragraph text model and
+  rewriter. They treat `text:span`/`text:a` as inline containers and `text:s`, `text:tab` and `text:line-break` as
+  atoms, and they encode replacements so that ODF whitespace collapsing renders them exactly. Markdown becomes
+  automatic text styles (`OdtTextStyles`).
+- `OdtConditionalDetector`, `OdtLoopDetector` and `OdtMarkerText` detect markers over `XElement` siblings with the same
+  patterns and error messages as the Word detectors. `OdtTemplateValidator` implements `ValidateTemplate`.
+- `Core/TemplateProcessor.cs` is the format-detecting facade. `TemplateFormatDetector` reads the ZIP: the ODF
+  `mimetype` entry (or the manifest root media type) and the OOXML `[Content_Types].xml` WordprocessingML main part.
+  The facade delegates to `DocumentTemplateProcessor` or `OdtTemplateProcessor`. A non-seekable template stream is
+  buffered, and an unsupported format is a failed result.
+
 ## Post-Processing
 
 - **`Utilities/DrawingIdAllocator.cs`** renumbers duplicate drawing (`wp:docPr`) and VML shape ids across all story
@@ -238,6 +268,7 @@ expression string
 | `Markdown/` | Markdown parsing |
 | `Replacements/` | Text replacement tables |
 | `Utilities/` | Paragraph text model/rewriter, formatting, JSON parsing, numeric values, sanitizing, drawing ids |
+| `OpenDocument/` | OpenDocument Text engine: package, text model/rewriter, detectors, engine, styles, unique names, validator |
 
 ## Constraints and Trade-offs
 

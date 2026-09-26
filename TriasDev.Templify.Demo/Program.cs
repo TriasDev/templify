@@ -19,7 +19,7 @@ internal partial class Program
     private static int Main(string[] args)
     {
         // Optional: process your own template instead of the built-in demos
-        //   dotnet run --project TriasDev.Templify.Demo -- --template my.docx --data my.json [--output out.docx]
+        //   dotnet run --project TriasDev.Templify.Demo -- --template my.docx|my.odt --data my.json [--output out.docx]
         if (args.Contains("--template") || args.Contains("--data"))
         {
             return RunCustomTemplate(args);
@@ -98,7 +98,7 @@ internal partial class Program
         Console.WriteLine("═══════════════════════════════════════════════════════════");
         Console.WriteLine();
         Console.WriteLine("💡 To process your own template, run:");
-        Console.WriteLine("   dotnet run --project TriasDev.Templify.Demo -- --template my.docx --data my.json");
+        Console.WriteLine("   dotnet run --project TriasDev.Templify.Demo -- --template my.docx --data my.json   (or my.odt / my.ott)");
 
         return result.IsSuccess ? 0 : 1;
     }

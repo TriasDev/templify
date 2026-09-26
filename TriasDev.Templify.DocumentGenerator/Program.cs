@@ -154,8 +154,8 @@ Console.WriteLine("Summary");
 Console.WriteLine("=========================================");
 Console.WriteLine();
 
-var templateCount = Directory.GetFiles(templatesDir, "*.docx").Length;
-var outputCount = Directory.GetFiles(outputsDir, "*.docx").Length;
+var templateCount = Directory.GetFiles(templatesDir, "*.docx").Length + Directory.GetFiles(templatesDir, "*.odt").Length;
+var outputCount = Directory.GetFiles(outputsDir, "*.docx").Length + Directory.GetFiles(outputsDir, "*.odt").Length;
 var templateImageCount = Directory.GetFiles(Path.Combine(imagesDir, "templates"), "*.png").Length;
 var outputImageCount = Directory.GetFiles(Path.Combine(imagesDir, "outputs"), "*.png").Length;
 

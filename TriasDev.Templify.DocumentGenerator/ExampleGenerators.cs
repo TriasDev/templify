@@ -22,5 +22,6 @@ public static class ExampleGenerators
         new ConditionalGenerator(),
         new AdvancedConditionalGenerator(),
         new WarningReportTemplateGenerator(),
+        new LibreOfficeLetterGenerator(),
     ];
 }

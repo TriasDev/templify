@@ -12,15 +12,16 @@
 [![.NET](https://img.shields.io/badge/.NET-8.0%20%7C%209.0%20%7C%2010.0-purple)](https://dotnet.microsoft.com/download)
 [![Changelog](https://img.shields.io/badge/changelog-Keep%20a%20Changelog-orange)](CHANGELOG.md)
 
-> A modern .NET library for processing Word document templates without Microsoft Word
+> A modern .NET library for processing Word (.docx) and LibreOffice / OpenDocument (.odt/.ott) templates without Microsoft Word or LibreOffice
 
 ---
 
 ## Overview
 
-Templify is a focused .NET library built on the OpenXML SDK that enables dynamic Word document generation and text template processing through simple placeholder replacement, conditionals, and loops. Unlike complex templating systems, Templify provides an intuitive API for the most common use cases: replacing `{{placeholders}}` in Word templates with actual data, and generating dynamic text content for emails and notifications.
+Templify is a focused .NET library that enables dynamic document generation from Word (`.docx`) and OpenDocument Text (`.odt`, `.ott`) templates, and text template processing, through simple placeholder replacement, conditionals, and loops. Unlike complex templating systems, Templify provides an intuitive API for the most common use cases: replacing `{{placeholders}}` in Word templates with actual data, and generating dynamic text content for emails and notifications.
 
 **Key Features:**
+- 📄 Word (`.docx`) and LibreOffice / OpenDocument (`.odt`, `.ott`) templates with the same syntax, and a `TemplateProcessor` that detects the format
 - 📝 Simple placeholder syntax: `{{variableName}}`, nested paths `{{Customer.Address.City}}` and indexing `{{Items[0].Name}}`
 - 🔀 Conditional blocks: `{{#if}}...{{#elseif}}...{{#else}}...{{/if}}`, with `and`/`or`/`not`, comparisons, `in`, `contains`, `exists`, `is empty` and more
 - 🔁 Loops: `{{#foreach Items}}...{{/foreach}}` or `{{#foreach item in Items}}...{{/foreach}}`, including table row loops and loop metadata (`@index`, `@number`, `@first`, `@last`, `@count`)
@@ -31,7 +32,7 @@ Templify is a focused .NET library built on the OpenXML SDK that enables dynamic
 - 📄 Processes the body, tables, headers and footers, footnotes and endnotes, text boxes and content controls
 - ✅ Template validation and processing warnings, including a Word warning report
 - 📧 Text template processing for emails and notifications
-- 🚀 No Microsoft Word required (pure OpenXML processing)
+- 🚀 No Microsoft Word or LibreOffice required (OpenXML SDK for Word, plain ZIP/XML for OpenDocument)
 
 ---
 
@@ -117,6 +118,22 @@ dotnet add package TriasDev.Templify
 3. **Done!** Open `output.docx` and see the result.
 
 The output stream must be readable, writable and seekable (`File.Create` or a `MemoryStream`). There are also overloads for files (`ProcessTemplateFile`), byte arrays, `IReadOnlyDictionary<string, object?>` data and JSON strings; see the [library documentation](TriasDev.Templify/README.md#api-reference).
+
+### LibreOffice / OpenDocument Templates
+
+Templates written in LibreOffice Writer (`.odt`, or `.ott` templates) use the same syntax. Process them with
+`OdtTemplateProcessor`, or use `TemplateProcessor` to accept Word and OpenDocument files alike. It detects the format
+from the file content:
+
+```csharp
+using TriasDev.Templify.Core;
+
+var processor = new TemplateProcessor();   // .docx, .odt and .ott
+
+ProcessingResult result = processor.ProcessTemplateFile("template.odt", "output.odt", data);
+```
+
+An `.ott` template produces an `.odt` document. See [LibreOffice / OpenDocument Templates](https://triasdev.github.io/templify/for-template-authors/libreoffice/) for template authors and [OpenDocument (.odt)](https://triasdev.github.io/templify/for-developers/opendocument/) for developers.
 
 ### Markdown Formatting
 
@@ -227,8 +244,8 @@ bool r4 = context.Evaluate("Status in (\"Active\", \"Pending\")");
 
 🌐 **[Full documentation online →](https://triasdev.github.io/templify/)** (sources in [`docs/`](docs/index.md))
 
-- **For template authors:** [Getting Started](https://triasdev.github.io/templify/for-template-authors/getting-started/), [Template Syntax](https://triasdev.github.io/templify/for-template-authors/template-syntax/), [Format Specifiers](https://triasdev.github.io/templify/for-template-authors/format-specifiers/)
-- **For developers:** [Quick Start](https://triasdev.github.io/templify/for-developers/quick-start/), [Text Templates](https://triasdev.github.io/templify/for-developers/text-templates/), [Processing Warnings](https://triasdev.github.io/templify/for-developers/processing-warnings/)
+- **For template authors:** [Getting Started](https://triasdev.github.io/templify/for-template-authors/getting-started/), [Template Syntax](https://triasdev.github.io/templify/for-template-authors/template-syntax/), [Format Specifiers](https://triasdev.github.io/templify/for-template-authors/format-specifiers/), [LibreOffice / OpenDocument](https://triasdev.github.io/templify/for-template-authors/libreoffice/)
+- **For developers:** [Quick Start](https://triasdev.github.io/templify/for-developers/quick-start/), [OpenDocument (.odt)](https://triasdev.github.io/templify/for-developers/opendocument/), [Text Templates](https://triasdev.github.io/templify/for-developers/text-templates/), [Processing Warnings](https://triasdev.github.io/templify/for-developers/processing-warnings/)
 - **[Tutorials](https://triasdev.github.io/templify/tutorials/)** and **[FAQ](https://triasdev.github.io/templify/FAQ/)**
 - **[Library README](TriasDev.Templify/README.md)** - Feature and API reference (also shown on NuGet)
 - **[Examples.md](TriasDev.Templify/Examples.md)** - Extensive code samples and use cases
@@ -325,6 +342,7 @@ Console application that builds a template covering all features, processes it a
 ```bash
 dotnet run --project TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj
 dotnet run --project TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj -- --template my.docx --data my.json [--output out.docx]
+dotnet run --project TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj -- --template my.odt --data my.json   # LibreOffice / OpenDocument
 ```
 
 ### ⚡ Benchmarks
@@ -415,6 +433,8 @@ Templify uses a **visitor pattern architecture** for document processing:
 - **PropertyPathResolver** - Nested data structure navigation
 
 Processing order: **Conditionals → Loops → Placeholders** (enables conditionals inside loops and nested loops)
+
+OpenDocument templates are processed by a separate engine (`TriasDev.Templify.OpenDocument`) with the same processing order and semantics. It reuses the condition engine, placeholder resolution, value conversion and markdown parsing, and leaves the Word pipeline untouched.
 
 🏗️ [Full Architecture Documentation](TriasDev.Templify/ARCHITECTURE.md)
 
