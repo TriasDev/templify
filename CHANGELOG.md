@@ -7,11 +7,103 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.8.0](https://github.com/TriasDev/templify/compare/v1.7.0...v1.8.0) (2026-09-26)
 
+### ⚠️ Upgrade notes
+
+1.8.0 is a large quality release: about 40 pull requests from a full audit of the library. The public C# API is **source- and binary-compatible** with 1.7.0: new members only, no removals, verified by package validation. Some **behavior** was fixed where it was clearly wrong, though. Please read this section before upgrading.
+
+#### .NET 6 is no longer supported
+- The package now targets **net8.0, net9.0 and net10.0**.
+- .NET 6 has been out of support since November 2024. If you are still on .NET 6, stay on **1.7.x**.
+- Policy: we support the .NET versions Microsoft supports. End-of-life target frameworks are dropped in a minor release, with a notice here.
+
+#### Template and data errors are returned instead of thrown (#149)
+- `ProcessTemplate` now returns `ProcessingResult.Failure` (with `IsSuccess == false` and a clear `ErrorMessage`) for template and data errors, instead of throwing `InvalidOperationException`. This covers:
+  - an unmatched `{{#if}}` or `{{#foreach}}`
+  - `{{#elseif}}` after `{{#else}}`
+  - a loop over a value that is not a collection
+  - an invalid iteration variable
+- This is what the documentation always described. If you caught `InvalidOperationException` for these cases, check `result.IsSuccess` instead.
+- **Unchanged:** `MissingVariableBehavior.ThrowException` still throws `InvalidOperationException`, with the same message.
+- A malformed condition (for example `{{#if A && B}}`) still evaluates to false. It now also adds an `ExpressionFailed` warning to `result.Warnings`.
+
+#### Output changes for existing templates
+Each of these fixes a bug, but existing documents may render differently:
+
+- **Numbers in conditions (#142)**
+  - Numbers are compared by value across types, so `10 = 10.00m` is now true, as is JSON `10.50 = 10.5`.
+  - Any numeric zero is falsy (`0m`, `0L`, `0.0` …), as documented. Before, only `int` 0 was.
+  - Inline `{{(…)}}` expressions compare different numeric types correctly; before, they silently returned `False`.
+  - `NaN` equals nothing, has no order and is falsy.
+  - `contains` on a collection now checks membership (`Tags contains "urgent"`); before, it compared against the type name.
+  - `startswith` / `endswith` on a collection are false.
+- **Culture and time zone (#141)**
+  - Numeric comparisons no longer depend on the server culture. Under `de-DE`, `{{#if Price < 100}}` with `99.99` used to be false.
+  - Upper-case keywords (`{{#IF}}`, `{{#FOREACH}}`) now work under `tr-TR`.
+  - An unset `DateTime` with a `:date:` format no longer fails the whole document in time zones ahead of UTC.
+- **Null values in loops (#147)**
+  - A `null` element in a collection no longer fails the document; `{{.}}` renders empty.
+  - A `null` property on a loop item renders empty. Before, it fell through to a global variable with the same name.
+- **Dictionary keys (#146):** a key named like a dictionary property (`Count`, `Keys`, `Values`, `Comparer`) now returns the key's value. Without such a key, `{{Dict.Count}}` still returns the entry count.
+- **More parts of the document are processed (#144):** text boxes (VML and DrawingML), content controls, footnotes and endnotes. Comments are intentionally not processed.
+- **Tables (#145):**
+  - Conditional table rows now work.
+  - A table whose rows are all removed (by a false row condition or an empty row loop) is removed entirely. Before, an invalid table without rows was left behind, and Word rejects that.
+- **Inline conditionals (#143):**
+  - Hyperlinks, fields, line breaks and bookmarks around an inline conditional are preserved. Before, they could be duplicated, turned into text or dropped.
+  - Content inside a removed branch (images, breaks, field results) is removed together with that branch.
+- **Keywords as variable names (#149):**
+  - The words reserved in 1.7.0 (`in`, `is`, `empty`, `exists`, `contains`, `startswith`, `endswith`) work as variable names again where an operand is expected.
+  - To force any word to be read as a variable, write it in brackets: `[Empty]`.
+- **Plain-text templates (#150):** `TextTemplateProcessor` now matches the Word processor:
+  - `{{#foreach item in Items}}` iterates; before, it silently removed the block.
+  - `{{#elseif}}` and inline `{{(…)}}` work, markers are case-insensitive, and there is no longer a 100-block limit.
+  - Conditionals are evaluated first, as in Word documents.
+- **`ValidateTemplate` (#149, #198):**
+  - It no longer reports operators, literals or loop-item properties in table-row loops as missing variables.
+  - It now reports invalid condition expressions and missing variables in nested loops.
+- **`:raw` (#148):** `raw` is now a built-in format specifier. A custom boolean formatter registered under the name `raw` is no longer used.
+
+#### Deprecations (warnings now, removal in 2.0)
+- `ConditionEvaluator.EvaluateAsync`, `ConditionContext.EvaluateAsync` and their interface members. They only wrapped synchronous work in a `Task`; use `Evaluate`.
+- `PlaceholderFinder`, `PlaceholderMatch`: they become internal in 2.0. To list placeholders, use `ValidateTemplate(...)` and `ValidationResult.AllPlaceholders`.
+- `TemplateElementType`: not used by any API.
+
+If you build with `TreatWarningsAsErrors`, these show up as `CS0618`.
+
+### 🔒 Security
+
+- **Table-row loops re-processed their output with global data (#140).** A value like `"{{Secret}}"` inside a table-row loop was replaced with the global variable `Secret`, so user-supplied data could read other template variables. **Upgrade if your templates render untrusted data in table-row loops.**
+- **Release pipeline hardened:**
+  - Packages are published through NuGet **Trusted Publishing** (OIDC, no long-lived API key), only after the full test suite has passed on net8.0, net9.0 and net10.0, and behind a manual approval.
+  - Builds are deterministic, with SourceLink and a symbol package (`.snupkg`).
+
+### ✨ Highlights
+
+- **New options and syntax**
+  - `PlaceholderReplacementOptions.EnableMarkdown` (default `true`) and the per-placeholder `{{Value:raw}}` for inserting values containing `_`, `*` or `~` literally (#148).
+  - 1-based loop metadata: `{{@number}}` (#174).
+- **New overloads**
+  - `IReadOnlyDictionary<string, object?>` data.
+  - `ProcessTemplate(byte[], data, out byte[])`.
+  - `ProcessTemplateFile(templatePath, outputPath, data)` (#156).
+- **Data sources:** `JsonElement` values (e.g. from `JsonSerializer.Deserialize<Dictionary<string, object>>`), `ExpandoObject`, read-only dictionaries and typed dictionary keys (`{{Map[1]}}`) now resolve (#146).
+- **Correctness**
+  - Images and shapes cloned by loops get unique ids (#178).
+  - `UpdateFieldsOnOpenMode.Auto` detects simple fields (#196).
+  - Markdown formatting produces schema-valid run properties (#148).
+- **Performance:** condition evaluation is 4–15× faster with about 98% fewer allocations, thanks to a parsed-expression cache and source-generated regexes (#155).
+- **Converter CLI (#151):**
+  - No more data loss on in-place `clean`.
+  - Repeating table rows and `and`/`or` conditions convert correctly.
+  - Headers, footers and notes are converted.
+  - Proper exit codes.
+
+
 
 ### Features
 
 * **api:** add IReadOnlyDictionary/file/byte[] overloads; deprecate fake-async and internal parsing helpers ([#156](https://github.com/TriasDev/templify/issues/156)) ([#195](https://github.com/TriasDev/templify/issues/195)) ([699bf57](https://github.com/TriasDev/templify/commit/699bf57960a648cf0a4123571601e107209e57cf))
-* **loops:** add 1-based {{[@number](https://github.com/number)}} loop metadata; converter maps variable_index to it ([#174](https://github.com/TriasDev/templify/issues/174)) ([#175](https://github.com/TriasDev/templify/issues/175)) ([5633f57](https://github.com/TriasDev/templify/commit/5633f572a2741f71076befb61dba2a317e865dd9))
+* **loops:** add 1-based `{{@number}}` loop metadata; converter maps variable_index to it ([#174](https://github.com/TriasDev/templify/issues/174)) ([#175](https://github.com/TriasDev/templify/issues/175)) ([5633f57](https://github.com/TriasDev/templify/commit/5633f572a2741f71076befb61dba2a317e865dd9))
 * **markdown:** add EnableMarkdown option and :raw format specifier; emit schema-valid run properties ([#148](https://github.com/TriasDev/templify/issues/148)) ([#166](https://github.com/TriasDev/templify/issues/166)) ([dd3fee9](https://github.com/TriasDev/templify/commit/dd3fee92861210c97afcb2c18461cffc5174b30d))
 
 
