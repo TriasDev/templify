@@ -34,9 +34,13 @@ jobs:
     if: needs.release-please.outputs.release_created == 'true'
     needs: release-please
     runs-on: ubuntu-latest
-    # Configure required reviewers for this environment in the repo settings
-    # to gate NuGet publishing behind a manual approval.
+    # Required reviewers on this environment gate the push to nuget.org behind a manual approval.
     environment: nuget
+    # Trusted Publishing: nuget.org exchanges this job's OIDC token for a key that lives an hour.
+    # No long-lived API key is stored anywhere.
+    permissions:
+      contents: read
+      id-token: write
 
     env:
       VERSION: ${{ needs.release-please.outputs.version }}
@@ -50,7 +54,7 @@ jobs:
           dotnet-version: |
             8.0.x
             9.0.x
-            10.0.x
+          global-json-file: global.json
 
       - name: Build
         run: |
@@ -70,11 +74,19 @@ jobs:
             --configuration Release \
             --no-build \
             --verbosity normal \
-            --logger "trx;LogFileName=results.trx" \
+            --logger trx \
             --results-directory ./test-results
 
-      - name: Verify tests ran
-        run: ./.github/scripts/verify-test-results.sh ./test-results/results.trx
+      # The test project targets net8.0, net9.0 and net10.0: expect one result file per target.
+      - name: Verify tests ran on every target
+        run: |
+          shopt -s nullglob
+          files=(./test-results/*.trx)
+          if [ "${#files[@]}" -lt 3 ]; then
+            echo "::error::Expected a result file per target framework (3), found ${#files[@]}"
+            exit 1
+          fi
+          for f in "${files[@]}"; do ./.github/scripts/verify-test-results.sh "$f"; done
 
       - name: Pack
         run: |
@@ -84,9 +96,18 @@ jobs:
             -p:Version=${{ env.VERSION }} \
             --output ./artifacts
 
+      # The policy on nuget.org names this repository, this workflow file and the nuget environment;
+      # NUGET_USER is the nuget.org profile name that owns the policy, not an email address.
+      - name: NuGet login (Trusted Publishing)
+        id: login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      # Pushing the .nupkg pushes the .snupkg beside it to the symbol server as well.
       - name: Push to NuGet
         env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
         run: |
           dotnet nuget push ./artifacts/*.nupkg \
             --source https://api.nuget.org/v3/index.json \
@@ -97,7 +118,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: nuget-packages
-          path: ./artifacts/*.nupkg
+          path: |
+            ./artifacts/*.nupkg
+            ./artifacts/*.snupkg
 
       - name: Summary
         run: |
