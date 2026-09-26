@@ -45,6 +45,33 @@ public sealed class ValidationIntegrationTests
     }
 
     [Fact]
+    public void ValidateTemplate_NestedLoops_ListsNestedCollectionsWithAndWithoutData()
+    {
+        // Nested loop collections used to be listed only when data was passed and the outer collection had items.
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("{{#foreach category in Categories}}");
+        builder.AddParagraph("{{#foreach product in category.Products}}");
+        builder.AddParagraph("{{product.Name}}");
+        builder.AddParagraph("{{#foreach Tags}}");
+        builder.AddParagraph("{{.}}");
+        builder.AddParagraph("{{/foreach}}");
+        builder.AddParagraph("{{/foreach}}");
+        builder.AddParagraph("{{/foreach}}");
+        byte[] template = builder.ToStream().ToArray();
+
+        DocumentTemplateProcessor processor = new DocumentTemplateProcessor();
+        ValidationResult withoutData = processor.ValidateTemplate(new MemoryStream(template));
+        ValidationResult withEmptyData = processor.ValidateTemplate(
+            new MemoryStream(template),
+            new Dictionary<string, object> { ["Categories"] = new List<object>() });
+
+        string[] expected = { ".", "Categories", "Tags", "category.Products", "product.Name" };
+        Assert.True(withoutData.IsValid);
+        Assert.Equal(expected, withoutData.AllPlaceholders.Order(StringComparer.Ordinal));
+        Assert.Equal(expected, withEmptyData.AllPlaceholders.Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
     public void ValidateTemplate_ValidTemplateWithConditionals_ReturnsSuccess()
     {
         // Arrange

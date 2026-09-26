@@ -146,10 +146,12 @@ internal sealed class TemplateValidator
         {
             IReadOnlyList<LoopBlock> loopBlocks = LoopDetector.DetectLoopsInElements(elements);
 
-            // Extract collection names from loops
+            // Extract collection names from loops, including loops nested in loop content (those are otherwise
+            // only listed when data is passed and the outer collection has items).
             foreach (LoopBlock block in loopBlocks)
             {
                 allPlaceholders.Add(block.CollectionName);
+                ValidateLoops(block.ContentElements.ToList(), allPlaceholders, errors);
             }
         }
         catch (TemplateSyntaxException ex)
