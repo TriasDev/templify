@@ -198,6 +198,17 @@ internal sealed class TemplateValidator
             {
                 errors.Add(ValidationError.Create(ex.ErrorType, ex.Message));
             }
+
+            // Table row conditionals (markers in rows of their own) fail processing when unmatched, so they must
+            // fail validation too.
+            try
+            {
+                _ = ConditionalDetector.DetectTableRowConditionals(table);
+            }
+            catch (TemplateSyntaxException ex)
+            {
+                errors.Add(ValidationError.Create(ex.ErrorType, ex.Message));
+            }
         }
     }
 
