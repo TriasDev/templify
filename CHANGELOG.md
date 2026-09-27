@@ -7,6 +7,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.9.0](https://github.com/TriasDev/templify/compare/v1.8.0...v1.9.0) (2026-09-27)
 
+### ✨ Highlight: OpenDocument / LibreOffice templates
+
+Templify now fills **OpenDocument Text** templates (`.odt`, and `.ott` templates, which produce `.odt`) created with **LibreOffice Writer**, Collabora or OpenOffice. It uses the same syntax and features as for Word documents:
+- placeholders and format specifiers;
+- conditionals (block, inline, `elseif`, table rows, list items);
+- loops (paragraphs, table rows, list items, nested, `@index`/`@number`);
+- headers and footers (including header/footer regions), footnotes and endnotes, text boxes and sections;
+- markdown formatting (`EnableMarkdown`, `:raw`), `ValidateTemplate` and document properties.
+
+This matters for public-sector and other organisations standardising on ODF.
+
+```csharp
+using TriasDev.Templify.Core;
+
+// Explicit OpenDocument processor ...
+var odt = new OdtTemplateProcessor();
+ProcessingResult result = odt.ProcessTemplateFile("letter.odt", "letter-out.odt", data);
+
+// ... or the new format-detecting facade for both .docx and .odt/.ott
+var processor = new TemplateProcessor();
+result = processor.ProcessTemplateFile(templatePath, outputPath, data);
+TemplateFormat format = TemplateProcessor.DetectFormat(stream); // Docx, Odt or Unknown
+```
+
+- No new dependencies: ODF packages are read and written with `System.IO.Compression` and `System.Xml`.
+- **Memory:** only the XML parts are inflated; images and other entries are streamed. Each XML part is capped at 256 MB.
+- **Safety:** DTDs are prohibited, and duplicate or unsafe ZIP entry names are rejected.
+- **Verified with LibreOffice:** outputs open and render correctly, including numbered lists that continue across loop iterations.
+- **Word path unchanged:** `DocumentTemplateProcessor` behaves as in 1.8.0, and results for the same template are identical in both formats.
+- **Known differences from Word** (whitespace collapsing, bookmarks, merged cells across rows, `UpdateFieldsOnOpen`, comments, `.fodt`) are documented at [LibreOffice / OpenDocument](https://triasdev.github.io/templify/for-template-authors/libreoffice/).
+- **Developer guide:** [OpenDocument (.odt)](https://triasdev.github.io/templify/for-developers/opendocument/).
+- The GUI accepts `.odt`/`.ott`, and the Demo and examples include a LibreOffice letter.
+
+### New public API (additive)
+- `OdtTemplateProcessor`: same methods as `DocumentTemplateProcessor`.
+- `TemplateProcessor`: a facade that detects the format and passes the call to the matching processor.
+- `TemplateFormat`: enum with `Unknown`, `Docx` and `Odt`.
+- `ValidationErrorType.InvalidDocument`: for unsupported, corrupted or rejected input. Used by the new ODT and facade paths.
+- `ValidationWarningType.MissingConditionVariable`: a warning when `{{#if Missing}}` uses a variable missing from the data as a bare operand. `IsValid` is not affected.
+
+### ⚠️ Behavior changes (bug fixes)
+The public C# API remains source- and binary-compatible with 1.8.0 (verified by package validation). These fixes can change results for existing Word templates.
+
+**`ValidateTemplate` for Word templates:**
+- **Inline expressions `{{(…)}}` are validated properly (#233).**
+  - An expression was reported as one missing variable (`Variable '(A and B)' …`) even when all operands were present, so correct templates showed `IsValid = false`. Now each operand is checked with the same rules processing uses.
+  - `AllPlaceholders` lists the expression's variables instead of the expression text.
+  - Expressions that cannot be parsed are reported as `InvalidConditionalExpression`.
+- **Collections of nested loops appear in `AllPlaceholders`** even when validating without data (#226).
+- **An unmatched `{{#if}}` marker in a table row is now reported as invalid (#227).** Processing already failed on it.
+
+**Output streams (#221, #232):**
+- An output stream with existing content is now truncated **before** writing.
+- Before, a stream opened without truncation over a longer file could leave trailing bytes (ODT) or fail after partly overwriting it (Word).
+- If the stream cannot be truncated, processing returns a `Failure` and nothing is written.
+- Prefer `File.Create` for output files.
+
+**Removed dead marker handling:** the unsupported `{{#empty}}` / `{{/empty}}` text is no longer treated specially, so a paragraph containing it gets normal placeholder replacement.
+
+
 
 ### Features
 
