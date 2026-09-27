@@ -5,6 +5,99 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0](https://github.com/TriasDev/templify/compare/v1.8.0...v1.9.0) (2026-09-27)
+
+### ✨ Highlight: OpenDocument / LibreOffice templates
+
+Templify now fills **OpenDocument Text** templates (`.odt`, and `.ott` templates, which produce `.odt`) created with **LibreOffice Writer**, Collabora or OpenOffice. It uses the same syntax and features as for Word documents:
+- placeholders and format specifiers;
+- conditionals (block, inline, `elseif`, table rows, list items);
+- loops (paragraphs, table rows, list items, nested, `@index`/`@number`);
+- headers and footers (including header/footer regions), footnotes and endnotes, text boxes and sections;
+- markdown formatting (`EnableMarkdown`, `:raw`), `ValidateTemplate` and document properties.
+
+This matters for public-sector and other organisations standardising on ODF.
+
+```csharp
+using TriasDev.Templify.Core;
+
+// Explicit OpenDocument processor ...
+var odt = new OdtTemplateProcessor();
+ProcessingResult result = odt.ProcessTemplateFile("letter.odt", "letter-out.odt", data);
+
+// ... or the new format-detecting facade for both .docx and .odt/.ott
+var processor = new TemplateProcessor();
+result = processor.ProcessTemplateFile(templatePath, outputPath, data);
+TemplateFormat format = TemplateProcessor.DetectFormat(stream); // Docx, Odt or Unknown
+```
+
+- No new dependencies: ODF packages are read and written with `System.IO.Compression` and `System.Xml`.
+- **Memory:** only the XML parts are inflated; images and other entries are streamed. Each XML part is capped at 256 MB.
+- **Safety:** DTDs are prohibited, and duplicate or unsafe ZIP entry names are rejected.
+- **Verified with LibreOffice:** outputs open and render correctly, including numbered lists that continue across loop iterations.
+- **Word path unchanged:** `DocumentTemplateProcessor` behaves as in 1.8.0, and results for the same template are identical in both formats.
+- **Known differences from Word** (whitespace collapsing, bookmarks, merged cells across rows, `UpdateFieldsOnOpen`, comments, `.fodt`) are documented at [LibreOffice / OpenDocument](https://triasdev.github.io/templify/for-template-authors/libreoffice/).
+- **Developer guide:** [OpenDocument (.odt)](https://triasdev.github.io/templify/for-developers/opendocument/).
+- The GUI accepts `.odt`/`.ott`, and the Demo and examples include a LibreOffice letter.
+
+### New public API (additive)
+- `OdtTemplateProcessor`: same methods as `DocumentTemplateProcessor`.
+- `TemplateProcessor`: a facade that detects the format and passes the call to the matching processor.
+- `TemplateFormat`: enum with `Unknown`, `Docx` and `Odt`.
+- `ValidationErrorType.InvalidDocument`: for unsupported, corrupted or rejected input. Used by the new ODT and facade paths.
+- `ValidationWarningType.MissingConditionVariable`: a warning when `{{#if Missing}}` uses a variable missing from the data as a bare operand. `IsValid` is not affected.
+
+### ⚠️ Behavior changes (bug fixes)
+The public C# API remains source- and binary-compatible with 1.8.0 (verified by package validation). These fixes can change results for existing Word templates.
+
+**`ValidateTemplate` for Word templates:**
+- **Inline expressions `{{(…)}}` are validated properly (#233).**
+  - An expression was reported as one missing variable (`Variable '(A and B)' …`) even when all operands were present, so correct templates showed `IsValid = false`. Now each operand is checked with the same rules processing uses.
+  - `AllPlaceholders` lists the expression's variables instead of the expression text.
+  - Expressions that cannot be parsed are reported as `InvalidConditionalExpression`.
+- **Collections of nested loops appear in `AllPlaceholders`** even when validating without data (#226).
+- **An unmatched `{{#if}}` marker in a table row is now reported as invalid (#227).** Processing already failed on it.
+
+**Output streams (#221, #232):**
+- An output stream with existing content is now truncated **before** writing.
+- Before, a stream opened without truncation over a longer file could leave trailing bytes (ODT) or fail after partly overwriting it (Word).
+- If the stream cannot be truncated, processing returns a `Failure` and nothing is written.
+- Prefer `File.Create` for output files.
+
+**Removed dead marker handling:** the unsupported `{{#empty}}` / `{{/empty}}` text is no longer treated specially, so a paragraph containing it gets normal placeholder replacement.
+
+
+
+### Features
+
+* format-detecting TemplateProcessor facade for .docx and .odt/.ott ([#138](https://github.com/TriasDev/templify/issues/138)) ([#215](https://github.com/TriasDev/templify/issues/215)) ([1157864](https://github.com/TriasDev/templify/commit/1157864200c31a70f0a26ac4e7b3d7c9459241c5))
+* **gui:** support OpenDocument templates ([#138](https://github.com/TriasDev/templify/issues/138)) ([#219](https://github.com/TriasDev/templify/issues/219)) ([5dcb0bf](https://github.com/TriasDev/templify/commit/5dcb0bfc38b3b2bf284a334ace99ae9bb1ef8b6a))
+* **odt:** conditionals for OpenDocument Text templates ([#138](https://github.com/TriasDev/templify/issues/138)) ([#211](https://github.com/TriasDev/templify/issues/211)) ([eaf4673](https://github.com/TriasDev/templify/commit/eaf4673cb7f5b45fa07a9b03e15d79c79f3c1bf2))
+* **odt:** loops, table-row and list-item loops for OpenDocument Text templates ([#138](https://github.com/TriasDev/templify/issues/138)) ([#212](https://github.com/TriasDev/templify/issues/212)) ([08d2588](https://github.com/TriasDev/templify/commit/08d25883267e30a605d8d492fd5ae268fd69029e))
+* **odt:** markdown via automatic styles, ValidateTemplate and document properties for ODT ([#138](https://github.com/TriasDev/templify/issues/138)) ([#214](https://github.com/TriasDev/templify/issues/214)) ([1b62908](https://github.com/TriasDev/templify/commit/1b629081d509d3ab14553ae4eeabff5d6f2b100f))
+* **odt:** nested containers and unique object names after cloning ([#138](https://github.com/TriasDev/templify/issues/138)) ([#213](https://github.com/TriasDev/templify/issues/213)) ([caa48c7](https://github.com/TriasDev/templify/commit/caa48c79045c16829edfd309c8f1ed3a8016b611))
+* **odt:** OdtTemplateProcessor with placeholder replacement for .odt/.ott ([#138](https://github.com/TriasDev/templify/issues/138)) ([#210](https://github.com/TriasDev/templify/issues/210)) ([dda2bd0](https://github.com/TriasDev/templify/commit/dda2bd0dfc6bb80c21074ac2790d94740cebd9f4))
+* **validation:** add ValidationErrorType.InvalidDocument for unreadable or unsupported templates ([#225](https://github.com/TriasDev/templify/issues/225)) ([271b038](https://github.com/TriasDev/templify/commit/271b038d0bacaa75ae15ac7465079e47b477e914))
+* **validation:** warn about missing variables used as bare condition operands ([#231](https://github.com/TriasDev/templify/issues/231)) ([9cd92bb](https://github.com/TriasDev/templify/commit/9cd92bb5e24501012a13fc51bb760d55ec61025d))
+
+
+### Bug Fixes
+
+* never leave trailing bytes when the output stream cannot be truncated ([#232](https://github.com/TriasDev/templify/issues/232)) ([dcd7c6e](https://github.com/TriasDev/templify/commit/dcd7c6e352e096290b9a48596c3a2ce79b9832fd))
+* **odt:** continue list numbering across loop copies, process header/footer regions, drop dead {{#empty}} markers ([#138](https://github.com/TriasDev/templify/issues/138)) ([#223](https://github.com/TriasDev/templify/issues/223)) ([92a9b19](https://github.com/TriasDev/templify/commit/92a9b191fc97b973f4c2d96c5477168b2370740c))
+* **odt:** markdown styles no longer shadow common styles of styles.xml ([#229](https://github.com/TriasDev/templify/issues/229)) ([f38af46](https://github.com/TriasDev/templify/commit/f38af46fa29c4f3ba1e225d70562d031634b42bd))
+* **odt:** reject duplicate and unsafe entry names, compare media types case-insensitively, drop the stale thumbnail ([#138](https://github.com/TriasDev/templify/issues/138)) ([#222](https://github.com/TriasDev/templify/issues/222)) ([857bfb5](https://github.com/TriasDev/templify/commit/857bfb5cb85a1703c555e8ef23ecb7e39dc8f3b8))
+* **odt:** report an unmatched row or list-item marker once in ValidateTemplate ([#228](https://github.com/TriasDev/templify/issues/228)) ([8932a55](https://github.com/TriasDev/templify/commit/8932a556d0a55c8794a5147ca082abc46bf4bdb7))
+* **odt:** ValidateTemplate no longer reports the markers of table-row and list-item blocks as unmatched ([#138](https://github.com/TriasDev/templify/issues/138)) ([#216](https://github.com/TriasDev/templify/issues/216)) ([53c13dc](https://github.com/TriasDev/templify/commit/53c13dcb67dddfccc4da6220b5bf93bc85e0c35b))
+* **validation:** list collections of nested loops in AllPlaceholders without data ([#226](https://github.com/TriasDev/templify/issues/226)) ([524ab09](https://github.com/TriasDev/templify/commit/524ab091cd33f9de4644503dd7f6ec411cab96d3))
+* **validation:** report unmatched table row conditionals in Word templates ([#227](https://github.com/TriasDev/templify/issues/227)) ([9838714](https://github.com/TriasDev/templify/commit/98387143ffaa37f2e63195f0d7b6848ea1a2df9d))
+* **validation:** validate inline expressions via the condition AST instead of reporting them as one missing variable ([#233](https://github.com/TriasDev/templify/issues/233)) ([d3aca9e](https://github.com/TriasDev/templify/commit/d3aca9ef76d7bdeec35fe8c15be0859e31cf8e05))
+
+
+### Performance Improvements
+
+* **odt:** stream unprocessed package entries instead of inflating them, bound XML part sizes, truncate seekable outputs ([#138](https://github.com/TriasDev/templify/issues/138)) ([#221](https://github.com/TriasDev/templify/issues/221)) ([0d678cb](https://github.com/TriasDev/templify/commit/0d678cb28bb1bfd85443d1eaf1ea1eb485b9f236))
+
 ## [1.8.0](https://github.com/TriasDev/templify/compare/v1.7.0...v1.8.0) (2026-09-26)
 
 ### ⚠️ Upgrade notes
