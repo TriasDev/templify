@@ -1592,7 +1592,7 @@ Console.WriteLine($"Missing: {string.Join(", ", validation.MissingVariables)}");
 
 foreach (ValidationWarning warning in validation.Warnings)
 {
-    // e.g. EmptyLoopCollection (see WarnOnEmptyLoopCollections), ReservedWordAsVariable
+    // e.g. EmptyLoopCollection (see WarnOnEmptyLoopCollections), ReservedWordAsVariable, MissingConditionVariable
     Console.WriteLine($"{warning.Type}: {warning.Message}");
 }
 ```

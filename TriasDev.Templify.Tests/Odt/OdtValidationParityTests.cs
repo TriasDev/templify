@@ -44,6 +44,15 @@ public sealed class OdtValidationParityTests
         { "inline conditional", new[] { "{{Name}}{{#if Flag}} (flag {{Title}}){{/if}}" } },
         { "nested invalid iteration variable", new[] { "{{#foreach Items}}", "{{#foreach in in Tags}}", "x", "{{/foreach}}", "{{/foreach}}" } },
         { "unmatched loop with body", new[] { "{{Name}} {{Missing}}", "{{#foreach Items}}", "{{Title}} {{Nope}}" } },
+        {
+            "missing bare condition operands",
+            new[]
+            {
+                "{{#if Nope}}", "a", "{{#elseif not Other and A}}", "b", "{{/if}}",
+                "x {{#if Absent or Missing exists}}y{{/if}} {{#if Nope is empty or Status = Nope}}z{{/if}}",
+                "{{#foreach item in Items}}", "{{#if item.Active and not item.Nope and Title and @first}}", "c", "{{/if}}", "{{/foreach}}",
+            }
+        },
         { "nested unmatched conditional in loop", new[] { "{{#foreach Items}}", "{{#if Active}}", "{{Title}}", "{{/foreach}}" } },
     };
 

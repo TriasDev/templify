@@ -18,6 +18,8 @@ Conditionals let you show or hide content in your document based on data values.
 
 **Falsy values** (content is hidden): missing/`null`, `false`, empty or whitespace text, the text `"false"` or `"0"` (any casing, e.g. `"False"`), **any numeric zero** (`0`, `0.0`, `0.00`, JSON `0.0`, and zero of every numeric type such as `decimal` or `long`), `NaN`, and empty lists. Everything else is truthy, including any other text (`"no"` is truthy!).
 
+> **Misspelled or missing variables** are silently false: `{{#if IsActiv}}` never shows its content. When a developer validates the template with data (`ValidateTemplate`), a condition that tests a missing variable on its own (`{{#if Missing}}`, `{{#if not Missing}}`, `{{#if A and Missing}}`, also in `{{#elseif}}`) produces a `MissingConditionVariable` warning. Use `{{#if Missing exists}}` or `{{#if Missing is empty}}` when a variable is meant to be optional: those checks are not reported.
+
 > **Markers in their own paragraphs:** in the block form, each marker (`{{#if}}`, `{{#elseif}}`, `{{#else}}`, `{{/if}}`) should be alone in its paragraph. A marker paragraph is removed completely, so any other text in it is lost. To change only part of a paragraph, put all markers in that paragraph ([inline conditionals](#inline-conditionals)).
 >
 > Marker keywords are case-insensitive (`{{#IF}}` works), but variable names are not.

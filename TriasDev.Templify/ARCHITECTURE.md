@@ -209,7 +209,9 @@ expression string
 - **`Core/TemplateValidator.cs`** (`ValidateTemplate`) walks body, headers/footers and notes: it reports unmatched
   markers and invalid conditions (`ValidationError`), collects `AllPlaceholders` (condition variables are taken from the
   AST), and with data reports `MissingVariables` plus warnings (`EmptyLoopCollection` when
-  `WarnOnEmptyLoopCollections` is on, `ReservedWordAsVariable`). Missing variables are checked by
+  `WarnOnEmptyLoopCollections` is on, `ReservedWordAsVariable`, and `MissingConditionVariable` for bare condition
+  operands missing from the data, found in the AST by `ConditionalEvaluator.CollectBareOperandVariables` and checked
+  in loop scope by `Core/MissingConditionVariableCheck.cs`). Missing variables are checked by
   `Core/ScopedVariableValidator.cs`, which traverses containers like the walker (body loops, table row loops per table
   and per loop row list, cells, nested tables, text boxes, content controls) and resolves names inside a loop against
   the items of that loop and its enclosing loops (implicit properties, named iteration variables, metadata).
