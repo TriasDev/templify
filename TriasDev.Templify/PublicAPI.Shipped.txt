@@ -93,6 +93,20 @@ TriasDev.Templify.Core.MissingVariableBehavior
 TriasDev.Templify.Core.MissingVariableBehavior.LeaveUnchanged = 0 -> TriasDev.Templify.Core.MissingVariableBehavior
 TriasDev.Templify.Core.MissingVariableBehavior.ReplaceWithEmpty = 1 -> TriasDev.Templify.Core.MissingVariableBehavior
 TriasDev.Templify.Core.MissingVariableBehavior.ThrowException = 2 -> TriasDev.Templify.Core.MissingVariableBehavior
+TriasDev.Templify.Core.OdtTemplateProcessor
+TriasDev.Templify.Core.OdtTemplateProcessor.OdtTemplateProcessor(TriasDev.Templify.Core.PlaceholderReplacementOptions? options = null) -> void
+TriasDev.Templify.Core.OdtTemplateProcessor.ProcessTemplate(System.IO.Stream! templateStream, System.IO.Stream! outputStream, System.Collections.Generic.Dictionary<string!, object!>! data) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.OdtTemplateProcessor.ProcessTemplate(System.IO.Stream! templateStream, System.IO.Stream! outputStream, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! data) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.OdtTemplateProcessor.ProcessTemplate(System.IO.Stream! templateStream, System.IO.Stream! outputStream, string! jsonData) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.OdtTemplateProcessor.ProcessTemplate(byte[]! template, System.Collections.Generic.Dictionary<string!, object!>! data, out byte[]! output) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.OdtTemplateProcessor.ProcessTemplate(byte[]! template, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! data, out byte[]! output) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.OdtTemplateProcessor.ProcessTemplate(byte[]! template, string! jsonData, out byte[]! output) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.OdtTemplateProcessor.ProcessTemplateFile(string! templatePath, string! outputPath, System.Collections.Generic.Dictionary<string!, object!>! data) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.OdtTemplateProcessor.ProcessTemplateFile(string! templatePath, string! outputPath, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! data) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.OdtTemplateProcessor.ProcessTemplateFile(string! templatePath, string! outputPath, string! jsonData) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.OdtTemplateProcessor.ValidateTemplate(System.IO.Stream! templateStream) -> TriasDev.Templify.Core.ValidationResult!
+TriasDev.Templify.Core.OdtTemplateProcessor.ValidateTemplate(System.IO.Stream! templateStream, System.Collections.Generic.Dictionary<string!, object!>! data) -> TriasDev.Templify.Core.ValidationResult!
+TriasDev.Templify.Core.OdtTemplateProcessor.ValidateTemplate(System.IO.Stream! templateStream, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! data) -> TriasDev.Templify.Core.ValidationResult!
 TriasDev.Templify.Core.PlaceholderReplacementOptions
 TriasDev.Templify.Core.PlaceholderReplacementOptions.BooleanFormatterRegistry.get -> TriasDev.Templify.Formatting.BooleanFormatterRegistry?
 TriasDev.Templify.Core.PlaceholderReplacementOptions.BooleanFormatterRegistry.init -> void
@@ -139,6 +153,24 @@ TriasDev.Templify.Core.ProcessingWarningType.ExpressionFailed = 3 -> TriasDev.Te
 TriasDev.Templify.Core.ProcessingWarningType.MissingLoopCollection = 1 -> TriasDev.Templify.Core.ProcessingWarningType
 TriasDev.Templify.Core.ProcessingWarningType.MissingVariable = 0 -> TriasDev.Templify.Core.ProcessingWarningType
 TriasDev.Templify.Core.ProcessingWarningType.NullLoopCollection = 2 -> TriasDev.Templify.Core.ProcessingWarningType
+TriasDev.Templify.Core.TemplateFormat
+TriasDev.Templify.Core.TemplateFormat.Docx = 1 -> TriasDev.Templify.Core.TemplateFormat
+TriasDev.Templify.Core.TemplateFormat.Odt = 2 -> TriasDev.Templify.Core.TemplateFormat
+TriasDev.Templify.Core.TemplateFormat.Unknown = 0 -> TriasDev.Templify.Core.TemplateFormat
+TriasDev.Templify.Core.TemplateProcessor
+TriasDev.Templify.Core.TemplateProcessor.ProcessTemplate(System.IO.Stream! templateStream, System.IO.Stream! outputStream, System.Collections.Generic.Dictionary<string!, object!>! data) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.TemplateProcessor.ProcessTemplate(System.IO.Stream! templateStream, System.IO.Stream! outputStream, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! data) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.TemplateProcessor.ProcessTemplate(System.IO.Stream! templateStream, System.IO.Stream! outputStream, string! jsonData) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.TemplateProcessor.ProcessTemplate(byte[]! template, System.Collections.Generic.Dictionary<string!, object!>! data, out byte[]! output) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.TemplateProcessor.ProcessTemplate(byte[]! template, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! data, out byte[]! output) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.TemplateProcessor.ProcessTemplate(byte[]! template, string! jsonData, out byte[]! output) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.TemplateProcessor.ProcessTemplateFile(string! templatePath, string! outputPath, System.Collections.Generic.Dictionary<string!, object!>! data) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.TemplateProcessor.ProcessTemplateFile(string! templatePath, string! outputPath, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! data) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.TemplateProcessor.ProcessTemplateFile(string! templatePath, string! outputPath, string! jsonData) -> TriasDev.Templify.Core.ProcessingResult!
+TriasDev.Templify.Core.TemplateProcessor.TemplateProcessor(TriasDev.Templify.Core.PlaceholderReplacementOptions? options = null) -> void
+TriasDev.Templify.Core.TemplateProcessor.ValidateTemplate(System.IO.Stream! templateStream) -> TriasDev.Templify.Core.ValidationResult!
+TriasDev.Templify.Core.TemplateProcessor.ValidateTemplate(System.IO.Stream! templateStream, System.Collections.Generic.Dictionary<string!, object!>! data) -> TriasDev.Templify.Core.ValidationResult!
+TriasDev.Templify.Core.TemplateProcessor.ValidateTemplate(System.IO.Stream! templateStream, System.Collections.Generic.IReadOnlyDictionary<string!, object?>! data) -> TriasDev.Templify.Core.ValidationResult!
 TriasDev.Templify.Core.TextProcessingResult
 TriasDev.Templify.Core.TextProcessingResult.ErrorMessage.get -> string?
 TriasDev.Templify.Core.TextProcessingResult.ErrorMessage.init -> void
@@ -172,6 +204,7 @@ TriasDev.Templify.Core.ValidationError.Type.init -> void
 TriasDev.Templify.Core.ValidationError.ValidationError() -> void
 TriasDev.Templify.Core.ValidationErrorType
 TriasDev.Templify.Core.ValidationErrorType.InvalidConditionalExpression = 6 -> TriasDev.Templify.Core.ValidationErrorType
+TriasDev.Templify.Core.ValidationErrorType.InvalidDocument = 7 -> TriasDev.Templify.Core.ValidationErrorType
 TriasDev.Templify.Core.ValidationErrorType.InvalidPlaceholderSyntax = 4 -> TriasDev.Templify.Core.ValidationErrorType
 TriasDev.Templify.Core.ValidationErrorType.MissingVariable = 5 -> TriasDev.Templify.Core.ValidationErrorType
 TriasDev.Templify.Core.ValidationErrorType.UnmatchedConditionalEnd = 1 -> TriasDev.Templify.Core.ValidationErrorType
@@ -199,6 +232,7 @@ TriasDev.Templify.Core.ValidationWarning.Type.init -> void
 TriasDev.Templify.Core.ValidationWarning.ValidationWarning() -> void
 TriasDev.Templify.Core.ValidationWarningType
 TriasDev.Templify.Core.ValidationWarningType.EmptyLoopCollection = 0 -> TriasDev.Templify.Core.ValidationWarningType
+TriasDev.Templify.Core.ValidationWarningType.MissingConditionVariable = 2 -> TriasDev.Templify.Core.ValidationWarningType
 TriasDev.Templify.Core.ValidationWarningType.ReservedWordAsVariable = 1 -> TriasDev.Templify.Core.ValidationWarningType
 TriasDev.Templify.Formatting.BooleanFormatter
 TriasDev.Templify.Formatting.BooleanFormatter.BooleanFormatter(string! trueValue, string! falseValue) -> void
@@ -248,6 +282,7 @@ static TriasDev.Templify.Core.ProcessingWarning.ExpressionFailed(string! express
 static TriasDev.Templify.Core.ProcessingWarning.MissingLoopCollection(string! collectionName) -> TriasDev.Templify.Core.ProcessingWarning!
 static TriasDev.Templify.Core.ProcessingWarning.MissingVariable(string! variableName) -> TriasDev.Templify.Core.ProcessingWarning!
 static TriasDev.Templify.Core.ProcessingWarning.NullLoopCollection(string! collectionName) -> TriasDev.Templify.Core.ProcessingWarning!
+static TriasDev.Templify.Core.TemplateProcessor.DetectFormat(System.IO.Stream! templateStream) -> TriasDev.Templify.Core.TemplateFormat
 static TriasDev.Templify.Core.TextProcessingResult.Failure(string! errorMessage) -> TriasDev.Templify.Core.TextProcessingResult!
 static TriasDev.Templify.Core.TextProcessingResult.Success(string! processedText, int replacementCount, System.Collections.Generic.IReadOnlyList<string!>? missingVariables = null) -> TriasDev.Templify.Core.TextProcessingResult!
 static TriasDev.Templify.Core.ValidationError.Create(TriasDev.Templify.Core.ValidationErrorType type, string! message, string? location = null) -> TriasDev.Templify.Core.ValidationError!
