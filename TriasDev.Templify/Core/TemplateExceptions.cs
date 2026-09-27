@@ -62,3 +62,38 @@ internal sealed class TemplateDataException : InvalidOperationException
     {
     }
 }
+
+/// <summary>
+/// Thrown before anything is written when the output stream holds earlier content after its position that the
+/// document would not overwrite, and the stream cannot be truncated (<see cref="Stream.SetLength"/> is not
+/// supported). Writing would leave trailing bytes of the earlier content, i.e. a corrupt file.
+/// </summary>
+/// <remarks>The template processors convert it into a failed result with its message.</remarks>
+internal sealed class OutputStreamNotTruncatableException : IOException
+{
+    internal const string DefaultMessage =
+        "Invalid output stream: the output stream has earlier content after the current position that would remain "
+        + "after the document, and it cannot be truncated (SetLength is not supported). Pass an empty output stream "
+        + "or one that supports SetLength (for example a FileStream opened with FileMode.Create).";
+
+    public OutputStreamNotTruncatableException(Exception innerException)
+        : base(DefaultMessage, innerException)
+    {
+    }
+
+    /// <summary>
+    /// Truncates a seekable <paramref name="output"/> at its current position.
+    /// </summary>
+    /// <exception cref="OutputStreamNotTruncatableException">The stream does not support <see cref="Stream.SetLength"/>.</exception>
+    public static void TruncateAtPosition(Stream output)
+    {
+        try
+        {
+            output.SetLength(output.Position);
+        }
+        catch (NotSupportedException ex)
+        {
+            throw new OutputStreamNotTruncatableException(ex);
+        }
+    }
+}

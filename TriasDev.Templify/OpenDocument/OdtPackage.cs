@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
+using TriasDev.Templify.Core;
 
 namespace TriasDev.Templify.OpenDocument;
 
@@ -256,8 +257,13 @@ internal sealed class OdtPackage
 
     /// <summary>
     /// Writes the package as an OpenDocument Text document (.odt) at the output's current position. A seekable
-    /// output is truncated after the package, so no bytes of longer earlier content remain.
+    /// output with longer earlier content is truncated before the package is written, so no bytes of that content
+    /// remain.
     /// </summary>
+    /// <exception cref="OutputStreamNotTruncatableException">
+    /// The output has earlier content after its position that is longer than the package and cannot be truncated;
+    /// nothing is written.
+    /// </exception>
     public void Save(Stream output)
     {
         if (IsTemplate)
@@ -316,9 +322,16 @@ internal sealed class OdtPackage
             }
         }
 
+        // A package at least as long as the earlier content after the position overwrites all of it. A shorter one
+        // needs the output truncated first; a stream that cannot be truncated would keep trailing bytes (a corrupt
+        // file), so it fails before anything is written.
+        if (output.CanSeek && output.Length - output.Position > buffer.Length)
+        {
+            OutputStreamNotTruncatableException.TruncateAtPosition(output);
+        }
+
         buffer.Position = 0;
         buffer.CopyTo(output);
-        TruncateAfterPosition(output);
     }
 
     /// <summary>
@@ -341,27 +354,6 @@ internal sealed class OdtPackage
         }
 
         return stream.ToArray();
-    }
-
-    /// <summary>
-    /// Cuts off what follows the written package in a seekable output, e.g. the rest of a longer file opened with
-    /// <see cref="File.OpenWrite(string)"/>.
-    /// </summary>
-    private static void TruncateAfterPosition(Stream output)
-    {
-        if (!output.CanSeek || output.Length <= output.Position)
-        {
-            return;
-        }
-
-        try
-        {
-            output.SetLength(output.Position);
-        }
-        catch (NotSupportedException)
-        {
-            // A seekable stream with a fixed length (e.g. a MemoryStream over a byte array): nothing to cut off with.
-        }
     }
 
     private static void SetLastWriteTime(ZipArchiveEntry entry, DateTimeOffset time)

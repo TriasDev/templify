@@ -433,6 +433,10 @@ public sealed class OdtTemplateProcessor
         {
             return ProcessingResult.Failure(ex.Message);
         }
+        catch (OutputStreamNotTruncatableException ex)
+        {
+            return ProcessingResult.Failure(ex.Message);
+        }
         catch (Exception ex)
         {
             return ProcessingResult.Failure($"Processing failed: {ex.Message}");

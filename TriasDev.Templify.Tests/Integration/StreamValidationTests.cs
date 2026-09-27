@@ -142,6 +142,60 @@ public sealed class StreamValidationTests
         }
     }
 
+    [Fact]
+    public void ProcessTemplate_OutputWithEarlierContentThatCannotBeTruncated_FailsWithoutWriting()
+    {
+        // The earlier content would stay behind the document (a corrupt package), so processing fails before the
+        // template is copied into the output.
+        byte[] earlier = Enumerable.Repeat((byte)0xAB, 200 * 1024).ToArray();
+        using NonTruncatableStream output = new NonTruncatableStream(earlier);
+
+        ProcessingResult result = new DocumentTemplateProcessor().ProcessTemplate(CreateTemplate(), output, _data);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(TriasDev.Templify.Core.OutputStreamNotTruncatableException.DefaultMessage, result.ErrorMessage);
+        Assert.Equal(earlier, output.ToArray());
+    }
+
+    [Fact]
+    public void ProcessTemplate_FacadeWithOutputThatCannotBeTruncated_FailsWithoutWriting()
+    {
+        byte[] earlier = Enumerable.Repeat((byte)0xAB, 200 * 1024).ToArray();
+        using NonTruncatableStream output = new NonTruncatableStream(earlier);
+
+        ProcessingResult result = new TemplateProcessor().ProcessTemplate(CreateTemplate(), output, _data);
+
+        Assert.Equal(TriasDev.Templify.Core.OutputStreamNotTruncatableException.DefaultMessage, result.ErrorMessage);
+        Assert.Equal(earlier, output.ToArray());
+    }
+
+    [Fact]
+    public void ProcessTemplate_OutputWithShorterEarlierContent_IsTruncatedBeforeTheCopy()
+    {
+        using MemoryStream output = new MemoryStream();
+        output.Write(Enumerable.Repeat((byte)0xAB, 16).ToArray());
+        output.Position = 0;
+
+        ProcessingResult result = new DocumentTemplateProcessor().ProcessTemplate(CreateTemplate(), output, _data);
+
+        Assert.True(result.IsSuccess, result.ErrorMessage);
+        using DocumentVerifier verifier = new DocumentVerifier(output);
+        Assert.Equal("Hello Alice!", verifier.GetParagraphText(0));
+    }
+
+    /// <summary>A seekable, readable and writable stream whose length cannot be set.</summary>
+    private sealed class NonTruncatableStream : MemoryStream
+    {
+        public NonTruncatableStream(byte[] content)
+            : base(content.Length)
+        {
+            Write(content);
+            Position = 0;
+        }
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+    }
+
     private static void AssertOutputStreamFailure(ProcessingResult result)
     {
         Assert.False(result.IsSuccess);

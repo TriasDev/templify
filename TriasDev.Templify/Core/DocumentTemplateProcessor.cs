@@ -402,15 +402,15 @@ public sealed class DocumentTemplateProcessor
                 templateStream.Position = 0;
             }
 
-            templateStream.CopyTo(outputStream);
-
-            // An output with longer earlier content (an existing file opened without truncation) would keep
-            // trailing bytes after the copy, and the package could not be opened.
+            // An output with earlier content (an existing file opened without truncation) would keep trailing bytes
+            // after the copy, and the package could not be opened. It is truncated before the copy, so a stream that
+            // cannot be truncated fails before anything is written.
             if (outputStream.Length > outputStream.Position)
             {
-                outputStream.SetLength(outputStream.Position);
+                OutputStreamNotTruncatableException.TruncateAtPosition(outputStream);
             }
 
+            templateStream.CopyTo(outputStream);
             outputStream.Position = 0;
 
             // Track missing variables and warnings
@@ -473,6 +473,10 @@ public sealed class DocumentTemplateProcessor
             // exact-type checks keep working. Every other error, including template syntax errors and data
             // that does not fit the template, is reported as a failed result.
             throw ex.ToPublicException();
+        }
+        catch (OutputStreamNotTruncatableException ex)
+        {
+            return ProcessingResult.Failure(ex.Message);
         }
         catch (Exception ex)
         {
