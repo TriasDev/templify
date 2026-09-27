@@ -65,6 +65,7 @@ internal sealed class OdtTemplateValidator
             {
                 syntax.WalkBlocks(container.Elements().ToList());
                 ValidateConditionExpressions(container, allPlaceholders, errors, warnings, data);
+                ValidateInlineExpressions(container, errors);
                 FindAllPlaceholders(container, allPlaceholders);
             }
 
@@ -125,7 +126,17 @@ internal sealed class OdtTemplateValidator
     {
         foreach (XElement paragraph in GetParagraphs(container))
         {
-            allPlaceholders.UnionWith(PlaceholderScanner.GetUniqueVariableNames(OdtParagraphTextModel.GetText(paragraph)));
+            allPlaceholders.UnionWith(PlaceholderScanner.GetUniqueVariableNames(OdtParagraphTextModel.GetText(paragraph))
+                .SelectMany(InlineExpressionValidation.GetPlaceholderNames));
+        }
+    }
+
+    /// <summary>Reports the inline expression placeholders (<c>{{(...)}}</c>) that cannot be parsed.</summary>
+    private static void ValidateInlineExpressions(XElement container, List<ValidationError> errors)
+    {
+        foreach (XElement paragraph in GetParagraphs(container))
+        {
+            InlineExpressionValidation.CheckSyntax(OdtParagraphTextModel.GetText(paragraph), errors);
         }
     }
 
@@ -472,7 +483,19 @@ internal sealed class OdtTemplateValidator
         {
             foreach (string placeholder in PlaceholderScanner.GetUniqueVariableNames(text))
             {
-                _allPlaceholders.Add(placeholder);
+                _allPlaceholders.UnionWith(InlineExpressionValidation.GetPlaceholderNames(placeholder));
+
+                if (placeholder.StartsWith('('))
+                {
+                    foreach (string variable in InlineExpressionValidation.GetMissingVariables(placeholder, CanResolveInScope))
+                    {
+                        ReportMissing(
+                            variable,
+                            $"Variable '{variable}' is referenced in expression '{placeholder}' but not provided in the data.");
+                    }
+
+                    continue;
+                }
 
                 if (placeholder.StartsWith('@') || placeholder.StartsWith('.') || placeholder == "this")
                 {

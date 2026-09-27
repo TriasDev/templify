@@ -215,6 +215,10 @@ expression string
   `Core/ScopedVariableValidator.cs`, which traverses containers like the walker (body loops, table row loops per table
   and per loop row list, cells, nested tables, text boxes, content controls) and resolves names inside a loop against
   the items of that loop and its enclosing loops (implicit properties, named iteration variables, metadata).
+  Inline `{{(...)}}` expressions are validated by `Core/InlineExpressionValidation.cs` with the processing parser
+  (`ConditionAstCache.InlineExpressions`): parse failures are `InvalidConditionalExpression` errors, `AllPlaceholders`
+  gets the referenced variables, and the variables processing reads from the data without a literal fallback
+  (truthiness operands, variable operands of `in` and the string operators) are checked as missing variables.
 
 ## OpenDocument Text (.odt / .ott)
 

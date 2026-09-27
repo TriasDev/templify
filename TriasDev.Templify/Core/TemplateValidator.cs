@@ -10,6 +10,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using TriasDev.Templify.Conditionals;
 using TriasDev.Templify.Loops;
 using TriasDev.Templify.Placeholders;
+using TriasDev.Templify.Utilities;
 
 namespace TriasDev.Templify.Core;
 
@@ -75,8 +76,9 @@ internal sealed class TemplateValidator
                 // 3. Validate table row loops and collect collection names
                 ValidateTableRowLoops(body, allPlaceholders, errors);
 
-                // 4. Find all regular placeholders in the document
+                // 4. Find all regular placeholders in the document and validate the inline expressions
                 FindAllPlaceholders(body, allPlaceholders);
+                ValidateInlineExpressions(elements, errors);
 
                 // 5. Validate headers and footers
                 ValidateHeadersAndFooters(document, allPlaceholders, errors, warnings, data);
@@ -383,6 +385,7 @@ internal sealed class TemplateValidator
             ValidateLoops(elements, allPlaceholders, errors);
             ValidateTableRowLoopsInElements(elements, allPlaceholders, errors);
             FindAllPlaceholdersInElements(elements, allPlaceholders);
+            ValidateInlineExpressions(elements, errors);
         }
     }
 
@@ -416,8 +419,19 @@ internal sealed class TemplateValidator
             IEnumerable<string> foundPlaceholders = PlaceholderScanner.GetUniqueVariableNames(text);
             foreach (string placeholder in foundPlaceholders)
             {
-                allPlaceholders.Add(placeholder);
+                allPlaceholders.UnionWith(InlineExpressionValidation.GetPlaceholderNames(placeholder));
             }
+        }
+    }
+
+    /// <summary>
+    /// Reports the inline expression placeholders (<c>{{(...)}}</c>) that cannot be parsed.
+    /// </summary>
+    private static void ValidateInlineExpressions(List<OpenXmlElement> elements, List<ValidationError> errors)
+    {
+        foreach (Paragraph paragraph in EnumerateParagraphs(elements))
+        {
+            InlineExpressionValidation.CheckSyntax(ParagraphTextModel.GetText(paragraph), errors);
         }
     }
 }
