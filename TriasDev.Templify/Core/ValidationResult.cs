@@ -231,5 +231,18 @@ public enum ValidationWarningType
     /// variable with that name. It is evaluated as the variable, but the bracketed form (<c>[Exists]</c>) is
     /// recommended because the word is also an operator.
     /// </summary>
-    ReservedWordAsVariable
+    ReservedWordAsVariable,
+
+    /// <summary>
+    /// A condition evaluates a variable for truthiness on its own (a bare operand, e.g. <c>{{#if Missing}}</c>,
+    /// <c>{{#if not Missing}}</c> or <c>{{#if A and Missing}}</c>) and the variable is not provided in the data,
+    /// so it is treated as <see langword="false"/>. Reported only when the template is validated with data.
+    /// </summary>
+    /// <remarks>
+    /// Operands of <c>exists</c>, <c>is empty</c> and <c>is not empty</c> (designed for missing values) and
+    /// comparison operands (<c>Status = Active</c>, where an unknown bareword is a string literal) are not
+    /// reported. The variable is not added to <see cref="ValidationResult.MissingVariables"/> and the warning does
+    /// not affect <see cref="ValidationResult.IsValid"/>.
+    /// </remarks>
+    MissingConditionVariable = 2
 }

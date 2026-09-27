@@ -222,7 +222,26 @@ Console.WriteLine(string.Join(", ", validation.MissingVariables));
 Each missing variable or loop collection is reported as an error of type `MissingVariable` (so `IsValid` is
 `false` for that data) and listed in `MissingVariables`; call `ValidateTemplate(template)` without data to check
 the syntax only. `validation.Warnings` reports loops over empty collections (`EmptyLoopCollection`, controlled by
-`WarnOnEmptyLoopCollections`) and condition keywords used as variable names (`ReservedWordAsVariable`).
+`WarnOnEmptyLoopCollections`), condition keywords used as variable names (`ReservedWordAsVariable`) and conditions
+that test a variable missing from the data on its own (`MissingConditionVariable`, see below). Warnings never make
+`IsValid` false.
+
+`ValidationWarning.Type` is one of these `ValidationWarningType` values:
+
+| Type | Meaning |
+|------|---------|
+| `EmptyLoopCollection` | A loop collection is empty, so the loop content could not be checked (only with `WarnOnEmptyLoopCollections`) |
+| `ReservedWordAsVariable` | A condition uses a bare keyword (`Exists`, `Empty`, ...) as a variable that is in the data; write `[Exists]` |
+| `MissingConditionVariable` | A condition tests a variable that is not in the data for truthiness on its own, so it is treated as false |
+
+`MissingConditionVariable` covers variables used as bare operands: the whole condition (`{{#if Missing}}`,
+`{{#elseif Missing}}`, inline `{{#if Missing}}...{{/if}}`) and the operands of `and`, `or` and `not`
+(`{{#if not Missing}}`, `{{#if A and Missing}}`). Inside loops, item properties, named iteration variables and loop
+metadata (`@first`, ...) are resolved as in processing. It is not reported for the operands of `exists`, `is empty`
+and `is not empty` (they are meant for missing values), for comparison operands (`Status = Active` compares with the
+text `Active` when there is no such variable) or for the other operators, and not for inline `{{(...)}}` expressions.
+The variable is not added to `MissingVariables` and is not a `MissingVariable` error, so existing validation code
+keeps its result. The warning is the same for Word and OpenDocument templates.
 
 `ValidationError.Type` is one of these `ValidationErrorType` values:
 

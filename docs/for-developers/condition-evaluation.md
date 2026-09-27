@@ -223,7 +223,9 @@ evaluator.Evaluate("[Empty] = \"yes\" and not [Not]", data);
 evaluator.Evaluate("[Exists].Count > 0", data);
 ```
 
-`ValidateTemplate(template, data)` reports a `ReservedWordAsVariable` warning when a condition uses a bare keyword as a variable that exists in the data, recommending the bracketed form.
+`ValidateTemplate(template, data)` reports a `ReservedWordAsVariable` warning when a condition uses a bare keyword as a variable that exists in the data, recommending the bracketed form. It reports a `MissingConditionVariable` warning when a condition tests a variable
+that is not in the data for truthiness on its own (`{{#if Missing}}`, `{{#if A and not Missing}}`); operands of
+comparisons, `exists` and `is empty` are not reported.
 
 **Quote string literals** that could collide with a keyword (`= "empty"` rather than `= empty`).
 

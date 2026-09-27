@@ -219,6 +219,8 @@ internal sealed class ScopedVariableValidator
                     $"Variable '{placeholder}' is referenced in the template but not provided in the data.");
             }
         }
+
+        MissingConditionVariableCheck.Check(text, CanResolveInScope, _warnings);
     }
 
     private void ReportMissing(string variable, string message)

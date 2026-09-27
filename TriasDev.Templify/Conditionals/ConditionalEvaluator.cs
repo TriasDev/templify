@@ -313,6 +313,44 @@ internal sealed class ConditionalEvaluator
     }
 
     /// <summary>
+    /// Collects the variables of a parsed expression that are evaluated for truthiness on their own: the whole
+    /// expression (<c>Flag</c>) and the operands of <c>and</c>, <c>or</c> and <c>not</c>.
+    /// </summary>
+    /// <remarks>
+    /// Operands of comparisons (<c>Status = Active</c>, where a missing bareword falls back to a string literal),
+    /// of <c>exists</c> / <c>is empty</c> / <c>is not empty</c> (designed for missing values), of <c>in</c> and of
+    /// the string operators are not bare operands. Nested operator nodes are always descended into, so the
+    /// operands of a logical operator nested in a comparison (<c>(A and B) = true</c>) are still found.
+    /// </remarks>
+    internal static IEnumerable<Engine.VariableNode> CollectBareOperandVariables(Engine.ConditionNode node)
+    {
+        return Collect(node, isBooleanContext: true);
+
+        static IEnumerable<Engine.VariableNode> Collect(Engine.ConditionNode node, bool isBooleanContext)
+        {
+            switch (node)
+            {
+                case Engine.VariableNode variable when isBooleanContext:
+                    yield return variable;
+                    break;
+                case Engine.OperatorNode op:
+                    bool isLogical = op.Operator is Engine.Operators.AndOperator
+                        or Engine.Operators.OrOperator
+                        or Engine.Operators.NotOperator;
+                    foreach (Engine.ConditionNode operand in op.Operands)
+                    {
+                        foreach (Engine.VariableNode v in Collect(operand, isLogical))
+                        {
+                            yield return v;
+                        }
+                    }
+
+                    break;
+            }
+        }
+    }
+
+    /// <summary>
     /// Evaluates a conditional expression (backward compatibility bridge).
     /// </summary>
     /// <param name="expression">The expression to evaluate</param>
