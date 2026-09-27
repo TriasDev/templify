@@ -1355,7 +1355,7 @@ Result of template processing operation.
 ### ValidationResult
 
 - `IsValid` (no errors), `Errors` (`ValidationError` with `Type`, `Message`, `Location`); when data is passed, each missing variable is an error of type `MissingVariable`; a template that cannot be read (unsupported format, corrupted package) passed to `TemplateProcessor` or `OdtTemplateProcessor` is an error of type `InvalidDocument`
-- `AllPlaceholders`, `MissingVariables`
+- `AllPlaceholders`, `MissingVariables` (an inline expression such as `{{(A and B)}}` contributes the variables it references; an expression that cannot be parsed is an `InvalidConditionalExpression` error)
 - `Warnings` (`ValidationWarning` of type `EmptyLoopCollection`, `ReservedWordAsVariable` or `MissingConditionVariable`: a condition tests a variable missing from the data on its own, e.g. `{{#if Missing}}`; not added to `MissingVariables`, `IsValid` is unchanged)
 
 ### TextTemplateProcessor

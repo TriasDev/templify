@@ -53,6 +53,15 @@ public sealed class OdtValidationParityTests
                 "{{#foreach item in Items}}", "{{#if item.Active and not item.Nope and Title and @first}}", "c", "{{/if}}", "{{/foreach}}",
             }
         },
+        {
+            "inline expressions",
+            new[]
+            {
+                "{{(A and B)}} {{(Flag):yesno}} {{(Count > 2)}} {{((A or Nope) and not (Count < 1))}} {{(Status = Active)}}",
+                "{{(A and)}} {{(Name contains Missing)}} {{(Missing exists)}}",
+                "{{#foreach item in Items}}", "{{(item.Active and @first)}} {{(Title = 'i1' or item.Nope):yesno}}", "{{/foreach}}",
+            }
+        },
         { "nested unmatched conditional in loop", new[] { "{{#foreach Items}}", "{{#if Active}}", "{{Title}}", "{{/foreach}}" } },
     };
 

@@ -204,7 +204,20 @@ internal sealed class ScopedVariableValidator
     {
         foreach (string placeholder in PlaceholderScanner.GetUniqueVariableNames(text))
         {
-            _allPlaceholders.Add(placeholder);
+            _allPlaceholders.UnionWith(InlineExpressionValidation.GetPlaceholderNames(placeholder));
+
+            // Inline expressions ({{(A and B)}}) are checked per referenced variable
+            if (placeholder.StartsWith('('))
+            {
+                foreach (string variable in InlineExpressionValidation.GetMissingVariables(placeholder, CanResolveInScope))
+                {
+                    ReportMissing(
+                        variable,
+                        $"Variable '{variable}' is referenced in expression '{placeholder}' but not provided in the data.");
+                }
+
+                continue;
+            }
 
             // Skip special placeholders (loop metadata, current item)
             if (placeholder.StartsWith('@') || placeholder.StartsWith('.') || placeholder == "this")

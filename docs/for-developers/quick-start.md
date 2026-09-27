@@ -246,6 +246,16 @@ text `Active` when there is no such variable) or for the other operators, and no
 The variable is not added to `MissingVariables` and is not a `MissingVariable` error, so existing validation code
 keeps its result. The warning is the same for Word and OpenDocument templates.
 
+Inline expressions (`{{(A and B)}}`, `{{(Price > 100):yesno}}`) are validated through the parsed expression, like
+processing evaluates them. `AllPlaceholders` lists the variables they reference (`A`, `B`, `Price`), not the
+expression text. An expression that cannot be parsed (`{{(A and)}}`, `{{(A && B)}}`) is an
+`InvalidConditionalExpression` error, also without data. With data, each referenced variable that processing reads
+from the data and that is missing is a `MissingVariable` error and is listed in `MissingVariables`: the operands
+tested for truthiness (`{{(A and Missing)}}`, `{{(not Missing)}}`) and the variable operands of `in`, `contains`,
+`startswith` and `endswith`. As in processing, comparison operands are not reported (`{{(Status = Active)}}` compares
+with the text `Active` when there is no such variable), nor the operands of `exists`, `is empty` and `is not empty`.
+Inline expressions get no `MissingConditionVariable` warning, because their missing operands are already errors.
+
 `ValidationError.Type` is one of these `ValidationErrorType` values:
 
 | Type | Meaning |
@@ -254,7 +264,7 @@ keeps its result. The warning is the same for Word and OpenDocument templates.
 | `UnmatchedLoopStart` / `UnmatchedLoopEnd` | A `{{#foreach}}` without `{{/foreach}}`, or the other way round |
 | `InvalidPlaceholderSyntax` | Invalid template syntax, for example an invalid loop variable name |
 | `MissingVariable` | A variable or loop collection is not in the data (only when data is passed) |
-| `InvalidConditionalExpression` | A condition cannot be parsed |
+| `InvalidConditionalExpression` | A condition or an inline `{{(...)}}` expression cannot be parsed |
 | `InvalidDocument` | The input cannot be read as a supported template: unsupported format, unreadable stream, or corrupted or rejected package |
 
 `InvalidDocument` is reported by `TemplateProcessor` and `OdtTemplateProcessor`. `DocumentTemplateProcessor` still

@@ -224,11 +224,15 @@ public sealed class ValidationMissingConditionVariableTests
     }
 
     [Fact]
-    public void InlineExpression_IsNotChecked()
+    public void InlineExpression_IsAMissingVariableErrorNotAWarning()
     {
+        // Inline expressions are placeholders: a missing operand is a MissingVariable error (see
+        // ValidationInlineExpressionTests), so no condition warning is added on top.
         ValidationResult result = Validate(Data(), "{{(Missing and A)}} {{(not Missing):yesno}}");
 
         Assert.Empty(ConditionWarnings(result));
+        Assert.Equal(new[] { "Missing" }, result.MissingVariables);
+        Assert.All(result.Errors, e => Assert.Equal(ValidationErrorType.MissingVariable, e.Type));
     }
 
     [Fact]
