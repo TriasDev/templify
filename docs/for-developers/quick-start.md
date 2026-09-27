@@ -74,7 +74,10 @@ results), `TriasDev.Templify.Conditionals` (standalone condition evaluation), `T
 The output stream must be **readable, writable and seekable** (a `MemoryStream`, or a `FileStream` opened
 with `FileAccess.ReadWrite` such as `File.Create`; `File.OpenWrite` is write-only and does not work), because the
 document is edited in place after the template has been copied into it. An unusable stream is reported as a
-failed result (`IsSuccess == false` with an `ErrorMessage`) before anything is written to it.
+failed result (`IsSuccess == false` with an `ErrorMessage`) before anything is written to it. An output with earlier
+content (for example an existing file opened with `FileMode.OpenOrCreate`) is truncated first; if it cannot be
+truncated (`SetLength` is not supported), processing fails with an `Invalid output stream: ...` error and the
+earlier content is left unchanged.
 
 ### Step 3: Run It
 

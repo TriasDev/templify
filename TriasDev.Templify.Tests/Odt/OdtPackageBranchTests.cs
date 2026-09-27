@@ -122,11 +122,45 @@ public sealed class OdtPackageBranchTests
     }
 
     [Fact]
-    public void SeekableOutputThatCannotChangeItsLength_IsWrittenWithoutTruncation()
+    public void SeekableOutputThatCannotBeTruncated_WithLongerEarlierContent_FailsWithoutWriting()
     {
-        // The rest of a longer seekable output is cut off where possible. A stream that cannot change its length
-        // does not fail the processing; the package is written from the start and the stream keeps its length.
-        using FixedLengthStream output = new FixedLengthStream(new byte[1024 * 1024]);
+        // The package is shorter than the earlier content, and the stream cannot be truncated: writing would leave
+        // trailing bytes of the earlier content (a corrupt file), so processing fails and nothing is written.
+        byte[] earlier = Enumerable.Repeat((byte)0xAB, 1024 * 1024).ToArray();
+        using NonTruncatableStream output = new NonTruncatableStream(earlier.ToArray());
+
+        ProcessingResult result = new OdtTemplateProcessor().ProcessTemplate(
+            new MemoryStream(new OdtDocumentBuilder().AddParagraph("Hello {{Name}}").ToBytes()),
+            output,
+            _data);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(OutputStreamNotTruncatableException.DefaultMessage, result.ErrorMessage);
+        Assert.StartsWith("Invalid output stream:", result.ErrorMessage);
+        Assert.Equal(earlier, output.ToArray());
+        Assert.Equal(0, output.Position);
+    }
+
+    [Fact]
+    public void SeekableOutputThatCannotBeTruncated_ThroughTheFacade_FailsWithoutWriting()
+    {
+        byte[] earlier = Enumerable.Repeat((byte)0xAB, 1024 * 1024).ToArray();
+        using NonTruncatableStream output = new NonTruncatableStream(earlier.ToArray());
+
+        ProcessingResult result = new TemplateProcessor().ProcessTemplate(
+            new MemoryStream(new OdtDocumentBuilder().AddParagraph("Hello {{Name}}").ToBytes()),
+            output,
+            _data);
+
+        Assert.Equal(OutputStreamNotTruncatableException.DefaultMessage, result.ErrorMessage);
+        Assert.Equal(earlier, output.ToArray());
+    }
+
+    [Fact]
+    public void SeekableOutputThatCannotBeTruncated_WithShorterEarlierContent_IsOverwritten()
+    {
+        // The package overwrites all earlier content, so no truncation is needed.
+        using NonTruncatableStream output = new NonTruncatableStream(Enumerable.Repeat((byte)0xAB, 64).ToArray());
 
         ProcessingResult result = new OdtTemplateProcessor().ProcessTemplate(
             new MemoryStream(new OdtDocumentBuilder().AddParagraph("Hello {{Name}}").ToBytes()),
@@ -134,18 +168,46 @@ public sealed class OdtPackageBranchTests
             _data);
 
         Assert.True(result.IsSuccess, result.ErrorMessage);
-        Assert.Equal(1024 * 1024, output.Length);
-        Assert.Equal("Hello World", new OdtDocumentVerifier(output.ToArray()[..(int)output.Position]).GetParagraphTexts()[0]);
+        Assert.Equal(0, output.SetLengthCalls);
+        Assert.Equal(output.Position, output.Length);
+        OdtDocumentVerifier verifier = new OdtDocumentVerifier(output.ToArray());
+        verifier.AssertValidOdtPackage();
+        Assert.Equal("Hello World", verifier.GetParagraphTexts()[0]);
     }
 
-    private sealed class FixedLengthStream : MemoryStream
+    [Fact]
+    public void SeekableOutputWithLongerEarlierContent_IsTruncatedBeforeWriting()
     {
-        public FixedLengthStream(byte[] buffer)
-            : base(buffer, writable: true)
+        // A fixed-size MemoryStream can shrink, so the earlier content is cut off.
+        using MemoryStream output = new MemoryStream(Enumerable.Repeat((byte)0xAB, 1024 * 1024).ToArray(), writable: true);
+
+        ProcessingResult result = new OdtTemplateProcessor().ProcessTemplate(
+            new MemoryStream(new OdtDocumentBuilder().AddParagraph("Hello {{Name}}").ToBytes()),
+            output,
+            _data);
+
+        Assert.True(result.IsSuccess, result.ErrorMessage);
+        Assert.Equal(output.Position, output.Length);
+        Assert.Equal("Hello World", new OdtDocumentVerifier(output.ToArray()).GetParagraphTexts()[0]);
+    }
+
+    /// <summary>A seekable, writable stream whose length cannot be set (<see cref="Stream.SetLength"/> throws).</summary>
+    private sealed class NonTruncatableStream : MemoryStream
+    {
+        public NonTruncatableStream(byte[] content)
+            : base(content.Length)
         {
+            Write(content);
+            Position = 0;
         }
 
-        public override void SetLength(long value) => throw new NotSupportedException();
+        public int SetLengthCalls { get; private set; }
+
+        public override void SetLength(long value)
+        {
+            SetLengthCalls++;
+            throw new NotSupportedException();
+        }
     }
 
     [Fact]
