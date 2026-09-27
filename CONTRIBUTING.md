@@ -343,6 +343,18 @@ public ProcessingResult ProcessTemplate(Stream templateStream, Stream outputStre
 All contributions must include tests. Aim for full coverage of new code, including edge cases
 (empty collections, missing variables, malformed syntax).
 
+**LibreOffice round-trip tests (OpenDocument).** Tests marked `[Trait("Category", "LibreOffice")]` open the generated
+`.odt` files in a real LibreOffice. They are skipped on CI by design (#218), so they are a **required local step** for
+every change to OpenDocument code or the shared engine, and before every release:
+
+```bash
+dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj -c Release -f net10.0 --filter "Category=LibreOffice"
+```
+
+They need LibreOffice installed (macOS default path is detected; otherwise set `TEMPLIFY_SOFFICE` to the `soffice`
+executable). The run must show **0 skipped** — a skipped run means LibreOffice was not found. Put the result in the PR
+description.
+
 **Testing Guidelines:**
 
 1. **Unit Tests** - Test individual components in isolation
@@ -532,12 +544,18 @@ mkdocs build --strict
 `CHANGELOG.md` and version numbers are managed by [release-please](https://github.com/googleapis/release-please)
 (`.github/workflows/release-please.yml`, `release-please-config.json`):
 
-- **Do not edit `CHANGELOG.md` by hand.** release-please builds each release section from the Conventional Commit
-  messages of the squash-merged PRs on `main` (`feat`, `fix` and `perf` are listed; `docs`, `chore`, `ci`, `test` and
-  `refactor` are hidden).
+- **Do not edit `CHANGELOG.md` by hand in regular PRs.** release-please builds each release section from the
+  Conventional Commit messages of the squash-merged PRs on `main` (`feat`, `fix` and `perf` are listed; `docs`, `chore`,
+  `ci`, `build`, `test` and `refactor` are hidden). The one exception is release time: upgrade notes (behavior
+  changes, dropped target frameworks, security notes) are added to the release PR body **and** to `CHANGELOG.md` in the
+  release branch right before merging it — a later push to `main` regenerates the release PR and discards such edits.
 - release-please keeps a release PR open that bumps the version (`.release-please-manifest.json` and `<Version>` in
   `TriasDev.Templify/TriasDev.Templify.csproj`) and updates the changelog. Merging it creates the tag and GitHub release,
   which triggers the NuGet publish workflow.
+- **Before merging a release PR:** run the LibreOffice round-trip tests locally (see Testing Requirements) and make
+  sure the release PR's CI is green (update its branch first — release-please pushes do not trigger CI).
+- After the release is published: move `PublicAPI.Unshipped.txt` entries into `PublicAPI.Shipped.txt` and set
+  `PackageValidationBaselineVersion` to the released version (once it is indexed on nuget.org).
 - Write PR titles for users: they become changelog lines. Put behavior changes and migration notes in the PR description
   so maintainers can carry them into the release notes.
 
