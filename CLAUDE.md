@@ -87,6 +87,24 @@ dotnet format --verify-no-changes --no-restore
 dotnet format --no-restore
 ```
 
+### LibreOffice Round-Trip Tests (mandatory, run locally)
+
+LibreOffice is **not** run on CI (single maintainer; the extra runner cost/flakiness isn't worth it — decided in #218).
+Instead these tests are a **required local step**:
+
+- **when:** every change touching OpenDocument code (`TriasDev.Templify/OpenDocument/**`, `OdtTemplateProcessor`,
+  `TemplateProcessor`/format detection) or the shared engine, **and before merging every release PR**;
+- **how:** LibreOffice must be installed (macOS: `/Applications/LibreOffice.app`; elsewhere set `TEMPLIFY_SOFFICE`):
+
+```bash
+dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj -c Release -f net10.0 --filter "Category=LibreOffice"
+```
+
+- all tests must **pass with 0 skipped** (a skip means `soffice` was not found — that is not a pass). Mention the result
+  in the PR description (e.g. "LibreOffice round trips: 15/15 passed").
+- On CI these tests are skipped automatically. CI still covers LibreOffice-*produced* input through the committed
+  fixtures in `TriasDev.Templify.Tests/Odt/Fixtures/`.
+
 ### Benchmarking
 ```bash
 # Run all benchmarks
