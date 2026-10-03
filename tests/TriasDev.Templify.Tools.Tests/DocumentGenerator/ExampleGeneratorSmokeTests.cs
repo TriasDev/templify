@@ -201,7 +201,7 @@ public sealed class ExampleGeneratorSmokeTests : IDisposable
         string? root = RepositoryPaths.FindRepositoryRoot(AppContext.BaseDirectory);
 
         Assert.NotNull(root);
-        Assert.True(File.Exists(Path.Combine(root, "templify.sln")));
+        Assert.True(File.Exists(Path.Combine(root, "templify.slnx")));
         Assert.Equal(Path.Combine(root, "docs", "images", "examples"), RepositoryPaths.ImagesDirectory(root));
     }
 }

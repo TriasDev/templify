@@ -6,7 +6,7 @@ namespace TriasDev.Templify.DocumentGenerator;
 public static class RepositoryPaths
 {
     /// <summary>
-    /// Finds the repository root (the directory containing <c>templify.sln</c> and <c>examples/</c>).
+    /// Finds the repository root (the directory containing <c>templify.slnx</c> and <c>examples/</c>).
     /// Searches upwards from the current directory first, then from the application's base directory
     /// (so <c>dotnet run --project</c> works from any directory inside or outside the repository).
     /// </summary>
@@ -24,7 +24,7 @@ public static class RepositoryPaths
         var dir = new DirectoryInfo(startDirectory);
         while (dir != null)
         {
-            if (File.Exists(Path.Combine(dir.FullName, "templify.sln"))
+            if (File.Exists(Path.Combine(dir.FullName, "templify.slnx"))
                 && Directory.Exists(Path.Combine(dir.FullName, "examples")))
             {
                 return dir.FullName;

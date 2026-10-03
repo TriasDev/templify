@@ -9,7 +9,7 @@ Console.WriteLine();
 var baseDir = RepositoryPaths.FindRepositoryRoot();
 if (baseDir == null)
 {
-    Console.WriteLine("Error: Could not find the repository root (directory containing templify.sln and examples/).");
+    Console.WriteLine("Error: Could not find the repository root (directory containing templify.slnx and examples/).");
     return 1;
 }
 
