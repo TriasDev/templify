@@ -82,7 +82,7 @@ The guides show more patterns with templates and data:
 
 - **Nested loops** (for example departments with employees): [Loops Guide → Nested Loops](loops.md#nested-loops)
 - **Optional sections and clauses**: [Conditionals Guide](conditionals.md)
-- **Tables with one row per item**: [Loops Guide](loops.md)
+- **Tables with one row per item**: [Loops Guide → Table Loops](loops.md#table-loops)
 - **C# code for many scenarios** (reports, invoices, web applications): [Examples.md](https://github.com/TriasDev/templify/blob/main/src/TriasDev.Templify/Examples.md) on GitHub
 
 Missing an example? Open an [issue](https://github.com/TriasDev/templify/issues) and describe your use case.
