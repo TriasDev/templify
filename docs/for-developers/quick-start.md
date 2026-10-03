@@ -114,6 +114,23 @@ Every overload (stream, `byte[]` and file) also accepts a JSON string instead of
 [Using JSON Data](#using-json-data)). `TextTemplateProcessor.ProcessTemplate` and
 `DocumentTemplateProcessor.ValidateTemplate` accept `IReadOnlyDictionary<string, object?>` data as well.
 
+### Web Applications (Async I/O)
+
+The API is synchronous: processing is CPU-bound, runs in memory and typically takes milliseconds. Do the I/O around it
+asynchronously. In ASP.NET Core, request and upload streams do not allow synchronous reads, so buffer an uploaded
+template first:
+
+```csharp
+using var templateStream = new MemoryStream();
+await uploadedFile.CopyToAsync(templateStream, cancellationToken);
+templateStream.Position = 0;
+
+using var outputStream = new MemoryStream(); // a Word output must be readable, writable and seekable
+ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+```
+
+See the [ASP.NET Core examples](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/Examples.md#web-application-integration).
+
 ## Data
 
 ### Nested Data and Objects

@@ -72,6 +72,9 @@ syntax is the same, and LibreOffice does not need to be installed where the temp
 - Desktop applications
 - Console applications
 
+In ASP.NET Core, buffer uploaded templates asynchronously before processing (see
+[Is there an async API?](#q-is-there-an-async-api)).
+
 ---
 
 ## Features & Capabilities
@@ -563,6 +566,27 @@ size. See the [performance notes](https://github.com/TriasDev/templify/blob/main
 - For repeated processing, reuse the `DocumentTemplateProcessor` instance
 - Keep the template bytes in memory and use `ProcessTemplate(byte[] template, data, out byte[] output)`
 - The API is synchronous; process independent documents in parallel for throughput
+
+### Q: Is there an async API?
+
+**A:** No, and none is planned for now. Processing is CPU-bound and runs in memory (typically milliseconds), so an
+async method would only wrap synchronous work. The I/O around it is in your code, where it can be async:
+
+- **Input:** request and upload streams in ASP.NET Core do not allow synchronous reads. Copy them into a
+  `MemoryStream` with `await CopyToAsync(...)` and pass that stream as the template.
+- **Output:** a Word output stream must be readable, writable and seekable, so write into a `MemoryStream` and return
+  it (`File(...)` in ASP.NET Core sends it asynchronously).
+
+```csharp
+using var templateStream = new MemoryStream();
+await uploadedFile.CopyToAsync(templateStream, cancellationToken);
+templateStream.Position = 0;
+
+using var outputStream = new MemoryStream();
+ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+```
+
+For many documents, process them in parallel (see the next question).
 
 ### Q: Can I process templates in parallel?
 

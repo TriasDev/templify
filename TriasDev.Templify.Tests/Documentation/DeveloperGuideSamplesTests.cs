@@ -119,6 +119,49 @@ public sealed class DeveloperGuideSamplesTests
         }
     }
 
+    // quick-start.md "Web Applications (Async I/O)", FAQ.md "Is there an async API?" and
+    // Examples.md "Uploaded Templates (Async I/O)"
+    [Fact]
+    public async Task QuickStart_UploadBufferedAsynchronously_IsProcessed()
+    {
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        var processor = new DocumentTemplateProcessor(new PlaceholderReplacementOptions { Culture = _invariant });
+        var data = new Dictionary<string, object> { ["CustomerName"] = "Jane" };
+        using AsyncOnlyStream uploadedFile = new AsyncOnlyStream(CreateTemplate("Hi {{CustomerName}}").ToArray());
+
+        using var templateStream = new MemoryStream();
+        await uploadedFile.CopyToAsync(templateStream, cancellationToken);
+        templateStream.Position = 0;
+
+        using var outputStream = new MemoryStream();
+        ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(new[] { "Hi Jane" }, ReadParagraphs(outputStream.ToArray()));
+    }
+
+    // Examples.md "Uploaded Templates (Async I/O)": the format of the buffered upload selects the content type
+    [Fact]
+    public async Task Examples_UploadedTemplate_FormatIsDetectedAndProcessed()
+    {
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        using AsyncOnlyStream template = new AsyncOnlyStream(CreateTemplate("Hi {{CustomerName}}").ToArray());
+
+        using var templateStream = new MemoryStream();
+        await template.CopyToAsync(templateStream, cancellationToken);
+        templateStream.Position = 0;
+
+        TemplateFormat format = TemplateProcessor.DetectFormat(templateStream);
+
+        using var outputStream = new MemoryStream();
+        ProcessingResult result = new TemplateProcessor().ProcessTemplate(
+            templateStream, outputStream, """{"CustomerName": "Jane"}""");
+
+        Assert.Equal(TemplateFormat.Docx, format);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(new[] { "Hi Jane" }, ReadParagraphs(outputStream.ToArray()));
+    }
+
     [Fact]
     public void QuickStart_WriteOnlyOutputStream_IsAFailedResult()
     {
@@ -359,5 +402,56 @@ public sealed class DeveloperGuideSamplesTests
     private sealed class WriteOnlyStream : MemoryStream
     {
         public override bool CanRead => false;
+    }
+
+    /// <summary>
+    /// A request/upload stream as in ASP.NET Core with <c>AllowSynchronousIO = false</c>: not seekable, and synchronous
+    /// reads throw.
+    /// </summary>
+    private sealed class AsyncOnlyStream : Stream
+    {
+        private readonly MemoryStream _content;
+
+        public AsyncOnlyStream(byte[] content) => _content = new MemoryStream(content, writable: false);
+
+        public override bool CanRead => true;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => false;
+
+        public override long Length => throw new NotSupportedException();
+
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) =>
+            throw new InvalidOperationException("Synchronous operations are disallowed.");
+
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) =>
+            _content.ReadAsync(buffer, cancellationToken);
+
+        public override void Flush()
+        {
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _content.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
     }
 }
