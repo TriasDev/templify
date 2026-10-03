@@ -332,13 +332,13 @@ Each script is a thin wrapper around the converter CLI:
 ```bash
 #!/usr/bin/env bash
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec dotnet run --project "$SCRIPT_DIR/../TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj" -- [command] "$@"
+exec dotnet run --project "$SCRIPT_DIR/../tools/TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj" -- [command] "$@"
 ```
 
 **Windows scripts (`.cmd`):**
 ```cmd
 @echo off
-dotnet run --project "%~dp0..\TriasDev.Templify.Converter\TriasDev.Templify.Converter.csproj" -- [command] %*
+dotnet run --project "%~dp0..\tools\TriasDev.Templify.Converter\TriasDev.Templify.Converter.csproj" -- [command] %*
 exit /b %ERRORLEVEL%
 ```
 

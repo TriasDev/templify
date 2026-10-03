@@ -210,7 +210,7 @@ static string? FindEnvFile(string repositoryRoot)
         dir = Directory.GetParent(dir)?.FullName;
     }
 
-    var projectEnvPath = Path.Combine(repositoryRoot, "TriasDev.Templify.DocumentGenerator", ".env");
+    var projectEnvPath = RepositoryPaths.GeneratorEnvFile(repositoryRoot);
     return File.Exists(projectEnvPath) ? projectEnvPath : null;
 }
 

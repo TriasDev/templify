@@ -44,6 +44,10 @@ public static class RepositoryPaths
     public static string OutputsDirectory(string repositoryRoot) =>
         Path.Combine(repositoryRoot, "examples", "outputs");
 
+    /// <summary>The generator's own <c>.env</c> file (next to <c>.env.example</c> in the project directory).</summary>
+    public static string GeneratorEnvFile(string repositoryRoot) =>
+        Path.Combine(repositoryRoot, "tools", "TriasDev.Templify.DocumentGenerator", ".env");
+
     /// <summary>Directory for PNG screenshots used by the MkDocs site.</summary>
     public static string ImagesDirectory(string repositoryRoot) =>
         Path.Combine(repositoryRoot, "docs", "images", "examples");

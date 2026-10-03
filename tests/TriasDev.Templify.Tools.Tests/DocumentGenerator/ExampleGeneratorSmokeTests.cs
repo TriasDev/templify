@@ -204,4 +204,16 @@ public sealed class ExampleGeneratorSmokeTests : IDisposable
         Assert.True(File.Exists(Path.Combine(root, "templify.slnx")));
         Assert.Equal(Path.Combine(root, "docs", "images", "examples"), RepositoryPaths.ImagesDirectory(root));
     }
+
+    [Fact]
+    public void RepositoryPaths_GeneratorEnvFile_IsInTheGeneratorProjectDirectory()
+    {
+        string? root = RepositoryPaths.FindRepositoryRoot(AppContext.BaseDirectory);
+        Assert.NotNull(root);
+
+        string envFile = RepositoryPaths.GeneratorEnvFile(root);
+
+        Assert.Equal(".env", Path.GetFileName(envFile));
+        Assert.True(File.Exists(Path.Combine(Path.GetDirectoryName(envFile)!, ".env.example")));
+    }
 }
