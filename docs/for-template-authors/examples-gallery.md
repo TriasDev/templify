@@ -76,16 +76,16 @@ More templates (advanced conditionals, warning report) are in the [examples fold
 
 ---
 
-## More Examples Coming Soon!
+## More Examples
 
-We're working on adding more examples covering:
+The guides show more patterns with templates and data:
 
-- **Nested Loops** - Departments with employees
-- **Report Card** - Student grades with loops and conditionals
-- **Certificate** - Formal document with formatting
-- **Meeting Notes** - Attendees list with roles
-- **Product Catalog** - Categories with product listings
-- **Contract Template** - Terms and conditions with optional clauses
+- **Nested loops** (for example departments with employees): [Loops Guide → Nested Loops](loops.md#nested-loops)
+- **Optional sections and clauses**: [Conditionals Guide](conditionals.md)
+- **Tables with one row per item**: [Loops Guide → Table Loops](loops.md#table-loops)
+- **C# code for many scenarios** (reports, invoices, web applications): [Examples.md](https://github.com/TriasDev/templify/blob/main/src/TriasDev.Templify/Examples.md) on GitHub
+
+Missing an example? Open an [issue](https://github.com/TriasDev/templify/issues) and describe your use case.
 
 ## Using These Examples
 

@@ -1,6 +1,6 @@
 # Frequently Asked Questions (FAQ)
 
-Common questions and answers about using Templify for Word document templating.
+Common questions and answers about using Templify for Word (.docx) and OpenDocument (.odt/.ott) templates.
 
 ---
 
