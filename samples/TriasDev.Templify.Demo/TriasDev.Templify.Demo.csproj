@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\TriasDev.Templify\TriasDev.Templify.csproj" />
+    <ProjectReference Include="..\..\src\TriasDev.Templify\TriasDev.Templify.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

@@ -1,8 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- Run the core tests against every library TFM (keep in sync with TriasDev.Templify.csproj). -->
-    <TargetFrameworks>net10.0;net9.0;net8.0</TargetFrameworks>
+    <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <!-- xunit.v3: test projects are executables. -->
     <OutputType>Exe</OutputType>
@@ -26,12 +25,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- LibreOffice-authored templates (sources in Odt/Fixtures/Sources); processed without LibreOffice at test time. -->
-    <None Include="Odt\Fixtures\*.odt" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\TriasDev.Templify\TriasDev.Templify.csproj" />
+    <ProjectReference Include="..\..\tools\TriasDev.Templify.Gui\TriasDev.Templify.Gui.csproj" />
+    <ProjectReference Include="..\..\tools\TriasDev.Templify.DocumentGenerator\TriasDev.Templify.DocumentGenerator.csproj" />
   </ItemGroup>
 
 </Project>

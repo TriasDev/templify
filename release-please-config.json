@@ -18,7 +18,7 @@
       "extra-files": [
         {
           "type": "xml",
-          "path": "TriasDev.Templify/TriasDev.Templify.csproj",
+          "path": "src/TriasDev.Templify/TriasDev.Templify.csproj",
           "xpath": "//Project/PropertyGroup/Version"
         }
       ]

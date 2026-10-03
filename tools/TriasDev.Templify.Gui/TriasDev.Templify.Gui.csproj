@@ -30,6 +30,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\TriasDev.Templify\TriasDev.Templify.csproj" />
+    <ProjectReference Include="..\..\src\TriasDev.Templify\TriasDev.Templify.csproj" />
   </ItemGroup>
 </Project>
