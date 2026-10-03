@@ -1750,6 +1750,43 @@ public class ContractData
 }
 ```
 
+### Uploaded Templates (Async I/O)
+
+The processing API is synchronous: processing runs in memory and typically takes milliseconds. Request streams in
+ASP.NET Core do not allow synchronous reads (Kestrel's `AllowSynchronousIO` is `false`), so passing an upload stream
+directly as the template fails. Buffer the upload asynchronously first, then process the buffer:
+
+```csharp
+[HttpPost("render")]
+public async Task<IActionResult> Render(IFormFile template, [FromForm] string data, CancellationToken cancellationToken)
+{
+    // Read the upload asynchronously; the processor then only works on memory.
+    using var templateStream = new MemoryStream();
+    await template.CopyToAsync(templateStream, cancellationToken);
+    templateStream.Position = 0;
+
+    // TemplateProcessor accepts Word (.docx) and OpenDocument (.odt/.ott) templates.
+    TemplateFormat format = TemplateProcessor.DetectFormat(templateStream);
+
+    using var outputStream = new MemoryStream();
+    ProcessingResult result = new TemplateProcessor().ProcessTemplate(templateStream, outputStream, data);
+
+    if (!result.IsSuccess)
+    {
+        return BadRequest(new { error = result.ErrorMessage });
+    }
+
+    // File(...) writes the response body asynchronously.
+    return format == TemplateFormat.Odt
+        ? File(outputStream.ToArray(), "application/vnd.oasis.opendocument.text", "document.odt")
+        : File(outputStream.ToArray(),
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "document.docx");
+}
+```
+
+The output stream cannot be `Response.Body` either: a Word output must be readable, writable and seekable. Write into a
+`MemoryStream` and return it as shown.
+
 ### Dependency Injection Setup
 
 ```csharp
