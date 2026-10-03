@@ -1,0 +1,47 @@
+<Project>
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <!-- What every shipped package carries. Package identity (PackageId, Version, Description, tags) and the
+       validation baseline stay in the project file. -->
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Authors>TriasDev GmbH &amp; Co. KG</Authors>
+    <Company>TriasDev GmbH &amp; Co. KG</Company>
+    <Copyright>Copyright © TriasDev GmbH &amp; Co. KG</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/TriasDev/templify</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/TriasDev/templify</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+  </PropertyGroup>
+
+  <!-- Symbols and Source Link -->
+  <PropertyGroup>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+  </PropertyGroup>
+
+  <!-- Public API guard: PublicAPI.Shipped.txt / PublicAPI.Unshipped.txt (RS0016: public symbol not declared;
+       RS0017: declared symbol removed/changed), and package validation against the last released version
+       (PackageValidationBaselineVersion in the project file). See CONTRIBUTING.md -> "Public API Compatibility". -->
+  <PropertyGroup>
+    <WarningsAsErrors>$(WarningsAsErrors);RS0016;RS0017</WarningsAsErrors>
+    <EnablePackageValidation>true</EnablePackageValidation>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)../assets/icon-128.png" Pack="true" PackagePath="icon.png" Visible="false" />
+  </ItemGroup>
+
+</Project>
