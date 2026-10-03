@@ -335,7 +335,7 @@ certificates/
 .env
 
 # Demo data files - removed from history
-TriasDev.Templify.Demo/Data/
+samples/TriasDev.Templify.Demo/Data/
 process-data*.json
 **/publish/
 
@@ -347,4 +347,4 @@ BenchmarkDotNet.Artifacts/
 
 # Demo output (TriasDev.Templify.Demo writes to ./output by default)
 /output/
-TriasDev.Templify.Demo/output/
+samples/TriasDev.Templify.Demo/output/

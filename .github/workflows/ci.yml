@@ -163,7 +163,7 @@ jobs:
         run: dotnet build --no-restore --configuration Release
 
       - name: Pack
-        run: dotnet pack TriasDev.Templify/TriasDev.Templify.csproj --no-build --configuration Release --output ./artifacts
+        run: dotnet pack src/TriasDev.Templify/TriasDev.Templify.csproj --no-build --configuration Release --output ./artifacts
 
       - name: Upload NuGet package artifact
         uses: actions/upload-artifact@v7

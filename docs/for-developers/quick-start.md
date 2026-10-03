@@ -129,7 +129,7 @@ using var outputStream = new MemoryStream(); // a Word output must be readable, 
 ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream, data);
 ```
 
-See the [ASP.NET Core examples](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/Examples.md#web-application-integration).
+See the [ASP.NET Core examples](https://github.com/TriasDev/templify/blob/main/src/TriasDev.Templify/Examples.md#web-application-integration).
 
 ## Data
 
@@ -446,4 +446,4 @@ var options = new PlaceholderReplacementOptions
 
 - 🐛 [Report Issues](https://github.com/TriasDev/templify/issues)
 - 💬 [Discussions](https://github.com/TriasDev/templify/discussions)
-- 📖 [Library README](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/README.md)
+- 📖 [Library README](https://github.com/TriasDev/templify/blob/main/src/TriasDev.Templify/README.md)

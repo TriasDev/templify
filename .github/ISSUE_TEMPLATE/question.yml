@@ -11,7 +11,7 @@ body:
         Before asking, please check:
         - [Documentation](https://triasdev.github.io/templify/)
         - [FAQ](https://triasdev.github.io/templify/articles/FAQ.html)
-        - [Examples](https://github.com/TriasDev/templify/tree/main/TriasDev.Templify/Examples.md)
+        - [Examples](https://github.com/TriasDev/templify/tree/main/src/TriasDev.Templify/Examples.md)
 
   - type: textarea
     id: question

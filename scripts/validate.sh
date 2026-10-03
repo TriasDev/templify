@@ -6,4 +6,4 @@
 # while file arguments stay relative to your current directory.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec dotnet run --project "$SCRIPT_DIR/../TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj" -- validate "$@"
+exec dotnet run --project "$SCRIPT_DIR/../tools/TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj" -- validate "$@"

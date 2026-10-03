@@ -512,8 +512,8 @@ Now that you understand the basics, move on to more advanced features:
 
 - [Quick Start Guide](../for-developers/quick-start.md)
 - [FAQ](../FAQ.md)
-- [Library README](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/README.md)
-- [Examples Collection](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/Examples.md)
+- [Library README](https://github.com/TriasDev/templify/blob/main/src/TriasDev.Templify/README.md)
+- [Examples Collection](https://github.com/TriasDev/templify/blob/main/src/TriasDev.Templify/Examples.md)
 
 ---
 

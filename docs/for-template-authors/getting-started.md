@@ -69,7 +69,7 @@ Now you'll combine the template with the data to create the final document.
 Templify has no installable `templify` command. If you have the [.NET SDK](https://dotnet.microsoft.com/download) and a copy of the [Templify repository](https://github.com/TriasDev/templify), the demo app processes your own files:
 
 ```bash
-dotnet run --project TriasDev.Templify.Demo -- --template welcome-letter.docx --data data.json --output welcome-letter-final.docx
+dotnet run --project samples/TriasDev.Templify.Demo -- --template welcome-letter.docx --data data.json --output welcome-letter-final.docx
 ```
 
 In most setups, a developer integrates Templify into an application, and you only provide the template and the data.

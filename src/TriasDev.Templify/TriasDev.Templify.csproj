@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Supported TFMs: .NET versions in Microsoft support. EOL TFMs are dropped in a minor release
+         with a release-notes notice (net6.0 dropped in 1.8.0, see #154). -->
+    <TargetFrameworks>net10.0;net9.0;net8.0</TargetFrameworks>
+
+    <!-- RS0026/RS0027: overload design advice for already-shipped API; changing it would be breaking. -->
+    <NoWarn>$(NoWarn);RS0026;RS0027</NoWarn>
+
+    <!-- NuGet package identity; shared package metadata is in src/Directory.Build.props -->
+    <PackageId>TriasDev.Templify</PackageId>
+    <Version>1.9.0</Version>
+    <Description>High-performance templating engine for .NET. Process Word documents (.docx), LibreOffice / OpenDocument Text documents (.odt, .ott) and plain text templates with the same powerful syntax. Replace placeholders, evaluate conditionals, and process loops without Microsoft Word or LibreOffice. Built on the OpenXML SDK; OpenDocument support needs no extra dependency.</Description>
+    <PackageTags>word;docx;odt;ott;opendocument;libreoffice;template;openxml;document-generation;templating;word-documents;office;dotnet;email;text-templates</PackageTags>
+
+    <!-- Public API guard: compare the packed API against the last released version.
+         Any breaking change fails `dotnet pack`. Bump the baseline after each release. -->
+    <PackageValidationBaselineVersion>1.9.0</PackageValidationBaselineVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DocumentFormat.OpenXml"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="TriasDev.Templify.Tests"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\WarningReportTemplate.docx"/>
+  </ItemGroup>
+
+</Project>

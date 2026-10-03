@@ -1,0 +1,12 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\TriasDev.Templify\TriasDev.Templify.csproj" />
+    <ProjectReference Include="..\..\tools\TriasDev.Templify.Converter\TriasDev.Templify.Converter.csproj" />
+  </ItemGroup>
+
+</Project>

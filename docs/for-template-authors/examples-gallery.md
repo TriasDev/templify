@@ -72,7 +72,7 @@ Explore real-world Templify templates with visual examples. Each example include
 - [conditionals-template.docx](https://github.com/TriasDev/templify/raw/main/examples/templates/conditionals-template.docx) - The Word template file
 - [conditionals-output.docx](https://github.com/TriasDev/templify/raw/main/examples/outputs/conditionals-output.docx) - The processed result
 
-More templates (advanced conditionals, warning report) are in the [examples folder](https://github.com/TriasDev/templify/tree/main/examples) of the repository. The sample data for each example is defined in the [DocumentGenerator](https://github.com/TriasDev/templify/tree/main/TriasDev.Templify.DocumentGenerator) tool that produces these files.
+More templates (advanced conditionals, warning report) are in the [examples folder](https://github.com/TriasDev/templify/tree/main/examples) of the repository. The sample data for each example is defined in the [DocumentGenerator](https://github.com/TriasDev/templify/tree/main/tools/TriasDev.Templify.DocumentGenerator) tool that produces these files.
 
 ---
 
@@ -95,7 +95,7 @@ We're working on adding more examples covering:
 2. Write a JSON file with matching data (see the output file for the values used)
 3. Process the template using:
    - **GUI Application:** Open Templify GUI, select the template and JSON file, then click **Process Template**
-   - **Demo app (from the source code):** `dotnet run --project TriasDev.Templify.Demo -- --template template.docx --data data.json --output output.docx`
+   - **Demo app (from the source code):** `dotnet run --project samples/TriasDev.Templify.Demo -- --template template.docx --data data.json --output output.docx`
 
 ### Modify for Your Needs
 

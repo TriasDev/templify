@@ -1044,6 +1044,6 @@ Boolean expressions enable powerful inline logic in your templates:
 
 For more information, see:
 - [Format Specifiers Guide](format-specifiers.md) - Format boolean output
-- [API Reference](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/README.md) - Complete API documentation
-- [Examples](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/Examples.md) - More code examples
+- [API Reference](https://github.com/TriasDev/templify/blob/main/src/TriasDev.Templify/README.md) - Complete API documentation
+- [Examples](https://github.com/TriasDev/templify/blob/main/src/TriasDev.Templify/Examples.md) - More code examples
 - [FAQ](../FAQ.md) - Common questions

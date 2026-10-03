@@ -58,19 +58,19 @@ jobs:
 
       - name: Build
         run: |
-          dotnet build TriasDev.Templify/TriasDev.Templify.csproj \
+          dotnet build src/TriasDev.Templify/TriasDev.Templify.csproj \
             --configuration Release \
             -p:Version=${{ env.VERSION }}
 
       - name: Build tests
         run: |
-          dotnet build TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj \
+          dotnet build tests/TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj \
             --configuration Release \
             -p:Version=${{ env.VERSION }}
 
       - name: Run tests
         run: |
-          dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj \
+          dotnet test tests/TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj \
             --configuration Release \
             --no-build \
             --verbosity normal \
@@ -90,7 +90,7 @@ jobs:
 
       - name: Pack
         run: |
-          dotnet pack TriasDev.Templify/TriasDev.Templify.csproj \
+          dotnet pack src/TriasDev.Templify/TriasDev.Templify.csproj \
             --configuration Release \
             --no-build \
             -p:Version=${{ env.VERSION }} \

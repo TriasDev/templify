@@ -1,6 +1,7 @@
 <Project>
-  <!-- Shared build settings for all projects in the solution.
-       Project-specific settings (target frameworks, packaging) stay in the individual .csproj files. -->
+  <!-- Settings every project in the repository shares. src/ and tests/ each add their own on top through a
+       Directory.Build.props that imports this one; tools/, benchmarks/ and samples/ use this file alone.
+       Project-specific settings (target frameworks, package identity) stay in the individual .csproj files. -->
   <PropertyGroup>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>

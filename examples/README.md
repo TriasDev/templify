@@ -1,7 +1,7 @@
 # Templify Examples
 
 This folder contains example Word (and one LibreOffice / OpenDocument) templates and the documents Templify produced from them. They are generated
-by the [DocumentGenerator](../TriasDev.Templify.DocumentGenerator/README.md) tool, so they always match the
+by the [DocumentGenerator](../tools/TriasDev.Templify.DocumentGenerator/README.md) tool, so they always match the
 current library.
 
 ## Available Examples
@@ -16,7 +16,7 @@ current library.
 | LibreOffice Letter | [templates/libreoffice-letter-template.odt](templates/libreoffice-letter-template.odt) | [outputs/libreoffice-letter-output.odt](outputs/libreoffice-letter-output.odt) | OpenDocument (`.odt`) template for LibreOffice Writer: conditionals, list-item and table-row loops, markdown, footer |
 
 The sample data for each example is defined in code in
-[`TriasDev.Templify.DocumentGenerator/Generators/`](../TriasDev.Templify.DocumentGenerator/Generators/).
+[`tools/TriasDev.Templify.DocumentGenerator/Generators/`](../tools/TriasDev.Templify.DocumentGenerator/Generators/).
 
 ## How to Use These Examples
 
@@ -32,7 +32,7 @@ Write a JSON file with the values the template uses, then use one of these optio
 **Option A: Templify GUI**
 
 ```bash
-dotnet run --project TriasDev.Templify.Gui/TriasDev.Templify.Gui.csproj
+dotnet run --project tools/TriasDev.Templify.Gui/TriasDev.Templify.Gui.csproj
 ```
 
 Select the template (`.docx`, `.odt` or `.ott`), the JSON data file and the output file, then click **Process Template**.
@@ -40,7 +40,7 @@ Select the template (`.docx`, `.odt` or `.ott`), the JSON data file and the outp
 **Option B: Demo console application**
 
 ```bash
-dotnet run --project TriasDev.Templify.Demo -- --template examples/templates/hello-world-template.docx --data my-data.json --output my-output.docx
+dotnet run --project samples/TriasDev.Templify.Demo -- --template examples/templates/hello-world-template.docx --data my-data.json --output my-output.docx
 ```
 
 There is no general-purpose `templify` command-line tool; `TriasDev.Templify.Converter` only migrates
@@ -74,10 +74,10 @@ JSON into a `Dictionary<string, object>`.
 ## Regenerating the Examples
 
 ```bash
-dotnet run --project TriasDev.Templify.DocumentGenerator -- --skip-images
+dotnet run --project tools/TriasDev.Templify.DocumentGenerator -- --skip-images
 ```
 
-See the [DocumentGenerator README](../TriasDev.Templify.DocumentGenerator/README.md) for options (including the
+See the [DocumentGenerator README](../tools/TriasDev.Templify.DocumentGenerator/README.md) for options (including the
 preview images in `docs/images/examples/`).
 
 ## Need Help?

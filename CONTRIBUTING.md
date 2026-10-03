@@ -212,13 +212,13 @@ git clone https://github.com/TriasDev/templify.git
 cd templify
 
 # Restore dependencies
-dotnet restore templify.sln
+dotnet restore templify.slnx
 
 # Build the solution
-dotnet build templify.sln
+dotnet build templify.slnx
 
 # Run tests
-dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj
+dotnet test tests/TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj
 
 # Run tests with coverage
 dotnet test --collect:"XPlat Code Coverage"
@@ -228,10 +228,10 @@ dotnet test --collect:"XPlat Code Coverage"
 
 - **Shared settings** live in `Directory.Build.props` (nullable, analyzers, code style in build). Nullable warnings are always errors.
 - **CI builds treat all warnings as errors** (`ContinuousIntegrationBuild=true` on GitHub Actions). Reproduce locally with
-  `dotnet build templify.sln -c Release -p:ContinuousIntegrationBuild=true`.
+  `dotnet build templify.slnx -c Release -p:ContinuousIntegrationBuild=true`.
 - **Central package management:** all NuGet versions are in `Directory.Packages.props`; `PackageReference` items have no `Version`.
 - **Lock files:** every project has a committed `packages.lock.json`, and CI restores in locked mode (`RestoreLockedMode`).
-  After adding or updating a package, run `dotnet restore templify.sln` and commit the updated lock files, otherwise CI fails.
+  After adding or updating a package, run `dotnet restore templify.slnx` and commit the updated lock files, otherwise CI fails.
 
 ### Pre-Push Checks
 
@@ -239,10 +239,10 @@ Run these before pushing; CI runs the same checks:
 
 ```bash
 # Build like CI (warnings are errors)
-dotnet build templify.sln -c Release -p:ContinuousIntegrationBuild=true
+dotnet build templify.slnx -c Release -p:ContinuousIntegrationBuild=true
 
 # Run all tests
-dotnet test templify.sln -c Release --no-build
+dotnet test templify.slnx -c Release --no-build
 
 # Check formatting (must report no changes)
 dotnet format --verify-no-changes --no-restore
@@ -255,33 +255,43 @@ dotnet format --no-restore
 
 ```
 templify/
-├── TriasDev.Templify/                   # Core library (NuGet package)
-├── TriasDev.Templify.Tests/             # Core library tests
-├── TriasDev.Templify.Converter/         # CLI converter (OpenXMLTemplates → Templify)
-├── TriasDev.Templify.Converter.Tests/   # Converter tests
-├── TriasDev.Templify.Gui/               # Avalonia GUI application
-├── TriasDev.Templify.Demo/              # Demo console application
-├── TriasDev.Templify.DocumentGenerator/ # Generates the example documents used in the docs
-├── TriasDev.Templify.Tools.Tests/       # Tests for GUI view models and DocumentGenerator
-├── TriasDev.Templify.Benchmarks/        # BenchmarkDotNet performance benchmarks
-├── docs/                                # Documentation site (MkDocs)
-└── scripts/                             # Converter helper scripts
+├── src/
+│   └── TriasDev.Templify/                   # Core library (NuGet package)
+├── tests/
+│   ├── TriasDev.Templify.Tests/             # Core library tests
+│   ├── TriasDev.Templify.Converter.Tests/   # Converter tests
+│   └── TriasDev.Templify.Tools.Tests/       # Tests for GUI view models and DocumentGenerator
+├── benchmarks/
+│   └── TriasDev.Templify.Benchmarks/        # BenchmarkDotNet performance benchmarks
+├── samples/
+│   └── TriasDev.Templify.Demo/              # Demo console application
+├── tools/
+│   ├── TriasDev.Templify.Converter/         # CLI converter (OpenXMLTemplates → Templify)
+│   ├── TriasDev.Templify.Gui/               # Avalonia GUI application
+│   └── TriasDev.Templify.DocumentGenerator/ # Generates the example documents used in the docs
+├── docs/                                    # Documentation site (MkDocs)
+├── scripts/                                 # Converter helper scripts
+└── templify.slnx                            # Solution (folders mirror the directories)
 ```
+
+Build settings are layered as in TriasDev/tabular: the root `Directory.Build.props` applies to every project;
+`src/Directory.Build.props` adds package metadata, Source Link and the public API guard, and
+`tests/Directory.Build.props` adds the xUnit packages. Package versions are in `Directory.Packages.props`.
 
 ### Running Specific Projects
 
 ```bash
 # Run demo application
-dotnet run --project TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj
+dotnet run --project samples/TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj
 
 # Run GUI application
-dotnet run --project TriasDev.Templify.Gui/TriasDev.Templify.Gui.csproj
+dotnet run --project tools/TriasDev.Templify.Gui/TriasDev.Templify.Gui.csproj
 
 # Run benchmarks
-dotnet run --project TriasDev.Templify.Benchmarks/TriasDev.Templify.Benchmarks.csproj -c Release
+dotnet run --project benchmarks/TriasDev.Templify.Benchmarks/TriasDev.Templify.Benchmarks.csproj -c Release
 
 # Run converter tool
-dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- [command] [args]
+dotnet run --project tools/TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- [command] [args]
 ```
 
 ---
@@ -348,7 +358,7 @@ All contributions must include tests. Aim for full coverage of new code, includi
 every change to OpenDocument code or the shared engine, and before every release:
 
 ```bash
-dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj -c Release -f net10.0 --filter "Category=LibreOffice"
+dotnet test tests/TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj -c Release -f net10.0 --filter "Category=LibreOffice"
 ```
 
 They need LibreOffice installed (macOS default path is detected; otherwise set `TEMPLIFY_SOFFICE` to the `soffice`
@@ -358,12 +368,12 @@ description.
 **Testing Guidelines:**
 
 1. **Unit Tests** - Test individual components in isolation
-   - Location: `TriasDev.Templify.Tests/`
+   - Location: `tests/TriasDev.Templify.Tests/`
    - Use xUnit framework
    - Mock dependencies where appropriate
 
 2. **Integration Tests** - Test end-to-end scenarios
-   - Location: `TriasDev.Templify.Tests/Integration/`
+   - Location: `tests/TriasDev.Templify.Tests/Integration/`
    - Process actual Word documents
    - Verify output using `DocumentVerifier` helper
 
@@ -387,7 +397,7 @@ description.
    - Cover every new branch; CI uploads coverage to Codecov
    - Run locally: `dotnet test --collect:"XPlat Code Coverage"`
 
-**Example Test** (helpers in `TriasDev.Templify.Tests/Helpers/`: `DocumentBuilder` builds a template,
+**Example Test** (helpers in `tests/TriasDev.Templify.Tests/Helpers/`: `DocumentBuilder` builds a template,
 `TemplateTestHarness` processes it with invariant-culture options, `DocumentVerifier` inspects the output):
 ```csharp
 [Fact]
@@ -415,8 +425,8 @@ public void ProcessTemplate_ValidTemplate_ReplacesPlaceholders()
 
 Templify is published on NuGet and used by external consumers. **Public API changes must never happen by accident.** Two automated guards enforce this:
 
-1. **Public API analyzer** (`Microsoft.CodeAnalysis.PublicApiAnalyzers`). Every public symbol of `TriasDev.Templify` is listed in `TriasDev.Templify/PublicAPI.Shipped.txt` (released) or `PublicAPI.Unshipped.txt` (not yet released). The build fails when:
-   - a new public symbol is not declared (**RS0016**). Add it to `PublicAPI.Unshipped.txt`; the IDE code fix does this for you, or run `dotnet format analyzers TriasDev.Templify/TriasDev.Templify.csproj --diagnostics RS0016 --severity info`.
+1. **Public API analyzer** (`Microsoft.CodeAnalysis.PublicApiAnalyzers`). Every public symbol of `TriasDev.Templify` is listed in `src/TriasDev.Templify/PublicAPI.Shipped.txt` (released) or `PublicAPI.Unshipped.txt` (not yet released). The build fails when:
+   - a new public symbol is not declared (**RS0016**). Add it to `PublicAPI.Unshipped.txt`; the IDE code fix does this for you, or run `dotnet format analyzers src/TriasDev.Templify/TriasDev.Templify.csproj --diagnostics RS0016 --severity info`.
    - a declared symbol was removed, renamed, or its signature changed (**RS0017**). This is a breaking change; see below.
 2. **Package validation** (`EnablePackageValidation`). `dotnet pack` compares the package against the last released version (`PackageValidationBaselineVersion` in the csproj) for every target framework and fails on binary-breaking changes (**CP0002** and similar).
 
@@ -481,9 +491,9 @@ Update documentation when you:
 
 **Repository Documentation:**
 - **[README.md](README.md)** - Project overview, getting started
-- **[TriasDev.Templify/README.md](TriasDev.Templify/README.md)** - API reference, usage guide
-- **[TriasDev.Templify/Examples.md](TriasDev.Templify/Examples.md)** - Comprehensive code examples
-- **[TriasDev.Templify/ARCHITECTURE.md](TriasDev.Templify/ARCHITECTURE.md)** - Design patterns, technical decisions
+- **[src/TriasDev.Templify/README.md](src/TriasDev.Templify/README.md)** - API reference, usage guide
+- **[src/TriasDev.Templify/Examples.md](src/TriasDev.Templify/Examples.md)** - Comprehensive code examples
+- **[src/TriasDev.Templify/ARCHITECTURE.md](src/TriasDev.Templify/ARCHITECTURE.md)** - Design patterns, technical decisions
 - **[CLAUDE.md](CLAUDE.md)** - Development guide for contributors
 
 **User Documentation (docs/ folder, published at https://triasdev.github.io/templify/):**
@@ -550,7 +560,7 @@ mkdocs build --strict
   changes, dropped target frameworks, security notes) are added to the release PR body **and** to `CHANGELOG.md` in the
   release branch right before merging it — a later push to `main` regenerates the release PR and discards such edits.
 - release-please keeps a release PR open that bumps the version (`.release-please-manifest.json` and `<Version>` in
-  `TriasDev.Templify/TriasDev.Templify.csproj`) and updates the changelog. Merging it creates the tag and GitHub release,
+  `src/TriasDev.Templify/TriasDev.Templify.csproj`) and updates the changelog. Merging it creates the tag and GitHub release,
   which triggers the NuGet publish workflow.
 - **Before merging a release PR:** run the LibreOffice round-trip tests locally (see Testing Requirements) and make
   sure the release PR's CI is green (update its branch first — release-please pushes do not trigger CI).
@@ -566,9 +576,9 @@ mkdocs build --strict
 ### Helpful Documentation
 
 - **[CLAUDE.md](CLAUDE.md)** - Comprehensive development guide
-- **[ARCHITECTURE.md](TriasDev.Templify/ARCHITECTURE.md)** - Architecture and design patterns
-- **[PERFORMANCE.md](TriasDev.Templify/PERFORMANCE.md)** - Performance considerations
-- **[Examples.md](TriasDev.Templify/Examples.md)** - Extensive code examples
+- **[ARCHITECTURE.md](src/TriasDev.Templify/ARCHITECTURE.md)** - Architecture and design patterns
+- **[PERFORMANCE.md](src/TriasDev.Templify/PERFORMANCE.md)** - Performance considerations
+- **[Examples.md](src/TriasDev.Templify/Examples.md)** - Extensive code examples
 
 ### Getting Help
 

@@ -12,17 +12,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Solution Structure
 
-This is a multi-project solution with 9 projects:
+`templify.slnx` holds 9 projects in solution folders that mirror the directories (same layout as TriasDev/tabular):
 
-- **TriasDev.Templify** - Core library with template processing logic
-- **TriasDev.Templify.Tests** - xUnit test suite (~2,090 tests, ~91% line / ~85% branch coverage)
-- **TriasDev.Templify.Benchmarks** - BenchmarkDotNet performance tests
-- **TriasDev.Templify.Converter** - CLI tool for converting Word documents
-- **TriasDev.Templify.Gui** - Avalonia-based GUI application
-- **TriasDev.Templify.Demo** - Demo console application
-- **TriasDev.Templify.DocumentGenerator** - Generates the example templates/outputs used in the documentation
-- **TriasDev.Templify.Tools.Tests** - xUnit tests for the tools/apps (GUI ViewModel/services headless, DocumentGenerator smoke tests)
-- **TriasDev.Templify.Converter.Tests** - xUnit tests for the Converter CLI (round trips through the core, file safety, CLI parsing)
+- `src/` (only what ships to NuGet)
+  - **TriasDev.Templify** - Core library with template processing logic
+- `tests/`
+  - **TriasDev.Templify.Tests** - xUnit test suite (~2,090 tests, ~91% line / ~85% branch coverage)
+  - **TriasDev.Templify.Tools.Tests** - xUnit tests for the tools/apps (GUI ViewModel/services headless, DocumentGenerator smoke tests)
+  - **TriasDev.Templify.Converter.Tests** - xUnit tests for the Converter CLI (round trips through the core, file safety, CLI parsing)
+- `benchmarks/`
+  - **TriasDev.Templify.Benchmarks** - BenchmarkDotNet performance tests
+- `samples/`
+  - **TriasDev.Templify.Demo** - Demo console application
+- `tools/` (applications that are not packages)
+  - **TriasDev.Templify.Converter** - CLI tool for converting Word documents
+  - **TriasDev.Templify.Gui** - Avalonia-based GUI application
+  - **TriasDev.Templify.DocumentGenerator** - Generates the example templates/outputs used in the documentation
 
 ## Development Workflow
 
@@ -40,39 +45,40 @@ Standard flow for changes:
 ### Building
 ```bash
 # Build entire solution
-dotnet build templify.sln
+dotnet build templify.slnx
 
 # Build in Release mode
-dotnet build templify.sln -c Release
+dotnet build templify.slnx -c Release
 
 # Build specific project
-dotnet build TriasDev.Templify/TriasDev.Templify.csproj
+dotnet build src/TriasDev.Templify/TriasDev.Templify.csproj
 ```
 
 ### Build Configuration
 - `global.json` pins the SDK (10.0.100, `rollForward: latestFeature`).
-- `Directory.Build.props` holds shared settings (Nullable, ImplicitUsings, LangVersion, AnalysisLevel, EnforceCodeStyleInBuild). Nullable warnings are always errors; in CI (`GITHUB_ACTIONS=true` → `ContinuousIntegrationBuild`) all warnings are errors. Reproduce locally with `dotnet build templify.sln -c Release -p:ContinuousIntegrationBuild=true`.
+- `Directory.Build.props` holds shared settings (Nullable, ImplicitUsings, LangVersion, AnalysisLevel, EnforceCodeStyleInBuild). Nullable warnings are always errors; in CI (`GITHUB_ACTIONS=true` → `ContinuousIntegrationBuild`) all warnings are errors. Reproduce locally with `dotnet build templify.slnx -c Release -p:ContinuousIntegrationBuild=true`.
+- `src/Directory.Build.props` (package metadata, Source Link, public API guard) and `tests/Directory.Build.props` (xUnit packages, `IsPackable=false`) import the root file; `tools/`, `benchmarks/` and `samples/` use the root file alone.
 - `Directory.Packages.props` (Central Package Management) holds all NuGet versions; `PackageReference` items have no `Version`.
-- Every project has a committed `packages.lock.json`; CI restores in locked mode. After changing a package, run `dotnet restore templify.sln` and commit the updated lock files.
+- Every project has a committed `packages.lock.json`; CI restores in locked mode. After changing a package, run `dotnet restore templify.slnx` and commit the updated lock files.
 - The library targets `net10.0;net9.0;net8.0`. Support policy: .NET versions in Microsoft support; EOL TFMs are dropped in a minor release with a release-notes notice (net6.0 dropped in 1.8.0).
 - `TriasDev.Templify.Tests` multi-targets the library's TFMs (`net10.0;net9.0;net8.0`); run a single one with `--framework net10.0`.
 
 ### Testing
 ```bash
 # Run all tests
-dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj
+dotnet test tests/TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj
 
 # Run tests with detailed output
-dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj --verbosity normal
+dotnet test tests/TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj --verbosity normal
 
 # Run specific test class
-dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj --filter "FullyQualifiedName~PlaceholderVisitorTests"
+dotnet test tests/TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj --filter "FullyQualifiedName~PlaceholderVisitorTests"
 
 # Run single test method
-dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj --filter "FullyQualifiedName~ProcessTemplate_ValidTemplate_ReplacesPlaceholders"
+dotnet test tests/TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj --filter "FullyQualifiedName~ProcessTemplate_ValidTemplate_ReplacesPlaceholders"
 
 # Run tests with code coverage
-dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj --collect:"XPlat Code Coverage"
+dotnet test tests/TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj --collect:"XPlat Code Coverage"
 ```
 
 ### Pre-Push Checks
@@ -92,26 +98,26 @@ dotnet format --no-restore
 LibreOffice is **not** run on CI (single maintainer; the extra runner cost/flakiness isn't worth it — decided in #218).
 Instead these tests are a **required local step**:
 
-- **when:** every change touching OpenDocument code (`TriasDev.Templify/OpenDocument/**`, `OdtTemplateProcessor`,
+- **when:** every change touching OpenDocument code (`src/TriasDev.Templify/OpenDocument/**`, `OdtTemplateProcessor`,
   `TemplateProcessor`/format detection) or the shared engine, **and before merging every release PR**;
 - **how:** LibreOffice must be installed (macOS: `/Applications/LibreOffice.app`; elsewhere set `TEMPLIFY_SOFFICE`):
 
 ```bash
-dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj -c Release -f net10.0 --filter "Category=LibreOffice"
+dotnet test tests/TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj -c Release -f net10.0 --filter "Category=LibreOffice"
 ```
 
 - all tests must **pass with 0 skipped** (a skip means `soffice` was not found — that is not a pass). Mention the result
   in the PR description (e.g. "LibreOffice round trips: 15/15 passed").
 - On CI these tests are skipped automatically. CI still covers LibreOffice-*produced* input through the committed
-  fixtures in `TriasDev.Templify.Tests/Odt/Fixtures/`.
+  fixtures in `tests/TriasDev.Templify.Tests/Odt/Fixtures/`.
 
 ### Benchmarking
 ```bash
 # Run all benchmarks
-dotnet run --project TriasDev.Templify.Benchmarks/TriasDev.Templify.Benchmarks.csproj -c Release
+dotnet run --project benchmarks/TriasDev.Templify.Benchmarks/TriasDev.Templify.Benchmarks.csproj -c Release
 
 # Run specific benchmark class
-dotnet run --project TriasDev.Templify.Benchmarks/TriasDev.Templify.Benchmarks.csproj -c Release -- --filter *PlaceholderBenchmarks*
+dotnet run --project benchmarks/TriasDev.Templify.Benchmarks/TriasDev.Templify.Benchmarks.csproj -c Release -- --filter *PlaceholderBenchmarks*
 ```
 
 Benchmarks throw if `ProcessTemplate` fails (`BenchmarkGuard`), so failures cannot look fast. `ConditionEngineBenchmarks`
@@ -121,14 +127,14 @@ covers the condition engine (`in`, `contains`, `exists`, `is empty`, grouping, `
 ### Running Applications
 ```bash
 # Run demo application (writes to ./output; process your own files with --template/--data)
-dotnet run --project TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj
-dotnet run --project TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj -- --template my.docx --data my.json
+dotnet run --project samples/TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj
+dotnet run --project samples/TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj -- --template my.docx --data my.json
 
 # Regenerate documentation examples (examples/, docs/images/examples/)
-dotnet run --project TriasDev.Templify.DocumentGenerator -- --skip-images
+dotnet run --project tools/TriasDev.Templify.DocumentGenerator -- --skip-images
 
 # Run converter CLI (full command)
-dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- [command] [arguments]
+dotnet run --project tools/TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- [command] [arguments]
 
 # Run converter CLI (using helper scripts - recommended)
 ./scripts/analyze.sh template.docx
@@ -137,14 +143,14 @@ dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csp
 ./scripts/clean.sh template.docx
 
 # Run GUI application
-dotnet run --project TriasDev.Templify.Gui/TriasDev.Templify.Gui.csproj
+dotnet run --project tools/TriasDev.Templify.Gui/TriasDev.Templify.Gui.csproj
 ```
 
 ### Converter CLI Tool
 
 The converter tool helps migrate OpenXMLTemplates documents to Templify format.
 
-**Location:** `TriasDev.Templify.Converter/`
+**Location:** `tools/TriasDev.Templify.Converter/`
 
 **Available Commands:**
 ```bash
@@ -180,15 +186,15 @@ Testing converter changes:
 ```
 
 Adding new conversion logic:
-1. Modify converters in `TriasDev.Templify.Converter/Converters/`
-2. Update analyzers in `TriasDev.Templify.Converter/Analyzers/` if needed
+1. Modify converters in `tools/TriasDev.Templify.Converter/Converters/`
+2. Update analyzers in `tools/TriasDev.Templify.Converter/Analyzers/` if needed
 3. Test with various OpenXMLTemplates formats
 4. Update converter README with new capabilities
 
 Debugging converter issues:
 ```bash
 # Use full command for more control
-dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- analyze template.docx --output debug-report.md
+dotnet run --project tools/TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- analyze template.docx --output debug-report.md
 
 # Review generated reports
 cat template-analysis-report.md
@@ -203,12 +209,12 @@ cat template-templify-conversion-report.md
 - `Models/` - Data structures for analysis results
 
 **Documentation:**
-- 📖 [Full Converter Documentation](TriasDev.Templify.Converter/README.md)
+- 📖 [Full Converter Documentation](tools/TriasDev.Templify.Converter/README.md)
 - 📜 [Script Usage Guide](scripts/README.md)
 
 ## Architecture & Code Organization
 
-See `TriasDev.Templify/ARCHITECTURE.md` for the full description. Summary:
+See `src/TriasDev.Templify/ARCHITECTURE.md` for the full description. Summary:
 
 ### Visitor Pattern Pipeline
 
@@ -289,7 +295,7 @@ Design: `docs/superpowers/specs/2026-09-26-odt-support-design.md`.
   after cloning), `OdtDocumentProperties` (`meta.xml`), `OdtTemplateValidator`.
 - **Known gaps (documented):** loop-cloned bookmarks are not renamed, whitespace collapses after removals, row spans
   are not adjusted, `UpdateFieldsOnOpen` does not apply, comments are not processed, `.fodt` is unsupported.
-- **Tests:** `TriasDev.Templify.Tests/Odt/` (one class per feature). The helpers are `Helpers/OdtDocumentBuilder` and
+- **Tests:** `tests/TriasDev.Templify.Tests/Odt/` (one class per feature). The helpers are `Helpers/OdtDocumentBuilder` and
   `OdtDocumentVerifier` (the verifier checks the package structure). LibreOffice round trips use
   `[Trait("Category", "LibreOffice")]` and run only when `soffice` is found (macOS default path, `PATH` or
   `TEMPLIFY_SOFFICE`). Otherwise they are skipped. Facade tests: `Core/TemplateProcessorTests.cs`.
@@ -580,7 +586,7 @@ When adding new features:
 
 ### Public API Compatibility (hard rule)
 The library has external consumers. **Do not change, remove or rename public API** (types, members, signatures, namespaces) as a side effect of a fix or refactoring.
-- Public API is tracked in `TriasDev.Templify/PublicAPI.Shipped.txt` / `PublicAPI.Unshipped.txt`; the build fails on undeclared additions (RS0016) or removals/changes (RS0017). `dotnet pack` validates against the last released package (`PackageValidationBaselineVersion`).
+- Public API is tracked in `src/TriasDev.Templify/PublicAPI.Shipped.txt` / `PublicAPI.Unshipped.txt`; the build fails on undeclared additions (RS0016) or removals/changes (RS0017). `dotnet pack` validates against the last released package (`PackageValidationBaselineVersion`).
 - New public API → add it to `PublicAPI.Unshipped.txt` deliberately. Prefer `internal` unless the symbol is meant for consumers.
 - Retire API with `[Obsolete]`; remove only in a major version.
 - Behavior changes that alter output of existing templates are also potentially breaking: call them out, and make them opt-in via an option when they are not clearly bug fixes.
@@ -638,10 +644,10 @@ Check `MissingVariableBehavior` in options:
 ## Additional Documentation
 
 For comprehensive information, see:
-- **TriasDev.Templify/ARCHITECTURE.md** - Current design: pipeline, walker, visitors, condition engine, error model
-- **README.md** (root) and **TriasDev.Templify/README.md** (NuGet readme) - User-facing overview, API reference
-- **TriasDev.Templify/Examples.md** - Extensive code samples and use cases
-- **TriasDev.Templify/PERFORMANCE.md** - Historical benchmark snapshot
+- **src/TriasDev.Templify/ARCHITECTURE.md** - Current design: pipeline, walker, visitors, condition engine, error model
+- **README.md** (root) and **src/TriasDev.Templify/README.md** (NuGet readme) - User-facing overview, API reference
+- **src/TriasDev.Templify/Examples.md** - Extensive code samples and use cases
+- **src/TriasDev.Templify/PERFORMANCE.md** - Historical benchmark snapshot
 - **docs/** - Documentation site (MkDocs, `mkdocs.yml`; build with `pip install -r requirements.txt && mkdocs build --strict`)
 - **docs/archive/** - Historical planning documents (TODO, REFACTORING, DOCUMENTATION_PLAN/SYSTEM), not maintained, not published
 - **CONTRIBUTING.md** - Contribution workflow, release-please, public API rules

@@ -117,7 +117,7 @@ dotnet add package TriasDev.Templify
 
 3. **Done!** Open `output.docx` and see the result.
 
-The output stream must be readable, writable and seekable (`File.Create` or a `MemoryStream`). There are also overloads for files (`ProcessTemplateFile`), byte arrays, `IReadOnlyDictionary<string, object?>` data and JSON strings; see the [library documentation](TriasDev.Templify/README.md#api-reference).
+The output stream must be readable, writable and seekable (`File.Create` or a `MemoryStream`). There are also overloads for files (`ProcessTemplateFile`), byte arrays, `IReadOnlyDictionary<string, object?>` data and JSON strings; see the [library documentation](src/TriasDev.Templify/README.md#api-reference).
 
 ### LibreOffice / OpenDocument Templates
 
@@ -247,10 +247,10 @@ bool r4 = context.Evaluate("Status in (\"Active\", \"Pending\")");
 - **For template authors:** [Getting Started](https://triasdev.github.io/templify/for-template-authors/getting-started/), [Template Syntax](https://triasdev.github.io/templify/for-template-authors/template-syntax/), [Format Specifiers](https://triasdev.github.io/templify/for-template-authors/format-specifiers/), [LibreOffice / OpenDocument](https://triasdev.github.io/templify/for-template-authors/libreoffice/)
 - **For developers:** [Quick Start](https://triasdev.github.io/templify/for-developers/quick-start/), [OpenDocument (.odt)](https://triasdev.github.io/templify/for-developers/opendocument/), [Text Templates](https://triasdev.github.io/templify/for-developers/text-templates/), [Processing Warnings](https://triasdev.github.io/templify/for-developers/processing-warnings/)
 - **[Tutorials](https://triasdev.github.io/templify/tutorials/)** and **[FAQ](https://triasdev.github.io/templify/FAQ/)**
-- **[Library README](TriasDev.Templify/README.md)** - Feature and API reference (also shown on NuGet)
-- **[Examples.md](TriasDev.Templify/Examples.md)** - Extensive code samples and use cases
-- **[ARCHITECTURE.md](TriasDev.Templify/ARCHITECTURE.md)** - Design and implementation
-- **[PERFORMANCE.md](TriasDev.Templify/PERFORMANCE.md)** - Benchmarks
+- **[Library README](src/TriasDev.Templify/README.md)** - Feature and API reference (also shown on NuGet)
+- **[Examples.md](src/TriasDev.Templify/Examples.md)** - Extensive code samples and use cases
+- **[ARCHITECTURE.md](src/TriasDev.Templify/ARCHITECTURE.md)** - Design and implementation
+- **[PERFORMANCE.md](src/TriasDev.Templify/PERFORMANCE.md)** - Benchmarks
 - **[CHANGELOG.md](CHANGELOG.md)** - Release history
 
 ---
@@ -259,18 +259,24 @@ bool r4 = context.Evaluate("Status in (\"Active\", \"Pending\")");
 
 ```
 templify/
-├── TriasDev.Templify/                  # Core library (net8.0, net9.0, net10.0), published to NuGet
-├── TriasDev.Templify.Tests/            # xUnit tests for the core library (run on all library TFMs)
-├── TriasDev.Templify.Converter/        # CLI tool: migrate OpenXMLTemplates documents to Templify
-├── TriasDev.Templify.Converter.Tests/  # Tests for the converter
-├── TriasDev.Templify.Gui/              # Cross-platform desktop app for trying templates (Avalonia)
-├── TriasDev.Templify.Demo/             # Demo console application
-├── TriasDev.Templify.DocumentGenerator/# Generates the example templates and outputs used in the docs
-├── TriasDev.Templify.Tools.Tests/      # Tests for the GUI and the document generator
-├── TriasDev.Templify.Benchmarks/       # Performance benchmarks (BenchmarkDotNet)
-├── docs/                               # Documentation site (MkDocs)
-├── examples/                           # Example templates and generated outputs
-└── scripts/                            # Helper scripts for the converter
+├── src/
+│   └── TriasDev.Templify/                   # Core library (net8.0, net9.0, net10.0), published to NuGet
+├── tests/
+│   ├── TriasDev.Templify.Tests/             # xUnit tests for the core library (run on all library TFMs)
+│   ├── TriasDev.Templify.Converter.Tests/   # Tests for the converter
+│   └── TriasDev.Templify.Tools.Tests/       # Tests for the GUI and the document generator
+├── benchmarks/
+│   └── TriasDev.Templify.Benchmarks/        # Performance benchmarks (BenchmarkDotNet)
+├── samples/
+│   └── TriasDev.Templify.Demo/              # Demo console application
+├── tools/
+│   ├── TriasDev.Templify.Converter/         # CLI tool: migrate OpenXMLTemplates documents to Templify
+│   ├── TriasDev.Templify.Gui/               # Cross-platform desktop app for trying templates (Avalonia)
+│   └── TriasDev.Templify.DocumentGenerator/ # Generates the example templates and outputs used in the docs
+├── docs/                                    # Documentation site (MkDocs)
+├── examples/                                # Example templates and generated outputs
+├── scripts/                                 # Helper scripts for the converter
+└── templify.slnx                            # Solution (folders mirror the directories)
 ```
 
 ## Projects
@@ -282,17 +288,17 @@ The template processing library: `DocumentTemplateProcessor` for Word documents,
 **Target:** net8.0, net9.0, net10.0 ([support policy](#supported-net-versions))
 **Dependency:** DocumentFormat.OpenXml 3.5.1
 
-📖 [Library Documentation](TriasDev.Templify/README.md) | 🏗️ [Architecture](TriasDev.Templify/ARCHITECTURE.md) | 📝 [Code Examples](TriasDev.Templify/Examples.md)
+📖 [Library Documentation](src/TriasDev.Templify/README.md) | 🏗️ [Architecture](src/TriasDev.Templify/ARCHITECTURE.md) | 📝 [Code Examples](src/TriasDev.Templify/Examples.md)
 
 ### 🖥️ GUI Application
 
 Cross-platform desktop application (Avalonia) to load a template (`.docx`, `.odt` or `.ott`) and JSON data, process the template with Templify, and preview and save the result.
 
 ```bash
-dotnet run --project TriasDev.Templify.Gui/TriasDev.Templify.Gui.csproj
+dotnet run --project tools/TriasDev.Templify.Gui/TriasDev.Templify.Gui.csproj
 ```
 
-See the [GUI README](TriasDev.Templify.Gui/README.md).
+See the [GUI README](tools/TriasDev.Templify.Gui/README.md).
 
 ### 🔧 CLI Converter Tool
 
@@ -300,7 +306,7 @@ Command-line tool for migrating OpenXMLTemplates documents (content controls) to
 
 ```bash
 # Full command
-dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- <command> <document> [options]
+dotnet run --project tools/TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- <command> <document> [options]
 
 # Or use the helper scripts
 ./scripts/<command>.sh <document> [options]     # macOS/Linux
@@ -333,16 +339,16 @@ The converter translates OpenXMLTemplates content control tags to Templify synta
 | `conditionalRemove_Count_gt_0` | `{{#if Count > 0}}...{{/if}}` |
 | `repeating_LineItems` | `{{#foreach LineItems}}...{{/foreach}}` |
 
-📖 **[Converter Documentation](TriasDev.Templify.Converter/README.md)** | 📜 **[Script Usage Guide](scripts/README.md)**
+📖 **[Converter Documentation](tools/TriasDev.Templify.Converter/README.md)** | 📜 **[Script Usage Guide](scripts/README.md)**
 
 ### 🎯 Demo Application
 
 Console application that builds a template covering all features, processes it and writes template and output to `./output`. It can also process your own files:
 
 ```bash
-dotnet run --project TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj
-dotnet run --project TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj -- --template my.docx --data my.json [--output out.docx]
-dotnet run --project TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj -- --template my.odt --data my.json   # LibreOffice / OpenDocument
+dotnet run --project samples/TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj
+dotnet run --project samples/TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj -- --template my.docx --data my.json [--output out.docx]
+dotnet run --project samples/TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj -- --template my.odt --data my.json   # LibreOffice / OpenDocument
 ```
 
 ### ⚡ Benchmarks
@@ -350,10 +356,10 @@ dotnet run --project TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj -- --t
 Performance tests with BenchmarkDotNet (placeholders, conditionals, loops, condition engine, complex scenarios):
 
 ```bash
-dotnet run --project TriasDev.Templify.Benchmarks/TriasDev.Templify.Benchmarks.csproj -c Release
+dotnet run --project benchmarks/TriasDev.Templify.Benchmarks/TriasDev.Templify.Benchmarks.csproj -c Release
 ```
 
-📊 [Performance Details](TriasDev.Templify/PERFORMANCE.md)
+📊 [Performance Details](src/TriasDev.Templify/PERFORMANCE.md)
 
 ---
 
@@ -372,26 +378,26 @@ git clone https://github.com/TriasDev/templify.git
 cd templify
 
 # Build (Debug); CI builds with warnings as errors:
-dotnet build templify.sln
-dotnet build templify.sln -c Release -p:ContinuousIntegrationBuild=true
+dotnet build templify.slnx
+dotnet build templify.slnx -c Release -p:ContinuousIntegrationBuild=true
 
 # Run the core tests (all target frameworks, or one with --framework net10.0)
-dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj
+dotnet test tests/TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj
 
 # Run all test projects
-dotnet test templify.sln
+dotnet test templify.slnx
 
 # Run specific tests
-dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj --filter "FullyQualifiedName~PlaceholderVisitorTests"
+dotnet test tests/TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj --filter "FullyQualifiedName~PlaceholderVisitorTests"
 
 # Coverage
-dotnet test TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj --collect:"XPlat Code Coverage"
+dotnet test tests/TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj --collect:"XPlat Code Coverage"
 
 # Formatting check (required before pushing)
 dotnet format --verify-no-changes --no-restore
 ```
 
-NuGet versions are managed centrally in `Directory.Packages.props`, and every project has a committed `packages.lock.json`. After changing a package, run `dotnet restore templify.sln` and commit the updated lock files.
+NuGet versions are managed centrally in `Directory.Packages.props`, and every project has a committed `packages.lock.json`. After changing a package, run `dotnet restore templify.slnx` and commit the updated lock files.
 
 ### Build the Documentation
 
@@ -405,7 +411,7 @@ mkdocs build --strict # what CI builds
 
 - Read the **[Contributing Guide](CONTRIBUTING.md)** and the **[Code of Conduct](CODE_OF_CONDUCT.md)**
 - Add tests for new features and bug fixes, and update the documentation
-- Public API changes are tracked in `TriasDev.Templify/PublicAPI.Unshipped.txt`
+- Public API changes are tracked in `src/TriasDev.Templify/PublicAPI.Unshipped.txt`
 - **[CLAUDE.md](CLAUDE.md)** has development workflows and architecture notes for AI-assisted coding
 
 ## Requirements
@@ -436,13 +442,13 @@ Processing order: **Conditionals → Loops → Placeholders** (enables condition
 
 OpenDocument templates are processed by a separate engine (`TriasDev.Templify.OpenDocument`) with the same processing order and semantics. It reuses the condition engine, placeholder resolution, value conversion and markdown parsing, and leaves the Word pipeline untouched.
 
-🏗️ [Full Architecture Documentation](TriasDev.Templify/ARCHITECTURE.md)
+🏗️ [Full Architecture Documentation](src/TriasDev.Templify/ARCHITECTURE.md)
 
 ## About
 
 **Templify** is created and maintained by **TriasDev GmbH & Co. KG**. It is used in production, processing thousands of documents daily. We believe in giving back to the .NET community and providing a modern, maintainable alternative to legacy Word templating solutions.
 
-**Related project:** OpenXMLTemplates (predecessor, content-control based); the [converter](TriasDev.Templify.Converter/README.md) migrates its templates.
+**Related project:** OpenXMLTemplates (predecessor, content-control based); the [converter](tools/TriasDev.Templify.Converter/README.md) migrates its templates.
 
 ## Contributing
 

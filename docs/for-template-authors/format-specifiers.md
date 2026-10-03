@@ -988,5 +988,5 @@ Format specifiers provide a powerful way to control value presentation in your d
 
 For more advanced usage, see:
 - [Boolean Expressions Guide](boolean-expressions.md) - Combine expressions with formatters
-- [API Reference](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/README.md) - Complete API documentation
+- [API Reference](https://github.com/TriasDev/templify/blob/main/src/TriasDev.Templify/README.md) - Complete API documentation
 - [FAQ](../FAQ.md) - Common questions and answers

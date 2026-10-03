@@ -1,0 +1,1450 @@
+# Templify
+
+A simple, focused .NET library for replacing placeholders in Word documents (.docx) and LibreOffice / OpenDocument Text documents (.odt, .ott) without requiring Microsoft Word or LibreOffice to be installed.
+
+## Overview
+
+Templify is built on the Microsoft OpenXML SDK and provides a straightforward API for variable replacement in Word document templates. Unlike complex templating systems, this library focuses on the most common use case: replacing `{{placeholders}}` with actual values.
+
+## Features
+
+- **Word and LibreOffice**: `.docx` templates (`DocumentTemplateProcessor`), OpenDocument Text `.odt`/`.ott` templates (`OdtTemplateProcessor`), or both through the format-detecting `TemplateProcessor`, with the same syntax, options and results
+- **Simple placeholder syntax**: Use `{{variableName}}` in your Word templates
+- **Format specifiers**: Currency, number and date formats, upper/lower case, and boolean display as checkboxes (☑/☐), Yes/No, checkmarks (✓/✗) and more
+- **Markdown in values**: `**bold**`, `*italic*`, `~~strikethrough~~` in data values become Word formatting (can be turned off)
+- **Boolean expressions**: Evaluate logic in placeholders, e.g. `{{(Age >= 18 and HasLicense):yesno}}`
+- **Conditional blocks**: `{{#if condition}}...{{#elseif condition}}...{{#else}}...{{/if}}`, as blocks or inline within a paragraph
+- **Rich conditions**: `=`, `!=`, `>`, `<`, `>=`, `<=`, `and`, `or`, `not`, `in`, `contains`, `startswith`, `endswith`, `exists`, `is empty`, `is not empty`, and parentheses
+- **Loops and iterations**: `{{#foreach Items}}...{{/foreach}}` or `{{#foreach item in Items}}...{{/foreach}}`, nested to any depth
+- **Loop metadata**: `@index`, `@number`, `@first`, `@last` and `@count` inside loops
+- **Formatting preservation**: Bold, italic, fonts, colors, and styles are automatically preserved
+- **Nested data structures**: Access nested objects with dot notation and array indexing
+- **Flexible data input**: `Dictionary<string, object>`, `IReadOnlyDictionary<string, object?>`, or a JSON string
+- **Smart value conversion**: Automatically converts numbers, dates, booleans to readable strings
+- **Localization support**: Culture-aware numbers, dates and currency; localized boolean words (en, de, fr, es, it, pt, nl, pl, ru; `yesno` also ja, zh)
+- **Table support**: Replace placeholders in table cells, repeat table rows, conditional table rows
+- **Header & footer support**: Placeholders, conditionals, and loops in document headers and footers
+- **Footnotes, text boxes, content controls**: Processed like the document body
+- **Validation and warnings**: Check templates with `ValidateTemplate`, get warnings (missing variables, empty collections, invalid expressions) and a Word warning report
+- **Text templates**: The same syntax for plain text (e-mails, notifications) with `TextTemplateProcessor`
+- **Configurable behavior**: Control what happens when variables are missing
+- **No Word required**: Pure OpenXML processing, no COM automation
+- **Modern .NET**: Targets net8.0, net9.0 and net10.0
+
+## Quick Start
+
+### Installation
+
+Add the package reference to your project:
+
+```bash
+dotnet add package TriasDev.Templify
+```
+
+### Basic Usage
+
+```csharp
+using TriasDev.Templify.Core;
+
+// Prepare your data
+var data = new Dictionary<string, object>
+{
+    ["CompanyName"] = "TriasDev GmbH & Co. KG",
+    ["ContactPerson"] = "Max Mustermann",
+    ["Date"] = DateTime.Now,
+    ["Amount"] = 1250.50m,
+    ["IsApproved"] = true
+};
+
+// Create processor with default options
+var processor = new DocumentTemplateProcessor();
+
+// Process template
+using var templateStream = File.OpenRead("template.docx");
+using var outputStream = File.Create("output.docx");
+
+var result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+if (result.IsSuccess)
+{
+    Console.WriteLine($"Processed successfully! Replaced {result.ReplacementCount} placeholders.");
+}
+else
+{
+    Console.WriteLine($"Processing failed: {result.ErrorMessage}");
+}
+```
+
+The output stream must be readable, writable and seekable (`File.Create` or a `MemoryStream`). Other entry points:
+
+```csharp
+// Files: the output file is written only when processing succeeds
+ProcessingResult fileResult = processor.ProcessTemplateFile("template.docx", "output.docx", data);
+
+// In memory
+byte[] template = File.ReadAllBytes("template.docx");
+ProcessingResult bytesResult = processor.ProcessTemplate(template, data, out byte[] document);
+
+// JSON data (root must be an object)
+ProcessingResult jsonResult = processor.ProcessTemplateFile("template.docx", "output.docx", File.ReadAllText("data.json"));
+```
+
+### LibreOffice / OpenDocument Templates
+
+Templates saved in LibreOffice Writer as `.odt` (or as `.ott` templates) use the same syntax. `OdtTemplateProcessor`
+has the same methods as `DocumentTemplateProcessor`. `TemplateProcessor` accepts both formats and detects the format
+from the file content:
+
+```csharp
+// OpenDocument only; the output stream only has to be writable
+var odtProcessor = new OdtTemplateProcessor();
+ProcessingResult odtResult = odtProcessor.ProcessTemplateFile("template.odt", "output.odt", data);
+
+// Word or OpenDocument: the output has the format of the template (.ott produces .odt)
+var anyProcessor = new TemplateProcessor();
+ProcessingResult anyResult = anyProcessor.ProcessTemplateFile("template.ott", "output.odt", data);
+
+// Detect the format yourself, e.g. to choose the output file name
+using var stream = File.OpenRead("template.ott");
+TemplateFormat format = TemplateProcessor.DetectFormat(stream);   // Docx, Odt or Unknown
+```
+
+Differences from Word: `UpdateFieldsOnOpen` does not apply (LibreOffice updates fields itself), several spaces
+collapse into one when text around them is removed, and flat `.fodt` files are not supported. See the
+[OpenDocument guide](https://triasdev.github.io/templify/for-developers/opendocument/) and
+[LibreOffice / OpenDocument Templates](https://triasdev.github.io/templify/for-template-authors/libreoffice/).
+
+### Word Template Example
+
+Create a Word document with placeholders:
+
+```
+Invoice
+
+Company: {{CompanyName}}
+Contact: {{ContactPerson}}
+Date: {{Date}}
+Amount: {{Amount}} EUR
+Status: {{IsApproved}}
+```
+
+After processing, the output will contain (with `en-US` culture; dates and numbers follow `PlaceholderReplacementOptions.Culture`, which defaults to the current culture):
+
+```
+Invoice
+
+Company: TriasDev GmbH & Co. KG
+Contact: Max Mustermann
+Date: 11/7/2025 10:30:00 AM
+Amount: 1250.50 EUR
+Status: True
+```
+
+## Nested Data Structures
+
+Templify supports accessing nested properties, collections, and dictionaries using mixed notation.
+
+### Supported Syntax
+
+- **Dot notation**: `{{Customer.Address.City}}`
+- **Array/collection indexing**: `{{Items[0].Name}}`
+- **Dictionary access**: `{{Settings[Theme]}}` or `{{Settings.Theme}}`
+- **Mixed notation**: `{{Orders[0].Customer.Address.City}}`
+
+Names and keys in a path may contain letters, digits and underscores only. There must be no spaces inside the braces: `{{ Name }}` and `{{Settings[My Key]}}` are not recognized as placeholders and stay in the document unchanged. Dictionary keys are matched with the dictionary's comparer (case-sensitive for a normal `Dictionary<string, object>`); .NET property names are matched case-insensitively.
+
+### Nested Objects Example
+
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["Invoice"] = new Invoice
+    {
+        Number = "INV-2025-001",
+        Customer = new Customer
+        {
+            Name = "TriasDev GmbH & Co. KG",
+            Address = new Address
+            {
+                Street = "Tech Street 123",
+                City = "Munich",
+                PostalCode = "80331"
+            }
+        },
+        TotalAmount = 2499.99m
+    }
+};
+
+// Template can now use:
+// {{Invoice.Number}}
+// {{Invoice.Customer.Name}}
+// {{Invoice.Customer.Address.City}}
+// {{Invoice.TotalAmount}}
+```
+
+### Collections and Arrays
+
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["CompanyName"] = "TriasDev GmbH & Co. KG",
+    ["Items"] = new List<string> { "License", "Support", "Training" },
+    ["Orders"] = new List<Order>
+    {
+        new Order { Id = "ORD-001", Amount = 999.00m },
+        new Order { Id = "ORD-002", Amount = 1500.00m }
+    }
+};
+
+// Template can use:
+// {{Items[0]}}  → "License"
+// {{Items[1]}}  → "Support"
+// {{Orders[0].Id}}  → "ORD-001"
+// {{Orders[1].Amount}}  → "1500.00"
+```
+
+### Dictionaries
+
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["Settings"] = new Dictionary<string, string>
+    {
+        ["Theme"] = "Dark",
+        ["Language"] = "German",
+        ["Currency"] = "EUR"
+    }
+};
+
+// Both syntaxes work:
+// {{Settings[Theme]}}  → "Dark"
+// {{Settings.Theme}}   → "Dark"
+```
+
+### Real-World Example: Invoice with Line Items
+
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["InvoiceNumber"] = "INV-2025-001",
+    ["Company"] = new Company
+    {
+        Name = "TriasDev GmbH & Co. KG",
+        Address = "Tech Street 123, 80331 Munich"
+    },
+    ["LineItems"] = new List<LineItem>
+    {
+        new LineItem { Product = "Enterprise Edition", Quantity = 5, Price = 499.00m },
+        new LineItem { Product = "Annual Support", Quantity = 5, Price = 99.00m },
+        new LineItem { Product = "Training Package", Quantity = 2, Price = 250.00m }
+    },
+    ["Subtotal"] = 3485.00m,
+    ["Tax"] = 661.95m,
+    ["Total"] = 4146.95m
+};
+
+// Word template:
+// Invoice: {{InvoiceNumber}}
+// Customer: {{Company.Name}}
+// Address: {{Company.Address}}
+//
+// Line Items:
+// 1. {{LineItems[0].Product}} - Qty: {{LineItems[0].Quantity}} @ {{LineItems[0].Price}} EUR
+// 2. {{LineItems[1].Product}} - Qty: {{LineItems[1].Quantity}} @ {{LineItems[1].Price}} EUR
+// 3. {{LineItems[2].Product}} - Qty: {{LineItems[2].Quantity}} @ {{LineItems[2].Price}} EUR
+//
+// Subtotal: {{Subtotal}} EUR
+// Tax (19%): {{Tax}} EUR
+// Total: {{Total}} EUR
+```
+
+### Backward Compatibility
+
+Simple placeholders (without dots or brackets) work exactly as before:
+
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["Name"] = "John Doe",
+    ["Age"] = 30
+};
+
+// {{Name}} and {{Age}} work as expected
+```
+
+Direct dictionary keys take precedence over nested paths:
+
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["Customer.Name"] = "Direct Value",  // This key is checked first
+    ["Customer"] = new Customer { Name = "Nested Value" }
+};
+
+// {{Customer.Name}} returns "Direct Value" (fast path)
+```
+
+## Conditional Blocks
+
+Templify supports conditional content using `{{#if condition}}...{{#else}}...{{/if}}` syntax. Show or hide content based on data values and complex expressions.
+
+### Basic Conditional Syntax
+
+```
+{{#if VariableName}}
+  Content shown when condition is true
+{{/if}}
+
+{{#if VariableName}}
+  Content when true
+{{#else}}
+  Content when false
+{{/if}}
+```
+
+### Boolean Evaluation Rules
+
+When a value is used as a condition on its own (`{{#if Value}}`):
+
+- `true`/`false` → boolean value
+- `null` or a missing variable → false
+- Numbers: zero of any numeric type (`0`, `0.0`, `0m`, `0L`, ...) and `NaN` → false; any other number → true
+- Strings: empty or whitespace, `"false"` and `"0"` (case-insensitive) → false; any other string (including `"true"`, `"1"`, `"no"`) → true
+- Collections: empty → false, non-empty → true
+- Any other object → true
+
+### Comparison Operators
+
+```
+{{#if Status = "Active"}}         Equal to
+{{#if Status != "Deleted"}}        Not equal to
+{{#if Count > 0}}                 Greater than
+{{#if Count < 100}}               Less than
+{{#if Price >= 100}}              Greater or equal
+{{#if Price <= 1000}}             Less or equal
+```
+
+### Logical Operators
+
+```
+{{#if IsActive and Count > 0}}           AND
+{{#if Status = "Active" or Status = "Pending"}}    OR
+{{#if not IsDeleted}}                     NOT
+```
+
+`&&`, `||`, `===` and `<>` are not operators. A condition that cannot be parsed evaluates to false and adds an `ExpressionFailed` warning to `ProcessingResult.Warnings`.
+
+### Membership, Text and Existence Operators
+
+```
+{{#if Status in ("Active", "Pending")}}      Value is one of a list
+{{#if "admin" in Roles}}                     Collection contains the value
+{{#if Tags contains "urgent"}}               Collection membership, or substring for text
+{{#if Email endswith "@example.com"}}        Text ends with (also: startswith)
+{{#if Discount exists}}                      Variable is present in the data (even if null)
+{{#if Notes is empty}}                       null, missing, blank text or empty collection
+{{#if Items is not empty}}                   Negation of is empty
+{{#if (A or B) and not C}}                   Parentheses group sub-expressions
+```
+
+Text comparisons (`=`, `contains`, `startswith`, `endswith`) are case-sensitive. Numbers compare numerically across numeric types (`10 = 10.00`), and `==` is the same as `=`. Operator keywords are case-insensitive.
+
+**Precedence** (lowest to highest): `or`, `and`, `not`, then comparisons (`=`, `!=`, `>`, `<`, `>=`, `<=`, `in`, `contains`, `startswith`, `endswith`), then `exists` / `is empty` / `is not empty`. Because `not` binds more loosely than comparisons, `not Status = "Active"` means `not (Status = "Active")`. Use parentheses when in doubt.
+
+**Values in conditions:** Strings are written in double quotes (`\"` and `\\` escape a quote or backslash inside them); curly quotes typed by Word are accepted. An unquoted word that is not a variable in the data is compared as text, so `Status = Active` works like `Status = "Active"`, but a misspelled or missing variable name on the right side is compared as its own name. Quote string values to be safe.
+
+**Reserved words:** `in`, `contains`, `startswith`, `endswith`, `exists`, `is` and `empty` became keywords in 1.7.0. Where a value is expected they are still read as variable names (`{{#if Empty}}` reads a variable named `Empty`). To refer to a variable that has a keyword name, including `and`, `or`, `not`, `true`, `false` and `null`, write it in square brackets: `{{#if [Not] = "x"}}`, `{{#if [Empty].Count > 0}}`.
+
+### Complex Expressions
+
+```
+{{#if Price > 100 and Price < 1000}}
+  Mid-range product
+{{/if}}
+
+{{#if Status = "Active" or Status = "Pending"}}
+  In progress
+{{#else}}
+  Completed or cancelled
+{{/if}}
+```
+
+### Quoted Strings (with Spaces)
+
+```
+{{#if Status = "In Progress"}}
+  Work in progress...
+{{/if}}
+
+{{#if Customer.Address.Country = "United States"}}
+  US customer
+{{/if}}
+```
+
+### Nested Properties
+
+```
+{{#if Customer.Address.Country = "Germany"}}
+  German customer - {{Customer.Name}}
+{{/if}}
+
+{{#if Order.LineItems[0].Price > 1000}}
+  High-value first item
+{{/if}}
+```
+
+### Real-World Example: Conditional Sections
+
+**Data:**
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["HasDiscount"] = true,
+    ["DiscountPercent"] = 15,
+    ["IsVIPCustomer"] = true,
+    ["OrderTotal"] = 2500.00m,
+    ["Status"] = "Active",
+    ["Country"] = "Germany"
+};
+```
+
+**Word Template:**
+```
+Order Status: {{Status}}
+
+{{#if HasDiscount}}
+Special Discount: {{DiscountPercent}}% off!
+{{/if}}
+
+{{#if IsVIPCustomer and OrderTotal > 1000}}
+VIP Customer - Free expedited shipping included!
+{{/if}}
+
+{{#if Country = "Germany"}}
+Shipping: 5-7 business days within Germany
+{{#else}}
+Shipping: International delivery 10-14 days
+{{/if}}
+```
+
+**Output:**
+```
+Order Status: Active
+
+Special Discount: 15% off!
+
+VIP Customer - Free expedited shipping included!
+
+Shipping: 5-7 business days within Germany
+```
+
+### Nested Conditionals
+
+Templify fully supports nested conditionals, allowing you to create complex branching logic:
+
+**Example: Multi-Level Decision Tree**
+
+**Data:**
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["IsVIP"] = true,
+    ["HasActiveSubscription"] = true,
+    ["SubscriptionTier"] = "Premium",
+    ["OrderTotal"] = 1500.00m
+};
+```
+
+**Word Template:**
+```
+{{#if IsVIP}}
+VIP Customer Benefits:
+
+{{#if HasActiveSubscription}}
+  Active Subscription: {{SubscriptionTier}}
+
+  {{#if SubscriptionTier = "Premium"}}
+    - Priority Support (24/7)
+    - Free Shipping on all orders
+    - 20% discount on all purchases
+  {{#else}}
+    - Standard Support
+    - Free Shipping on orders over $100
+    - 10% discount on all purchases
+  {{/if}}
+{{#else}}
+  No active subscription. Consider upgrading!
+{{/if}}
+
+{{#if OrderTotal > 1000}}
+  High-value order - Personal Account Manager assigned
+{{/if}}
+{{#else}}
+Regular Customer
+- Standard shipping rates apply
+- 5% discount on orders over $200
+{{/if}}
+```
+
+**Output:**
+```
+VIP Customer Benefits:
+
+  Active Subscription: Premium
+
+    - Priority Support (24/7)
+    - Free Shipping on all orders
+    - 20% discount on all purchases
+
+  High-value order - Personal Account Manager assigned
+```
+
+**Nesting Rules:**
+- Conditionals can be nested to any depth
+- Inner conditionals are evaluated first, then outer conditionals
+- Each `{{#if}}` must have a matching `{{/if}}` (otherwise processing fails with `IsSuccess = false`)
+- `{{#else}}` can also contain nested conditionals
+- Block markers (`{{#if}}`, `{{#elseif}}`, `{{#else}}`, `{{/if}}` on their own lines) must be in paragraphs of their own; the marker paragraphs are removed from the output
+- A conditional that starts and ends in the same paragraph is an inline conditional: `Dear {{#if IsVIP}}valued {{/if}}customer`
+
+### Conditional Table Rows
+
+Put the markers in rows of their own to show or hide whole table rows:
+
+| Item | Price |
+|------|-------|
+| {{#if ShowDiscount}} | |
+| Discount | {{Discount}} |
+| {{/if}} | |
+
+The marker rows are removed. `{{#elseif}}` and `{{#else}}` rows work the same way.
+
+## Loops and Iterations
+
+Templify supports repeating content for collections using the `{{#foreach}}...{{/foreach}}` syntax. Loops work with both paragraphs and table rows.
+
+### Basic Loop Syntax
+
+```
+{{#foreach CollectionName}}
+  Content to repeat for each item
+{{/foreach}}
+```
+
+### Loop Example with List of Objects
+
+**Data:**
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["InvoiceNumber"] = "INV-2025-001",
+    ["LineItems"] = new List<LineItem>
+    {
+        new LineItem { Position = 1, Product = "Software License", Quantity = 5, UnitPrice = 499.00m, Total = 2495.00m },
+        new LineItem { Position = 2, Product = "Support & Maintenance", Quantity = 5, UnitPrice = 99.00m, Total = 495.00m },
+        new LineItem { Position = 3, Product = "Training Package", Quantity = 2, UnitPrice = 250.00m, Total = 500.00m }
+    },
+    ["Subtotal"] = 3490.00m,
+    ["Tax"] = 663.10m,
+    ["Total"] = 4153.10m
+};
+```
+
+**Word Template:**
+```
+Invoice: {{InvoiceNumber}}
+
+Line Items:
+{{#foreach LineItems}}
+{{Position}}. {{Product}}
+   Quantity: {{Quantity}} @ {{UnitPrice}} EUR = {{Total}} EUR
+{{/foreach}}
+
+Subtotal: {{Subtotal}} EUR
+Tax (19%): {{Tax}} EUR
+Total: {{Total}} EUR
+```
+
+**Output:**
+```
+Invoice: INV-2025-001
+
+Line Items:
+1. Software License
+   Quantity: 5 @ 499.00 EUR = 2495.00 EUR
+2. Support & Maintenance
+   Quantity: 5 @ 99.00 EUR = 495.00 EUR
+3. Training Package
+   Quantity: 2 @ 250.00 EUR = 500.00 EUR
+
+Subtotal: 3490.00 EUR
+Tax (19%): 663.10 EUR
+Total: 4153.10 EUR
+```
+
+### Loop Metadata Variables
+
+Within a loop, you have access to special metadata variables (they always refer to the innermost loop and are not available outside a loop):
+
+- `{{@index}}` - Zero-based index (0, 1, 2, ...)
+- `{{@number}}` - One-based number (1, 2, 3, ...), i.e. `@index + 1` (since 1.8.0)
+- `{{@first}}` - `True` for the first item, `False` otherwise
+- `{{@last}}` - `True` for the last item, `False` otherwise
+- `{{@count}}` - Total number of items in the collection
+
+**Example using metadata:**
+```
+{{#foreach Items}}
+Item {{@index}}: {{Name}}{{#if @last}} (Last Item){{/if}}
+{{/foreach}}
+```
+
+### Table Loops
+
+Loops work seamlessly with tables. Place the loop markers in rows of their own:
+
+| Position | Product | Quantity | Price | Total |
+|----------|---------|----------|-------|-------|
+| {{#foreach LineItems}} | | | | |
+| {{Position}} | {{Product}} | {{Quantity}} | {{UnitPrice}} | {{Total}} |
+| {{/foreach}} | | | | |
+
+The rows between the marker rows are repeated for each item, and the marker rows are removed. Both markers in the same row (e.g. `{{#foreach}}` in the first cell and `{{/foreach}}` in the last cell) are not supported and make processing fail. A loop can also be placed completely inside one table cell.
+
+### Loop Markers and Paragraphs
+
+`{{#foreach ...}}` and `{{/foreach}}` must each be in a paragraph of its own (or a table row of its own, see above). The paragraphs holding the markers are removed; any other text in them is lost. A loop whose markers share one paragraph (`{{#foreach Tags}}{{.}}, {{/foreach}}`) is not supported. For an inline list, build the text in code and use a single placeholder.
+
+### Nested Loops
+
+You can nest loops for hierarchical data:
+
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["Orders"] = new List<Order>
+    {
+        new Order
+        {
+            OrderId = "ORD-001",
+            Items = new List<OrderItem>
+            {
+                new OrderItem { Product = "Product A", Quantity = 2 },
+                new OrderItem { Product = "Product B", Quantity = 1 }
+            }
+        }
+    }
+};
+```
+
+**Template:**
+```
+{{#foreach Orders}}
+Order: {{OrderId}}
+  Items:
+  {{#foreach Items}}
+    - {{Product}} (Qty: {{Quantity}})
+  {{/foreach}}
+{{/foreach}}
+```
+
+### Empty, Missing and Null Collections
+
+- **Empty collection**: the loop block (including markers) is removed from the output.
+- **Missing or `null` collection**: the loop block is removed and a `MissingLoopCollection` / `NullLoopCollection` warning is added to `ProcessingResult.Warnings`.
+- **Not a collection** (e.g. a number or a string): processing fails with `IsSuccess = false`.
+- **`null` items** are iterated like other items: `{{.}}` renders empty and `{{item.Name}}` renders empty. An implicit name such as `{{Name}}` on a `null` item resolves from the outer scope. A property that exists with a `null` value renders empty and does not fall back to the outer scope.
+
+### Loop Variable Scope
+
+Within a loop:
+1. **Direct property access**: Use `{{PropertyName}}` to access properties of the current item
+2. **Primitive values**: Use `{{.}}` or `{{this}}` to reference the current item itself (for collections of strings, numbers, etc.)
+3. **Root data access**: Variables from the root data dictionary are still accessible
+4. **Nested property access**: Use dot notation for nested properties (e.g., `{{Customer.Name}}`)
+5. **Parent loop access**: In nested loops, you can access parent loop variables; with named iteration variables (`{{#foreach order in Orders}}` ... `{{order.OrderId}}`) the parent item is always reachable by name
+
+### Simple Collections (Strings, Numbers)
+
+For collections of primitive values, use `{{.}}` or `{{this}}` to reference the current item:
+
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["Items"] = new List<string> { "Item One", "Item Two", "Item Three" }
+};
+```
+
+**Template:**
+```
+{{#foreach Items}}
+- {{.}}
+{{/foreach}}
+```
+
+**Output:**
+```
+- Item One
+- Item Two
+- Item Three
+```
+
+## Formatting and Styles
+
+### Automatic Formatting Preservation
+
+Templify automatically preserves all character formatting when replacing placeholders. This means:
+
+- **Bold text** stays bold
+- *Italic text* stays italic
+- Font family, size, and color are preserved
+- Underline, strikethrough, and other character formatting is maintained
+- Paragraph styles (Heading 1, Normal, etc.) are preserved
+
+**Example:**
+
+If your template contains:
+```
+Customer: {{CustomerName}}
+```
+
+Where `{{CustomerName}}` is formatted as **Bold, Arial, 14pt, Blue**, the replacement value will also be **Bold, Arial, 14pt, Blue**.
+
+### How It Works
+
+When replacing a placeholder:
+1. The library extracts the formatting (RunProperties) from the original placeholder text
+2. Clones these properties
+3. Applies them to the replacement text
+
+This happens automatically - no configuration needed.
+
+### Formatting in Loops
+
+Formatting is also preserved when cloning content in loops:
+
+```
+{{#foreach Items}}
+Product: {{Name}}  (if "{{Name}}" is bold in template, it stays bold in output)
+Price: {{Price}}
+{{/foreach}}
+```
+
+All formatting applied to placeholders within loop blocks is preserved for each iteration.
+
+### Lists in Loops
+
+**Bullet lists and numbered lists are fully preserved when used inside `{{#foreach}}` loops.** This allows you to create dynamic lists in your documents.
+
+#### Bullet Lists Example
+
+In your Word template, create a bullet list item with a placeholder:
+```
+{{#foreach Features}}
+• {{.}}
+{{/foreach}}
+```
+
+**Important:** The bullet (•) should be a real Word bullet list item, not just a bullet character. Use Word's bullet list formatting (Home → Bullets).
+
+```csharp
+Dictionary<string, object> data = new Dictionary<string, object>
+{
+    ["Features"] = new List<string>
+    {
+        "Advanced compliance tracking",
+        "Automated risk assessments",
+        "Real-time reporting"
+    }
+};
+```
+
+**Output:** Each feature will be rendered as a properly formatted bullet list item.
+
+#### Numbered Lists Example
+
+Similarly, for numbered lists:
+```
+Setup Steps:
+{{#foreach Steps}}
+1. {{.}}
+{{/foreach}}
+```
+
+**Important:** Use Word's numbered list formatting (Home → Numbering), not manual numbers.
+
+```csharp
+Dictionary<string, object> data = new Dictionary<string, object>
+{
+    ["Steps"] = new List<string>
+    {
+        "Download the installer",
+        "Run setup wizard",
+        "Configure settings"
+    }
+};
+```
+
+**Output:** Each step will be rendered as a properly numbered list item (1., 2., 3., etc.).
+
+#### Lists with Object Properties
+
+You can also use object properties in list items:
+
+```
+{{#foreach Products}}
+• {{Name}} - {{Price}} EUR
+{{/foreach}}
+```
+
+```csharp
+Dictionary<string, object> data = new Dictionary<string, object>
+{
+    ["Products"] = new List<Product>
+    {
+        new Product { Name = "Enterprise License", Price = 999.00m },
+        new Product { Name = "Support Package", Price = 299.00m }
+    }
+};
+```
+
+**How it works:** When the template processor encounters a loop, it clones the paragraph including all formatting properties (NumberingProperties for lists). Each iteration creates a new list item with the same formatting.
+
+### Markdown and Line Breaks in Values
+
+Values can carry simple markdown, which is rendered as Word formatting and merged with the template formatting (red placeholder + `**bold**` = red bold text):
+
+- `**text**` or `__text__` → bold
+- `*text*` or `_text_` → italic
+- `~~text~~` → strikethrough
+- `***text***` → bold + italic
+
+Unclosed markers are rendered literally. Because ordinary data such as `my_report_final.docx` or `2*3*4` can also look like markdown, you can turn it off for all placeholders with `EnableMarkdown = false`, or for one placeholder with the `:raw` format specifier (`{{FileName:raw}}`); both are available since 1.8.0.
+
+Newlines in values (`\n`, `\r\n`, `\r`) become line breaks in Word; set `EnableNewlineSupport = false` to disable this conversion.
+
+### Mixed Formatting
+
+If a placeholder has mixed formatting (e.g., part bold, part italic), the formatting from the first character of the placeholder is used for the entire replacement value.
+
+### Custom Styles
+
+You can apply Word's built-in styles or custom styles in your template:
+- Apply "Heading 1" style to a paragraph containing `{{Title}}`
+- Apply "Emphasis" style to `{{ImportantNote}}`
+- The replacement text will inherit the paragraph style
+
+**Tip:** Format your placeholders in the Word template exactly how you want the replacement values to appear.
+
+## Configuration Options
+
+### Missing Variable Behavior
+
+Configure what happens when a placeholder doesn't have a corresponding value:
+
+```csharp
+// Option 1: Leave placeholders unchanged (default)
+var options = new PlaceholderReplacementOptions
+{
+    MissingVariableBehavior = MissingVariableBehavior.LeaveUnchanged
+};
+
+// Option 2: Replace with empty string
+var options = new PlaceholderReplacementOptions
+{
+    MissingVariableBehavior = MissingVariableBehavior.ReplaceWithEmpty
+};
+
+// Option 3: Throw exception
+var options = new PlaceholderReplacementOptions
+{
+    MissingVariableBehavior = MissingVariableBehavior.ThrowException
+};
+
+var processor = new DocumentTemplateProcessor(options);
+```
+
+With `ThrowException`, `ProcessTemplate` throws an `InvalidOperationException` for the first missing variable. With the other two settings, missing variables are listed in `ProcessingResult.MissingVariables` and reported as `MissingVariable` warnings. A variable that exists with a `null` value is not missing; it renders as an empty string.
+
+### Update Fields on Open (TOC Support)
+
+When your templates contain dynamic fields like Table of Contents (TOC), page numbers, or dates, these fields may become stale after processing if content is added or removed (e.g., via conditionals or loops). Templify can instruct Word to prompt users to update these fields when the document is opened.
+
+```csharp
+// Option 1: Auto-detect fields (recommended for applications processing various templates)
+var options = new PlaceholderReplacementOptions
+{
+    UpdateFieldsOnOpen = UpdateFieldsOnOpenMode.Auto
+};
+// Only prompts if the body, a header or a footer contains a TOC, PAGE, NUMPAGES, SECTIONPAGES,
+// PAGEREF, REF, NOTEREF, DATE, TIME or FILENAME field
+
+// Option 2: Always prompt to update fields
+var options = new PlaceholderReplacementOptions
+{
+    UpdateFieldsOnOpen = UpdateFieldsOnOpenMode.Always
+};
+// Every processed document will prompt to update fields when opened
+
+// Option 3: Never prompt (default)
+var options = new PlaceholderReplacementOptions
+{
+    UpdateFieldsOnOpen = UpdateFieldsOnOpenMode.Never
+};
+// No prompt, fields remain as-is (may show stale page numbers)
+
+var processor = new DocumentTemplateProcessor(options);
+```
+
+**When to use each mode:**
+
+| Mode | Use Case |
+|------|----------|
+| `Auto` | Applications where users upload various templates (some with TOC, some without). Only documents with fields will prompt. |
+| `Always` | When you know all templates have TOC or other fields that need updating. |
+| `Never` | When you don't want any prompts, or templates don't have dynamic fields. |
+
+**Why can't Templify update TOC page numbers directly?**
+
+Page numbers are calculated by Word's layout engine at render time. The OpenXML SDK (and Templify) can only store the document structure, not the rendered output. Only Word can calculate actual page numbers based on fonts, margins, page breaks, etc.
+
+### Document Properties
+
+Set metadata properties (Author, Title, Subject, etc.) on the output document. This is useful for branding generated documents or tracking how they were created.
+
+```csharp
+var options = new PlaceholderReplacementOptions
+{
+    DocumentProperties = new DocumentProperties
+    {
+        Author = "Generated by Templify",
+        Title = "Invoice INV-2025-001",
+        Subject = "Monthly Invoice",
+        Description = "Auto-generated invoice for November 2025",
+        Keywords = "invoice, templify, auto-generated",
+        Category = "Finance",
+        LastModifiedBy = "Templify Engine"
+    }
+};
+
+var processor = new DocumentTemplateProcessor(options);
+```
+
+**Behavior:**
+- When `DocumentProperties` is `null` (default), all original template metadata is preserved unchanged.
+- When `DocumentProperties` is set, only non-null property values are applied. Properties left as `null` preserve the original template value.
+- Setting a property to an empty string (`""`) explicitly clears it.
+
+| Property | Word Property Dialog Field | OPC Property |
+|----------|---------------------------|--------------|
+| `Author` | Author | `Creator` |
+| `Title` | Title | `Title` |
+| `Subject` | Subject | `Subject` |
+| `Description` | Comments | `Description` |
+| `Keywords` | Keywords | `Keywords` |
+| `Category` | Category | `Category` |
+| `LastModifiedBy` | Last Modified By | `LastModifiedBy` |
+
+**Example: Set only Author, preserve everything else:**
+
+```csharp
+var options = new PlaceholderReplacementOptions
+{
+    DocumentProperties = new DocumentProperties
+    {
+        Author = "My Application"
+        // Title, Subject, etc. remain as they were in the template
+    }
+};
+```
+
+### Culture and Formatting
+
+Templify allows you to control how numbers, dates, and other culture-sensitive values are formatted in your documents. This is particularly important for international documents or when you need consistent formatting across different systems.
+
+```csharp
+using System.Globalization;
+
+// Option 1: Use InvariantCulture for consistent, culture-independent formatting (recommended for international documents)
+var options = new PlaceholderReplacementOptions
+{
+    Culture = CultureInfo.InvariantCulture
+};
+// Numbers: 1250.50, Dates: 11/07/2025 10:30:00
+
+// Option 2: Use specific culture for localized documents (e.g., German invoices)
+var options = new PlaceholderReplacementOptions
+{
+    Culture = new CultureInfo("de-DE")
+};
+// Numbers: 1250,50, Dates: 07.11.2025 10:30:00
+
+// Option 3: Use CurrentCulture for system locale (default behavior)
+var options = new PlaceholderReplacementOptions
+{
+    Culture = CultureInfo.CurrentCulture
+};
+// Formats according to the system's regional settings
+
+var processor = new DocumentTemplateProcessor(options);
+```
+
+**What is affected by culture:**
+- **Decimal numbers**: Decimal separator (dot vs comma), thousand separators
+- **Dates and times**: Date format, month/day order, time separators
+- **Integers and longs**: Thousand separators in some cultures
+
+**What is NOT affected by culture:**
+- **Strings**: Always used as-is (unless `:uppercase`/`:lowercase` is used)
+- **Booleans without a format specifier**: Always "True" or "False" (the word formats such as `:yesno` are localized)
+- **Conditions**: `{{#if}}` expressions are evaluated culture-independently (numbers in conditions always use `.` as the decimal separator)
+
+**Best Practices:**
+- Use `CultureInfo.InvariantCulture` for automated tests to ensure consistent results
+- Use specific cultures (e.g., `de-DE`, `en-US`) when generating localized business documents
+- Use `CurrentCulture` when you want documents to match the user's regional settings
+- Consider your audience: international reports should use InvariantCulture, local invoices should use the appropriate regional culture
+
+**Example: Localized German Invoice**
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["InvoiceNumber"] = "RE-2025-001",
+    ["Date"] = DateTime.Now,
+    ["Amount"] = 1250.50m
+};
+
+var options = new PlaceholderReplacementOptions
+{
+    Culture = new CultureInfo("de-DE")
+};
+
+var processor = new DocumentTemplateProcessor(options);
+processor.ProcessTemplate(templateStream, outputStream, data);
+
+// Result in document:
+// Rechnungsnummer: RE-2025-001
+// Datum: 07.11.2025 14:30:00
+// Betrag: 1250,50 EUR  (note the comma instead of dot)
+```
+
+## Working with Tables
+
+Placeholders in table cells are automatically detected and replaced:
+
+| Product | Price | Status |
+|---------|-------|--------|
+| {{ProductName}} | {{Price}} | {{Status}} |
+
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["ProductName"] = "Software License",
+    ["Price"] = 999.00m,
+    ["Status"] = "Active"
+};
+
+processor.ProcessTemplate(templateStream, outputStream, data);
+```
+
+## Data Type Support
+
+The library automatically converts common .NET types to readable strings:
+
+- **String**: Used as-is
+- **Numbers** (int, decimal, double, etc.): Formatted with culture-specific settings
+- **DateTime/DateTimeOffset**: Formatted using standard date/time format
+- **Boolean**: "True" or "False" (or use format specifiers for custom display)
+- **Null**: Empty string (a variable that exists with a `null` value is not "missing")
+- **Custom objects**: Uses `ToString()` method
+
+## Format Specifiers
+
+Format specifiers control how a value is displayed: `{{Variable:format}}`. Which specifiers apply depends on the type of the value; an unknown or non-matching specifier falls back to the default conversion.
+
+| Specifier | Applies to | Example | Output (en-US) |
+|-----------|------------|---------|----------------|
+| `currency` | numbers | `{{Amount:currency}}` | `$1,234.57` |
+| `number:FORMAT` | numbers | `{{Value:number:N2}}`, `{{Rate:number:P2}}` | `1,234.57`, `12.34%` |
+| `date:FORMAT` | `DateTime`, `DateTimeOffset`, date strings | `{{OrderDate:date:yyyy-MM-dd}}` | `2025-01-15` |
+| `uppercase` / `lowercase` | strings | `{{Name:uppercase}}` | `ALICE` |
+| `raw` | any value | `{{FileName:raw}}` | value without markdown formatting |
+| boolean formats (below) | booleans | `{{IsActive:checkbox}}` | `☑` |
+
+`FORMAT` is a standard or custom .NET format string, applied with `PlaceholderReplacementOptions.Culture`. Numbers passed as strings (e.g. `"1234.5"`) are not formatted by `currency`/`number`. Specifiers also work on inline expressions: `{{(Count > 0):yesno}}`.
+
+### Boolean Format Specifiers
+
+Use the `:format` syntax to display boolean values as checkboxes, Yes/No text, checkmarks, and more.
+
+#### Quick Example
+
+**Template:**
+```
+Status: {{IsActive:checkbox}}
+Verified: {{IsVerified:yesno}}
+Valid: {{IsValid:checkmark}}
+```
+
+**C# Data:**
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["IsActive"] = true,
+    ["IsVerified"] = false,
+    ["IsValid"] = true
+};
+```
+
+**JSON Data:**
+```json
+{
+  "IsActive": true,
+  "IsVerified": false,
+  "IsValid": true
+}
+```
+
+**Output:**
+```
+Status: ☑
+Verified: No
+Valid: ✓
+```
+
+#### Available Formatters
+
+| Format | True | False | Use Case |
+|--------|------|-------|----------|
+| `checkbox` | ☑ | ☐ | Task lists, checklists |
+| `yesno` | Yes | No | Questions, confirmations |
+| `checkmark` | ✓ | ✗ | Validation, requirements |
+| `truefalse` | True | False | Technical output |
+| `onoff` | On | Off | Settings, switches |
+| `enabled` | Enabled | Disabled | Feature flags |
+| `active` | Active | Inactive | Status indicators |
+
+`check` is an alias for `checkmark`.
+
+#### Localization
+
+The word formats (`yesno`, `truefalse`, `onoff`, `enabled`, `active`) follow `PlaceholderReplacementOptions.Culture`:
+
+```csharp
+// German output
+var options = new PlaceholderReplacementOptions
+{
+    Culture = new CultureInfo("de-DE")
+};
+var processor = new DocumentTemplateProcessor(options);
+```
+
+**Template:** `{{IsActive:yesno}}`
+**Output (de-DE):** `Ja` or `Nein`
+**Output (fr-FR):** `Oui` or `Non`
+**Output (es-ES):** `Sí` or `No`
+
+Localized words exist for German, French, Spanish, Italian, Portuguese, Dutch, Polish and Russian; `yesno` is also localized for Japanese and Chinese. Other languages use English. If you pass your own `BooleanFormatterRegistry`, give it the culture (`new BooleanFormatterRegistry(culture)`); a registry created without a culture uses English words.
+
+#### Custom Formatters
+
+Create your own boolean formatters:
+
+```csharp
+var registry = new BooleanFormatterRegistry();
+registry.Register("thumbs", new BooleanFormatter("👍", "👎"));
+
+var options = new PlaceholderReplacementOptions
+{
+    BooleanFormatterRegistry = registry
+};
+var processor = new DocumentTemplateProcessor(options);
+```
+
+**Template:** `{{IsPositive:thumbs}}`
+**Output:** `👍` or `👎`
+
+For complete documentation, see the [Format Specifiers Guide](https://triasdev.github.io/templify/for-template-authors/format-specifiers/).
+
+## Boolean Expressions
+
+Boolean expressions allow you to evaluate logic directly within placeholders, eliminating the need for separate conditional blocks for simple boolean checks.
+
+### Quick Example
+
+**Template:**
+```
+Eligible: {{(Age >= 18):yesno}}
+Access: {{(IsActive and IsVerified):checkbox}}
+Can proceed: {{(HasPermissionA or HasPermissionB):checkmark}}
+```
+
+**C# Data:**
+```csharp
+var data = new Dictionary<string, object>
+{
+    ["Age"] = 25,
+    ["IsActive"] = true,
+    ["IsVerified"] = true,
+    ["HasPermissionA"] = false,
+    ["HasPermissionB"] = true
+};
+```
+
+**JSON Data:**
+```json
+{
+  "Age": 25,
+  "IsActive": true,
+  "IsVerified": true,
+  "HasPermissionA": false,
+  "HasPermissionB": true
+}
+```
+
+**Output:**
+```
+Eligible: Yes
+Access: ☑
+Can proceed: ✓
+```
+
+### Operators
+
+**Logical:**
+- `and` - Both conditions must be true
+- `or` - At least one condition must be true
+- `not` - Negates the condition
+
+**Comparison:**
+- `=` or `==` - Equal to
+- `!=` - Not equal to
+- `>` - Greater than
+- `>=` - Greater than or equal
+- `<` - Less than
+- `<=` - Less than or equal
+
+All other condition operators (`in`, `contains`, `startswith`, `endswith`, `exists`, `is empty`, `is not empty`) work in expressions too.
+
+**Differences from `{{#if}}`:** inline expressions are stricter. A value on its own is only true if it is the boolean `true` (a non-empty string or a non-zero number is false), `=` compares non-numeric values with `object.Equals`, and strings may also be written in single quotes (`{{(Status = 'Active')}}`). An expression that cannot be evaluated is treated as a missing variable (see `MissingVariableBehavior`) and adds an `ExpressionFailed` and a `MissingVariable` warning.
+
+### Nested Expressions
+
+Use parentheses to control evaluation order:
+
+**Template:**
+```
+Approved: {{((Age >= 18) and (HasLicense or HasPermit)):yesno}}
+```
+
+**Data:**
+```json
+{
+  "Age": 20,
+  "HasLicense": false,
+  "HasPermit": true
+}
+```
+
+**Output:**
+```
+Approved: Yes
+```
+
+### In Loops
+
+Expressions work seamlessly in loops:
+
+**Template:**
+```
+{{#foreach Employees}}
+- {{Name}}: {{(IsActive and HasCompletedTraining):checkbox}}
+{{/foreach}}
+```
+
+**Data:**
+```json
+{
+  "Employees": [
+    { "Name": "Alice", "IsActive": true, "HasCompletedTraining": true },
+    { "Name": "Bob", "IsActive": true, "HasCompletedTraining": false }
+  ]
+}
+```
+
+**Output:**
+```
+- Alice: ☑
+- Bob: ☐
+```
+
+For complete documentation, see the [Boolean Expressions Guide](https://triasdev.github.io/templify/for-template-authors/boolean-expressions/).
+
+## Supported Document Locations
+
+Currently supported:
+- Document body paragraphs
+- Table cells
+- Headers and footers (Default, First, Even)
+- Footnotes and endnotes (separator notes are skipped)
+- Text boxes (VML and DrawingML, including the `mc:AlternateContent` fallback)
+- Content controls (block, row, cell and inline)
+
+Not processed:
+- Comments (reviewer notes; placeholders in comments are left unchanged)
+- Custom XML parts
+
+## API Reference
+
+Namespaces: `TriasDev.Templify.Core` (processors, options, results), `TriasDev.Templify.Formatting` (boolean formatters), `TriasDev.Templify.Conditionals` (standalone condition evaluation), `TriasDev.Templify.Utilities` (`JsonDataParser`), `TriasDev.Templify.Replacements` (`TextReplacements`).
+
+### DocumentTemplateProcessor
+
+Main entry point for template processing.
+
+**Constructor:**
+```csharp
+DocumentTemplateProcessor(PlaceholderReplacementOptions? options = null)
+```
+
+**Methods** (each data parameter also exists as `IReadOnlyDictionary<string, object?>` and as a JSON `string`):
+```csharp
+// Streams: the output stream must be readable, writable and seekable
+ProcessingResult ProcessTemplate(Stream templateStream, Stream outputStream, Dictionary<string, object> data)
+
+// In memory: output is the processed document, or an empty array on failure
+ProcessingResult ProcessTemplate(byte[] template, Dictionary<string, object> data, out byte[] output)
+
+// Files: the output file is written only on success (it may be the template path)
+ProcessingResult ProcessTemplateFile(string templatePath, string outputPath, Dictionary<string, object> data)
+
+// Validation without output: syntax errors, all placeholders and (with data) missing variables
+ValidationResult ValidateTemplate(Stream templateStream)
+ValidationResult ValidateTemplate(Stream templateStream, Dictionary<string, object> data)
+```
+
+The byte array, file, JSON and `IReadOnlyDictionary` overloads are available since 1.8.0 (the stream overloads with `Dictionary` and JSON data existed before).
+
+### PlaceholderReplacementOptions
+
+Configuration options for template processing.
+
+**Properties:**
+- `MissingVariableBehavior`: How to handle missing variables (default: `LeaveUnchanged`)
+- `Culture`: Culture for formatting numbers, dates and localized boolean words (default: `CurrentCulture` at the time the options are created)
+- `BooleanFormatterRegistry`: Custom formatters for boolean display (default: built-in formatters for `Culture`)
+- `EnableNewlineSupport`: Convert `\n` to line breaks in Word (default: `true`)
+- `EnableMarkdown`: Render markdown in values as formatting (default: `true`); `:raw` opts out per placeholder
+- `WarnOnEmptyLoopCollections`: Whether `ValidateTemplate` warns about empty loop collections (default: `true`)
+- `TextReplacements`: Dictionary of text replacements applied to values (e.g. `TextReplacements.HtmlEntities`)
+- `UpdateFieldsOnOpen`: When to prompt Word to update fields like TOC (default: `Never`)
+- `DocumentProperties`: Metadata properties to set on the output document (default: `null` — preserves original)
+
+### ProcessingResult
+
+Result of template processing operation.
+
+**Properties and methods:**
+- `IsSuccess`: Whether processing completed successfully
+- `ErrorMessage`: Error details (if `IsSuccess` is false)
+- `ReplacementCount`: Number of placeholders replaced
+- `MissingVariables`: Names of placeholders without values (if any)
+- `Warnings` / `HasWarnings`: `ProcessingWarning` entries (`Type`, `Message`, `VariableName`, `Context`) of type `MissingVariable`, `MissingLoopCollection`, `NullLoopCollection` or `ExpressionFailed`
+- `GetWarningReport()` / `GetWarningReportBytes()`: A Word document listing all warnings
+
+### ValidationResult
+
+- `IsValid` (no errors), `Errors` (`ValidationError` with `Type`, `Message`, `Location`); when data is passed, each missing variable is an error of type `MissingVariable`; a template that cannot be read (unsupported format, corrupted package) passed to `TemplateProcessor` or `OdtTemplateProcessor` is an error of type `InvalidDocument`
+- `AllPlaceholders`, `MissingVariables` (an inline expression such as `{{(A and B)}}` contributes the variables it references; an expression that cannot be parsed is an `InvalidConditionalExpression` error)
+- `Warnings` (`ValidationWarning` of type `EmptyLoopCollection`, `ReservedWordAsVariable` or `MissingConditionVariable`: a condition tests a variable missing from the data on its own, e.g. `{{#if Missing}}`; not added to `MissingVariables`, `IsValid` is unchanged)
+
+### TextTemplateProcessor
+
+Processes plain-text templates with the same placeholder, conditional, loop and expression syntax:
+
+```csharp
+var textProcessor = new TextTemplateProcessor();
+TextProcessingResult text = textProcessor.ProcessTemplate("Hello {{Name}}!", data);
+Console.WriteLine(text.ProcessedText);
+```
+
+`TextProcessingResult` has `IsSuccess`, `ErrorMessage`, `ProcessedText`, `ReplacementCount`, `MissingVariables`, `Warnings` and `HasWarnings`. Markdown is not applied to text output.
+
+### ConditionEvaluator
+
+Evaluates condition expressions without a document (namespace `TriasDev.Templify.Conditionals`):
+
+```csharp
+var evaluator = new ConditionEvaluator();
+bool eligible = evaluator.Evaluate("Age >= 18 and Country in (\"DE\", \"AT\")", data);
+
+IConditionContext context = evaluator.CreateConditionContext(data); // reuse for many expressions
+ConditionValidationResult check = evaluator.Validate("Status = \"Active\" and");  // IsValid, Issues
+```
+
+The `EvaluateAsync` methods are obsolete since 1.8.0 (they only wrapped the synchronous call); use `Evaluate`.
+
+### JsonDataParser
+
+`JsonDataParser.ParseJsonToDataDictionary(json)` (namespace `TriasDev.Templify.Utilities`) converts a JSON object into `Dictionary<string, object>` with nested dictionaries, lists and .NET numbers. Prefer it (or the JSON overloads) over `JsonSerializer.Deserialize<Dictionary<string, object>>`, whose `JsonElement` values cannot be used as top-level loop collections and are always truthy in `{{#if}}`.
+
+## Error Handling
+
+`ProcessTemplate` reports template problems through the result instead of throwing:
+
+- **Template syntax errors** (e.g. `{{#if}}` without `{{/if}}`, `{{#elseif}}` after `{{#else}}`, invalid loop syntax) and **data errors** (e.g. `{{#foreach}}` over a value that is not a collection) return `IsSuccess = false` with `ErrorMessage` set.
+- **Conditions that cannot be parsed** (e.g. `{{#if A && B}}`) evaluate to false and add an `ExpressionFailed` warning to `Warnings`.
+- Only a **missing variable with `MissingVariableBehavior.ThrowException`** throws (an `InvalidOperationException`).
+- `ArgumentNullException` (and, for the JSON overloads, `JsonException`/`ArgumentException`) is thrown for invalid arguments; the file overloads also throw the usual I/O exceptions (e.g. `FileNotFoundException`).
+- An output stream that is not readable, writable and seekable is reported as a failed result before anything is written.
+
+```csharp
+try
+{
+    var result = processor.ProcessTemplate(templateStream, outputStream, data);
+
+    if (!result.IsSuccess)
+    {
+        Console.WriteLine($"Processing failed: {result.ErrorMessage}");
+    }
+
+    if (result.MissingVariables.Any())
+    {
+        Console.WriteLine($"Warning: Missing variables: {string.Join(", ", result.MissingVariables)}");
+    }
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Unexpected error: {ex.Message}");
+}
+```
+
+## Requirements
+
+- .NET 8.0, 9.0 or 10.0 (the package targets `net8.0`, `net9.0` and `net10.0`)
+- DocumentFormat.OpenXml 3.5.1 or later (installed automatically as a package dependency)
+
+**Support policy:** we support the .NET versions that are in Microsoft support. Target frameworks that reach end of life are dropped in a minor release, announced in the release notes. net6.0 was dropped in 1.8.0; projects on .NET 6 can stay on 1.7.x.
+
+## About
+
+**Templify** is created and maintained by **TriasDev GmbH & Co. KG**.
+
+This library is battle-tested in production, processing thousands of documents daily with enterprise-grade reliability.
+
+## License
+
+MIT License. See [LICENSE](https://github.com/TriasDev/templify/blob/main/LICENSE).
+
+© 2025 TriasDev GmbH & Co. KG
+
+## Contributing
+
+Contributions are welcome! See the [contribution guidelines](https://github.com/TriasDev/templify/blob/main/CONTRIBUTING.md).
+
+## See Also
+
+- [Online Documentation](https://triasdev.github.io/templify/) - Guides for template authors and developers
+- [Examples](https://github.com/TriasDev/templify/blob/main/src/TriasDev.Templify/Examples.md) - More code samples and use cases
+- [Architecture Documentation](https://github.com/TriasDev/templify/blob/main/src/TriasDev.Templify/ARCHITECTURE.md) - Design and implementation details
+- [Changelog](https://github.com/TriasDev/templify/blob/main/CHANGELOG.md)

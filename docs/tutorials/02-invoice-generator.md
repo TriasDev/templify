@@ -460,7 +460,7 @@ if (generator.GenerateInvoice(invoice, $"output/invoice-{invoice.InvoiceNumber}.
 
 ## Additional Resources
 
-- [Examples Collection](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/Examples.md) - loops and tables
+- [Examples Collection](https://github.com/TriasDev/templify/blob/main/src/TriasDev.Templify/Examples.md) - loops and tables
 - [FAQ - Loops](../FAQ.md#q-how-do-loops-work)
 - [FAQ - Loops in Tables](../FAQ.md#q-how-do-i-use-loops-in-tables)
 
