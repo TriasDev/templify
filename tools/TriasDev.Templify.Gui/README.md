@@ -190,7 +190,7 @@ dotnet test tests/TriasDev.Templify.Tools.Tests/TriasDev.Templify.Tools.Tests.cs
 ## Related Documentation
 
 - [Main Documentation](../../src/TriasDev.Templify/README.md) - Complete Templify API reference
-- [Quick Start Guide](../docs/quick-start.md) - Get started with Templify
+- [Getting Started](../../docs/for-template-authors/getting-started.md) - Write your first template
 - [Format Specifiers Guide](../../docs/for-template-authors/format-specifiers.md) - Boolean formatting
 - [Boolean Expressions Guide](../../docs/for-template-authors/boolean-expressions.md) - Logic evaluation
 - [FAQ](../../docs/FAQ.md) - Common questions and answers
