@@ -1445,6 +1445,6 @@ Contributions are welcome! See the [contribution guidelines](https://github.com/
 ## See Also
 
 - [Online Documentation](https://triasdev.github.io/templify/) - Guides for template authors and developers
-- [Examples](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/Examples.md) - More code samples and use cases
-- [Architecture Documentation](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/ARCHITECTURE.md) - Design and implementation details
+- [Examples](https://github.com/TriasDev/templify/blob/main/src/TriasDev.Templify/Examples.md) - More code samples and use cases
+- [Architecture Documentation](https://github.com/TriasDev/templify/blob/main/src/TriasDev.Templify/ARCHITECTURE.md) - Design and implementation details
 - [Changelog](https://github.com/TriasDev/templify/blob/main/CHANGELOG.md)

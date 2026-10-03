@@ -216,7 +216,7 @@ for %%f in (old-templates\*.docx) do (
 
 ```bash
 # Long form - 80+ characters
-dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- analyze templates/invoice.docx --output reports/invoice-analysis.md
+dotnet run --project tools/TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- analyze templates/invoice.docx --output reports/invoice-analysis.md
 ```
 
 ### With Scripts (Concise)
@@ -318,7 +318,7 @@ scripts/analyze.cmd template.docx  REM Won't work
 ### Issue: "Project not found"
 
 **Cause:** The script was copied out of the repository. The scripts expect to live in `scripts/` next to
-`TriasDev.Templify.Converter/`.
+`tools/TriasDev.Templify.Converter/`.
 
 **Solution:** Call the scripts in place (or add the repository's `scripts/` directory to your PATH) instead
 of copying them elsewhere. A symlink on your PATH that points to a script is not resolved; add the directory
@@ -346,8 +346,8 @@ All command-line arguments are passed through to the converter unchanged.
 
 ## Related Documentation
 
-- 📖 **[Converter Documentation](../TriasDev.Templify.Converter/README.md)** - Full converter command reference
-- 📚 **[Templify Library Documentation](../TriasDev.Templify/README.md)** - Templify API and usage
+- 📖 **[Converter Documentation](../tools/TriasDev.Templify.Converter/README.md)** - Full converter command reference
+- 📚 **[Templify Library Documentation](../src/TriasDev.Templify/README.md)** - Templify API and usage
 - 📝 **[Root README](../README.md)** - Repository overview
 
 ---

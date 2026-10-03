@@ -23,16 +23,16 @@ The Templify Converter is a command-line tool designed to help migrate Word docu
 
 ```bash
 # 1. Analyze your template to understand its structure
-dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- analyze my-template.docx
+dotnet run --project tools/TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- analyze my-template.docx
 
 # 2. Review the generated analysis report
 cat my-template-analysis-report.md
 
 # 3. Convert the template to Templify format
-dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- convert my-template.docx
+dotnet run --project tools/TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- convert my-template.docx
 
 # 4. Validate the converted document
-dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- validate my-template-templify.docx
+dotnet run --project tools/TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- validate my-template-templify.docx
 ```
 
 ### Using Helper Scripts (Recommended)
@@ -49,7 +49,7 @@ chmod +x scripts/*.sh
 ./scripts/validate.sh my-template-templify.docx
 ```
 
-See [scripts/README.md](../scripts/README.md) for complete script documentation.
+See [scripts/README.md](../../scripts/README.md) for complete script documentation.
 
 ## Commands Reference
 
@@ -67,7 +67,7 @@ Analyzes an OpenXMLTemplates document and generates a detailed report about cont
 
 **Syntax:**
 ```bash
-dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- analyze <template-path> [options]
+dotnet run --project tools/TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- analyze <template-path> [options]
 ```
 
 **Parameters:**
@@ -118,7 +118,7 @@ Converts an OpenXMLTemplates document to Templify format by replacing content co
 
 **Syntax:**
 ```bash
-dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- convert <template-path> [options]
+dotnet run --project tools/TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- convert <template-path> [options]
 ```
 
 **Parameters:**
@@ -187,7 +187,7 @@ Validates that a Word document is well-formed and can be opened successfully.
 
 **Syntax:**
 ```bash
-dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- validate <document-path>
+dotnet run --project tools/TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- validate <document-path>
 ```
 
 **Parameters:**
@@ -225,7 +225,7 @@ Removes all Structured Document Tag (SDT) elements from a document while preserv
 
 **Syntax:**
 ```bash
-dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- clean <document-path> [options]
+dotnet run --project tools/TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- clean <document-path> [options]
 ```
 
 **Parameters:**
@@ -266,9 +266,9 @@ Displays usage information and command descriptions.
 
 **Syntax:**
 ```bash
-dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- help
-dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- --help
-dotnet run --project TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- -h
+dotnet run --project tools/TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- help
+dotnet run --project tools/TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- --help
+dotnet run --project tools/TriasDev.Templify.Converter/TriasDev.Templify.Converter.csproj -- -h
 ```
 
 **Output:**
@@ -334,7 +334,7 @@ cat templates/letter-templify-conversion-report.md
 **5. Testing Phase**
 ```bash
 # Test with actual data using Templify library
-dotnet run --project TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj
+dotnet run --project samples/TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj
 
 # Or create a custom test program
 dotnet new console -n TemplifyTest
@@ -581,7 +581,7 @@ chmod +x scripts/convert.sh
 2. Check the error in the conversion report: the converter reports every tag it cannot translate into valid
    Templify syntax (supported operators: eq, ne, gt, lt, gte, lte, and, or, not)
 3. Manually create the conditional in Templify syntax after conversion
-4. Refer to [Templify conditional documentation](../TriasDev.Templify/README.md#conditional-blocks)
+4. Refer to [Templify conditional documentation](../../src/TriasDev.Templify/README.md#conditional-blocks)
 
 ### Issue: Nested Loops Not Working
 
@@ -664,11 +664,11 @@ before rebuilding it, risking data loss; it has been removed.
 
 ## Related Documentation
 
-- 📖 **[Templify Library Documentation](../TriasDev.Templify/README.md)** - Full API reference and usage guide
-- 🏗️ **[Architecture Documentation](../TriasDev.Templify/ARCHITECTURE.md)** - Technical design details
-- 📝 **[Code Examples](../TriasDev.Templify/Examples.md)** - Templify usage examples
-- 🤖 **[Development Guide](../CLAUDE.md)** - AI-assisted development guidance
-- 📜 **[Script Documentation](../scripts/README.md)** - Helper script usage
+- 📖 **[Templify Library Documentation](../../src/TriasDev.Templify/README.md)** - Full API reference and usage guide
+- 🏗️ **[Architecture Documentation](../../src/TriasDev.Templify/ARCHITECTURE.md)** - Technical design details
+- 📝 **[Code Examples](../../src/TriasDev.Templify/Examples.md)** - Templify usage examples
+- 🤖 **[Development Guide](../../CLAUDE.md)** - AI-assisted development guidance
+- 📜 **[Script Documentation](../../scripts/README.md)** - Helper script usage
 
 ---
 
@@ -677,7 +677,7 @@ before rebuilding it, risking data loss; it has been removed.
 For issues or questions:
 - Review the [Troubleshooting](#troubleshooting) section
 - Check conversion reports for specific warnings
-- Consult the [Templify documentation](../TriasDev.Templify/README.md)
+- Consult the [Templify documentation](../../src/TriasDev.Templify/README.md)
 - Contact TriasDev internal support
 
 ---

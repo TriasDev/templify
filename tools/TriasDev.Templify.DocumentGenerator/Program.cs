@@ -109,7 +109,7 @@ if (!skipImages)
     {
         Console.WriteLine("⚠ Skipping image conversion: STIRLING_PDF_URL not configured");
         Console.WriteLine("  To enable image generation:");
-        Console.WriteLine("  1. Copy TriasDev.Templify.DocumentGenerator/.env.example to TriasDev.Templify.DocumentGenerator/.env");
+        Console.WriteLine("  1. Copy tools/TriasDev.Templify.DocumentGenerator/.env.example to tools/TriasDev.Templify.DocumentGenerator/.env");
         Console.WriteLine("  2. Set STIRLING_PDF_URL and STIRLING_PDF_API_KEY");
     }
     else

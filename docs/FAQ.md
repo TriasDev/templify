@@ -48,7 +48,7 @@ Or in Visual Studio: `Install-Package TriasDev.Templify`
 1. [Quick Start Guide](for-developers/quick-start.md) (5 minutes)
 2. [Tutorial 1: Hello World](tutorials/01-hello-world.md) (30 min)
 3. [Tutorial 2: Invoice Generator](tutorials/02-invoice-generator.md) (1 hour)
-4. [Template Syntax](for-template-authors/template-syntax.md) and the [library README](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/README.md)
+4. [Template Syntax](for-template-authors/template-syntax.md) and the [library README](https://github.com/TriasDev/templify/blob/main/src/TriasDev.Templify/README.md)
 
 ### Q: Do I need Microsoft Word installed?
 
@@ -122,7 +122,7 @@ In ASP.NET Core, buffer uploaded templates asynchronously before processing (see
 **A:** **Yes!** Templify is designed for performance:
 - The whole document is loaded into memory, so it is not suited for documents larger than ~50 MB
 - Processing time grows linearly with the size of the document and the data
-- See the [performance notes](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/PERFORMANCE.md) (a benchmark snapshot)
+- See the [performance notes](https://github.com/TriasDev/templify/blob/main/src/TriasDev.Templify/PERFORMANCE.md) (a benchmark snapshot)
 
 ### Q: Does Templify support tables?
 
@@ -557,7 +557,7 @@ otherwise). Symbol-based formatters (`checkbox`, `checkmark` and its alias `chec
 ### Q: How fast is Templify?
 
 **A:** Typical templates are processed in milliseconds; processing time grows linearly with document and data
-size. See the [performance notes](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/PERFORMANCE.md) for a benchmark snapshot, and run
+size. See the [performance notes](https://github.com/TriasDev/templify/blob/main/src/TriasDev.Templify/PERFORMANCE.md) for a benchmark snapshot, and run
 `TriasDev.Templify.Benchmarks` for numbers on your hardware.
 
 ### Q: Does Templify cache templates?
@@ -659,11 +659,11 @@ the formatting of the run where the placeholder starts.
 1. **Output not flushed**: Dispose (or flush) the output stream before reading the file; use `using` statements
 2. **Reused output stream**: Use a new, empty output stream for each document (the template is copied into it)
 3. **Concurrent access**: Don't share streams between threads
-4. **Template already corrupted**: Validate the template with the [Converter tool](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify.Converter/README.md)
+4. **Template already corrupted**: Validate the template with the [Converter tool](https://github.com/TriasDev/templify/blob/main/tools/TriasDev.Templify.Converter/README.md)
 
 **Validate template**:
 ```bash
-dotnet run --project TriasDev.Templify.Converter -- validate template.docx
+dotnet run --project tools/TriasDev.Templify.Converter -- validate template.docx
 ```
 
 ### Q: How do I debug template issues?
@@ -733,7 +733,7 @@ ProcessingResult result = processor.ProcessTemplate(templateStream, outputStream
 `convert` only converts OpenXMLTemplates content controls; other content controls are kept unless you pass
 `--unwrap-all-controls`. The CLI exits with 0 on success, 1 when the command failed (for example a control that
 cannot be converted) and 2 for invalid arguments. See the full
-[Converter Documentation](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify.Converter/README.md).
+[Converter Documentation](https://github.com/TriasDev/templify/blob/main/tools/TriasDev.Templify.Converter/README.md).
 
 ### Q: What's the mapping from OpenXMLTemplates?
 
@@ -964,13 +964,13 @@ _metrics.RecordCount("templify.warnings", result.Warnings.Count);
 ### Community Support
 - 💬 [GitHub Discussions](https://github.com/TriasDev/templify/discussions) - Ask the community
 - 🐛 [GitHub Issues](https://github.com/TriasDev/templify/issues) - Report bugs
-- 📖 [Library README](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/README.md) - Complete reference
+- 📖 [Library README](https://github.com/TriasDev/templify/blob/main/src/TriasDev.Templify/README.md) - Complete reference
 
 ### Documentation
 - [Quick Start Guide](for-developers/quick-start.md)
 - [Tutorial Series](tutorials/index.md)
-- [Architecture Guide](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/ARCHITECTURE.md)
-- [Examples Collection](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/Examples.md)
+- [Architecture Guide](https://github.com/TriasDev/templify/blob/main/src/TriasDev.Templify/ARCHITECTURE.md)
+- [Examples Collection](https://github.com/TriasDev/templify/blob/main/src/TriasDev.Templify/Examples.md)
 
 ### Can't Find Your Answer?
 [Open a discussion](https://github.com/TriasDev/templify/discussions/new) or [create an issue](https://github.com/TriasDev/templify/issues/new) on GitHub.

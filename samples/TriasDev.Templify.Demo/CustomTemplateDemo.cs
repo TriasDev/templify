@@ -23,7 +23,7 @@ internal partial class Program
 
         if (string.IsNullOrEmpty(templatePath) || string.IsNullOrEmpty(jsonPath))
         {
-            Console.WriteLine("Usage: dotnet run --project TriasDev.Templify.Demo -- --template <file.docx|file.odt|file.ott> --data <file.json> [--output <file>]");
+            Console.WriteLine("Usage: dotnet run --project samples/TriasDev.Templify.Demo -- --template <file.docx|file.odt|file.ott> --data <file.json> [--output <file>]");
             return 1;
         }
 

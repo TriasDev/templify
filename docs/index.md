@@ -37,8 +37,8 @@ I'm a software developer who wants to use the Templify library in my C# applicat
 - [Processing Warnings](for-developers/processing-warnings.md) - Missing variables, loop and expression warnings
 - [Text Template Processing](for-developers/text-templates.md) - Templates for plain text and emails
 - [Condition Evaluation](for-developers/condition-evaluation.md) - Evaluate conditions without a document
-- [Code Examples](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/Examples.md) - Extensive C# samples (GitHub)
-- [Architecture Overview](https://github.com/TriasDev/templify/blob/main/TriasDev.Templify/ARCHITECTURE.md) - How the library works internally (GitHub)
+- [Code Examples](https://github.com/TriasDev/templify/blob/main/src/TriasDev.Templify/Examples.md) - Extensive C# samples (GitHub)
+- [Architecture Overview](https://github.com/TriasDev/templify/blob/main/src/TriasDev.Templify/ARCHITECTURE.md) - How the library works internally (GitHub)
 
 ---
 

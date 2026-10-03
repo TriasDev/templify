@@ -18,9 +18,9 @@ A tool for automatically generating example Word documents and converting them t
 ### Setup
 
 1. Copy the environment file (the tool looks for `.env` in the current directory and its parents,
-   then in `TriasDev.Templify.DocumentGenerator/`):
+   then in `tools/TriasDev.Templify.DocumentGenerator/`):
    ```bash
-   cp TriasDev.Templify.DocumentGenerator/.env.example TriasDev.Templify.DocumentGenerator/.env
+   cp tools/TriasDev.Templify.DocumentGenerator/.env.example tools/TriasDev.Templify.DocumentGenerator/.env
    ```
 
 2. Edit `.env` and configure your Stirling-PDF instance (`.env` is git-ignored):
@@ -33,24 +33,24 @@ A tool for automatically generating example Word documents and converting them t
 
 **Generate all examples (documents + images):**
 ```bash
-dotnet run --project TriasDev.Templify.DocumentGenerator
+dotnet run --project tools/TriasDev.Templify.DocumentGenerator
 ```
 
 **Generate specific example:**
 ```bash
-dotnet run --project TriasDev.Templify.DocumentGenerator -- hello-world
-dotnet run --project TriasDev.Templify.DocumentGenerator -- invoice
-dotnet run --project TriasDev.Templify.DocumentGenerator -- conditionals
-dotnet run --project TriasDev.Templify.DocumentGenerator -- advanced-conditionals
-dotnet run --project TriasDev.Templify.DocumentGenerator -- warning-report
+dotnet run --project tools/TriasDev.Templify.DocumentGenerator -- hello-world
+dotnet run --project tools/TriasDev.Templify.DocumentGenerator -- invoice
+dotnet run --project tools/TriasDev.Templify.DocumentGenerator -- conditionals
+dotnet run --project tools/TriasDev.Templify.DocumentGenerator -- advanced-conditionals
+dotnet run --project tools/TriasDev.Templify.DocumentGenerator -- warning-report
 ```
 
 **Skip image generation:**
 ```bash
-dotnet run --project TriasDev.Templify.DocumentGenerator -- --skip-images
+dotnet run --project tools/TriasDev.Templify.DocumentGenerator -- --skip-images
 ```
 
-The repository root is located automatically (directory containing `templify.sln`), so the tool can be
+The repository root is located automatically (directory containing `templify.slnx`), so the tool can be
 run from any directory. It exits with a non-zero code if any example fails to generate or process, or if
 image conversion was requested but fails.
 
@@ -110,8 +110,8 @@ docs/images/examples/
 - **Manual step**: The library embeds a copy of this template as a resource. After changing
   `WarningReportTemplateGenerator`, regenerate it and copy it into the core library:
   ```bash
-  dotnet run --project TriasDev.Templify.DocumentGenerator -- warning-report --skip-images
-  cp examples/templates/warning-report-template.docx TriasDev.Templify/Resources/WarningReportTemplate.docx
+  dotnet run --project tools/TriasDev.Templify.DocumentGenerator -- warning-report --skip-images
+  cp examples/templates/warning-report-template.docx src/TriasDev.Templify/Resources/WarningReportTemplate.docx
   ```
   Then run the test suite (`ProcessingWarnings*` tests cover the report) before committing.
 
@@ -210,7 +210,7 @@ docs/images/examples/
 
 3. Run the generator:
    ```bash
-   dotnet run --project TriasDev.Templify.DocumentGenerator -- my-example
+   dotnet run --project tools/TriasDev.Templify.DocumentGenerator -- my-example
    ```
 
 ## Helper Methods
@@ -299,7 +299,7 @@ The tool requires a running Stirling-PDF instance. Options:
 ### "STIRLING_PDF_URL not configured"
 
 **Solution**:
-- Create `TriasDev.Templify.DocumentGenerator/.env` from `.env.example`
+- Create `tools/TriasDev.Templify.DocumentGenerator/.env` from `.env.example`
 - Set `STIRLING_PDF_URL` variable
 - Restart the tool
 
@@ -331,7 +331,7 @@ Currently, only the first page is captured. To capture all pages:
 
 ## Related Documentation
 
-- [Templify Main README](../README.md)
-- [Templify Examples](../TriasDev.Templify/Examples.md)
-- [Scripts README](../scripts/README.md)
-- [Contributing Guidelines](../CONTRIBUTING.md)
+- [Templify Main README](../../README.md)
+- [Templify Examples](../../src/TriasDev.Templify/Examples.md)
+- [Scripts README](../../scripts/README.md)
+- [Contributing Guidelines](../../CONTRIBUTING.md)

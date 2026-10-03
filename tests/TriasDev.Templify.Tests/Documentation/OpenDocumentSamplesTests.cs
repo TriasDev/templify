@@ -10,7 +10,7 @@ namespace TriasDev.Templify.Tests.Documentation;
 /// <summary>
 /// Mirrors the code samples and documented behavior of docs/for-developers/opendocument.md,
 /// docs/for-template-authors/libreoffice.md and the OpenDocument sections of README.md and
-/// TriasDev.Templify/README.md. When one of these tests fails, update the documentation together with the code.
+/// src/TriasDev.Templify/README.md. When one of these tests fails, update the documentation together with the code.
 /// </summary>
 public sealed class OpenDocumentSamplesTests : IDisposable
 {

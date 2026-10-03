@@ -4,7 +4,7 @@ This document describes how the `TriasDev.Templify` library processes templates.
 for template syntax and API usage see the [documentation site](https://triasdev.github.io/templify/) and the
 [library README](README.md).
 
-Paths below are relative to `TriasDev.Templify/`. Everything not listed in `PublicAPI.Shipped.txt` /
+Paths below are relative to `src/TriasDev.Templify/`. Everything not listed in `PublicAPI.Shipped.txt` /
 `PublicAPI.Unshipped.txt` is `internal` and may change at any time.
 
 ## Design Principles

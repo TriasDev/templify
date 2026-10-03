@@ -4,7 +4,7 @@
 > BenchmarkDotNet 0.15.6) and have not been re-measured since. Later releases changed the condition engine (1.7.0),
 > the text rewriting and caching (1.8.0) and the target frameworks, so treat the figures as orders of magnitude, not as
 > current results. To measure the current code, run the benchmarks yourself:
-> `dotnet run --project TriasDev.Templify.Benchmarks/TriasDev.Templify.Benchmarks.csproj -c Release`
+> `dotnet run --project benchmarks/TriasDev.Templify.Benchmarks/TriasDev.Templify.Benchmarks.csproj -c Release`
 > (BenchmarkDotNet output is written to `BenchmarkDotNet.Artifacts/` and is not committed).
 
 **Date**: 2025-11-09

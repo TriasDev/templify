@@ -11,8 +11,8 @@ using TriasDev.Templify.Utilities;
 namespace TriasDev.Templify.Tests.Documentation;
 
 /// <summary>
-/// Mirrors the key code samples and documented behavior of README.md, TriasDev.Templify/README.md and
-/// TriasDev.Templify/Examples.md, so that the samples keep compiling against the public API and the documented
+/// Mirrors the key code samples and documented behavior of README.md, src/TriasDev.Templify/README.md and
+/// src/TriasDev.Templify/Examples.md, so that the samples keep compiling against the public API and the documented
 /// output stays true. When one of these tests fails, update the documentation together with the code.
 /// </summary>
 public sealed class DocSamplesTests : IDisposable
@@ -79,7 +79,7 @@ public sealed class DocSamplesTests : IDisposable
         Assert.Contains("Invalid output stream", result.ErrorMessage);
     }
 
-    // TriasDev.Templify/README.md "Basic Usage": other entry points (file, byte array, JSON)
+    // src/TriasDev.Templify/README.md "Basic Usage": other entry points (file, byte array, JSON)
     [Fact]
     public void LibraryReadme_OtherEntryPoints_ProduceTheSameDocument()
     {
@@ -109,7 +109,7 @@ public sealed class DocSamplesTests : IDisposable
         Assert.Equal(expected, ReadParagraphs(File.ReadAllBytes(jsonOutputPath)));
     }
 
-    // README.md "Format Specifiers" (en-US outputs) and TriasDev.Templify/README.md format specifier table
+    // README.md "Format Specifiers" (en-US outputs) and src/TriasDev.Templify/README.md format specifier table
     [Fact]
     public void Readme_FormatSpecifiers_ProduceDocumentedOutput()
     {
@@ -152,7 +152,7 @@ public sealed class DocSamplesTests : IDisposable
             run.Verifier.GetAllParagraphTexts());
     }
 
-    // TriasDev.Templify/README.md "Localization": word formats follow the culture
+    // src/TriasDev.Templify/README.md "Localization": word formats follow the culture
     [Fact]
     public void LibraryReadme_BooleanLocalization_FollowsCulture()
     {
@@ -202,7 +202,7 @@ public sealed class DocSamplesTests : IDisposable
         Assert.True(context.Evaluate("Status in (\"Active\", \"Pending\")"));
     }
 
-    // README.md / TriasDev.Templify/README.md: operators, precedence, bareword fallback, reserved words
+    // README.md / src/TriasDev.Templify/README.md: operators, precedence, bareword fallback, reserved words
     [Theory]
     [InlineData("not Status = \"Active\"", false)] // not (Status = "Active")
     [InlineData("not Status = \"Deleted\"", true)]
@@ -245,7 +245,7 @@ public sealed class DocSamplesTests : IDisposable
         Assert.Equal(expected, new ConditionEvaluator().Evaluate(expression, data));
     }
 
-    // TriasDev.Templify/README.md "Differences from {{#if}}": inline expressions are stricter
+    // src/TriasDev.Templify/README.md "Differences from {{#if}}": inline expressions are stricter
     [Fact]
     public void LibraryReadme_InlineExpressions_UseStricterTruthinessAndAllowSingleQuotes()
     {
@@ -266,7 +266,7 @@ public sealed class DocSamplesTests : IDisposable
         Assert.Contains(run.Result.Warnings, w => w.Type == ProcessingWarningType.MissingVariable);
     }
 
-    // TriasDev.Templify/README.md "Conditional Blocks": malformed conditions and syntax errors
+    // src/TriasDev.Templify/README.md "Conditional Blocks": malformed conditions and syntax errors
     [Fact]
     public void LibraryReadme_ErrorModel_MatchesDocumentation()
     {
@@ -291,7 +291,7 @@ public sealed class DocSamplesTests : IDisposable
         Assert.Equal("Missing variable or invalid expression: ContactEmail", exception.Message);
     }
 
-    // TriasDev.Templify/README.md "Nested Data Structures": no spaces inside braces, bracket keys, typo-free dictionary syntax
+    // src/TriasDev.Templify/README.md "Nested Data Structures": no spaces inside braces, bracket keys, typo-free dictionary syntax
     [Fact]
     public void LibraryReadme_PlaceholderSyntax_MatchesDocumentation()
     {
@@ -311,7 +311,7 @@ public sealed class DocSamplesTests : IDisposable
             run.Verifier.GetAllParagraphTexts());
     }
 
-    // Examples.md "Loop Metadata" and TriasDev.Templify/README.md "Loop Metadata Variables"
+    // Examples.md "Loop Metadata" and src/TriasDev.Templify/README.md "Loop Metadata Variables"
     [Fact]
     public void Examples_LoopMetadata_MatchesDocumentedOutput()
     {
@@ -338,7 +338,7 @@ public sealed class DocSamplesTests : IDisposable
             run.Verifier.GetAllParagraphTexts());
     }
 
-    // TriasDev.Templify/README.md "Loop Markers and Paragraphs" / Examples.md "Loop in Header"
+    // src/TriasDev.Templify/README.md "Loop Markers and Paragraphs" / Examples.md "Loop in Header"
     [Fact]
     public void LibraryReadme_LoopMarkersSharingOneParagraph_AreNotSupported()
     {
@@ -349,7 +349,7 @@ public sealed class DocSamplesTests : IDisposable
         Assert.Equal(new[] { "before", "after" }, run.Verifier.GetAllParagraphTexts());
     }
 
-    // TriasDev.Templify/README.md "Empty, Missing and Null Collections"
+    // src/TriasDev.Templify/README.md "Empty, Missing and Null Collections"
     [Fact]
     public void LibraryReadme_NullItemsAndCollections_MatchDocumentation()
     {
@@ -433,7 +433,7 @@ public sealed class DocSamplesTests : IDisposable
         Assert.NotEmpty(result.GetWarningReportBytes());
     }
 
-    // Examples.md "JSON Data" and TriasDev.Templify/README.md "JsonDataParser"
+    // Examples.md "JSON Data" and src/TriasDev.Templify/README.md "JsonDataParser"
     [Fact]
     public void Examples_JsonData_ParserWorksAndJsonElementPitfallsAreAsDocumented()
     {
@@ -462,7 +462,7 @@ public sealed class DocSamplesTests : IDisposable
         Assert.Throws<JsonException>(() => new DocumentTemplateProcessor().ProcessTemplate(Array.Empty<byte>(), "not json", out _));
     }
 
-    // TriasDev.Templify/README.md "TextTemplateProcessor"
+    // src/TriasDev.Templify/README.md "TextTemplateProcessor"
     [Fact]
     public void LibraryReadme_TextTemplateProcessor_Works()
     {

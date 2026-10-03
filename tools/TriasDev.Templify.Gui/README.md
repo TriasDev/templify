@@ -19,22 +19,22 @@ This GUI application provides an interactive interface to:
 
 ### From Command Line
 
-Navigate to the project directory and run:
+From the repository root, run:
 
 ```bash
-dotnet run --project TriasDev.Templify.Gui
+dotnet run --project tools/TriasDev.Templify.Gui
 ```
 
 Or from the GUI project directory:
 
 ```bash
-cd TriasDev.Templify.Gui
+cd tools/TriasDev.Templify.Gui
 dotnet run
 ```
 
 ### From Visual Studio / Rider
 
-1. Open `templify.sln` in Visual Studio or Rider
+1. Open `templify.slnx` in Visual Studio or Rider
 2. Set `TriasDev.Templify.Gui` as the startup project
 3. Press F5 or click Run
 
@@ -48,7 +48,7 @@ Build a self-contained executable:
 dotnet publish TriasDev.Templify.Gui -c Release -r win-x64 --self-contained
 ```
 
-Output: `TriasDev.Templify.Gui/bin/Release/net10.0/win-x64/publish/TriasDev.Templify.Gui.exe`
+Output: `tools/TriasDev.Templify.Gui/bin/Release/net10.0/win-x64/publish/TriasDev.Templify.Gui.exe`
 
 ### macOS
 
@@ -58,7 +58,7 @@ Build a self-contained application:
 dotnet publish TriasDev.Templify.Gui -c Release -r osx-x64 --self-contained
 ```
 
-Output: `TriasDev.Templify.Gui/bin/Release/net10.0/osx-x64/publish/TriasDev.Templify.Gui`
+Output: `tools/TriasDev.Templify.Gui/bin/Release/net10.0/osx-x64/publish/TriasDev.Templify.Gui`
 
 ### Linux
 
@@ -68,7 +68,7 @@ Build a self-contained application:
 dotnet publish TriasDev.Templify.Gui -c Release -r linux-x64 --self-contained
 ```
 
-Output: `TriasDev.Templify.Gui/bin/Release/net10.0/linux-x64/publish/TriasDev.Templify.Gui`
+Output: `tools/TriasDev.Templify.Gui/bin/Release/net10.0/linux-x64/publish/TriasDev.Templify.Gui`
 
 ## Using the Application
 
@@ -120,7 +120,7 @@ The application follows MVVM architecture:
 ### Project Structure
 
 ```
-TriasDev.Templify.Gui/
+tools/TriasDev.Templify.Gui/
 ├── App.axaml            # Application definition
 ├── App.axaml.cs         # Application startup
 ├── Program.cs           # Entry point
@@ -151,7 +151,7 @@ bridge (`AvaloniaUI.DiagnosticsSupport`):
 ViewModel and service tests live in `TriasDev.Templify.Tools.Tests` and run headless (no display required):
 
 ```bash
-dotnet test TriasDev.Templify.Tools.Tests/TriasDev.Templify.Tools.Tests.csproj
+dotnet test tests/TriasDev.Templify.Tools.Tests/TriasDev.Templify.Tools.Tests.csproj
 ```
 
 ## Troubleshooting
@@ -189,11 +189,11 @@ dotnet test TriasDev.Templify.Tools.Tests/TriasDev.Templify.Tools.Tests.csproj
 
 ## Related Documentation
 
-- [Main Documentation](../TriasDev.Templify/README.md) - Complete Templify API reference
+- [Main Documentation](../../src/TriasDev.Templify/README.md) - Complete Templify API reference
 - [Quick Start Guide](../docs/quick-start.md) - Get started with Templify
-- [Format Specifiers Guide](../docs/for-template-authors/format-specifiers.md) - Boolean formatting
-- [Boolean Expressions Guide](../docs/for-template-authors/boolean-expressions.md) - Logic evaluation
-- [FAQ](../docs/FAQ.md) - Common questions and answers
+- [Format Specifiers Guide](../../docs/for-template-authors/format-specifiers.md) - Boolean formatting
+- [Boolean Expressions Guide](../../docs/for-template-authors/boolean-expressions.md) - Logic evaluation
+- [FAQ](../../docs/FAQ.md) - Common questions and answers
 
 ## Contributing
 
