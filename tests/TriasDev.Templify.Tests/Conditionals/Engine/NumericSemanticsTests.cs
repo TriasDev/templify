@@ -28,6 +28,15 @@ public class NumericSemanticsTests
     public void Cond_Equality_JsonDecimalTrailingZero()
         => Assert.True(EvalJson("Price = 10.5", "{\"Price\": 10.50}"));
 
+    // .NET 11 made float/double -> decimal conversion exact; 0.1 must still equal 0.1m and JSON 0.1.
+    [Fact]
+    public void Cond_Equality_JsonFraction()
+        => Assert.True(EvalJson("Rate = 0.1", "{\"Rate\": 0.1}"));
+
+    [Fact]
+    public void Cond_Equality_DoubleVsDecimalVariable()
+        => Assert.True(Eval("X = Y", new() { ["X"] = 0.1, ["Y"] = 0.1m }));
+
     [Fact]
     public void Cond_In_NumberList_JsonDecimal()
         => Assert.True(EvalJson("Rate in (1.5, 2.0)", "{\"Rate\": 2.0}"));
@@ -54,6 +63,7 @@ public class NumericSemanticsTests
         { 5.0, "5" },
         { 0.1m, "0.1" },
         { 1.1f, "1.1" },
+        { 0.1, "0.1" },
     };
 
     [Fact]

@@ -1,6 +1,7 @@
 // Copyright (c) 2026 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Globalization;
 using System.Text.Json;
 using TriasDev.Templify.Utilities;
 
@@ -93,6 +94,30 @@ public sealed class NumericValueTests
         Assert.True(NumericValue.TryFrom(0.1f, out NumericValue single));
 
         Assert.True(single.NumericEquals(ExactOf(0.1m)));
+    }
+
+    [Fact]
+    public void DoubleAgainstDecimal_ComparesThroughDecimal()
+    {
+        Assert.True(NumericValue.TryFrom(0.1d, out NumericValue dbl));
+
+        Assert.True(dbl.NumericEquals(ExactOf(0.1m)));
+    }
+
+    // Floating values are rounded to their type's significant digits (15 for double) before the
+    // decimal comparison, as Convert.ToDecimal did before .NET 11 (which made the conversion exact).
+    [Theory]
+    [InlineData(1e-30, "0")]
+    [InlineData(-0.0, "0")]
+    [InlineData(7.8e28, "78000000000000000000000000000")]
+    [InlineData(123456789012345678.0, "123456789012346000")]
+    [InlineData(1.0 / 3, "0.333333333333333")]
+    [InlineData(2.5e-7, "0.00000025")]
+    public void FloatingExtremes_ConvertLikeLegacyConvertToDecimal(double value, string expected)
+    {
+        Assert.True(NumericValue.TryFrom(value, out NumericValue number));
+
+        Assert.True(number.NumericEquals(ExactOf(decimal.Parse(expected, NumberStyles.Float, CultureInfo.InvariantCulture))));
     }
 
     private static NumericValue ExactOf(decimal value)
