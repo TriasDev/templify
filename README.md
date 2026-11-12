@@ -260,7 +260,7 @@ bool r4 = context.Evaluate("Status in (\"Active\", \"Pending\")");
 ```
 templify/
 ├── src/
-│   └── TriasDev.Templify/                   # Core library (net8.0, net9.0, net10.0, net11.0), published to NuGet
+│   └── TriasDev.Templify/                   # Core library (net10.0, net11.0), published to NuGet
 ├── tests/
 │   ├── TriasDev.Templify.Tests/             # xUnit tests for the core library (run on all library TFMs)
 │   ├── TriasDev.Templify.Converter.Tests/   # Tests for the converter
@@ -285,7 +285,7 @@ templify/
 
 The template processing library: `DocumentTemplateProcessor` for Word documents, `TextTemplateProcessor` for plain text, and `ConditionEvaluator` for standalone conditions.
 
-**Target:** net8.0, net9.0, net10.0, net11.0 ([support policy](#supported-net-versions))
+**Target:** net10.0, net11.0 ([support policy](#supported-net-versions))
 **Dependency:** DocumentFormat.OpenXml 3.5.1
 
 📖 [Library Documentation](src/TriasDev.Templify/README.md) | 🏗️ [Architecture](src/TriasDev.Templify/ARCHITECTURE.md) | 📝 [Code Examples](src/TriasDev.Templify/Examples.md)
@@ -367,7 +367,7 @@ dotnet run --project benchmarks/TriasDev.Templify.Benchmarks/TriasDev.Templify.B
 
 ### Prerequisites
 
-- .NET 11 SDK (pinned in `global.json`); the library is also built and tested for net8.0, net9.0 and net10.0, so install those runtimes to run all test targets (the benchmarks run on net10.0)
+- .NET 11 SDK (pinned in `global.json`); the library is also built and tested for net10.0, so install the .NET 10 runtime to run all test targets (the benchmarks run on net10.0 as well)
 - Git
 - Python 3 (only for building the documentation)
 
@@ -416,16 +416,18 @@ mkdocs build --strict # what CI builds
 
 ## Requirements
 
-- **.NET 8.0, 9.0, 10.0 or 11.0** (the library targets `net8.0`, `net9.0`, `net10.0` and `net11.0`)
+- **.NET 10.0 or 11.0** (the library targets `net10.0` and `net11.0`)
 - **DocumentFormat.OpenXml 3.5.1** (restored automatically)
 - GUI: **Avalonia 12**; tests: **xUnit v3**; benchmarks: **BenchmarkDotNet**
 
 ### Supported .NET Versions
 
-The library targets `net8.0`, `net9.0`, `net10.0` and `net11.0`.
+The library targets `net10.0` and `net11.0`.
 
 **Support policy:** we support the .NET versions that are in [Microsoft support](https://dotnet.microsoft.com/platform/support/policy/dotnet-core). Target frameworks that reach end of life are dropped in a minor release, announced in the release notes.
 
+> ⚠️ **net8.0 and net9.0 are no longer supported as of 1.10.0** (end of support 2026-11-10). Projects on .NET 8 or 9 can stay on Templify 1.9.x.
+>
 > ⚠️ **net6.0 is no longer supported as of 1.8.0.** Projects that still target .NET 6 can stay on Templify 1.7.x.
 
 ## Architecture Highlights

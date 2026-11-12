@@ -36,8 +36,6 @@ Relates to #
 ### Test Environment
 - [ ] .NET 11
 - [ ] .NET 10
-- [ ] .NET 9
-- [ ] .NET 8
 
 ### Tests Added/Updated
 - [ ] Unit tests added/updated
