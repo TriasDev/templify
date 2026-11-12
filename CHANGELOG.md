@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0](https://github.com/TriasDev/templify/compare/v1.9.0...v1.10.0) (2026-11-12)
+
+### ⚠️ Upgrade notes
+
+#### .NET 8 and .NET 9 are no longer supported
+- The package now targets **net10.0 and net11.0**.
+- .NET 8 and .NET 9 reached end of support on 2026-11-10. If you are still on .NET 8 or 9, stay on **1.9.x**; NuGet reports `NU1202` when such a project tries to update.
+- Policy: we support the .NET versions Microsoft supports. End-of-life target frameworks are dropped in a minor release, with a notice here.
+
+#### .NET 11
+- New `net11.0` target ([#244](https://github.com/TriasDev/templify/issues/244)).
+- If you run **1.9.x on .NET 11**, update: .NET 11 made the `double`/`float` → `decimal` conversion exact, so conditions such as `{{#if Rate = 0.1}}` were false for JSON `0.1`, `0.1m` or `0.1f` data. 1.10.0 fixes this ([#241](https://github.com/TriasDev/templify/issues/241)); on .NET 10 the results are unchanged.
+
+### Features
+
+* add net11.0 target framework ([#154](https://github.com/TriasDev/templify/issues/154)) ([#244](https://github.com/TriasDev/templify/issues/244)) ([fa07f2c](https://github.com/TriasDev/templify/commit/fa07f2cc2873f166516eaa8554e98eec9cb5d5f1))
+
+
+### Bug Fixes
+
+* compare float/double with decimal the same way on .NET 11 ([#154](https://github.com/TriasDev/templify/issues/154)) ([#241](https://github.com/TriasDev/templify/issues/241)) ([5117616](https://github.com/TriasDev/templify/commit/511761615f8189d5f35e5312247c36fc1ae99e32))
+
 ## [1.9.0](https://github.com/TriasDev/templify/compare/v1.8.0...v1.9.0) (2026-09-27)
 
 ### ✨ Highlight: OpenDocument / LibreOffice templates
