@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0](https://github.com/TriasDev/templify/compare/v1.9.0...v1.10.0) (2026-11-12)
+
+
+### Features
+
+* add net11.0 target framework ([#154](https://github.com/TriasDev/templify/issues/154)) ([#244](https://github.com/TriasDev/templify/issues/244)) ([fa07f2c](https://github.com/TriasDev/templify/commit/fa07f2cc2873f166516eaa8554e98eec9cb5d5f1))
+
+
+### Bug Fixes
+
+* compare float/double with decimal the same way on .NET 11 ([#154](https://github.com/TriasDev/templify/issues/154)) ([#241](https://github.com/TriasDev/templify/issues/241)) ([5117616](https://github.com/TriasDev/templify/commit/511761615f8189d5f35e5312247c36fc1ae99e32))
+
 ## [1.9.0](https://github.com/TriasDev/templify/compare/v1.8.0...v1.9.0) (2026-09-27)
 
 ### ✨ Highlight: OpenDocument / LibreOffice templates
