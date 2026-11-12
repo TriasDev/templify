@@ -15,9 +15,12 @@ namespace TriasDev.Templify.Utilities;
 /// Integer types and <see cref="decimal"/> are compared exactly as <see cref="decimal"/>.
 /// <see cref="float"/>/<see cref="double"/> values take part in the <see cref="decimal"/>
 /// comparison after rounding to the type's significant digits (7 for <see cref="float"/>,
-/// 15 for <see cref="double"/>), so the literal <c>0.1</c> equals <c>0.1m</c>. This is what
-/// <see cref="Convert.ToDecimal(double)"/> did before .NET 11 made the conversion exact; the
-/// rounding is explicit so the result does not depend on the runtime. Two values of the same
+/// 15 for <see cref="double"/>), so the literal <c>0.1</c> equals <c>0.1m</c>. Before .NET 11,
+/// <see cref="Convert.ToDecimal(double)"/> does this rounding and is used unchanged. .NET 11 made
+/// that conversion exact (<c>0.1</c> → <c>0.1000000000000000055…</c>), so on .NET 11 and later the
+/// value is formatted with <c>G15</c>/<c>G7</c> and parsed back. Both agree for values with up to
+/// 15 (double) / 7 (float) significant digits above 1e-13; beyond that they can differ in the last
+/// digit, because the old conversion rounded through <see cref="double"/> arithmetic. Two values of the same
 /// floating type, and values outside the <see cref="decimal"/> range (including infinities),
 /// are compared as <see cref="double"/>. <see cref="double.NaN"/> is equal to nothing and is
 /// not ordered against anything.
@@ -132,15 +135,34 @@ internal readonly struct NumericValue
         decimal? dec = null;
         if (!double.IsNaN(value) && !double.IsInfinity(value) && Math.Abs(value) < 7.9e28)
         {
-            // Not Convert.ToDecimal: since .NET 11 it converts exactly (0.1 -> 0.1000000000000000055...).
-            string rounded = kind == NumberKind.Single
-                ? ((float)value).ToString("G7", CultureInfo.InvariantCulture)
-                : value.ToString("G15", CultureInfo.InvariantCulture);
-            dec = decimal.TryParse(rounded, NumberStyles.Float, CultureInfo.InvariantCulture, out decimal parsed)
-                ? parsed
-                : null;
+            dec = _convertToDecimalIsExact ? RoundToDecimal(kind, value) : LegacyConvertToDecimal(kind, value);
         }
 
         return new NumericValue(kind, dec, value);
+    }
+
+    /// <summary>True on .NET 11 and later, where <see cref="Convert.ToDecimal(double)"/> no longer rounds.</summary>
+    private static readonly bool _convertToDecimalIsExact = Environment.Version.Major >= 11;
+
+    private static decimal? LegacyConvertToDecimal(NumberKind kind, double value)
+    {
+        try
+        {
+            return kind == NumberKind.Single ? Convert.ToDecimal((float)value) : Convert.ToDecimal(value);
+        }
+        catch (OverflowException)
+        {
+            return null;
+        }
+    }
+
+    private static decimal? RoundToDecimal(NumberKind kind, double value)
+    {
+        string rounded = kind == NumberKind.Single
+            ? ((float)value).ToString("G7", CultureInfo.InvariantCulture)
+            : value.ToString("G15", CultureInfo.InvariantCulture);
+        return decimal.TryParse(rounded, NumberStyles.Float, CultureInfo.InvariantCulture, out decimal parsed)
+            ? parsed
+            : null;
     }
 }

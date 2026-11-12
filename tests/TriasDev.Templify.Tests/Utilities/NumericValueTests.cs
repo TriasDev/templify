@@ -120,6 +120,29 @@ public sealed class NumericValueTests
         Assert.True(number.NumericEquals(ExactOf(decimal.Parse(expected, NumberStyles.Float, CultureInfo.InvariantCulture))));
     }
 
+    // Before .NET 11, Convert.ToDecimal rounded through double arithmetic. On those runtimes the
+    // comparison keeps exactly the 1.9.0 results, also for 16-17 significant digits and tiny values.
+    [Theory]
+    [InlineData(51179.11072438855)]
+    [InlineData(2.77944175e-21)]
+    public void Double_OnPreNet11Runtime_MatchesConvertToDecimal(double value)
+    {
+        Assert.SkipWhen(Environment.Version.Major >= 11, "Convert.ToDecimal(double) is exact since .NET 11.");
+        Assert.True(NumericValue.TryFrom(value, out NumericValue number));
+
+        Assert.True(number.NumericEquals(ExactOf(Convert.ToDecimal(value))));
+    }
+
+    [Fact]
+    public void Float_OnPreNet11Runtime_MatchesConvertToDecimal()
+    {
+        Assert.SkipWhen(Environment.Version.Major >= 11, "Convert.ToDecimal(float) is exact since .NET 11.");
+        Assert.True(NumericValue.TryFrom(5e-29f, out NumericValue number));
+
+        Assert.False(number.IsZero);
+        Assert.True(number.NumericEquals(ExactOf(Convert.ToDecimal(5e-29f))));
+    }
+
     private static NumericValue ExactOf(decimal value)
     {
         Assert.True(NumericValue.TryFrom(value, out NumericValue number));
