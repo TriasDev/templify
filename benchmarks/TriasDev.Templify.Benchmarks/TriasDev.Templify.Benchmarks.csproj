@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <!-- Stays on net10.0: BenchmarkDotNet 0.15.8 does not recognize net11.0 (NotImplementedException in
+         GetRuntimeVersion). Move to net11.0 when a stable BenchmarkDotNet release supports it (#154). -->
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
 

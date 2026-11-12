@@ -12,7 +12,7 @@ A tool for automatically generating example Word documents and converting them t
 
 ### Prerequisites
 
-- .NET 10 SDK
+- .NET 11 SDK
 - Access to a Stirling-PDF instance (only for image generation; use `--skip-images` without it)
 
 ### Setup

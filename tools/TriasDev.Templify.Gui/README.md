@@ -1,6 +1,6 @@
 # Templify GUI Test Application
 
-A cross-platform desktop application for testing Templify template processing capabilities. Built with [Avalonia UI](https://avaloniaui.net/) and .NET 10.0.
+A cross-platform desktop application for testing Templify template processing capabilities. Built with [Avalonia UI](https://avaloniaui.net/) and .NET 11.0.
 
 ## Overview
 
@@ -12,7 +12,7 @@ This GUI application provides an interactive interface to:
 
 ## Prerequisites
 
-- .NET 10.0 SDK or later
+- .NET 11.0 SDK or later
 - Works on Windows, macOS, and Linux
 
 ## Running the Application
@@ -48,7 +48,7 @@ Build a self-contained executable:
 dotnet publish TriasDev.Templify.Gui -c Release -r win-x64 --self-contained
 ```
 
-Output: `tools/TriasDev.Templify.Gui/bin/Release/net10.0/win-x64/publish/TriasDev.Templify.Gui.exe`
+Output: `tools/TriasDev.Templify.Gui/bin/Release/net11.0/win-x64/publish/TriasDev.Templify.Gui.exe`
 
 ### macOS
 
@@ -58,7 +58,7 @@ Build a self-contained application:
 dotnet publish TriasDev.Templify.Gui -c Release -r osx-x64 --self-contained
 ```
 
-Output: `tools/TriasDev.Templify.Gui/bin/Release/net10.0/osx-x64/publish/TriasDev.Templify.Gui`
+Output: `tools/TriasDev.Templify.Gui/bin/Release/net11.0/osx-x64/publish/TriasDev.Templify.Gui`
 
 ### Linux
 
@@ -68,7 +68,7 @@ Build a self-contained application:
 dotnet publish TriasDev.Templify.Gui -c Release -r linux-x64 --self-contained
 ```
 
-Output: `tools/TriasDev.Templify.Gui/bin/Release/net10.0/linux-x64/publish/TriasDev.Templify.Gui`
+Output: `tools/TriasDev.Templify.Gui/bin/Release/net11.0/linux-x64/publish/TriasDev.Templify.Gui`
 
 ## Using the Application
 
@@ -158,7 +158,7 @@ dotnet test tests/TriasDev.Templify.Tools.Tests/TriasDev.Templify.Tools.Tests.cs
 
 ### Application won't start
 
-1. Ensure .NET 10.0 SDK is installed:
+1. Ensure .NET 11.0 SDK is installed:
    ```bash
    dotnet --version
    ```

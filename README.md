@@ -260,7 +260,7 @@ bool r4 = context.Evaluate("Status in (\"Active\", \"Pending\")");
 ```
 templify/
 ├── src/
-│   └── TriasDev.Templify/                   # Core library (net8.0, net9.0, net10.0), published to NuGet
+│   └── TriasDev.Templify/                   # Core library (net8.0, net9.0, net10.0, net11.0), published to NuGet
 ├── tests/
 │   ├── TriasDev.Templify.Tests/             # xUnit tests for the core library (run on all library TFMs)
 │   ├── TriasDev.Templify.Converter.Tests/   # Tests for the converter
@@ -285,7 +285,7 @@ templify/
 
 The template processing library: `DocumentTemplateProcessor` for Word documents, `TextTemplateProcessor` for plain text, and `ConditionEvaluator` for standalone conditions.
 
-**Target:** net8.0, net9.0, net10.0 ([support policy](#supported-net-versions))
+**Target:** net8.0, net9.0, net10.0, net11.0 ([support policy](#supported-net-versions))
 **Dependency:** DocumentFormat.OpenXml 3.5.1
 
 📖 [Library Documentation](src/TriasDev.Templify/README.md) | 🏗️ [Architecture](src/TriasDev.Templify/ARCHITECTURE.md) | 📝 [Code Examples](src/TriasDev.Templify/Examples.md)
@@ -367,7 +367,7 @@ dotnet run --project benchmarks/TriasDev.Templify.Benchmarks/TriasDev.Templify.B
 
 ### Prerequisites
 
-- .NET 10 SDK (pinned in `global.json`); the library is also built and tested for net8.0 and net9.0, so install those runtimes to run all test targets
+- .NET 11 SDK (pinned in `global.json`); the library is also built and tested for net8.0, net9.0 and net10.0, so install those runtimes to run all test targets (the benchmarks run on net10.0)
 - Git
 - Python 3 (only for building the documentation)
 
@@ -381,7 +381,7 @@ cd templify
 dotnet build templify.slnx
 dotnet build templify.slnx -c Release -p:ContinuousIntegrationBuild=true
 
-# Run the core tests (all target frameworks, or one with --framework net10.0)
+# Run the core tests (all target frameworks, or one with --framework net11.0)
 dotnet test tests/TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj
 
 # Run all test projects
@@ -416,13 +416,13 @@ mkdocs build --strict # what CI builds
 
 ## Requirements
 
-- **.NET 8.0, 9.0 or 10.0** (the library targets `net8.0`, `net9.0` and `net10.0`)
+- **.NET 8.0, 9.0, 10.0 or 11.0** (the library targets `net8.0`, `net9.0`, `net10.0` and `net11.0`)
 - **DocumentFormat.OpenXml 3.5.1** (restored automatically)
 - GUI: **Avalonia 12**; tests: **xUnit v3**; benchmarks: **BenchmarkDotNet**
 
 ### Supported .NET Versions
 
-The library targets `net8.0`, `net9.0` and `net10.0`.
+The library targets `net8.0`, `net9.0`, `net10.0` and `net11.0`.
 
 **Support policy:** we support the .NET versions that are in [Microsoft support](https://dotnet.microsoft.com/platform/support/policy/dotnet-core). Target frameworks that reach end of life are dropped in a minor release, announced in the release notes.
 

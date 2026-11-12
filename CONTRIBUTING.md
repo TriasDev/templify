@@ -196,8 +196,8 @@ feat(conditionals): add support for 'or' operator in conditions
 
 ### Prerequisites
 
-- **.NET 10 SDK** - [Download](https://dotnet.microsoft.com/download). `global.json` pins SDK 10.0.100 with `rollForward: latestFeature`.
-  The library targets `net10.0`, `net9.0` and `net8.0`; the core test project runs against all three, so install the .NET 8 and 9 runtimes as well to run every target (or pass `--framework net10.0`).
+- **.NET 11 SDK** - [Download](https://dotnet.microsoft.com/download). `global.json` pins SDK 11.0.100 with `rollForward: latestFeature`.
+  The library targets `net11.0`, `net10.0`, `net9.0` and `net8.0`; the core test project runs against all four, so install the .NET 8, 9 and 10 runtimes as well to run every target (or pass `--framework net11.0`). The benchmarks run on net10.0 (BenchmarkDotNet does not support net11.0 yet).
 - **Git** - [Download](https://git-scm.com/)
 - **IDE** (optional but recommended):
   - Visual Studio 2022
@@ -358,7 +358,7 @@ All contributions must include tests. Aim for full coverage of new code, includi
 every change to OpenDocument code or the shared engine, and before every release:
 
 ```bash
-dotnet test tests/TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj -c Release -f net10.0 --filter "Category=LibreOffice"
+dotnet test tests/TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj -c Release -f net11.0 --filter "Category=LibreOffice"
 ```
 
 They need LibreOffice installed (macOS default path is detected; otherwise set `TEMPLIFY_SOFFICE` to the `soffice`

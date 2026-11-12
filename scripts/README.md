@@ -308,10 +308,10 @@ scripts/analyze.cmd template.docx  REM Won't work
 
 ### Issue: ".NET SDK not found"
 
-**Cause:** .NET 10 SDK not installed or not in PATH
+**Cause:** .NET 11 SDK not installed or not in PATH
 
 **Solution:**
-1. Install .NET 10 SDK from https://dotnet.microsoft.com/download
+1. Install .NET 11 SDK from https://dotnet.microsoft.com/download
 2. Verify installation: `dotnet --version`
 3. Restart terminal/command prompt
 

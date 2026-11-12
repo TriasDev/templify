@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Templify** is a .NET library (net8.0/net9.0/net10.0) for replacing placeholders in Word documents (.docx) and OpenDocument Text documents (.odt/.ott, LibreOffice) without requiring Microsoft Word or LibreOffice. It uses the OpenXML SDK and provides a visitor pattern architecture for processing templates with placeholders (`{{variableName}}`), conditionals, and loops.
+**Templify** is a .NET library (net8.0/net9.0/net10.0/net11.0) for replacing placeholders in Word documents (.docx) and OpenDocument Text documents (.odt/.ott, LibreOffice) without requiring Microsoft Word or LibreOffice. It uses the OpenXML SDK and provides a visitor pattern architecture for processing templates with placeholders (`{{variableName}}`), conditionals, and loops.
 
-**Target Frameworks:** net10.0, net9.0, net8.0 (library); tools use net10.0, `TriasDev.Templify.Tests` multi-targets all library TFMs
+**Target Frameworks:** net11.0, net10.0, net9.0, net8.0 (library); tools and the other test projects use net11.0, benchmarks net10.0 (BenchmarkDotNet 0.15.8 does not support net11.0), `TriasDev.Templify.Tests` multi-targets all library TFMs
 **Primary Dependency:** DocumentFormat.OpenXml 3.5.1
 **Test Framework:** xUnit v3 (`xunit.v3.mtp-off`: test projects are executables, run through VSTest with `dotnet test`; use `TestContext.Current.CancellationToken` for cancellable calls, analyzer xUnit1051)
 
@@ -55,13 +55,13 @@ dotnet build src/TriasDev.Templify/TriasDev.Templify.csproj
 ```
 
 ### Build Configuration
-- `global.json` pins the SDK (10.0.100, `rollForward: latestFeature`).
+- `global.json` pins the SDK (11.0.100, `rollForward: latestFeature`).
 - `Directory.Build.props` holds shared settings (Nullable, ImplicitUsings, LangVersion, AnalysisLevel, EnforceCodeStyleInBuild). Nullable warnings are always errors; in CI (`GITHUB_ACTIONS=true` → `ContinuousIntegrationBuild`) all warnings are errors. Reproduce locally with `dotnet build templify.slnx -c Release -p:ContinuousIntegrationBuild=true`.
 - `src/Directory.Build.props` (package metadata, Source Link, public API guard) and `tests/Directory.Build.props` (xUnit packages, `IsPackable=false`) import the root file; `tools/`, `benchmarks/` and `samples/` use the root file alone.
 - `Directory.Packages.props` (Central Package Management) holds all NuGet versions; `PackageReference` items have no `Version`.
 - Every project has a committed `packages.lock.json`; CI restores in locked mode (set in the workflows, not in `Directory.Build.props`: Dependabot runs with `GITHUB_ACTIONS=true` and fails in locked mode). After changing a package, run `dotnet restore templify.slnx` and commit the updated lock files.
-- The library targets `net10.0;net9.0;net8.0`. Support policy: .NET versions in Microsoft support; EOL TFMs are dropped in a minor release with a release-notes notice (net6.0 dropped in 1.8.0).
-- `TriasDev.Templify.Tests` multi-targets the library's TFMs (`net10.0;net9.0;net8.0`); run a single one with `--framework net10.0`.
+- The library targets `net11.0;net10.0;net9.0;net8.0`. Support policy: .NET versions in Microsoft support; EOL TFMs are dropped in a minor release with a release-notes notice (net6.0 dropped in 1.8.0).
+- `TriasDev.Templify.Tests` multi-targets the library's TFMs (`net11.0;net10.0;net9.0;net8.0`); run a single one with `--framework net11.0`.
 
 ### Testing
 ```bash
@@ -103,7 +103,7 @@ Instead these tests are a **required local step**:
 - **how:** LibreOffice must be installed (macOS: `/Applications/LibreOffice.app`; elsewhere set `TEMPLIFY_SOFFICE`):
 
 ```bash
-dotnet test tests/TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj -c Release -f net10.0 --filter "Category=LibreOffice"
+dotnet test tests/TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj -c Release -f net11.0 --filter "Category=LibreOffice"
 ```
 
 - all tests must **pass with 0 skipped** (a skip means `soffice` was not found — that is not a pass). Mention the result
