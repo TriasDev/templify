@@ -52,8 +52,6 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: |
-            8.0.x
-            9.0.x
             10.0.x
           global-json-file: global.json
 
@@ -80,13 +78,13 @@ jobs:
             --logger trx \
             --results-directory ./test-results
 
-      # The test project targets net8.0, net9.0, net10.0 and net11.0: expect one result file per target.
+      # The test project targets net10.0 and net11.0: expect one result file per target.
       - name: Verify tests ran on every target
         run: |
           shopt -s nullglob
           files=(./test-results/*.trx)
-          if [ "${#files[@]}" -lt 4 ]; then
-            echo "::error::Expected a result file per target framework (4), found ${#files[@]}"
+          if [ "${#files[@]}" -lt 2 ]; then
+            echo "::error::Expected a result file per target framework (2), found ${#files[@]}"
             exit 1
           fi
           for f in "${files[@]}"; do ./.github/scripts/verify-test-results.sh "$f"; done

@@ -62,8 +62,6 @@ body:
       options:
         - .NET 11
         - .NET 10
-        - .NET 9
-        - .NET 8
         - Other
     validations:
       required: true

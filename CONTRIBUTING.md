@@ -197,7 +197,7 @@ feat(conditionals): add support for 'or' operator in conditions
 ### Prerequisites
 
 - **.NET 11 SDK** - [Download](https://dotnet.microsoft.com/download). `global.json` pins SDK 11.0.100 with `rollForward: latestFeature`.
-  The library targets `net11.0`, `net10.0`, `net9.0` and `net8.0`; the core test project runs against all four, so install the .NET 8, 9 and 10 runtimes as well to run every target (or pass `--framework net11.0`). The benchmarks run on net10.0 (BenchmarkDotNet does not support net11.0 yet).
+  The library targets `net11.0` and `net10.0`; the core test project runs against both, so install the .NET 10 runtime as well to run every target (or pass `--framework net11.0`). The benchmarks run on net10.0 (BenchmarkDotNet does not support net11.0 yet).
 - **Git** - [Download](https://git-scm.com/)
 - **IDE** (optional but recommended):
   - Visual Studio 2022

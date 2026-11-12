@@ -26,7 +26,7 @@ Common questions and answers about using Templify for Word (.docx) and OpenDocum
 ### Q: What are the system requirements?
 
 **A:**
-- **.NET 8.0 or later** (targets net8.0, net9.0, net10.0 and net11.0; net6.0 is supported up to Templify 1.7.x)
+- **.NET 10.0 or later** (targets net10.0 and net11.0; net8.0 and net9.0 are supported up to Templify 1.9.x, net6.0 up to 1.7.x)
 - **DocumentFormat.OpenXml 3.5.1** (automatically installed via NuGet)
 - Any platform supported by .NET (Windows, macOS, Linux)
 - **No Microsoft Word installation required**

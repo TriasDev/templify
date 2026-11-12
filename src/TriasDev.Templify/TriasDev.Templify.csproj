@@ -2,8 +2,9 @@
 
   <PropertyGroup>
     <!-- Supported TFMs: .NET versions in Microsoft support. EOL TFMs are dropped in a minor release
-         with a release-notes notice (net6.0 dropped in 1.8.0, see #154). -->
-    <TargetFrameworks>net11.0;net10.0;net9.0;net8.0</TargetFrameworks>
+         with a release-notes notice (net6.0 dropped in 1.8.0; net8.0 and net9.0 dropped in 1.10.0, see #154 and
+         CompatibilitySuppressions.xml). -->
+    <TargetFrameworks>net11.0;net10.0</TargetFrameworks>
 
     <!-- RS0026/RS0027: overload design advice for already-shipped API; changing it would be breaking. -->
     <NoWarn>$(NoWarn);RS0026;RS0027</NoWarn>
