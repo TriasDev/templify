@@ -158,10 +158,13 @@ internal readonly struct NumericValue
 
     private static decimal? RoundToDecimal(NumberKind kind, double value)
     {
-        string rounded = kind == NumberKind.Single
-            ? ((float)value).ToString("G7", CultureInfo.InvariantCulture)
-            : value.ToString("G15", CultureInfo.InvariantCulture);
-        return decimal.TryParse(rounded, NumberStyles.Float, CultureInfo.InvariantCulture, out decimal parsed)
+        // Formatted into a stack buffer: this runs on every comparison with a floating value.
+        // "G15"/"G7" need at most 22 characters (e.g. "-1.23456789012345E-308").
+        Span<char> buffer = stackalloc char[32];
+        bool formatted = kind == NumberKind.Single
+            ? ((float)value).TryFormat(buffer, out int written, "G7", CultureInfo.InvariantCulture)
+            : value.TryFormat(buffer, out written, "G15", CultureInfo.InvariantCulture);
+        return formatted && decimal.TryParse(buffer[..written], NumberStyles.Float, CultureInfo.InvariantCulture, out decimal parsed)
             ? parsed
             : null;
     }

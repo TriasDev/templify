@@ -17,7 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `src/` (only what ships to NuGet)
   - **TriasDev.Templify** - Core library with template processing logic
 - `tests/`
-  - **TriasDev.Templify.Tests** - xUnit test suite (~2,090 tests, ~91% line / ~85% branch coverage)
+  - **TriasDev.Templify.Tests** - xUnit test suite (~2,360 tests, ~91% line / ~85% branch coverage)
   - **TriasDev.Templify.Tools.Tests** - xUnit tests for the tools/apps (GUI ViewModel/services headless, DocumentGenerator smoke tests)
   - **TriasDev.Templify.Converter.Tests** - xUnit tests for the Converter CLI (round trips through the core, file safety, CLI parsing)
 - `benchmarks/`
@@ -523,7 +523,7 @@ properties (styles, list numbering) are not touched.
 ## Testing Strategy
 
 ### Test Organization
-`TriasDev.Templify.Tests` has about 2,090 tests (on each of net10/net9/net8). Core line coverage is about 91% and branch coverage about 85%. Excluding the source-generated regex code, the figures are about 96% and 91% (as of 2026-09).
+`TriasDev.Templify.Tests` has about 2,360 tests (on each of net11/net10). Core line coverage is about 91% and branch coverage about 85%. Excluding the source-generated regex code, the figures are about 96% and 91% (as of 2026-09).
 - **Unit tests:** one folder per library namespace (see below). Internal types are used directly through `InternalsVisibleTo`, not through reflection.
 - **Integration tests** (`Integration/`): end-to-end processing of generated Word documents. This covers placeholders, loops, conditionals, tables, headers/footers, text boxes, markdown, culture independence, validation, output schema validity and unicode.
 - **Skipped tests** use `[Fact(Skip = "Bug: #<issue>")]` and document known library bugs. Remove the `Skip` when you fix the bug.

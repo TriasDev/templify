@@ -95,7 +95,7 @@ Missing an example? Open an [issue](https://github.com/TriasDev/templify/issues)
 2. Write a JSON file with matching data (see the output file for the values used)
 3. Process the template using:
    - **GUI Application:** Open Templify GUI, select the template and JSON file, then click **Process Template**
-   - **Demo app (from the source code):** `dotnet run --project samples/TriasDev.Templify.Demo -- --template template.docx --data data.json --output output.docx`
+   - **Demo app (from the source code, needs the [.NET 11 SDK](https://dotnet.microsoft.com/download)):** `dotnet run --project samples/TriasDev.Templify.Demo -- --template template.docx --data data.json --output output.docx`
 
 ### Modify for Your Needs
 

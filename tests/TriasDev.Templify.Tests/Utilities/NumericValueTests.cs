@@ -113,11 +113,41 @@ public sealed class NumericValueTests
     [InlineData(123456789012345678.0, "123456789012346000")]
     [InlineData(1.0 / 3, "0.333333333333333")]
     [InlineData(2.5e-7, "0.00000025")]
+    [InlineData(7.89999999999999e28, "78999999999999900000000000000")]
     public void FloatingExtremes_ConvertLikeLegacyConvertToDecimal(double value, string expected)
     {
         Assert.True(NumericValue.TryFrom(value, out NumericValue number));
 
         Assert.True(number.NumericEquals(ExactOf(decimal.Parse(expected, NumberStyles.Float, CultureInfo.InvariantCulture))));
+    }
+
+    // Floats are rounded to 7 significant digits, as Convert.ToDecimal(float) did before .NET 11.
+    [Theory]
+    [InlineData(0.1f, "0.1")]
+    [InlineData(1.1f, "1.1")]
+    [InlineData(3.4e-5f, "0.000034")]
+    [InlineData(16777217f, "16777220")]
+    public void Float_ConvertsLikeLegacyConvertToDecimal(float value, string expected)
+    {
+        Assert.True(NumericValue.TryFrom(value, out NumericValue number));
+
+        Assert.True(number.NumericEquals(ExactOf(decimal.Parse(expected, NumberStyles.Float, CultureInfo.InvariantCulture))));
+    }
+
+    // The decimal conversion runs on every comparison with a floating value, so it must not allocate.
+    [Theory]
+    [InlineData(0.1d)]
+    [InlineData(0.1f)]
+    public void TryFrom_FloatingValue_DoesNotAllocate(object value)
+    {
+        Assert.True(NumericValue.TryFrom(value, out _)); // warm-up (JIT, static initialization)
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        bool converted = NumericValue.TryFrom(value, out _);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(converted);
+        Assert.Equal(0, allocated);
     }
 
     // Before .NET 11, Convert.ToDecimal rounded through double arithmetic. On those runtimes the
