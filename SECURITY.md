@@ -10,9 +10,9 @@ We release patches for security vulnerabilities in the following versions:
 
 ### Supported .NET Versions
 
-Templify targets `net8.0`, `net9.0`, `net10.0` and `net11.0`.
+Templify targets `net10.0` and `net11.0`.
 
-We support the .NET versions that are in [Microsoft support](https://dotnet.microsoft.com/platform/support/policy/dotnet-core). Target frameworks that reach end of life are dropped in a minor release, announced in the release notes. net6.0 (EOL since November 2024) was dropped in 1.8.0; the last version supporting net6.0 is 1.7.x.
+We support the .NET versions that are in [Microsoft support](https://dotnet.microsoft.com/platform/support/policy/dotnet-core). Target frameworks that reach end of life are dropped in a minor release, announced in the release notes. net8.0 and net9.0 (end of support 2026-11-10) were dropped in 1.10.0; the last version supporting them is 1.9.x. net6.0 (EOL since November 2024) was dropped in 1.8.0; the last version supporting net6.0 is 1.7.x.
 
 ## Reporting a Vulnerability
 

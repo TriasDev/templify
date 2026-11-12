@@ -4,7 +4,7 @@ Get started with Templify in your .NET application.
 
 ## Prerequisites
 
-- .NET 8.0 SDK or later ([Download](https://dotnet.microsoft.com/download)). The library targets `net8.0`, `net9.0`, `net10.0` and `net11.0`.
+- .NET 10 SDK or later ([Download](https://dotnet.microsoft.com/download)). The library targets `net10.0` and `net11.0`.
 - A Word template (`.docx`). Microsoft Word is only needed to author templates, not to process them.
 
 ## Installation

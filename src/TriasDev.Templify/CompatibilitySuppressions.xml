@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- https://learn.microsoft.com/dotnet/fundamentals/package-validation/diagnostic-ids -->
+<Suppressions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <!-- Intentional, maintainer-approved (#154): net8.0 and net9.0 (end of support 2026-11-10) are no longer
+       target frameworks as of 1.10.0. Consumers on .NET 8 or 9 stay on 1.9.x. Only the TFM removal is suppressed;
+       all other package validation / API compatibility checks (CP0001, CP0002, ...) stay active.
+       Delete this file when PackageValidationBaselineVersion is bumped to 1.10.0 or later. -->
+  <Suppression>
+    <DiagnosticId>PKV006</DiagnosticId>
+    <Target>net8.0</Target>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>PKV006</DiagnosticId>
+    <Target>net9.0</Target>
+  </Suppression>
+</Suppressions>
