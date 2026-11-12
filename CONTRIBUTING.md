@@ -230,7 +230,7 @@ dotnet test --collect:"XPlat Code Coverage"
 - **CI builds treat all warnings as errors** (`ContinuousIntegrationBuild=true` on GitHub Actions). Reproduce locally with
   `dotnet build templify.slnx -c Release -p:ContinuousIntegrationBuild=true`.
 - **Central package management:** all NuGet versions are in `Directory.Packages.props`; `PackageReference` items have no `Version`.
-- **Lock files:** every project has a committed `packages.lock.json`, and CI restores in locked mode (`RestoreLockedMode`).
+- **Lock files:** every project has a committed `packages.lock.json`, and CI restores in locked mode (`dotnet restore --locked-mode` / `-p:RestoreLockedMode=true` in the workflows, not in `Directory.Build.props`, so that Dependabot can still update packages).
   After adding or updating a package, run `dotnet restore templify.slnx` and commit the updated lock files, otherwise CI fails.
 
 ### Pre-Push Checks

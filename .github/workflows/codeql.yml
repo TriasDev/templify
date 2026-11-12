@@ -43,7 +43,7 @@ jobs:
           build-mode: manual
 
       - name: Build
-        run: dotnet build templify.slnx --configuration Release
+        run: dotnet build templify.slnx --configuration Release -p:RestoreLockedMode=true
 
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3

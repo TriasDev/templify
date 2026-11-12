@@ -59,7 +59,7 @@ dotnet build src/TriasDev.Templify/TriasDev.Templify.csproj
 - `Directory.Build.props` holds shared settings (Nullable, ImplicitUsings, LangVersion, AnalysisLevel, EnforceCodeStyleInBuild). Nullable warnings are always errors; in CI (`GITHUB_ACTIONS=true` → `ContinuousIntegrationBuild`) all warnings are errors. Reproduce locally with `dotnet build templify.slnx -c Release -p:ContinuousIntegrationBuild=true`.
 - `src/Directory.Build.props` (package metadata, Source Link, public API guard) and `tests/Directory.Build.props` (xUnit packages, `IsPackable=false`) import the root file; `tools/`, `benchmarks/` and `samples/` use the root file alone.
 - `Directory.Packages.props` (Central Package Management) holds all NuGet versions; `PackageReference` items have no `Version`.
-- Every project has a committed `packages.lock.json`; CI restores in locked mode. After changing a package, run `dotnet restore templify.slnx` and commit the updated lock files.
+- Every project has a committed `packages.lock.json`; CI restores in locked mode (set in the workflows, not in `Directory.Build.props`: Dependabot runs with `GITHUB_ACTIONS=true` and fails in locked mode). After changing a package, run `dotnet restore templify.slnx` and commit the updated lock files.
 - The library targets `net10.0;net9.0;net8.0`. Support policy: .NET versions in Microsoft support; EOL TFMs are dropped in a minor release with a release-notes notice (net6.0 dropped in 1.8.0).
 - `TriasDev.Templify.Tests` multi-targets the library's TFMs (`net10.0;net9.0;net8.0`); run a single one with `--framework net10.0`.
 
