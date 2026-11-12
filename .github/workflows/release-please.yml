@@ -60,12 +60,14 @@ jobs:
         run: |
           dotnet build src/TriasDev.Templify/TriasDev.Templify.csproj \
             --configuration Release \
+            -p:RestoreLockedMode=true \
             -p:Version=${{ env.VERSION }}
 
       - name: Build tests
         run: |
           dotnet build tests/TriasDev.Templify.Tests/TriasDev.Templify.Tests.csproj \
             --configuration Release \
+            -p:RestoreLockedMode=true \
             -p:Version=${{ env.VERSION }}
 
       - name: Run tests

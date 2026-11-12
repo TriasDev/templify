@@ -18,11 +18,13 @@
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
 
-  <!-- CI builds (GitHub Actions): normalized source paths for reproducible builds. -->
+  <!-- CI builds (GitHub Actions): normalized source paths for reproducible builds.
+       Locked restores (fail if packages.lock.json is out of date) are requested by the workflows
+       (the locked-mode option of `dotnet restore`, or RestoreLockedMode=true as a property), not here: Dependabot's NuGet updater
+       also runs with GITHUB_ACTIONS=true, restores one target framework at a time and fails with NU1004
+       in locked mode, so it silently opened no update PRs. -->
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
-    <!-- Fail the restore if packages.lock.json is out of date (run `dotnet restore` locally and commit). -->
-    <RestoreLockedMode>true</RestoreLockedMode>
   </PropertyGroup>
 
   <!-- Warnings fail CI builds, but do not block local development.
