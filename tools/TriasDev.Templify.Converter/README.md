@@ -14,7 +14,7 @@ The Templify Converter is a command-line tool designed to help migrate Word docu
 
 ## Prerequisites
 
-- **.NET 10 SDK** or later
+- **.NET 11 SDK** or later
 - Repository cloned locally
 
 ## Quick Start

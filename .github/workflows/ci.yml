@@ -30,8 +30,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      # SDK from global.json; the 8.0/9.0 runtimes run TriasDev.Templify.Tests
-      # against the library's net8.0/net9.0 builds (the test project multi-targets).
+      # SDK from global.json (11.0, brings the net11.0 runtime); the 8.0/9.0/10.0 runtimes run
+      # TriasDev.Templify.Tests against the library's net8.0/net9.0/net10.0 builds (the test project multi-targets).
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
@@ -39,6 +39,7 @@ jobs:
           dotnet-version: |
             8.0.x
             9.0.x
+            10.0.x
           cache: true
           cache-dependency-path: '**/packages.lock.json'
 
@@ -137,9 +138,9 @@ jobs:
       - name: Build
         run: dotnet build --no-restore --configuration Release
 
-      # net10.0 only; the other target frameworks run in build-and-test.
+      # net11.0 only (the runtime of the global.json SDK); the other target frameworks run in build-and-test.
       - name: Run tests
-        run: dotnet test --no-build --configuration Release --framework net10.0
+        run: dotnet test --no-build --configuration Release --framework net11.0
 
   pack:
     name: Pack NuGet

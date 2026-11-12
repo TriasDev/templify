@@ -34,6 +34,7 @@ Relates to #
 <!-- Describe the tests you ran to verify your changes -->
 
 ### Test Environment
+- [ ] .NET 11
 - [ ] .NET 10
 - [ ] .NET 9
 - [ ] .NET 8
