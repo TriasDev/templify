@@ -70,10 +70,13 @@ internal sealed record BorderLine(Length Width, Color Color);
 /// <summary>A column of a table: a fixed width, or a weight (when <see cref="Fixed"/> is null).</summary>
 internal sealed record ColumnSpec(Length? Fixed, double Weight);
 
-/// <summary>A table: columns, rows (header rows first) and options.</summary>
+/// <summary>A table: columns, rows (header rows first) and options. A box is a one-cell table with a box style.</summary>
 internal sealed record TableBlock : Block
 {
     public TableStyleKey? Style { get; set; }
+
+    /// <summary>Gets or sets the box style when this table is a <c>Box</c>.</summary>
+    public BoxStyleKey? BoxStyle { get; set; }
 
     public List<ColumnSpec> Columns { get; } = new List<ColumnSpec>();
 
@@ -149,6 +152,34 @@ internal sealed class TableCellModel
     public CellVerticalAlignment? VerticalAlignment { get; set; }
 }
 
+/// <summary>A box style as defined in a <see cref="StyleSheet"/>.</summary>
+internal sealed class BoxStyleDefinition(BoxStyleKey key)
+{
+    public BoxStyleKey Key { get; } = key;
+
+    public BorderLine? Border { get; set; }
+
+    public Color? Background { get; set; }
+
+    public Length PaddingVertical { get; set; } = 6.Pt();
+
+    public Length PaddingHorizontal { get; set; } = 6.Pt();
+
+    public Length? SpaceAfter { get; set; }
+
+    /// <summary>The box as a table style: the border all round, the background on its cell.</summary>
+    public TableStyleDefinition AsTableStyle() => new TableStyleDefinition(new TableStyleKey("Box_" + Key.Id))
+    {
+        Outer = Border,
+        BodyBackground = Background,
+        PaddingVertical = PaddingVertical,
+        PaddingHorizontal = PaddingHorizontal,
+    };
+}
+
+/// <summary>A horizontal rule: an empty paragraph whose top border is the line.</summary>
+internal sealed record RuleBlock(BorderLine Line, Length SpaceBefore, Length SpaceAfter) : Block;
+
 /// <summary>A table style as defined in a <see cref="StyleSheet"/>.</summary>
 internal sealed class TableStyleDefinition(TableStyleKey key)
 {
@@ -166,6 +197,9 @@ internal sealed class TableStyleDefinition(TableStyleKey key)
     public BorderLine? HeaderRule { get; set; }
 
     public Color? HeaderBackground { get; set; }
+
+    /// <summary>Gets or sets the background of body cells without their own (boxes).</summary>
+    public Color? BodyBackground { get; set; }
 
     public Length PaddingVertical { get; set; } = Length.Zero;
 

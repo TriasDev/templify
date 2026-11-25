@@ -25,6 +25,21 @@ public sealed class StyleSheetComposer
 
     internal List<TableStyleDefinition> TableStyles { get; } = new List<TableStyleDefinition>();
 
+    internal List<BoxStyleDefinition> BoxStyles { get; } = new List<BoxStyleDefinition>();
+
+    /// <summary>Defines a box style.</summary>
+    /// <param name="key">The style's key.</param>
+    /// <param name="style">Sets the border, background and padding.</param>
+    public void Box(BoxStyleKey key, Action<BoxStyleComposer> style)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        ArgumentNullException.ThrowIfNull(style);
+        EnsureOpen();
+        BoxStyleDefinition definition = new BoxStyleDefinition(key);
+        style(new BoxStyleComposer(this, definition));
+        BoxStyles.Add(definition);
+    }
+
     /// <summary>Defines a table style.</summary>
     /// <param name="key">The style's key.</param>
     /// <param name="style">Sets the borders, rules, padding and header shading.</param>

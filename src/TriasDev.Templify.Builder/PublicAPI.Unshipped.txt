@@ -1,4 +1,7 @@
 #nullable enable
+override TriasDev.Templify.Builder.BoxStyleKey.Equals(object? obj) -> bool
+override TriasDev.Templify.Builder.BoxStyleKey.GetHashCode() -> int
+override TriasDev.Templify.Builder.BoxStyleKey.ToString() -> string!
 override TriasDev.Templify.Builder.BuildDiagnostic.Equals(object? obj) -> bool
 override TriasDev.Templify.Builder.BuildDiagnostic.GetHashCode() -> int
 override TriasDev.Templify.Builder.BuildDiagnostic.ToString() -> string!
@@ -43,6 +46,8 @@ override TriasDev.Templify.Builder.TemplateStamp.Equals(object? obj) -> bool
 override TriasDev.Templify.Builder.TemplateStamp.GetHashCode() -> int
 override TriasDev.Templify.Builder.TemplateStamp.ToString() -> string!
 override TriasDev.Templify.Builder.ValueFormat.ToString() -> string!
+static TriasDev.Templify.Builder.BoxStyleKey.operator !=(TriasDev.Templify.Builder.BoxStyleKey? left, TriasDev.Templify.Builder.BoxStyleKey? right) -> bool
+static TriasDev.Templify.Builder.BoxStyleKey.operator ==(TriasDev.Templify.Builder.BoxStyleKey? left, TriasDev.Templify.Builder.BoxStyleKey? right) -> bool
 static TriasDev.Templify.Builder.BuildDiagnostic.operator !=(TriasDev.Templify.Builder.BuildDiagnostic? left, TriasDev.Templify.Builder.BuildDiagnostic? right) -> bool
 static TriasDev.Templify.Builder.BuildDiagnostic.operator ==(TriasDev.Templify.Builder.BuildDiagnostic? left, TriasDev.Templify.Builder.BuildDiagnostic? right) -> bool
 static TriasDev.Templify.Builder.BuilderStyles.TemplateMarker.get -> TriasDev.Templify.Builder.ParagraphStyleKey!
@@ -134,6 +139,7 @@ static TriasDev.Templify.Builder.ValueFormat.TrueFalse.get -> TriasDev.Templify.
 static TriasDev.Templify.Builder.ValueFormat.Uppercase.get -> TriasDev.Templify.Builder.ValueFormat!
 static TriasDev.Templify.Builder.ValueFormat.YesNo.get -> TriasDev.Templify.Builder.ValueFormat!
 TriasDev.Templify.Builder.BlockComposer
+TriasDev.Templify.Builder.BlockComposer.Box(TriasDev.Templify.Builder.BoxStyleKey! style, System.Action<TriasDev.Templify.Builder.BlockComposer!>! content) -> void
 TriasDev.Templify.Builder.BlockComposer.Component(TriasDev.Templify.Builder.ITemplateComponent! component) -> void
 TriasDev.Templify.Builder.BlockComposer.ForEach(TriasDev.Templify.Builder.TemplatePath collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem!, TriasDev.Templify.Builder.BlockComposer!>! body) -> void
 TriasDev.Templify.Builder.BlockComposer.If(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.BlockComposer!>! then) -> TriasDev.Templify.Builder.IfChain!
@@ -147,8 +153,21 @@ TriasDev.Templify.Builder.BlockComposer.Paragraph(TriasDev.Templify.Builder.Para
 TriasDev.Templify.Builder.BlockComposer.Paragraph(TriasDev.Templify.Builder.ParagraphStyleKey! style, System.Action<TriasDev.Templify.Builder.InlineComposer!>! content) -> void
 TriasDev.Templify.Builder.BlockComposer.Paragraph(TriasDev.Templify.Builder.ParagraphStyleKey! style, TriasDev.Templify.Builder.TemplatePath value) -> void
 TriasDev.Templify.Builder.BlockComposer.Paragraph(TriasDev.Templify.Builder.TemplatePath value) -> void
+TriasDev.Templify.Builder.BlockComposer.Rule(TriasDev.Templify.Builder.Length thickness, TriasDev.Templify.Builder.Color color, TriasDev.Templify.Builder.Length spaceAbove, TriasDev.Templify.Builder.Length spaceBelow) -> void
+TriasDev.Templify.Builder.BlockComposer.Rule(TriasDev.Templify.Builder.Length thickness, TriasDev.Templify.Builder.Color color) -> void
 TriasDev.Templify.Builder.BlockComposer.Switch(TriasDev.Templify.Builder.TemplatePath value, System.Action<TriasDev.Templify.Builder.SwitchComposer!>! cases) -> void
 TriasDev.Templify.Builder.BlockComposer.Table(System.Action<TriasDev.Templify.Builder.TableComposer!>! table) -> void
+TriasDev.Templify.Builder.BoxStyleComposer
+TriasDev.Templify.Builder.BoxStyleComposer.Background(TriasDev.Templify.Builder.Color color) -> TriasDev.Templify.Builder.BoxStyleComposer!
+TriasDev.Templify.Builder.BoxStyleComposer.Border(TriasDev.Templify.Builder.Length width, TriasDev.Templify.Builder.Color color) -> TriasDev.Templify.Builder.BoxStyleComposer!
+TriasDev.Templify.Builder.BoxStyleComposer.Padding(TriasDev.Templify.Builder.Length all) -> TriasDev.Templify.Builder.BoxStyleComposer!
+TriasDev.Templify.Builder.BoxStyleComposer.Padding(TriasDev.Templify.Builder.Length vertical, TriasDev.Templify.Builder.Length horizontal) -> TriasDev.Templify.Builder.BoxStyleComposer!
+TriasDev.Templify.Builder.BoxStyleComposer.SpaceAfter(TriasDev.Templify.Builder.Length space) -> TriasDev.Templify.Builder.BoxStyleComposer!
+TriasDev.Templify.Builder.BoxStyleKey
+TriasDev.Templify.Builder.BoxStyleKey.<Clone>$() -> TriasDev.Templify.Builder.BoxStyleKey!
+TriasDev.Templify.Builder.BoxStyleKey.BoxStyleKey(string! id) -> void
+TriasDev.Templify.Builder.BoxStyleKey.Equals(TriasDev.Templify.Builder.BoxStyleKey? other) -> bool
+TriasDev.Templify.Builder.BoxStyleKey.Id.get -> string!
 TriasDev.Templify.Builder.BuildDiagnostic
 TriasDev.Templify.Builder.BuildDiagnostic.<Clone>$() -> TriasDev.Templify.Builder.BuildDiagnostic!
 TriasDev.Templify.Builder.BuildDiagnostic.BuildDiagnostic(string! Code, string! Message) -> void
@@ -343,6 +362,7 @@ TriasDev.Templify.Builder.RowsIfChain.Else(System.Action<TriasDev.Templify.Build
 TriasDev.Templify.Builder.RowsIfChain.ElseIf(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.RowsComposer!>! rows) -> TriasDev.Templify.Builder.RowsIfChain!
 TriasDev.Templify.Builder.StyleSheet
 TriasDev.Templify.Builder.StyleSheetComposer
+TriasDev.Templify.Builder.StyleSheetComposer.Box(TriasDev.Templify.Builder.BoxStyleKey! key, System.Action<TriasDev.Templify.Builder.BoxStyleComposer!>! style) -> void
 TriasDev.Templify.Builder.StyleSheetComposer.Character(TriasDev.Templify.Builder.CharacterStyleKey! key, System.Action<TriasDev.Templify.Builder.CharacterStyleComposer!>! style) -> void
 TriasDev.Templify.Builder.StyleSheetComposer.Defaults(System.Action<TriasDev.Templify.Builder.DefaultStyleComposer!>! defaults) -> void
 TriasDev.Templify.Builder.StyleSheetComposer.Paragraph(TriasDev.Templify.Builder.ParagraphStyleKey! key, System.Action<TriasDev.Templify.Builder.ParagraphStyleComposer!>! style) -> void

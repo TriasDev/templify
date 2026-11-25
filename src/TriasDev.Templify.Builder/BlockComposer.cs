@@ -177,6 +177,48 @@ public class BlockComposer
         _blocks.Add(block);
     }
 
+    /// <summary>
+    /// Adds a framed box around block content: a border, a background and padding from a box style. The content can
+    /// be anything a cell holds: paragraphs, conditions, loops, tables.
+    /// </summary>
+    /// <param name="style">The box style; the style sheet must define it.</param>
+    /// <param name="content">Describes the box's content.</param>
+    public void Box(BoxStyleKey style, Action<BlockComposer> content)
+    {
+        ArgumentNullException.ThrowIfNull(style);
+        ArgumentNullException.ThrowIfNull(content);
+        EnsureOpen();
+        TableBlock box = new TableBlock { BoxStyle = style };
+        box.Columns.Add(new ColumnSpec(null, 1));
+        TableRowModel row = new TableRowModel(isHeader: false) { AllowSplit = true };
+        TableCellModel cell = new TableCellModel();
+        cell.Content.AddRange(Compose(_context, _scope, content));
+        row.Cells.Add(cell);
+        box.Rows.Add(row);
+        _blocks.Add(box);
+    }
+
+    /// <summary>Adds a horizontal rule across the container.</summary>
+    /// <param name="thickness">The line width; more than 0 and at most 6 pt.</param>
+    /// <param name="color">The colour.</param>
+    public void Rule(Length thickness, Color color) => Rule(thickness, color, Length.Zero, Length.Zero);
+
+    /// <summary>Adds a horizontal rule across the container, with space above and below.</summary>
+    /// <param name="thickness">The line width; more than 0 and at most 6 pt.</param>
+    /// <param name="color">The colour.</param>
+    /// <param name="spaceAbove">The space above the line.</param>
+    /// <param name="spaceBelow">The space below the line.</param>
+    public void Rule(Length thickness, Color color, Length spaceAbove, Length spaceBelow)
+    {
+        EnsureOpen();
+        if (thickness <= Length.Zero || thickness > 6.Pt())
+        {
+            throw new ArgumentOutOfRangeException(nameof(thickness), thickness, "A line is more than 0 and at most 6 pt wide.");
+        }
+
+        _blocks.Add(new RuleBlock(new BorderLine(thickness, color), StyleRanges.NotNegative(spaceAbove, nameof(spaceAbove)), StyleRanges.NotNegative(spaceBelow, nameof(spaceBelow))));
+    }
+
     /// <summary>Adds a reusable component's content.</summary>
     /// <param name="component">The component.</param>
     public void Component(ITemplateComponent component)

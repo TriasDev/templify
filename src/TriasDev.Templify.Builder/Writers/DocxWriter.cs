@@ -532,8 +532,20 @@ internal static class DocxWriter
             // A marker is a paragraph of its own with one run, which is what the engine's block detection reads.
             MarkerBlock marker => [MarkerParagraph(marker.Text)],
             TableBlock table => WriteTable(table, frame),
+            RuleBlock rule => [RuleParagraph(rule)],
             _ => throw new NotSupportedException($"Block {block.GetType().Name} is not supported by the DOCX writer."),
         };
+
+        /// <summary>A rule: an empty 1 pt paragraph whose top border is the line (CT_PPrBase order: pBdr, spacing).</summary>
+        private static Paragraph RuleParagraph(RuleBlock rule) => new Paragraph(new ParagraphProperties(
+            new ParagraphBorders(Border<TopBorder>(rule.Line)),
+            new SpacingBetweenLines
+            {
+                Before = rule.SpaceBefore.Twips.ToString(CultureInfo.InvariantCulture),
+                After = rule.SpaceAfter.Twips.ToString(CultureInfo.InvariantCulture),
+                Line = "20",
+                LineRule = LineSpacingRuleValues.Exact,
+            }));
 
         private static Paragraph MarkerParagraph(string text) => new Paragraph(
             new ParagraphProperties(new ParagraphStyleId { Val = BuilderStyles.TemplateMarker.Id }),
@@ -543,7 +555,7 @@ internal static class DocxWriter
 
         private IEnumerable<OpenXmlElement> WriteTable(TableBlock table, Length frame)
         {
-            TableStyleDefinition? style = table.Style is { } key ? model.Styles.Find(key) : null;
+            TableStyleDefinition? style = model.Styles.Resolve(table);
             Length[] widths = TableLayout.Resolve(table.Columns, frame);
             Length paddingH = style?.PaddingHorizontal ?? TableStyleDefinition.DefaultPaddingHorizontal;
             Length paddingV = style?.PaddingVertical ?? Length.Zero;
@@ -576,7 +588,7 @@ internal static class DocxWriter
             }
 
             List<OpenXmlElement> elements = [result];
-            if (table.SpaceAfter is { } space && space > Length.Zero)
+            if (model.Styles.SpaceAfterOf(table) is { } space && space > Length.Zero)
             {
                 // Word tables have no space after: a 1 pt paragraph with the space carries it.
                 elements.Add(new Paragraph(new ParagraphProperties(new SpacingBetweenLines
@@ -696,7 +708,7 @@ internal static class DocxWriter
                 properties.Append(new TableCellBorders(Border<BottomBorder>(rule)));
             }
 
-            Color? background = cell.Background ?? (isHeader ? style?.HeaderBackground : null);
+            Color? background = cell.Background ?? (isHeader ? style?.HeaderBackground : style?.BodyBackground);
             if (background is { } fill)
             {
                 properties.Append(new Shading { Val = ShadingPatternValues.Clear, Color = "auto", Fill = fill.Hex });

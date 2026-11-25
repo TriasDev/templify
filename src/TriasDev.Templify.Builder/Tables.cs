@@ -599,6 +599,11 @@ internal static class TableLayout
             context.Error(DiagnosticCodes.UndefinedStyle, $"A table uses the table style '{style.Id}', which the template's style sheet does not define.");
         }
 
+        if (table.BoxStyle is { } box && styles.Find(box) == null)
+        {
+            context.Error(DiagnosticCodes.UndefinedStyle, $"A box uses the box style '{box.Id}', which the template's style sheet does not define.");
+        }
+
         Length fixedSum = table.Columns.Where(c => c.Fixed is not null).Aggregate(Length.Zero, (sum, c) => sum + c.Fixed!.Value);
         bool hasRelative = table.Columns.Any(c => c.Fixed is null);
         if (fixedSum > frame || (hasRelative && fixedSum == frame))
@@ -610,7 +615,7 @@ internal static class TableLayout
         }
 
         Length[] widths = Resolve(table.Columns, frame);
-        Length padding = (table.Style is { } key ? styles.Find(key) : null)?.PaddingHorizontal ?? TableStyleDefinition.DefaultPaddingHorizontal;
+        Length padding = styles.Resolve(table)?.PaddingHorizontal ?? TableStyleDefinition.DefaultPaddingHorizontal;
         foreach (TableRowModel row in table.AllRows())
         {
             int cells = row.Cells.Sum(c => c.Span);

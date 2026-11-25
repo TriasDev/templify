@@ -113,6 +113,7 @@ internal static class OdtWriter
         {
             ParagraphBlock paragraph => WriteParagraph(paragraph, frame),
             TableBlock table => WriteTable(table, frame),
+            RuleBlock rule => new XElement(_text + "p", new XAttribute(_text + "style-name", RuleStyle(rule))),
             // An empty paragraph of its own carries the break (break-after: no empty line on the new page), so it
             // survives when the engine removes the paragraphs around it.
             PageBreakBlock => new XElement(_text + "p", new XAttribute(_text + "style-name", PageBreakStyle())),
@@ -171,7 +172,7 @@ internal static class OdtWriter
 
         private XElement WriteTable(TableBlock table, Length frame)
         {
-            TableStyleDefinition? style = table.Style is { } key ? model.Styles.Find(key) : null;
+            TableStyleDefinition? style = model.Styles.Resolve(table);
             Length[] widths = TableLayout.Resolve(table.Columns, frame);
             Length paddingH = style?.PaddingHorizontal ?? TableStyleDefinition.DefaultPaddingHorizontal;
             string name = prefix + "Table" + (++_tables).ToString(CultureInfo.InvariantCulture);
@@ -181,7 +182,7 @@ internal static class OdtWriter
                 new XAttribute(_style + "width", widths.Aggregate(Length.Zero, (a, b) => a + b).ToString()),
                 new XAttribute(_table + "align", "left"),
                 new XAttribute(_table + "border-model", "collapsing"));
-            if (table.SpaceAfter is { } space)
+            if (model.Styles.SpaceAfterOf(table) is { } space)
             {
                 tableProperties.Add(new XAttribute(_fo + "margin-bottom", space.ToString()));
             }
@@ -317,7 +318,7 @@ internal static class OdtWriter
                 BorderLine? bottom = row.IsHeader && style?.HeaderRule is { } rule ? rule : last ? style?.Outer : style?.RowRule;
                 BorderLine? left = column == 0 ? style?.Outer : style?.ColumnRule;
                 BorderLine? right = column + cell.Span >= widths.Length ? style?.Outer : style?.ColumnRule;
-                Color? background = cell.Background ?? (row.IsHeader ? style?.HeaderBackground : null);
+                Color? background = cell.Background ?? (row.IsHeader ? style?.HeaderBackground : style?.BodyBackground);
 
                 XElement element = new XElement(
                     _table + "table-cell",
@@ -342,6 +343,38 @@ internal static class OdtWriter
             }
 
             return result;
+        }
+
+        private readonly Dictionary<string, string> _ruleStyles = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        /// <summary>An automatic paragraph style for a rule: a 1 pt line height and the line as the top border.</summary>
+        private string RuleStyle(RuleBlock rule)
+        {
+            XElement properties = new XElement(
+                _style + "paragraph-properties",
+                new XAttribute(_fo + "margin-top", rule.SpaceBefore.ToString()),
+                new XAttribute(_fo + "margin-bottom", rule.SpaceAfter.ToString()),
+                new XAttribute(_fo + "line-height", "1pt"),
+                new XAttribute(_fo + "border-top", Border(rule.Line)),
+                new XAttribute(_fo + "border-bottom", "none"),
+                new XAttribute(_fo + "border-left", "none"),
+                new XAttribute(_fo + "border-right", "none"),
+                new XAttribute(_fo + "padding", "0pt"));
+            string signature = properties.ToString(SaveOptions.DisableFormatting);
+            if (!_ruleStyles.TryGetValue(signature, out string? name))
+            {
+                name = prefix + "Rule" + (_ruleStyles.Count + 1).ToString(CultureInfo.InvariantCulture);
+                _ruleStyles[signature] = name;
+                AutomaticStyles.Add(new XElement(
+                    _style + "style",
+                    new XAttribute(_style + "name", name),
+                    new XAttribute(_style + "family", "paragraph"),
+                    new XAttribute(_style + "parent-style-name", StandardStyleName),
+                    properties,
+                    new XElement(_style + "text-properties", new XAttribute(_fo + "font-size", "1pt"))));
+            }
+
+            return name;
         }
 
         private string RowKeepStyle()

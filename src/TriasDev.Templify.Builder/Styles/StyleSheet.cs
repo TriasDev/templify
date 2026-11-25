@@ -21,18 +21,36 @@ public sealed class StyleSheet
         TextProperties defaults,
         IReadOnlyList<ParagraphStyleDefinition> paragraphStyles,
         IReadOnlyList<CharacterStyleDefinition> characterStyles,
-        IReadOnlyList<TableStyleDefinition> tableStyles)
+        IReadOnlyList<TableStyleDefinition> tableStyles,
+        IReadOnlyList<BoxStyleDefinition> boxStyles)
     {
+        BoxStyles = boxStyles;
         Defaults = defaults;
         ParagraphStyles = paragraphStyles;
         CharacterStyles = characterStyles;
         TableStyles = tableStyles;
         Problems = Validate(paragraphStyles, characterStyles);
-        foreach (IGrouping<string, TableStyleDefinition> duplicate in tableStyles.GroupBy(t => t.Key.Id, StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1))
+        foreach (IGrouping<string, string> duplicate in tableStyles.Select(t => t.Key.Id).Concat(boxStyles.Select(b => b.Key.Id)).GroupBy(id => id, StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1))
         {
-            ((List<BuildDiagnostic>)Problems).Add(new BuildDiagnostic(DiagnosticCodes.DuplicateStyleId, $"The table style id '{duplicate.Key}' is defined more than once."));
+            ((List<BuildDiagnostic>)Problems).Add(new BuildDiagnostic(DiagnosticCodes.DuplicateStyleId, $"The table or box style id '{duplicate.Key}' is defined more than once."));
         }
     }
+
+    /// <summary>Gets the box styles in definition order.</summary>
+    internal IReadOnlyList<BoxStyleDefinition> BoxStyles { get; }
+
+    /// <summary>Finds the definition of a box style.</summary>
+    internal BoxStyleDefinition? Find(BoxStyleKey key) => BoxStyles.FirstOrDefault(s => s.Key == key);
+
+    /// <summary>The effective style of a table: its box style or its table style; null when it has none or it is undefined.</summary>
+    internal TableStyleDefinition? Resolve(TableBlock table) =>
+        table.BoxStyle is { } box ? Find(box)?.AsTableStyle()
+        : table.Style is { } key ? Find(key)
+        : null;
+
+    /// <summary>The space after a table: its own, else its box style's.</summary>
+    internal Length? SpaceAfterOf(TableBlock table) =>
+        table.SpaceAfter ?? (table.BoxStyle is { } box ? Find(box)?.SpaceAfter : null);
 
     /// <summary>Gets the table styles in definition order.</summary>
     internal IReadOnlyList<TableStyleDefinition> TableStyles { get; }
@@ -53,7 +71,7 @@ public sealed class StyleSheet
     internal IReadOnlyList<BuildDiagnostic> Problems { get; }
 
     /// <summary>Gets an empty style sheet: default formatting of the application that opens the document.</summary>
-    internal static StyleSheet Empty { get; } = new StyleSheet(new TextProperties(), [], [], []);
+    internal static StyleSheet Empty { get; } = new StyleSheet(new TextProperties(), [], [], [], []);
 
     /// <summary>Creates a style sheet.</summary>
     /// <param name="styles">Defines the defaults and the styles.</param>
@@ -64,12 +82,12 @@ public sealed class StyleSheet
         StyleSheetComposer composer = new StyleSheetComposer();
         styles(composer);
         composer.Close();
-        return new StyleSheet(composer.DefaultText, composer.ParagraphStyles, composer.CharacterStyles, composer.TableStyles);
+        return new StyleSheet(composer.DefaultText, composer.ParagraphStyles, composer.CharacterStyles, composer.TableStyles, composer.BoxStyles);
     }
 
     /// <summary>A copy of this style sheet with one more paragraph style (the builder's own default styles).</summary>
     internal StyleSheet WithParagraphStyle(ParagraphStyleDefinition definition) =>
-        new StyleSheet(Defaults, ParagraphStyles.Append(definition).ToList(), CharacterStyles, TableStyles);
+        new StyleSheet(Defaults, ParagraphStyles.Append(definition).ToList(), CharacterStyles, TableStyles, BoxStyles);
 
     /// <summary>Finds the definition of a paragraph style.</summary>
     internal ParagraphStyleDefinition? Find(ParagraphStyleKey key) => ParagraphStyles.FirstOrDefault(s => s.Key == key);
