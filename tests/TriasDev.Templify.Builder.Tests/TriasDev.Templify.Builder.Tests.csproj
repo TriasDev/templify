@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\TriasDev.Templify.Builder\TriasDev.Templify.Builder.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Shared with the core tests by linking the source (design spec, section 7): ODT package reading and the
+         local LibreOffice round trip. -->
+    <Compile Include="..\TriasDev.Templify.Tests\Helpers\OdtDocumentVerifier.cs" Link="Shared\OdtDocumentVerifier.cs" />
+    <Compile Include="..\TriasDev.Templify.Tests\Helpers\OdtDocumentBuilder.cs" Link="Shared\OdtDocumentBuilder.cs" />
+    <Compile Include="..\TriasDev.Templify.Tests\Odt\LibreOfficeRunner.cs" Link="Shared\LibreOfficeRunner.cs" />
+  </ItemGroup>
+
+</Project>

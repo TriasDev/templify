@@ -1,0 +1,78 @@
+#nullable enable
+override TriasDev.Templify.Builder.BuildDiagnostic.Equals(object? obj) -> bool
+override TriasDev.Templify.Builder.BuildDiagnostic.GetHashCode() -> int
+override TriasDev.Templify.Builder.BuildDiagnostic.ToString() -> string!
+override TriasDev.Templify.Builder.TemplateBuildOptions.Equals(object? obj) -> bool
+override TriasDev.Templify.Builder.TemplateBuildOptions.GetHashCode() -> int
+override TriasDev.Templify.Builder.TemplateBuildOptions.ToString() -> string!
+override TriasDev.Templify.Builder.TemplateIdentity.Equals(object? obj) -> bool
+override TriasDev.Templify.Builder.TemplateIdentity.GetHashCode() -> int
+override TriasDev.Templify.Builder.TemplateIdentity.ToString() -> string!
+override TriasDev.Templify.Builder.TemplatePath.Equals(object? obj) -> bool
+override TriasDev.Templify.Builder.TemplatePath.GetHashCode() -> int
+override TriasDev.Templify.Builder.TemplatePath.ToString() -> string!
+static TriasDev.Templify.Builder.BuildDiagnostic.operator !=(TriasDev.Templify.Builder.BuildDiagnostic? left, TriasDev.Templify.Builder.BuildDiagnostic? right) -> bool
+static TriasDev.Templify.Builder.BuildDiagnostic.operator ==(TriasDev.Templify.Builder.BuildDiagnostic? left, TriasDev.Templify.Builder.BuildDiagnostic? right) -> bool
+static TriasDev.Templify.Builder.TemplateBuilder.Build(TriasDev.Templify.Builder.ITemplateDefinition! definition, TriasDev.Templify.Builder.TemplateBuildOptions! options) -> TriasDev.Templify.Builder.GeneratedTemplate!
+static TriasDev.Templify.Builder.TemplateBuildOptions.operator !=(TriasDev.Templify.Builder.TemplateBuildOptions? left, TriasDev.Templify.Builder.TemplateBuildOptions? right) -> bool
+static TriasDev.Templify.Builder.TemplateBuildOptions.operator ==(TriasDev.Templify.Builder.TemplateBuildOptions? left, TriasDev.Templify.Builder.TemplateBuildOptions? right) -> bool
+static TriasDev.Templify.Builder.TemplateIdentity.operator !=(TriasDev.Templify.Builder.TemplateIdentity? left, TriasDev.Templify.Builder.TemplateIdentity? right) -> bool
+static TriasDev.Templify.Builder.TemplateIdentity.operator ==(TriasDev.Templify.Builder.TemplateIdentity? left, TriasDev.Templify.Builder.TemplateIdentity? right) -> bool
+static TriasDev.Templify.Builder.TemplatePath.operator !=(TriasDev.Templify.Builder.TemplatePath left, TriasDev.Templify.Builder.TemplatePath right) -> bool
+static TriasDev.Templify.Builder.TemplatePath.operator ==(TriasDev.Templify.Builder.TemplatePath left, TriasDev.Templify.Builder.TemplatePath right) -> bool
+static TriasDev.Templify.Builder.TemplatePath.Root(string! path) -> TriasDev.Templify.Builder.TemplatePath
+TriasDev.Templify.Builder.BlockComposer
+TriasDev.Templify.Builder.BlockComposer.Paragraph(string! text) -> void
+TriasDev.Templify.Builder.BlockComposer.Paragraph(System.Action<TriasDev.Templify.Builder.InlineComposer!>! content) -> void
+TriasDev.Templify.Builder.BlockComposer.Paragraph(TriasDev.Templify.Builder.TemplatePath value) -> void
+TriasDev.Templify.Builder.BuildDiagnostic
+TriasDev.Templify.Builder.BuildDiagnostic.<Clone>$() -> TriasDev.Templify.Builder.BuildDiagnostic!
+TriasDev.Templify.Builder.BuildDiagnostic.BuildDiagnostic(string! Code, string! Message) -> void
+TriasDev.Templify.Builder.BuildDiagnostic.Code.get -> string!
+TriasDev.Templify.Builder.BuildDiagnostic.Code.init -> void
+TriasDev.Templify.Builder.BuildDiagnostic.Deconstruct(out string! Code, out string! Message) -> void
+TriasDev.Templify.Builder.BuildDiagnostic.Equals(TriasDev.Templify.Builder.BuildDiagnostic? other) -> bool
+TriasDev.Templify.Builder.BuildDiagnostic.Message.get -> string!
+TriasDev.Templify.Builder.BuildDiagnostic.Message.init -> void
+TriasDev.Templify.Builder.GeneratedTemplate
+TriasDev.Templify.Builder.GeneratedTemplate.Content.get -> System.ReadOnlyMemory<byte>
+TriasDev.Templify.Builder.GeneratedTemplate.ContentHash.get -> string!
+TriasDev.Templify.Builder.GeneratedTemplate.FileExtension.get -> string!
+TriasDev.Templify.Builder.GeneratedTemplate.Format.get -> TriasDev.Templify.Core.TemplateFormat
+TriasDev.Templify.Builder.GeneratedTemplate.MediaType.get -> string!
+TriasDev.Templify.Builder.GeneratedTemplate.OpenRead() -> System.IO.Stream!
+TriasDev.Templify.Builder.GeneratedTemplate.WriteTo(System.IO.Stream! destination) -> void
+TriasDev.Templify.Builder.InlineComposer
+TriasDev.Templify.Builder.InlineComposer.Text(string! text) -> void
+TriasDev.Templify.Builder.InlineComposer.Value(TriasDev.Templify.Builder.TemplatePath path) -> void
+TriasDev.Templify.Builder.ITemplateDefinition
+TriasDev.Templify.Builder.ITemplateDefinition.Compose(TriasDev.Templify.Builder.TemplateComposer! template) -> void
+TriasDev.Templify.Builder.ITemplateDefinition.Identity.get -> TriasDev.Templify.Builder.TemplateIdentity!
+TriasDev.Templify.Builder.TemplateBuilder
+TriasDev.Templify.Builder.TemplateBuildException
+TriasDev.Templify.Builder.TemplateBuildException.Errors.get -> System.Collections.Generic.IReadOnlyList<TriasDev.Templify.Builder.BuildDiagnostic!>!
+TriasDev.Templify.Builder.TemplateBuildException.TemplateBuildException(System.Collections.Generic.IReadOnlyList<TriasDev.Templify.Builder.BuildDiagnostic!>! errors) -> void
+TriasDev.Templify.Builder.TemplateBuildOptions
+TriasDev.Templify.Builder.TemplateBuildOptions.<Clone>$() -> TriasDev.Templify.Builder.TemplateBuildOptions!
+TriasDev.Templify.Builder.TemplateBuildOptions.Equals(TriasDev.Templify.Builder.TemplateBuildOptions? other) -> bool
+TriasDev.Templify.Builder.TemplateBuildOptions.Format.get -> TriasDev.Templify.Core.TemplateFormat
+TriasDev.Templify.Builder.TemplateBuildOptions.Format.init -> void
+TriasDev.Templify.Builder.TemplateBuildOptions.Language.get -> System.Globalization.CultureInfo!
+TriasDev.Templify.Builder.TemplateBuildOptions.Language.init -> void
+TriasDev.Templify.Builder.TemplateBuildOptions.TemplateBuildOptions() -> void
+TriasDev.Templify.Builder.TemplateComposer
+TriasDev.Templify.Builder.TemplateComposer.Content(System.Action<TriasDev.Templify.Builder.BlockComposer!>! content) -> void
+TriasDev.Templify.Builder.TemplateComposer.Data.get -> TriasDev.Templify.Builder.TemplatePath
+TriasDev.Templify.Builder.TemplateIdentity
+TriasDev.Templify.Builder.TemplateIdentity.<Clone>$() -> TriasDev.Templify.Builder.TemplateIdentity!
+TriasDev.Templify.Builder.TemplateIdentity.Deconstruct(out string! Id, out int Version) -> void
+TriasDev.Templify.Builder.TemplateIdentity.Equals(TriasDev.Templify.Builder.TemplateIdentity? other) -> bool
+TriasDev.Templify.Builder.TemplateIdentity.Id.get -> string!
+TriasDev.Templify.Builder.TemplateIdentity.Id.init -> void
+TriasDev.Templify.Builder.TemplateIdentity.TemplateIdentity(string! Id, int Version) -> void
+TriasDev.Templify.Builder.TemplateIdentity.Version.get -> int
+TriasDev.Templify.Builder.TemplateIdentity.Version.init -> void
+TriasDev.Templify.Builder.TemplatePath
+TriasDev.Templify.Builder.TemplatePath.Equals(TriasDev.Templify.Builder.TemplatePath other) -> bool
+TriasDev.Templify.Builder.TemplatePath.TemplatePath() -> void
+TriasDev.Templify.Builder.TemplatePath.this[string! relative].get -> TriasDev.Templify.Builder.TemplatePath

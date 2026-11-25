@@ -1,0 +1,31 @@
+// Copyright (c) 2026 TriasDev GmbH & Co. KG
+// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+namespace TriasDev.Templify.Builder;
+
+/// <summary>
+/// State shared by the composers of one build: the diagnostics collected while composing.
+/// </summary>
+internal sealed class BuildContext
+{
+    private readonly List<BuildDiagnostic> _errors = new List<BuildDiagnostic>();
+
+    /// <summary>Gets the errors found so far.</summary>
+    public IReadOnlyList<BuildDiagnostic> Errors => _errors;
+
+    /// <summary>Records an error; the build fails after composing, with every error found.</summary>
+    public void Error(string code, string message) => _errors.Add(new BuildDiagnostic(code, message));
+}
+
+/// <summary>Stable diagnostic codes.</summary>
+internal static class DiagnosticCodes
+{
+    /// <summary>The definition has no identity.</summary>
+    public const string MissingIdentity = "TB0001";
+
+    /// <summary>The identity's id is empty.</summary>
+    public const string EmptyIdentityId = "TB0002";
+
+    /// <summary>A placeholder was given the empty (root) path.</summary>
+    public const string EmptyValuePath = "TB1001";
+}

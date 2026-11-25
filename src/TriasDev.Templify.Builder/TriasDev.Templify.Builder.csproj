@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Same TFMs as the core library (TriasDev.Templify.csproj). -->
+    <TargetFrameworks>net11.0;net10.0</TargetFrameworks>
+
+    <!-- NuGet package identity; shared package metadata is in src/Directory.Build.props.
+         Own version line, 0.x until the API has carried one real document (design spec, D7). -->
+    <PackageId>TriasDev.Templify.Builder</PackageId>
+    <Version>0.1.0</Version>
+    <Description>Code-first template builder for TriasDev.Templify: describe Word (.docx) and OpenDocument Text (.odt) templates in C# — styles, placeholders, conditionals and loops — and generate them at runtime. Templify fills the generated templates.</Description>
+    <PackageTags>word;docx;odt;opendocument;libreoffice;template;templify;document-generation;templating;builder;fluent</PackageTags>
+    <!-- No PackageValidationBaselineVersion until the first release (design spec, section 7). -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Typed WordprocessingML elements only; the builder writes the package itself (deterministic output). -->
+    <PackageReference Include="DocumentFormat.OpenXml"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The builder uses the core library's public API only (design spec, D8). -->
+    <ProjectReference Include="..\TriasDev.Templify\TriasDev.Templify.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="TriasDev.Templify.Builder.Tests"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\"/>
+  </ItemGroup>
+
+</Project>
