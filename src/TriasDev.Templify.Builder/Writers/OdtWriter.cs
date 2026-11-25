@@ -424,26 +424,9 @@ internal static class OdtWriter
                 new XElement(_svg + "title", image.AltText),
                 new XElement(_svg + "desc", image.AltText));
 
-        private static XElement WriteMarker(MarkerBlock marker)
+        private void WriteInlines(WhitespaceEncoder encoder, IEnumerable<Inline> inlines)
         {
-            XElement paragraph = new XElement(_text + "p", new XAttribute(_text + "style-name", BuilderStyles.TemplateMarker.Id));
-            WhitespaceEncoder encoder = new WhitespaceEncoder(paragraph);
-            encoder.Text(marker.Text);
-            encoder.Finish();
-            return paragraph;
-        }
-
-        private XElement WriteParagraph(ParagraphBlock block, Length frame)
-        {
-            int? outlineLevel = block.Style is { } key ? model.Styles.OutlineLevelOf(key) : null;
-            string styleName = block.Inlines.OfType<RightTabInline>().Any() ? RightTabStyle(block.Style, frame) : block.Style?.Id ?? StandardStyleName;
-            XAttribute styleAttribute = new XAttribute(_text + "style-name", styleName);
-            XElement paragraph = outlineLevel is int level
-                ? new XElement(_text + "h", styleAttribute, new XAttribute(_text + "outline-level", level))
-                : new XElement(_text + "p", styleAttribute);
-
-            WhitespaceEncoder encoder = new WhitespaceEncoder(paragraph);
-            foreach (Inline inline in block.Inlines)
+            foreach (Inline inline in inlines)
             {
                 if (inline.Style is { } characterStyle)
                 {
@@ -483,6 +466,26 @@ internal static class OdtWriter
                         encoder.Element(Frame(image));
                         break;
 
+                    case InlineConditional conditional:
+                        for (int i = 0; i < conditional.Branches.Count; i++)
+                        {
+                            encoder.Text(i == 0 ? TemplateSyntax.If(conditional.Branches[i].Condition) : TemplateSyntax.ElseIf(conditional.Branches[i].Condition));
+                            WriteInlines(encoder, conditional.Branches[i].Inlines);
+                        }
+
+                        if (conditional.Else is { } otherwise)
+                        {
+                            encoder.Text(TemplateSyntax.Else);
+                            WriteInlines(encoder, otherwise);
+                        }
+
+                        encoder.Text(TemplateSyntax.EndIf);
+                        break;
+
+                    case ExpressionInline expression:
+                        encoder.Text(TemplateSyntax.Expression(expression.Condition, expression.Format));
+                        break;
+
                     case PageFieldInline field:
                         encoder.Element(field.Field == PageField.Number
                             ? new XElement(_text + "page-number", new XAttribute(_text + "select-page", "current"), "1")
@@ -498,7 +501,28 @@ internal static class OdtWriter
                     encoder.EndSpan();
                 }
             }
+        }
 
+        private static XElement WriteMarker(MarkerBlock marker)
+        {
+            XElement paragraph = new XElement(_text + "p", new XAttribute(_text + "style-name", BuilderStyles.TemplateMarker.Id));
+            WhitespaceEncoder encoder = new WhitespaceEncoder(paragraph);
+            encoder.Text(marker.Text);
+            encoder.Finish();
+            return paragraph;
+        }
+
+        private XElement WriteParagraph(ParagraphBlock block, Length frame)
+        {
+            int? outlineLevel = block.Style is { } key ? model.Styles.OutlineLevelOf(key) : null;
+            string styleName = block.Inlines.OfType<RightTabInline>().Any() ? RightTabStyle(block.Style, frame) : block.Style?.Id ?? StandardStyleName;
+            XAttribute styleAttribute = new XAttribute(_text + "style-name", styleName);
+            XElement paragraph = outlineLevel is int level
+                ? new XElement(_text + "h", styleAttribute, new XAttribute(_text + "outline-level", level))
+                : new XElement(_text + "p", styleAttribute);
+
+            WhitespaceEncoder encoder = new WhitespaceEncoder(paragraph);
+            WriteInlines(encoder, block.Inlines);
             encoder.Finish();
             return paragraph;
         }

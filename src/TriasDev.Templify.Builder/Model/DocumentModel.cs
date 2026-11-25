@@ -314,6 +314,33 @@ internal enum PageField
 /// <summary>A page number or page count field.</summary>
 internal sealed record PageFieldInline(PageField Field, CharacterStyleKey? Style = null) : Inline(Style);
 
+/// <summary>An inline conditional: if / elseif / else markers inside one paragraph around text.</summary>
+internal sealed record InlineConditional() : Inline((CharacterStyleKey?)null)
+{
+    public List<(Condition Condition, IReadOnlyList<Inline> Inlines)> Branches { get; } = new List<(Condition, IReadOnlyList<Inline>)>();
+
+    public IReadOnlyList<Inline>? Else { get; set; }
+
+    /// <summary>The inlines inside, also of nested conditionals.</summary>
+    public static IEnumerable<Inline> Descendants(IEnumerable<Inline> inlines)
+    {
+        foreach (Inline inline in inlines)
+        {
+            yield return inline;
+            if (inline is InlineConditional conditional)
+            {
+                foreach (Inline inner in Descendants(conditional.Branches.SelectMany(b => b.Inlines).Concat(conditional.Else ?? [])))
+                {
+                    yield return inner;
+                }
+            }
+        }
+    }
+}
+
+/// <summary>An inline expression: <c>{{(condition):format}}</c>.</summary>
+internal sealed record ExpressionInline(Condition Condition, ValueFormat? Format) : Inline((CharacterStyleKey?)null);
+
 /// <summary>An image inside a paragraph, sized already.</summary>
 internal sealed record ImageInline(ImageSource Image, string AltText, Length Width, Length Height) : Inline((CharacterStyleKey?)null);
 

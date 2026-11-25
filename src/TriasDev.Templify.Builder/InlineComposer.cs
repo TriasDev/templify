@@ -84,6 +84,34 @@ public sealed class InlineComposer
         _inlines.Add(new RightTabInline());
     }
 
+    /// <summary>
+    /// Adds text shown only when a condition holds, inside this paragraph: <c>{{#if …}}…{{/if}}</c>. Continue with
+    /// <see cref="InlineIfChain.ElseIf"/> and <see cref="InlineIfChain.Else"/>.
+    /// </summary>
+    /// <param name="condition">The condition.</param>
+    /// <param name="then">Describes the text shown when it holds.</param>
+    /// <returns>The chain, to add elseif and else parts.</returns>
+    public InlineIfChain If(Condition condition, Action<TextComposer> then)
+    {
+        EnsureOpen();
+        return InlineIfChain.Start(_context, _scope, _inlines, condition, then, () => _isOpen);
+    }
+
+    /// <summary>
+    /// Adds the result of a condition, for example as Yes/No: <c>{{(condition):yesno}}</c>. Inline expressions use the
+    /// engine's stricter dialect: only <c>true</c> is truthy.
+    /// </summary>
+    /// <param name="condition">The condition.</param>
+    /// <param name="format">A boolean format such as <see cref="ValueFormat.YesNo"/> or <see cref="ValueFormat.Checkbox"/>.</param>
+    public void Expression(Condition condition, ValueFormat format)
+    {
+        ArgumentNullException.ThrowIfNull(condition);
+        ArgumentNullException.ThrowIfNull(format);
+        EnsureOpen();
+        BlockComposer.CheckCondition(_context, _scope, condition);
+        _inlines.Add(new ExpressionInline(condition, format));
+    }
+
     /// <summary>Adds an image at its natural size, inline with the text.</summary>
     /// <param name="image">The image.</param>
     /// <param name="altText">The text that describes the image (accessibility); required.</param>

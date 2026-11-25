@@ -177,9 +177,28 @@ public sealed class DataContract
             switch (block)
             {
                 case ParagraphBlock paragraph:
-                    foreach (ValueInline value in paragraph.Inlines.OfType<ValueInline>())
+                    foreach (Inline inline in InlineConditional.Descendants(paragraph.Inlines))
                     {
-                        Add(entries, value.Path, ContractUsage.Value);
+                        switch (inline)
+                        {
+                            case ValueInline value:
+                                Add(entries, value.Path, ContractUsage.Value);
+                                break;
+                            case InlineConditional conditional:
+                                foreach (TemplatePath path in conditional.Branches.SelectMany(b => b.Condition.Paths))
+                                {
+                                    Add(entries, path, ContractUsage.Condition);
+                                }
+
+                                break;
+                            case ExpressionInline expression:
+                                foreach (TemplatePath path in expression.Condition.Paths)
+                                {
+                                    Add(entries, path, ContractUsage.Condition);
+                                }
+
+                                break;
+                        }
                     }
 
                     break;

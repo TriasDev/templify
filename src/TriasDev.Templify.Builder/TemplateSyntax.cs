@@ -24,6 +24,10 @@ internal static class TemplateSyntax
     /// <summary>The start marker of a conditional, for example <c>{{#if order.total &gt; 100}}</c>.</summary>
     public static string If(Condition condition) => "{{#if " + condition + "}}";
 
+    /// <summary>An inline expression, for example <c>{{(order.isPaid and order.total &gt; 0):yesno}}</c>.</summary>
+    public static string Expression(Condition condition, ValueFormat? format) =>
+        "{{(" + condition + ")" + (format is null ? string.Empty : ":" + format.Specifier) + "}}";
+
     /// <summary>The end marker of a loop.</summary>
     public const string EndForEach = "{{/foreach}}";
 

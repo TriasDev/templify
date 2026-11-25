@@ -246,6 +246,8 @@ TriasDev.Templify.Builder.ImageSource.NaturalWidth.get -> TriasDev.Templify.Buil
 TriasDev.Templify.Builder.ImageSource.PixelHeight.get -> int
 TriasDev.Templify.Builder.ImageSource.PixelWidth.get -> int
 TriasDev.Templify.Builder.InlineComposer
+TriasDev.Templify.Builder.InlineComposer.Expression(TriasDev.Templify.Builder.Condition! condition, TriasDev.Templify.Builder.ValueFormat! format) -> void
+TriasDev.Templify.Builder.InlineComposer.If(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.TextComposer!>! then) -> TriasDev.Templify.Builder.InlineIfChain!
 TriasDev.Templify.Builder.InlineComposer.Image(TriasDev.Templify.Builder.ImageSource! image, string! altText, TriasDev.Templify.Builder.ImageFit! fit) -> void
 TriasDev.Templify.Builder.InlineComposer.Image(TriasDev.Templify.Builder.ImageSource! image, string! altText) -> void
 TriasDev.Templify.Builder.InlineComposer.LineBreak() -> void
@@ -261,6 +263,9 @@ TriasDev.Templify.Builder.InlineComposer.Value(TriasDev.Templify.Builder.Templat
 TriasDev.Templify.Builder.InlineComposer.Value(TriasDev.Templify.Builder.TemplatePath path, TriasDev.Templify.Builder.ValueFormat! format, TriasDev.Templify.Builder.CharacterStyleKey! style) -> void
 TriasDev.Templify.Builder.InlineComposer.Value(TriasDev.Templify.Builder.TemplatePath path, TriasDev.Templify.Builder.ValueFormat! format) -> void
 TriasDev.Templify.Builder.InlineComposer.Value(TriasDev.Templify.Builder.TemplatePath path) -> void
+TriasDev.Templify.Builder.InlineIfChain
+TriasDev.Templify.Builder.InlineIfChain.Else(System.Action<TriasDev.Templify.Builder.TextComposer!>! otherwise) -> void
+TriasDev.Templify.Builder.InlineIfChain.ElseIf(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.TextComposer!>! then) -> TriasDev.Templify.Builder.InlineIfChain!
 TriasDev.Templify.Builder.ITemplateComponent
 TriasDev.Templify.Builder.ITemplateComponent.Compose(TriasDev.Templify.Builder.BlockComposer! content) -> void
 TriasDev.Templify.Builder.ITemplateDefinition
@@ -457,6 +462,13 @@ TriasDev.Templify.Builder.TextAlignment.End = 2 -> TriasDev.Templify.Builder.Tex
 TriasDev.Templify.Builder.TextAlignment.Justify = 3 -> TriasDev.Templify.Builder.TextAlignment
 TriasDev.Templify.Builder.TextAlignment.Start = 0 -> TriasDev.Templify.Builder.TextAlignment
 TriasDev.Templify.Builder.TextCatalog
+TriasDev.Templify.Builder.TextComposer
+TriasDev.Templify.Builder.TextComposer.If(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.TextComposer!>! then) -> TriasDev.Templify.Builder.InlineIfChain!
+TriasDev.Templify.Builder.TextComposer.Text(string! text, TriasDev.Templify.Builder.CharacterStyleKey! style) -> TriasDev.Templify.Builder.TextComposer!
+TriasDev.Templify.Builder.TextComposer.Text(string! text) -> TriasDev.Templify.Builder.TextComposer!
+TriasDev.Templify.Builder.TextComposer.Value(TriasDev.Templify.Builder.TemplatePath path, TriasDev.Templify.Builder.CharacterStyleKey! style) -> TriasDev.Templify.Builder.TextComposer!
+TriasDev.Templify.Builder.TextComposer.Value(TriasDev.Templify.Builder.TemplatePath path, TriasDev.Templify.Builder.ValueFormat! format) -> TriasDev.Templify.Builder.TextComposer!
+TriasDev.Templify.Builder.TextComposer.Value(TriasDev.Templify.Builder.TemplatePath path) -> TriasDev.Templify.Builder.TextComposer!
 TriasDev.Templify.Builder.Units
 TriasDev.Templify.Builder.UploadCheckResult
 TriasDev.Templify.Builder.UploadCheckResult.Format.get -> TriasDev.Templify.Core.TemplateFormat

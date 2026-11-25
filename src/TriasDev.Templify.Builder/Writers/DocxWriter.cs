@@ -806,6 +806,27 @@ internal static class DocxWriter
                     imageRun.Append(Drawing(image));
                     return [imageRun];
 
+                case InlineConditional conditional:
+                    // Markers and content stay in their own runs; the engine resolves the conditional inside the paragraph.
+                    List<Run> runs = new List<Run>();
+                    for (int i = 0; i < conditional.Branches.Count; i++)
+                    {
+                        runs.Add(MarkerRun(i == 0 ? TemplateSyntax.If(conditional.Branches[i].Condition) : TemplateSyntax.ElseIf(conditional.Branches[i].Condition)));
+                        runs.AddRange(conditional.Branches[i].Inlines.SelectMany(WriteInline));
+                    }
+
+                    if (conditional.Else is { } otherwise)
+                    {
+                        runs.Add(MarkerRun(TemplateSyntax.Else));
+                        runs.AddRange(otherwise.SelectMany(WriteInline));
+                    }
+
+                    runs.Add(MarkerRun(TemplateSyntax.EndIf));
+                    return runs;
+
+                case ExpressionInline expression:
+                    return [MarkerRun(TemplateSyntax.Expression(expression.Condition, expression.Format))];
+
                 case PageFieldInline field:
                     // A complex field with a cached result; Word and LibreOffice compute the value when they lay out.
                     string instruction = field.Field == PageField.Number ? " PAGE " : " NUMPAGES ";
@@ -863,6 +884,8 @@ internal static class DocxWriter
 
         /// <summary>English metric units: 12 700 per point.</summary>
         private static long Emu(Length length) => (long)Math.Round(length.Points * 12700, MidpointRounding.AwayFromZero);
+
+        private static Run MarkerRun(string text) => new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
 
         private static Run FieldRun(CharacterStyleKey? style, OpenXmlElement content)
         {
