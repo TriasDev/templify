@@ -410,7 +410,7 @@ public sealed class UploadCheckResult
     public bool IsUsable { get; }                       // no syntax errors and no unknown paths
     public TemplateFormat Format { get; }
     public TemplateStamp? Stamp { get; }
-    public TemplateOrigin Origin { get; }               // CurrentContract | OlderContract | OtherTemplate | Unknown
+    public TemplateOrigin Origin { get; }               // CurrentContract | DifferentContract | OtherTemplate | Unknown
     public ValidationResult Syntax { get; }             // core type
     public IReadOnlyList<string> UnknownPaths { get; }
 }
@@ -428,6 +428,13 @@ public sealed class UploadCheckResult
     customer has to find them in that copy. Mapping them to canonical contract paths is not attempted.
   - Unknown paths that are comparison operands (`{{#if order.priority = "high"}}`) are only found once #271 is fixed in
     core. Task 7 depends on #271.
+- **Stamp properties** (#268): `Templify.TemplateId`, `Templify.TemplateVersion`, `Templify.ContractHash`,
+  `Templify.Language`, `Templify.BuilderVersion`, `Templify.MinimumEngineVersion`, all strings. The versions are the
+  assemblies' informational versions without build metadata. `TemplateStampRemover` removes exactly the properties
+  with the `Templify.` prefix and keeps all others; in DOCX it deletes the custom-properties part if nothing else is
+  left.
+- **Reading condition variables.** The engine does not yet expose the variable of a `MissingConditionVariable`
+  warning, so `CheckUpload` reads it from the message until #275 lands; a test pins the wording.
 - **Where the stamp is stored.** DOCX: `docProps/custom.xml`. ODT: `meta:user-defined` in `meta.xml`. Core's
   `DocumentProperties` option overwrites only the standard properties, so the stamp survives into filled documents.
 - **The stamp stays in filled documents by default** (maintainer decision). Support can tell from a customer's document
