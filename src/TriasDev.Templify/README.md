@@ -1069,6 +1069,7 @@ Format specifiers control how a value is displayed: `{{Variable:format}}`. Which
 | `date:FORMAT` | `DateTime`, `DateTimeOffset`, date strings | `{{OrderDate:date:yyyy-MM-dd}}` | `2025-01-15` |
 | `uppercase` / `lowercase` | strings | `{{Name:uppercase}}` | `ALICE` |
 | `raw` | any value | `{{FileName:raw}}` | value without markdown formatting |
+| `join`, `join:Property`, `join:Property:"sep"` | lists | `{{Tags:join}}`, `{{Assets:join:Name:"; "}}` | `red, green, blue`, `Server; Laptop` (default separator `, `, `""` for none) |
 | boolean formats (below) | booleans | `{{IsActive:checkbox}}` | `☑` |
 
 `FORMAT` is a standard or custom .NET format string, applied with `PlaceholderReplacementOptions.Culture`. Numbers passed as strings (e.g. `"1234.5"`) are not formatted by `currency`/`number`. Specifiers also work on inline expressions: `{{(Count > 0):yesno}}`.

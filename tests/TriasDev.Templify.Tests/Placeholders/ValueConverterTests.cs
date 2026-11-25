@@ -787,4 +787,22 @@ public class ValueConverterTests
     }
 
     #endregion
+
+    [Fact]
+    public void ConvertToString_JoinFormatOnList_JoinsItems() =>
+        Assert.Equal("a, b", ValueConverter.ConvertToString(new List<string> { "a", "b" }, CultureInfo.InvariantCulture, "join", null));
+
+    [Fact]
+    public void ConvertToString_JoinFormatOnString_Unchanged() =>
+        Assert.Equal("abc", ValueConverter.ConvertToString("abc", CultureInfo.InvariantCulture, "join", null));
+
+    [Fact]
+    public void ConvertToString_InvalidJoinFormat_RendersAsWithoutFormat()
+    {
+        List<string> list = new List<string> { "a" };
+
+        Assert.Equal(
+            ValueConverter.ConvertToString(list, CultureInfo.InvariantCulture),
+            ValueConverter.ConvertToString(list, CultureInfo.InvariantCulture, "join:\"open", null));
+    }
 }

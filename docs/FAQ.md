@@ -98,6 +98,7 @@ In ASP.NET Core, buffer uploaded templates asynchronously before processing (see
 - ✅ **Membership, string, and existence operators**: `in`, `contains`, `startswith`, `endswith`, `exists`, `is empty`, `is not empty`
 - ✅ **Grouping**: parentheses `()` for controlling evaluation order
 - ✅ **Number, date and string formats**: `{{Amount:currency}}`, `{{Value:number:N2}}`, `{{Date:date:yyyy-MM-dd}}`, `{{Name:uppercase}}`
+- ✅ **Lists in a sentence**: `{{Tags:join}}` → `red, green, blue`, `{{Assets:join:Name:"; "}}`
 - ✅ **Markdown in values**: `**bold**`, `*italic*`, `~~strike~~` (opt out with `EnableMarkdown = false` or `{{Value:raw}}`)
 - ✅ **Localization**: Boolean formats adapt to the culture (en, de, fr, es, it, pt, nl, pl, ru; `yesno` also ja, zh)
 - ✅ **JSON support**: Use JSON data instead of C# dictionaries
@@ -254,8 +255,9 @@ an inline conditional (`Dear {{#if IsVip}}valued {{/if}}customer`).
 The `{{#foreach}}` and `{{/foreach}}` markers must each be in their own paragraph: the paragraph that contains a
 marker is removed, together with any other text in it (reported as `BlockMarkerWithText`: an error in
 `ValidateTemplate`, a warning when processing). A loop written inside a single paragraph
-(`{{#foreach Tags}}{{.}}, {{/foreach}}`) is not supported: the paragraph is removed. For a collection of simple values,
-use `{{.}}` (or `{{this}}`) for the current item.
+(`{{#foreach Tags}}{{.}}, {{/foreach}}`) is not supported: the paragraph is removed. For a list on one line, use
+`{{Tags:join}}` (see Format Specifiers). For a collection of simple values in a loop, use `{{.}}` (or `{{this}}`) for the
+current item.
 
 ### Q: What are loop special variables?
 

@@ -494,6 +494,13 @@ public sealed partial class TextTemplateProcessor
                 continue;
             }
 
+            // :join by an item property that no item has (likely misspelled): report it like a missing variable.
+            if (JoinFormat.TryGetMissingItemVariable(placeholder.VariableName, value, placeholder.Format, out string? missingItemVariable))
+            {
+                state.MissingVariables.Add(missingItemVariable);
+                state.Warnings.AddWarning(ProcessingWarning.MissingVariable(missingItemVariable));
+            }
+
             // Text output has no markdown, so :raw only means "no format".
             string? format = string.Equals(placeholder.Format, "raw", StringComparison.OrdinalIgnoreCase)
                 ? null
