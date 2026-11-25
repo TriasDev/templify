@@ -54,9 +54,27 @@ public sealed class UpdateFieldsOnOpenSchemaTests
     }
 
     [Fact]
+    public void ProcessTemplate_MisplacedAndDuplicatedUpdateFields_AreReplacedBySingleElementAtSchemaPosition()
+    {
+        // Output of Templify <= 1.10 with UpdateFieldsOnOpen: updateFields as the first child of w:settings.
+        // Reused as a template, it must come out schema-valid, with exactly one updateFields.
+        Settings settings = CreateNonTrivialSettings();
+        settings.PrependChild(new UpdateFieldsOnOpen { Val = false });
+        settings.InsertBefore(new UpdateFieldsOnOpen { Val = false }, settings.GetFirstChild<Compatibility>());
+        MemoryStream template = BuildTemplate(settings);
+
+        MemoryStream output = Process(template, UpdateFieldsOnOpenMode.Always);
+
+        using DocumentVerifier verifier = new DocumentVerifier(output);
+        Assert.Empty(verifier.GetValidationErrors());
+        Assert.True(verifier.HasUpdateFieldsOnOpen());
+        Assert.Single(verifier.Document.MainDocumentPart!.DocumentSettingsPart!.Settings!.Elements<UpdateFieldsOnOpen>());
+    }
+
+    [Fact]
     public void ProcessTemplate_SettingsWithUnknownAndMisorderedChildren_StillSetsUpdateFields()
     {
-        // Settings the SDK cannot place a child into by schema must not make processing fail.
+        // Already schema-invalid input (misordered children, an unknown element) must not make processing fail.
         Settings settings = new Settings(
             new Compatibility(),
             new Zoom { Percent = "100" },
