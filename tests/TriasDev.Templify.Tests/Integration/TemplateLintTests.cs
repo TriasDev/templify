@@ -38,6 +38,15 @@ public sealed class TemplateLintTests
     }
 
     [Fact]
+    public void R1_TagStartBeforeAnotherTag()
+    {
+        ValidationError error = AssertSingleError(Build("{{B and {{A}}"));
+
+        Assert.Equal(ValidationErrorType.UnterminatedTag, error.Type);
+        Assert.Equal("Unterminated tag '{{B and': a placeholder or marker must open and close in the same paragraph.", error.Message);
+    }
+
+    [Fact]
     public void R1_LiteralBraces_NotReported() =>
         AssertValid(Build("{\"a\":{\"b\":1}}", "}}", "{{ not a tag"));
 
@@ -93,6 +102,74 @@ public sealed class TemplateLintTests
             ["UnmatchedConditionalStart: Table row conditional start marker '{{#if A}}' has no matching '{{/if}}'. @ body, table 1, row 1: '{{#if A}}x'"],
             Describe(template));
         Assert.EndsWith("Table row conditional start marker '{{#if A}}' has no matching '{{/if}}'.", Process(template).ErrorMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DrawingMlTextBox_ChoiceAndFallback_ReportedOnce()
+    {
+        const string Namespaces =
+            "xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" " +
+            "xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\" " +
+            "xmlns:wps=\"http://schemas.microsoft.com/office/word/2010/wordprocessingShape\" " +
+            "xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" " +
+            "xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" " +
+            "xmlns:v=\"urn:schemas-microsoft-com:vml\"";
+        const string Box = "<w:p><w:r><w:t xml:space=\"preserve\">Hello {{Na</w:t></w:r></w:p>";
+        Run run = new Run(
+            "<w:r " + Namespaces + ">" +
+            "<mc:AlternateContent><mc:Choice Requires=\"wps\"><w:drawing>" +
+            "<wp:inline distT=\"0\" distB=\"0\" distL=\"0\" distR=\"0\"><wp:extent cx=\"914400\" cy=\"457200\"/><wp:docPr id=\"1\" name=\"Text Box 1\"/>" +
+            "<a:graphic><a:graphicData uri=\"http://schemas.microsoft.com/office/word/2010/wordprocessingShape\">" +
+            "<wps:wsp><wps:cNvSpPr txBox=\"1\"/><wps:spPr/><wps:txbx><w:txbxContent>" + Box + "</w:txbxContent></wps:txbx><wps:bodyPr/></wps:wsp>" +
+            "</a:graphicData></a:graphic></wp:inline></w:drawing></mc:Choice>" +
+            "<mc:Fallback><w:pict><v:shape id=\"tb1\" style=\"width:72pt;height:36pt\"><v:textbox><w:txbxContent>" + Box +
+            "</w:txbxContent></v:textbox></v:shape></w:pict></mc:Fallback></mc:AlternateContent></w:r>");
+        byte[] template = new DocumentBuilder().AddElement(new Paragraph(new Run(new Text("anchor")), run)).ToStream().ToArray();
+
+        Assert.Equal(
+            ["UnterminatedTag: Unterminated tag '{{Na': a placeholder or marker must open and close in the same paragraph. @ body, paragraph 1, text box 1, paragraph 1: 'Hello {{Na'"],
+            Describe(template));
+    }
+
+    [Fact]
+    public void SameRowLoop_ExactlyOneError()
+    {
+        byte[] template = new DocumentBuilder().AddTableWithCellParagraphs(2, 3, (r, c) => (r, c) switch
+        {
+            (0, 0) => ["{{#foreach Items}}"],
+            (0, 1) => ["{{Name}}"],
+            (0, 2) => ["{{/foreach}}"],
+            _ => ["x"],
+        }).ToStream().ToArray();
+
+        // Structural errors only (with data, the data check also reports {{Name}} outside a loop — #255 PR 3).
+        Assert.Equal(ValidationErrorType.UnmatchedLoopStart, Assert.Single(Validate(template).First().Errors).Type);
+    }
+
+    [Fact]
+    public void SplitCellConditional_ExactlyOneError()
+    {
+        byte[] template = new DocumentBuilder().AddTableWithCellParagraphs(2, 2, (r, c) => (r, c) switch
+        {
+            (0, 0) => ["{{#if A}}"],
+            (0, 1) => ["{{/if}}"],
+            _ => ["x"],
+        }).ToStream().ToArray();
+
+        Assert.StartsWith("Invalid table row conditional", AssertSingleError(template).Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void UnmatchedInBodyAndHeader_TwoErrors()
+    {
+        byte[] template = new DocumentBuilder().AddParagraph("{{#if A}}").AddParagraph("x")
+            .AddHeaderWithParagraphs(HeaderFooterValues.Default, "{{#if A}}", "y").ToStream().ToArray();
+
+        List<string> errors = Describe(template);
+
+        Assert.Equal(2, errors.Count);
+        Assert.Contains(errors, e => e.EndsWith("@ body, paragraph 1: '{{#if A}}'", StringComparison.Ordinal));
+        Assert.Contains(errors, e => e.EndsWith("@ header (default), paragraph 1: '{{#if A}}'", StringComparison.Ordinal));
     }
 
     [Fact]

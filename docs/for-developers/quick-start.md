@@ -292,7 +292,7 @@ Inline expressions get no `MissingConditionVariable` warning, because their miss
 Numbers start at 1 and count each kind (paragraph, table, row, cell, text box, content control; in OpenDocument also list,
 item, section, frame) within its parent; the text is cut after 100 characters. Headers and footers are named after their
 type in Word (`header (first)`, a second default header `header 2 (default)`) and after their page style in
-OpenDocument (`header (Standard)`); notes are `footnote 1`, `endnote 1`. `Location` is `null` when no element is involved.
+OpenDocument (`header (Standard)`); Word notes are `footnote 1`, `endnote 1`. `Location` is `null` when no element is involved.
 
 `InvalidDocument` is reported by `TemplateProcessor` and `OdtTemplateProcessor`. `DocumentTemplateProcessor` still
 reports an unreadable Word document as `InvalidPlaceholderSyntax` ("Validation failed: ..."), for compatibility with

@@ -37,16 +37,21 @@ internal static partial class TemplateTagText
     private static partial Regex TagStartRegex();
 
     /// <summary>
-    /// R1: the text from the first tag start that has no <c>}}</c> after it, e.g. <c>{{Na</c> in <c>Hello {{Na</c>;
-    /// <c>null</c> when every tag start is closed. Stray <c>}}</c> and braces not starting a tag are not reported.
+    /// R1: the text of the first tag start that is not closed before the next tag start (or the end), e.g. <c>{{Na</c>
+    /// in <c>Hello {{Na</c> and <c>{{B and</c> in <c>{{B and {{A}}</c>; <c>null</c> when every tag start is closed.
+    /// Stray <c>}}</c> and braces not starting a tag are not reported.
     /// </summary>
     public static string? FindUnterminatedTag(string text)
     {
-        foreach (Match start in TagStartRegex().Matches(text))
+        MatchCollection starts = TagStartRegex().Matches(text);
+        for (int i = 0; i < starts.Count; i++)
         {
-            if (text.IndexOf("}}", start.Index + 2, StringComparison.Ordinal) < 0)
+            int start = starts[i].Index;
+            int nextStart = i + 1 < starts.Count ? starts[i + 1].Index : text.Length;
+            int close = text.IndexOf("}}", start + 2, StringComparison.Ordinal);
+            if (close < 0 || close > nextStart)
             {
-                return text.Substring(start.Index).TrimEnd();
+                return text.Substring(start, nextStart - start).TrimEnd();
             }
         }
 

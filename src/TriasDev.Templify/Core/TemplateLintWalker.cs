@@ -1,7 +1,6 @@
 // Copyright (c) 2026 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using TriasDev.Templify.Conditionals;
@@ -21,15 +20,16 @@ namespace TriasDev.Templify.Core;
 /// </summary>
 internal sealed class TemplateLintWalker
 {
-    /// <summary>The marker quoted in an unmatched-marker message, e.g. <c>'{{#if A}}'</c>.</summary>
-    private static readonly Regex _quotedMarker = new Regex(@"start marker '(\{\{#[^']*\}\})'", RegexOptions.CultureInvariant);
-
     private const int MaxQuotedTagLength = 40;
 
     private readonly WordTemplateLocator _locator;
     private readonly List<ValidationError> _errors;
     private readonly HashSet<string> _allPlaceholders;
-    private readonly HashSet<string> _reportedSyntaxErrors = new HashSet<string>(StringComparer.Ordinal);
+    private readonly HashSet<(OpenXmlElement? Element, ValidationErrorType Type, string Message)> _reportedSyntaxErrors =
+        new HashSet<(OpenXmlElement?, ValidationErrorType, string)>();
+
+    /// <summary>Elements a detector error was reported for; problems inside them are follow-ups and not reported.</summary>
+    private readonly HashSet<OpenXmlElement> _failedElements = new HashSet<OpenXmlElement>();
     private readonly HashSet<(OpenXmlElement Element, string Rule)> _reported = new HashSet<(OpenXmlElement, string)>();
 
     public TemplateLintWalker(WordTemplateLocator locator, List<ValidationError> errors, HashSet<string> allPlaceholders)
@@ -58,7 +58,7 @@ internal sealed class TemplateLintWalker
         foreach (Paragraph paragraph in elements.OfType<Paragraph>().Where(p => !loopContent.Contains(p)))
         {
             ReportUnterminatedTag(paragraph);
-            if (!allMarkers.Contains(paragraph))
+            if (!allMarkers.Contains(paragraph) && !IsInsideFailedElement(paragraph))
             {
                 ReportOrphanMarkers(paragraph, checkConditionals: !conditionalsFailed, checkLoops: !loopsFailed);
             }
@@ -79,8 +79,8 @@ internal sealed class TemplateLintWalker
             switch (element)
             {
                 case Paragraph paragraph:
-                    foreach (TextBoxContent textBox in paragraph.Descendants<TextBoxContent>()
-                        .Where(box => box.Ancestors<Paragraph>().FirstOrDefault() == paragraph))
+                    // Processing walks both copies of a DrawingML text box; the lint reports the one the author sees.
+                    foreach (TextBoxContent textBox in WordTemplateLocator.GetTextBoxes(paragraph))
                     {
                         ValidateBlocks(textBox.Elements<OpenXmlElement>().ToList());
                     }
@@ -226,17 +226,28 @@ internal sealed class TemplateLintWalker
         }
         catch (TemplateSyntaxException ex)
         {
-            // A marker that fails at row level is found again inside its cell with the cell-level wording; report
-            // each marker once, with the message of the outermost level, which is the one processing fails with.
-            Match marker = _quotedMarker.Match(ex.Message);
-            string key = marker.Success ? $"{ex.ErrorType}:{marker.Groups[1].Value}" : ex.Message;
-            if (_reportedSyntaxErrors.Add(key))
+            // Processing stops at the outermost error: a row that fails at row level is detected again inside its
+            // cells (and loop content again per walk); those follow-ups are not reported. The same problem at another
+            // place (body and header) is reported at each place.
+            OpenXmlElement? element = ex.SourceElement as OpenXmlElement;
+            if (element != null && IsInsideFailedElement(element))
             {
-                string? location = ex.SourceElement is OpenXmlElement element ? _locator.Describe(element) : null;
-                _errors.Add(ValidationError.Create(ex.ErrorType, ex.Message, location));
+                return (Array.Empty<T>(), true);
+            }
+
+            if (_reportedSyntaxErrors.Add((element, ex.ErrorType, ex.Message)))
+            {
+                _errors.Add(ValidationError.Create(ex.ErrorType, ex.Message, element != null ? _locator.Describe(element) : null));
+                if (element != null)
+                {
+                    _failedElements.Add(element);
+                }
             }
 
             return (Array.Empty<T>(), true);
         }
     }
+
+    private bool IsInsideFailedElement(OpenXmlElement element) =>
+        _failedElements.Count > 0 && element.Ancestors().Any(_failedElements.Contains);
 }

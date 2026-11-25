@@ -31,14 +31,14 @@ internal static partial class LoopDetector
     /// <summary>Pattern text of the <c>{{/foreach}}</c> end marker.</summary>
     internal const string ForeachEndPattern = @"\{\{/foreach\}\}";
 
-    /// <summary>
-    /// Pattern text of the optional named iteration variable prefix of a <c>{{#foreach}}</c> marker
-    /// (<c>item in </c>; group: the variable name, which may start with <c>@</c> so it can be rejected).
-    /// </summary>
     /// <summary>Appended when a table row holds both loop markers (#255): the form is not supported.</summary>
     internal const string SameRowLoopMarkersMessage =
         " Loop markers in a table must be in rows of their own; a row with both '{{#foreach}}' and '{{/foreach}}' is not supported.";
 
+    /// <summary>
+    /// Pattern text of the optional named iteration variable prefix of a <c>{{#foreach}}</c> marker
+    /// (<c>item in </c>; group: the variable name, which may start with <c>@</c> so it can be rejected).
+    /// </summary>
     internal const string IterationVariablePrefixPattern = @"(?:(@?\w+)\s+in\s+)?";
 
     private static readonly Regex _foreachEndPattern = ForeachEndRegex();

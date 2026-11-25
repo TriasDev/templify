@@ -51,6 +51,28 @@ public sealed class OdtTemplateLintTests
     }
 
     [Fact]
+    public void SameRowLoop_ExactlyOneError() =>
+        Assert.Equal(ValidationErrorType.UnmatchedLoopStart,
+            Assert.Single(Validate(new OdtDocumentBuilder().AddTable(["{{#foreach Items}}", "{{Name}}", "{{/foreach}}"], ["x", "x", "x"]).ToBytes()).Errors).Type);
+
+    [Fact]
+    public void SplitCellConditional_ExactlyOneError() =>
+        Assert.StartsWith("Invalid table row conditional",
+            Assert.Single(Validate(new OdtDocumentBuilder().AddTable(["{{#if A}}", "{{/if}}"], ["x", "x"]).ToBytes()).Errors).Message,
+            StringComparison.Ordinal);
+
+    [Fact]
+    public void UnmatchedInBodyAndHeader_TwoErrors()
+    {
+        List<string> errors = Describe(new OdtDocumentBuilder().AddParagraph("{{#if A}}").AddParagraph("x")
+            .AddHeaderParagraph("{{#if A}}").AddHeaderParagraph("y").ToBytes());
+
+        Assert.Equal(2, errors.Count);
+        Assert.Contains(errors, e => e.EndsWith("@ body, paragraph 1: '{{#if A}}'", StringComparison.Ordinal));
+        Assert.Contains(errors, e => e.EndsWith("@ header (Standard), paragraph 1: '{{#if A}}'", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Header_Location() =>
         Assert.StartsWith(
             "header (Standard), paragraph 1",

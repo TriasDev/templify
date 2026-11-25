@@ -153,9 +153,21 @@ internal sealed class WordTemplateLocator
         Paragraph? anchor = box.Ancestors<Paragraph>().FirstOrDefault();
         return anchor == null
             ? 1
-            : anchor.Descendants<TextBoxContent>()
-                .Where(b => ReferenceEquals(b.Ancestors<Paragraph>().FirstOrDefault(), anchor))
-                .TakeWhile(b => !ReferenceEquals(b, box))
-                .Count() + 1;
+            : GetTextBoxes(anchor).TakeWhile(b => !ReferenceEquals(b, box)).Count() + 1;
+    }
+
+    /// <summary>
+    /// The text boxes anchored in <paramref name="paragraph"/> as the author sees them: Word stores a DrawingML text
+    /// box twice, in <c>mc:Choice</c> and again in <c>mc:Fallback</c>; the fallback copy is left out.
+    /// </summary>
+    internal static IEnumerable<TextBoxContent> GetTextBoxes(Paragraph paragraph) =>
+        paragraph.Descendants<TextBoxContent>()
+            .Where(box => ReferenceEquals(box.Ancestors<Paragraph>().FirstOrDefault(), paragraph) && !IsFallbackCopy(box));
+
+    private static bool IsFallbackCopy(TextBoxContent box)
+    {
+        AlternateContentFallback? fallback = box.Ancestors<AlternateContentFallback>().FirstOrDefault();
+        return fallback?.Parent is AlternateContent alternate
+            && alternate.Elements<AlternateContentChoice>().Any(choice => choice.Descendants<TextBoxContent>().Any());
     }
 }

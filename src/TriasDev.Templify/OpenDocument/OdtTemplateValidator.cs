@@ -285,12 +285,13 @@ internal sealed class OdtTemplateValidator
     {
         private readonly HashSet<string> _allPlaceholders;
         private readonly List<ValidationError> _errors;
-        /// <summary>The marker quoted in an unmatched-marker message, e.g. <c>'{{#if A}}'</c>.</summary>
-        private static readonly Regex _quotedMarker = new Regex(@"start marker '(\{\{#[^']*\}\})'", RegexOptions.CultureInvariant);
-
         private const int MaxQuotedTagLength = 40;
 
-        private readonly HashSet<string> _reported = new HashSet<string>(StringComparer.Ordinal);
+        private readonly HashSet<(XElement? Element, ValidationErrorType Type, string Message)> _reported =
+            new HashSet<(XElement?, ValidationErrorType, string)>();
+
+        /// <summary>Elements a detector error was reported for; problems inside them are follow-ups and not reported.</summary>
+        private readonly HashSet<XElement> _failedElements = new HashSet<XElement>();
         private readonly HashSet<(XElement Element, string Rule)> _reportedElements = new HashSet<(XElement, string)>();
         private readonly OdtTemplateLocator _locator;
 
@@ -361,7 +362,7 @@ internal sealed class OdtTemplateValidator
                 foreach (XElement paragraph in blocks.Where(b => OdfNames.IsParagraph(b) && !loopContent.Contains(b)))
                 {
                     ReportUnterminatedTag(paragraph);
-                    if (!allMarkers.Contains(paragraph))
+                    if (!allMarkers.Contains(paragraph) && !IsInsideFailedElement(paragraph))
                     {
                         ReportOrphanMarkers(paragraph, checkConditionals: !conditionalsFailed, checkLoops: !loopsFailed);
                     }
@@ -468,20 +469,30 @@ internal sealed class OdtTemplateValidator
             }
             catch (TemplateSyntaxException ex)
             {
-                // A marker that fails at row or list-item level is found again inside its cell or item, with the
-                // cell-level wording ("Conditional start marker '{{#if A}}' ..."); report each marker once, with
-                // the message of the outermost level, which is the one processing fails with.
-                Match marker = _quotedMarker.Match(ex.Message);
-                string key = marker.Success ? $"{ex.ErrorType}:{marker.Groups[1].Value}" : ex.Message;
-                if (_reported.Add(key))
+                // Processing stops at the outermost error: a row or list item that fails at its level is detected again
+                // inside its cells or paragraphs (and loop content again per walk); those follow-ups are not reported.
+                // The same problem at another place (body and header) is reported at each place.
+                XElement? element = ex.SourceElement as XElement;
+                if (element != null && IsInsideFailedElement(element))
                 {
-                    string? location = ex.SourceElement is XElement element ? _locator.Describe(element) : null;
-                    _errors.Add(ValidationError.Create(ex.ErrorType, ex.Message, location));
+                    return (Array.Empty<T>(), true);
+                }
+
+                if (_reported.Add((element, ex.ErrorType, ex.Message)))
+                {
+                    _errors.Add(ValidationError.Create(ex.ErrorType, ex.Message, element != null ? _locator.Describe(element) : null));
+                    if (element != null)
+                    {
+                        _failedElements.Add(element);
+                    }
                 }
 
                 return (Array.Empty<T>(), true);
             }
         }
+
+        private bool IsInsideFailedElement(XElement element) =>
+            _failedElements.Count > 0 && element.Ancestors().Any(_failedElements.Contains);
     }
 
     /// <summary>
