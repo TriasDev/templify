@@ -588,6 +588,7 @@ internal static class TableLayout
 
     private static void CheckTable(TableBlock table, Length frame, StyleSheet styles, BuildContext context)
     {
+        context.At(table);
         if (table.Columns.Count == 0)
         {
             context.Error(DiagnosticCodes.TableWithoutColumns, "A table has no columns; define them with Columns(...).");

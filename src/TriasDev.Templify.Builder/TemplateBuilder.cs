@@ -74,6 +74,7 @@ public static class TemplateBuilder
 
         CheckStylesAreDefined(allBlocks, styles, context);
         TableLayout.Check(allBlocks, page.FrameWidth, styles, context);
+        context.CurrentLocation = null;
 
         if (context.Errors.Count > 0)
         {
@@ -99,6 +100,7 @@ public static class TemplateBuilder
         HashSet<string> reported = new HashSet<string>(StringComparer.Ordinal);
         foreach (ParagraphBlock paragraph in BlockTree.Paragraphs(body))
         {
+            context.At(paragraph);
             if (paragraph.List is { } item)
             {
                 ListStyleDefinition? list = styles.Find(item.Style);

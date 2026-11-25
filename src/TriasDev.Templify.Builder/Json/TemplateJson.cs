@@ -64,7 +64,27 @@ public static class TemplateJson
             throw Invalid("/identity", "The identity { \"id\": …, \"version\": … } is missing or incomplete.");
         }
 
-        return new JsonDefinition(root, new TemplateIdentity(id.GetString()!, identityVersion), options);
+        JsonDefinition definition = new JsonDefinition(root, new TemplateIdentity(id.GetString()!, identityVersion), options);
+        CheckStructure(definition);
+        return definition;
+    }
+
+    /// <summary>
+    /// Composes the definition once without a language, keeping only the problems of the JSON itself (structure,
+    /// assets, raw XML, data paths): those are thrown now, together. The composers' rules are checked at build time.
+    /// </summary>
+    private static void CheckStructure(JsonDefinition definition)
+    {
+        BuildContext context = new BuildContext();
+        TemplateComposer composer = new TemplateComposer(context, new TemplateTexts(context, TextCatalog.Empty, System.Globalization.CultureInfo.InvariantCulture));
+        definition.Compose(composer);
+        List<BuildDiagnostic> problems = context.Errors
+            .Where(e => e.Code is DiagnosticCodes.InvalidJson or DiagnosticCodes.RawXmlNotAllowed or DiagnosticCodes.UnknownDataPath)
+            .ToList();
+        if (problems.Count > 0)
+        {
+            throw new TemplateBuildException(problems);
+        }
     }
 
     private static TemplateBuildException Invalid(string location, string message) =>

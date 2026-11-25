@@ -21,7 +21,16 @@ internal sealed class BuildContext
     public IReadOnlyList<BuildDiagnostic> Errors => _errors;
 
     /// <summary>Records an error; the build fails after composing, with every error found.</summary>
-    public void Error(string code, string message) => _errors.Add(new BuildDiagnostic(code, message));
+    public void Error(string code, string message) => _errors.Add(new BuildDiagnostic(code, message) { Location = CurrentLocation });
+
+    /// <summary>Where a JSON definition is being composed (a JSON pointer); null for C# definitions.</summary>
+    public string? CurrentLocation { get; set; }
+
+    /// <summary>The JSON pointers of model blocks a JSON definition created, for checks that run on the finished model.</summary>
+    public System.Runtime.CompilerServices.ConditionalWeakTable<Model.Block, string> Locations { get; } = new System.Runtime.CompilerServices.ConditionalWeakTable<Model.Block, string>();
+
+    /// <summary>Sets <see cref="CurrentLocation"/> to a block's JSON pointer (null when it has none).</summary>
+    public void At(Model.Block block) => CurrentLocation = Locations.TryGetValue(block, out string? location) ? location : null;
 
     /// <summary>Records an error at a location in a JSON definition.</summary>
     public void Error(string code, string message, string? location) => _errors.Add(new BuildDiagnostic(code, message) { Location = location });
