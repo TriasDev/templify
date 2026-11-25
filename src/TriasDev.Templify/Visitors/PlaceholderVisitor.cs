@@ -104,25 +104,12 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
                 _warningCollector.AddWarning(ProcessingWarning.MissingVariable(missingItemVariable));
             }
 
-            // Variable/expression found - convert to string with optional format and replace.
-            // The :raw specifier only disables markdown; the value itself uses default conversion.
-            bool isRaw = IsRawFormat(placeholder.Format);
-            string replacementValue = ValueConverter.ConvertToString(
-                value,
-                _options.Culture,
-                isRaw ? null : placeholder.Format,
-                _options.BooleanFormatterRegistry);
-
-            // Apply text replacements (e.g., HTML entities to Word-compatible text)
-            // Note: Apply returns null only if input is null, which won't happen here
-            replacementValue = TextReplacements.Apply(replacementValue, _options.TextReplacements)!;
-
-            // Remove characters invalid in XML 1.0 (e.g., 0x02 STX from JSON data)
-            // to prevent OpenXML serialization failures
-            replacementValue = XmlCharacterSanitizer.Sanitize(replacementValue)!;
-
-            bool applyMarkdown = _options.EnableMarkdown && !isRaw;
-            ReplacePlaceholderInParagraph(paragraph, placeholder, replacementValue, applyMarkdown);
+            // Variable/expression found - convert with the optional format and replace.
+            ParagraphTextRewriter.Replace(
+                paragraph,
+                placeholder.StartIndex,
+                placeholder.StartIndex + placeholder.Length,
+                PlaceholderReplacementContent.Create(value, placeholder.Format, _options));
             _replacementCount++;
         }
     }
@@ -180,10 +167,4 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
             placeholder.StartIndex + placeholder.Length,
             content);
     }
-
-    /// <summary>
-    /// Checks whether the format specifier is <c>raw</c>, which disables markdown for the placeholder.
-    /// </summary>
-    private static bool IsRawFormat(string? format) =>
-        string.Equals(format, "raw", StringComparison.OrdinalIgnoreCase);
 }

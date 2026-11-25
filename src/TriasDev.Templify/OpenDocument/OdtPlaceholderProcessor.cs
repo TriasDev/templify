@@ -89,24 +89,8 @@ internal sealed class OdtPlaceholderProcessor
             _warningCollector.AddWarning(ProcessingWarning.MissingVariable(missingItemVariable));
         }
 
-        // The :raw specifier only disables markdown; the value itself uses default conversion.
-        bool isRaw = string.Equals(placeholder.Format, "raw", StringComparison.OrdinalIgnoreCase);
-        string replacementValue = ValueConverter.ConvertToString(
-            value,
-            _options.Culture,
-            isRaw ? null : placeholder.Format,
-            _options.BooleanFormatterRegistry);
-
-        replacementValue = TextReplacements.Apply(replacementValue, _options.TextReplacements)!;
-
-        // Characters invalid in XML 1.0 would make the part unserializable.
-        replacementValue = XmlCharacterSanitizer.Sanitize(replacementValue)!;
-
         // Markdown becomes nested spans with automatic text styles (see OdtTextStyles).
-        ReplacementContent content = ReplacementContent.FromValue(
-            replacementValue,
-            _options.EnableNewlineSupport,
-            parseMarkdown: _options.EnableMarkdown && !isRaw);
+        ReplacementContent content = PlaceholderReplacementContent.Create(value, placeholder.Format, _options);
 
         Replace(paragraph, placeholder, content);
     }

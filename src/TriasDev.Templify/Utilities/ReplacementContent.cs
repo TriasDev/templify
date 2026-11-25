@@ -111,6 +111,26 @@ internal sealed class ReplacementContent
         return new ReplacementContent(pieces);
     }
 
+    /// <summary>
+    /// Concatenates the items with <paramref name="separator"/> as plain text between them (a <c>:join</c> list):
+    /// each item keeps its own pieces, the separator is never parsed as markdown.
+    /// </summary>
+    public static ReplacementContent Join(IReadOnlyList<ReplacementContent> items, string separator)
+    {
+        List<ReplacementPiece> pieces = new List<ReplacementPiece>();
+        for (int i = 0; i < items.Count; i++)
+        {
+            if (i > 0 && separator.Length > 0)
+            {
+                pieces.Add(new ReplacementPiece(separator));
+            }
+
+            pieces.AddRange(items[i].Pieces);
+        }
+
+        return pieces.Count == 0 ? Empty : new ReplacementContent(pieces);
+    }
+
     private static void AddMarkdownPieces(List<ReplacementPiece> pieces, string text)
     {
         foreach (MarkdownSegment segment in MarkdownParser.Parse(text))

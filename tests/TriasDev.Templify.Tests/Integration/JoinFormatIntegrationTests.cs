@@ -68,6 +68,42 @@ public sealed class JoinFormatIntegrationTests
     }
 
     [Fact]
+    public void Join_MarkdownDoesNotPairAcrossItems()
+    {
+        using TemplateTestRun run = Process(["{{Codes:join}}"], new() { ["Codes"] = new List<string> { "file_a", "file_b" } });
+
+        Assert.Equal(["file_a, file_b"], run.Verifier.GetAllParagraphTexts());
+        Assert.All(run.Verifier.GetRuns(0), r => Assert.Null(r.RunProperties?.Italic));
+    }
+
+    [Fact]
+    public void Join_SeparatorIsLiteralText()
+    {
+        using TemplateTestRun run = Process(["{{Codes:join:\" * \"}}"], new() { ["Codes"] = new List<string> { "a", "b", "c" } });
+
+        Assert.Equal(["a * b * c"], run.Verifier.GetAllParagraphTexts());
+        Assert.All(run.Verifier.GetRuns(0), r => Assert.Null(r.RunProperties?.Italic));
+    }
+
+    [Fact]
+    public void Join_TypographicQuotesFromWord()
+    {
+        using TemplateTestRun run = Process(["{{Codes:join:\u201E; \u201C}}"], new() { ["Codes"] = new List<string> { "a", "b" } });
+
+        Assert.Equal(["a; b"], run.Verifier.GetAllParagraphTexts());
+    }
+
+    [Fact]
+    public void Join_ItemWithPlaceholderSyntax_IsNotProcessed()
+    {
+        Dictionary<string, object> data = new() { ["Codes"] = new List<string> { "{{Secret}}", "b" }, ["Secret"] = "s" };
+
+        using TemplateTestRun run = Process(["{{Codes:join}} {{Secret}}"], data);
+
+        Assert.Equal(["{{Secret}}, b s"], run.Verifier.GetAllParagraphTexts());
+    }
+
+    [Fact]
     public void Join_KeepsPlaceholderRunFormatting()
     {
         DocumentBuilder builder = new DocumentBuilder().AddParagraph("{{Assets:join:Name}}", new RunProperties(new Bold()));

@@ -112,7 +112,12 @@ internal sealed partial class JoinFormat
     /// <summary>Joins the items (or their <see cref="ItemPath"/> values), skipping <c>null</c> and empty texts.</summary>
     /// <param name="collection">A value for which <see cref="IsCollection"/> is <c>true</c>.</param>
     /// <param name="culture">The culture numbers and dates are formatted with.</param>
-    public string Join(object collection, CultureInfo culture)
+    public string Join(object collection, CultureInfo culture) => string.Join(Separator, GetItemTexts(collection, culture));
+
+    /// <summary>The texts of the items (or of their <see cref="ItemPath"/> values), without <c>null</c> and empty ones.</summary>
+    /// <param name="collection">A value for which <see cref="IsCollection"/> is <c>true</c>.</param>
+    /// <param name="culture">The culture numbers and dates are formatted with.</param>
+    public IReadOnlyList<string> GetItemTexts(object collection, CultureInfo culture)
     {
         List<string> parts = new List<string>();
         foreach (object? item in GetItems(collection))
@@ -129,7 +134,7 @@ internal sealed partial class JoinFormat
             }
         }
 
-        return string.Join(Separator, parts);
+        return parts;
     }
 
     /// <summary>

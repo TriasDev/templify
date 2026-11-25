@@ -63,7 +63,12 @@ Today `{{Tags}}` with a list renders the CLR type name (`System.Collections.Gene
 - `null` items and items whose (property) value is `null` or an empty string are skipped, so no dangling separators.
 - An empty or `null` collection renders as an empty string. A missing collection is a missing variable as today
   (`MissingVariableBehavior`).
-- Markdown and newline handling apply to the joined text as to any placeholder value (`:raw` cannot be combined).
+- Markdown and newline handling apply **to each item on its own**, as to any placeholder value; the separator is
+  literal template text (decided by the maintainer after review: parsing the joined string paired markers across items,
+  `["file_a", "file_b"]` rendered `filea, fileb` with `a, file` in italics, and ate `*`/`_` separators). Word and ODT
+  build the replacement from per-item pieces plus literal separator pieces. `:raw` cannot be combined.
+  In Word and ODT, `TextReplacements` and XML sanitizing apply to the items (data), not to the separator (template
+  text); text templates (no markdown) apply them to the joined string.
 
 ## Left to the builder
 

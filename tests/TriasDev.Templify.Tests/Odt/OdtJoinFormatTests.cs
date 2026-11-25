@@ -41,6 +41,29 @@ public sealed class OdtJoinFormatTests
         Assert.Equal(["T1: A, B", "T2: "], output.GetParagraphTexts());
     }
 
+    [Theory]
+    [InlineData("{{Codes:join}}", "file_a, file_b")]
+    [InlineData("{{Codes:join:\" * \"}}", "file_a * file_b")]
+    public void Join_MarkdownPerItem_SeparatorLiteral(string template, string expected)
+    {
+        (_, OdtDocumentVerifier output) = OdtTestHelper.Process(
+            new OdtDocumentBuilder().AddParagraph(template),
+            new Dictionary<string, object> { ["Codes"] = new List<string> { "file_a", "file_b" } });
+
+        Assert.Equal([expected], output.GetParagraphTexts());
+    }
+
+    [Fact]
+    public void Join_MarkdownInItems_IsApplied()
+    {
+        (_, OdtDocumentVerifier output) = OdtTestHelper.Process(
+            new OdtDocumentBuilder().AddParagraph("{{Names:join}}"),
+            new Dictionary<string, object> { ["Names"] = new List<string> { "**A**", "B" } });
+
+        Assert.Equal(["A, B"], output.GetParagraphTexts());
+        Assert.Contains("font-weight", output.GetEntryString("content.xml"), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Join_PropertyMissingOnAllItems_WarnsOnce()
     {

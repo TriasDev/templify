@@ -161,7 +161,7 @@ Owners: {{Assets:join:Owner.Name}}    → Owners: Alice, Bob
 - Empty items (`null` or an empty text) are skipped, so there is no `A, , B`.
 - Inside a loop, join the current item's list: `{{#foreach x in Items}}` … `{{x.Assets:join:Name}}` … `{{/foreach}}`.
 - Numbers and dates in the list are formatted with the document culture (`1,5` with de-DE).
-- The whole list takes the formatting of the placeholder (a bold placeholder gives a bold list, including the commas). Markdown in the values still applies.
+- The whole list takes the formatting of the placeholder (a bold placeholder gives a bold list, including the commas). Markdown applies to each value on its own (`**A**` is bold); the separator is shown exactly as written, so `{{Files:join:" * "}}` with `file_a`, `file_b` gives `file_a * file_b`.
 - If no item has the given property (for example a typo like `{{Assets:join:Nmae}}`), the result is empty and processing reports a `MissingVariable` warning for `Assets.Nmae`.
 - A value that is not a list (a text, a number) ignores `:join` and is shown as usual.
 
