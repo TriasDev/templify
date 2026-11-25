@@ -590,6 +590,7 @@ ITemplateDefinition.Compose ──▶ composers ──▶ semantic model (intern
 | Row loops / row conditionals (#279) | marker rows: one `w:tc` with `gridSpan` = all columns and `tcW` = the table width, holding the marker paragraph | marker rows: one cell with `table:number-columns-spanned` = all columns plus `table:covered-table-cell`s |
 | Inline conditional / expression (#281) | markers as plain runs inside the paragraph around the branch runs (`{{#if …}}`, `{{#elseif …}}`, `{{#else}}`, `{{/if}}`, nesting allowed); `{{(condition):format}}` as one run. Branch content is text and values only (`TextComposer`), no tabs, breaks or images. Expressions use the engine's inline dialect (only `true` is truthy) | the same text inside `text:p`, white-space encoded |
 | Image (#280) | `word/media/imageN.{png,jpeg}`, each distinct image (by SHA-256) once; relationships per part (`document.xml.rels`, `header1.xml.rels`, …); inline DrawingML with a document-wide `docPr` counter and the alt text as `descr`; EMU = pt × 12 700 | `Pictures/<hash>.{png,jpeg}` + manifest entries; `draw:frame` (`text:anchor-type="as-char"`, unique `draw:name` per part prefix) with `draw:image` and `svg:title`/`svg:desc` (alt text) |
+| Box / Rule (#282) | a box is a one-cell `w:tbl` over the container's width: the box style's border as `tblBorders`, padding as `tblCellMar`, background as the cell's `shd`; rows may split. A rule is an empty paragraph (exact 1 pt line) with a top `pBdr` and spacing | the same one-cell `table:table` with per-cell border, padding and background; a rule is an empty paragraph in an automatic style (`fo:border-top`, `fo:line-height` 1 pt) |
 | End of a part | the body, headers and footers always end with a paragraph (Word keeps one after a final table; LibreOffice 26.8's text export loops forever on a DOCX whose body ends with a table — found in #279) | — |
 | Column widths | fixed widths as given; relative weights share the container frame (page frame, or a cell's width minus its horizontal padding for nested tables) | same resolution |
 | Right tab (`TabRight`) | `w:tabs/w:tab w:val="right"` at the frame width, measured from the frame's start | an automatic paragraph style with `style:tab-stop style:type="right"`, positioned at frame width − the style's start indent (ODF measures from the indent) |
@@ -628,6 +629,10 @@ Known behaviour of the converters, documented rather than worked around:
 - **Word's built-in style names.** LibreOffice maps a DOCX style named like a built-in Word style (`Body Text`,
   `Heading 1`, `Title`) to its own style (`Text body`, `Heading 1`, …) when it opens the file. A display name of
   your own (`Body Copy`) survives unchanged. Measured in task 2 (#263).
+
+- **Cell and box padding vs. border.** LibreOffice starts cell text after the padding plus (part of) the border
+  width; the two formats differ by under 2 pt for a 1 pt border (DOCX measures padding from the border's inner
+  edge, ODT centres collapsed borders on the edge). Measured in #282; accepted.
 
 Known differences become build warnings when the construct is used. The first entries arrive with their tasks:
 
