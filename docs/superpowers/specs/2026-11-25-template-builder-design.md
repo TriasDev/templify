@@ -200,7 +200,9 @@ StyleSheet sheet = StyleSheet.Create(s =>
 - **A key the stylesheet does not define is a build error.**
 - **Paragraph and character styles become real named styles in both formats.**
 - **The builder owns one well-known key, `BuilderStyles.TemplateMarker`** (display name "Template Marker").
-  - By default it is visible and subtle: monospace, about 8 pt, muted grey.
+  - By default it is visible and subtle: Courier New, 8 pt, grey `#737373`, no spacing, kept with the next
+    paragraph. It is written only when the template has markers. A style sheet that defines the key replaces the
+    default entirely.
   - A product's stylesheet can change how it looks, and so can a customer, through the style in Word or LibreOffice.
   - **There is no hidden-marker mode** (maintainer decision). A customer adapting a copy has to see the template's logic
     to delete a block together with its markers (D3).
@@ -263,7 +265,7 @@ public sealed class ValueFormat      // closed set: the engine's format specifie
 }
 ```
 
-`Switch` exists because the engine cannot make a property depend on data: a fill colour per status, for example. The
+A `Switch` without any case writes its default unconditionally, with no markers. `Switch` exists because the engine cannot make a property depend on data: a fill colour per status, for example. The
 answer is an if/elseif/else chain with one variant per value. A mandatory `Default` prevents the failure seen in practice,
 where an unmapped value printed nothing.
 
@@ -287,6 +289,9 @@ public readonly struct TemplatePath
     public Condition IsEmpty { get; }
     public Condition IsNotEmpty { get; }
     public static implicit operator Condition(TemplatePath path);   // truthiness
+    public static Condition operator !(TemplatePath path);          // C# does not apply the implicit conversion to find
+    public static Condition operator &(TemplatePath a, TemplatePath b);   // operators when both operands are paths,
+    public static Condition operator |(TemplatePath a, TemplatePath b);   // so TemplatePath declares them itself (#265)
 }
 
 public abstract class Condition      // a small AST
@@ -315,7 +320,10 @@ public sealed class LoopItem        // only exists inside a ForEach lambda
   - escaping keyword-named segments as `[in]`;
   - invariant number formatting.
 
-  String operands are always quoted, so the engine's bareword rule never applies to generated templates.
+  String operands are always quoted, so the engine's bareword rule never applies to generated templates. Numbers are
+  written in decimal notation (`100000000000000000000`, never `1E+20`): the condition lexer reads a number as one word
+  of digits, `.` and a leading `-`. Strings with `{{`, `}}`, control characters or typographic double quotes (which
+  the engine normalises to `"`) are rejected where they are written.
 - **`ForEach` always emits a named iteration variable.** The names make the contract exact and the markers readable for
   a customer editing the file.
 - **Scope rules.** An item name may not be `in`, may not start with `@`, and must be unique within the nesting. An outer
