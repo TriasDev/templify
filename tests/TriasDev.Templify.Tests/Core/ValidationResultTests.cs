@@ -228,7 +228,9 @@ public sealed class ValidationResultTests
         Assert.Equal(6, (int)ValidationErrorType.InvalidConditionalExpression);
         Assert.Equal(7, (int)ValidationErrorType.InvalidDocument);
         Assert.Equal(8, (int)ValidationErrorType.BlockMarkerWithText);
-        Assert.Equal(9, Enum.GetValues<ValidationErrorType>().Length);
+        Assert.Equal(9, (int)ValidationErrorType.UnterminatedTag);
+        Assert.Equal(10, (int)ValidationErrorType.MultipleBlockMarkers);
+        Assert.Equal(11, Enum.GetValues<ValidationErrorType>().Length);
     }
 
     [Fact]

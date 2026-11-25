@@ -277,13 +277,22 @@ Inline expressions get no `MissingConditionVariable` warning, because their miss
 
 | Type | Meaning |
 |------|---------|
-| `UnmatchedConditionalStart` / `UnmatchedConditionalEnd` | An `{{#if}}` without `{{/if}}`, or the other way round |
-| `UnmatchedLoopStart` / `UnmatchedLoopEnd` | A `{{#foreach}}` without `{{/foreach}}`, or the other way round |
+| `UnmatchedConditionalStart` / `UnmatchedConditionalEnd` | An `{{#if}}` without `{{/if}}`, or an `{{/if}}`, `{{#else}}` or `{{#elseif}}` outside any `{{#if}}` |
+| `UnmatchedLoopStart` / `UnmatchedLoopEnd` | A `{{#foreach}}` without `{{/foreach}}`, or a `{{/foreach}}` without `{{#foreach}}`. A table row with both markers is not supported (markers belong in rows of their own) |
 | `InvalidPlaceholderSyntax` | Invalid template syntax, for example an invalid loop variable name |
 | `MissingVariable` | A variable or loop collection is not in the data (only when data is passed) |
 | `InvalidConditionalExpression` | A condition or an inline `{{(...)}}` expression cannot be parsed |
 | `InvalidDocument` | The input cannot be read as a supported template: unsupported format, unreadable stream, or corrupted or rejected package |
-| `BlockMarkerWithText` | A block marker shares its paragraph or table row with other text (`Assets: {{#foreach Items}}`), or a loop opens and closes in one paragraph: processing would remove that text. `Location` holds the paragraph's text. Processing reports the same case as a `BlockMarkerWithText` warning |
+| `BlockMarkerWithText` | A block marker shares its paragraph or table row with other text (`Assets: {{#foreach Items}}`), or a loop opens and closes in one paragraph: processing would remove that text. Processing reports the same case as a `BlockMarkerWithText` warning |
+| `UnterminatedTag` | A placeholder or marker opens but does not close in the same paragraph, e.g. `Hello {{Na` · `me}} world` (split across paragraphs): processing would print the pieces as text |
+| `MultipleBlockMarkers` | A marker paragraph or table row holds more than one block marker, e.g. `{{#if Flag}}{{#foreach Items}}`: processing removes it once and loses the other block |
+
+`Location` says where the problem is: the part, the path and the text of the paragraph or row, for example
+`body, paragraph 12: 'Hello {{Na'` or `header (default), table 1, row 2, cell 3, paragraph 1: 'Intro {{#if Flag}}'`.
+Numbers start at 1 and count each kind (paragraph, table, row, cell, text box, content control; in OpenDocument also list,
+item, section, frame) within its parent; the text is cut after 100 characters. Headers and footers are named after their
+type in Word (`header (first)`, a second default header `header 2 (default)`) and after their page style in
+OpenDocument (`header (Standard)`); Word notes are `footnote 1`, `endnote 1`. `Location` is `null` when no element is involved.
 
 `InvalidDocument` is reported by `TemplateProcessor` and `OdtTemplateProcessor`. `DocumentTemplateProcessor` still
 reports an unreadable Word document as `InvalidPlaceholderSyntax` ("Validation failed: ..."), for compatibility with

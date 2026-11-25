@@ -61,12 +61,14 @@ internal sealed class OdtTemplateValidator
             OdtPackage package = OdtPackage.Open(templateStream);
             List<XElement> containers = GetContainers(package);
 
-            SyntaxWalker syntax = new SyntaxWalker(allPlaceholders, errors);
+            OdtTemplateLocator locator = new OdtTemplateLocator(
+                package.GetXml(OdtPackage.ContentEntry)!.Root!, package.GetXml(OdtPackage.StylesEntry)?.Root);
+            SyntaxWalker syntax = new SyntaxWalker(allPlaceholders, errors, locator);
             foreach (XElement container in containers)
             {
                 syntax.WalkBlocks(container.Elements().ToList());
-                ValidateConditionExpressions(container, allPlaceholders, errors, warnings, data);
-                ValidateInlineExpressions(container, errors);
+                ValidateConditionExpressions(container, allPlaceholders, errors, warnings, data, locator);
+                ValidateInlineExpressions(container, errors, locator);
                 FindAllPlaceholders(container, allPlaceholders);
             }
 
@@ -133,11 +135,11 @@ internal sealed class OdtTemplateValidator
     }
 
     /// <summary>Reports the inline expression placeholders (<c>{{(...)}}</c>) that cannot be parsed.</summary>
-    private static void ValidateInlineExpressions(XElement container, List<ValidationError> errors)
+    private static void ValidateInlineExpressions(XElement container, List<ValidationError> errors, OdtTemplateLocator locator)
     {
         foreach (XElement paragraph in GetParagraphs(container))
         {
-            InlineExpressionValidation.CheckSyntax(OdtParagraphTextModel.GetText(paragraph), errors);
+            InlineExpressionValidation.CheckSyntax(OdtParagraphTextModel.GetText(paragraph), errors, () => locator.Describe(paragraph));
         }
     }
 
@@ -149,7 +151,8 @@ internal sealed class OdtTemplateValidator
         HashSet<string> allPlaceholders,
         List<ValidationError> errors,
         List<ValidationWarning> warnings,
-        IReadOnlyDictionary<string, object>? data)
+        IReadOnlyDictionary<string, object>? data,
+        OdtTemplateLocator locator)
     {
         ConditionalEvaluator evaluator = new ConditionalEvaluator();
         ValueResolver resolver = new ValueResolver();
@@ -178,7 +181,7 @@ internal sealed class OdtTemplateValidator
                     errors.Add(ValidationError.Create(
                         ValidationErrorType.InvalidConditionalExpression,
                         $"Invalid condition '{expression}': {details}",
-                        match.Value));
+                        locator.Describe(paragraph)));
                     continue;
                 }
 
@@ -193,7 +196,7 @@ internal sealed class OdtTemplateValidator
                             ValidationWarningType.ReservedWordAsVariable,
                             $"Condition '{expression}' uses '{variable.Path}', which is also a keyword, as a variable. " +
                             $"Write '[{variable.Path}]' to reference the variable unambiguously.",
-                            match.Value));
+                            locator.Describe(paragraph)));
                     }
                 }
             }
@@ -282,16 +285,21 @@ internal sealed class OdtTemplateValidator
     {
         private readonly HashSet<string> _allPlaceholders;
         private readonly List<ValidationError> _errors;
-        /// <summary>The marker quoted in an unmatched-marker message, e.g. <c>'{{#if A}}'</c>.</summary>
-        private static readonly Regex _quotedMarker = new Regex(@"start marker '(\{\{#[^']*\}\})'", RegexOptions.CultureInvariant);
+        private const int MaxQuotedTagLength = 40;
 
-        private readonly HashSet<string> _reported = new HashSet<string>(StringComparer.Ordinal);
-        private readonly HashSet<XElement> _lostTextReported = new HashSet<XElement>();
+        private readonly HashSet<(XElement? Element, ValidationErrorType Type, string Message)> _reported =
+            new HashSet<(XElement?, ValidationErrorType, string)>();
 
-        public SyntaxWalker(HashSet<string> allPlaceholders, List<ValidationError> errors)
+        /// <summary>Elements a detector error was reported for; problems inside them are follow-ups and not reported.</summary>
+        private readonly HashSet<XElement> _failedElements = new HashSet<XElement>();
+        private readonly HashSet<(XElement Element, string Rule)> _reportedElements = new HashSet<(XElement, string)>();
+        private readonly OdtTemplateLocator _locator;
+
+        public SyntaxWalker(HashSet<string> allPlaceholders, List<ValidationError> errors, OdtTemplateLocator locator)
         {
             _allPlaceholders = allPlaceholders;
             _errors = errors;
+            _locator = locator;
         }
 
         public void WalkBlocks(IReadOnlyList<XElement> blocks)
@@ -303,23 +311,28 @@ internal sealed class OdtTemplateValidator
 
             IReadOnlyList<OdtLoopBlock> loops;
             IReadOnlyList<OdtConditionalBlock> conditionals;
+            bool loopsFailed;
+            bool conditionalsFailed;
+            bool isBlockSequence = false;
             if (blocks.All(OdtMarkerText.IsRow))
             {
-                loops = Detect(() => OdtLoopDetector.DetectTableRowLoops(blocks));
-                conditionals = Detect(() => OdtConditionalDetector.DetectTableRowConditionals(blocks));
+                (loops, loopsFailed) = Detect(() => OdtLoopDetector.DetectTableRowLoops(blocks));
+                (conditionals, conditionalsFailed) = Detect(() => OdtConditionalDetector.DetectTableRowConditionals(blocks));
             }
             else if (blocks.All(IsListItem))
             {
-                loops = Detect(() => OdtLoopDetector.DetectListItemLoops(blocks));
-                conditionals = Detect(() => OdtConditionalDetector.DetectListItemConditionals(blocks));
+                (loops, loopsFailed) = Detect(() => OdtLoopDetector.DetectListItemLoops(blocks));
+                (conditionals, conditionalsFailed) = Detect(() => OdtConditionalDetector.DetectListItemConditionals(blocks));
             }
             else
             {
-                loops = Detect(() => OdtLoopDetector.DetectLoops(blocks));
-                conditionals = Detect(() => OdtConditionalDetector.DetectConditionals(blocks));
+                isBlockSequence = true;
+                (loops, loopsFailed) = Detect(() => OdtLoopDetector.DetectLoops(blocks));
+                (conditionals, conditionalsFailed) = Detect(() => OdtConditionalDetector.DetectConditionals(blocks));
             }
 
             ReportLostText(loops, conditionals);
+            ReportMultipleMarkers(loops, conditionals);
 
             // Marker blocks are removed by processing. A marker row or list item holds its marker in a paragraph of
             // its own, which must not be detected again as an unmatched marker inside the cell or item.
@@ -337,7 +350,27 @@ internal sealed class OdtTemplateValidator
             {
                 _allPlaceholders.Add(loop.CollectionName);
                 loopContent.UnionWith(loop.ContentElements);
+            }
 
+            // Paragraph rules on this sequence (row and item sequences hold no paragraphs of their own); paragraphs in
+            // loop content are checked when the content is walked.
+            if (isBlockSequence)
+            {
+                HashSet<XElement> allMarkers = new HashSet<XElement>(
+                    loops.SelectMany(l => new[] { l.StartMarker, l.EndMarker })
+                        .Concat(conditionals.SelectMany(c => c.Branches.Select(b => b.Marker).Append(c.EndMarker))));
+                foreach (XElement paragraph in blocks.Where(b => OdfNames.IsParagraph(b) && !loopContent.Contains(b)))
+                {
+                    ReportUnterminatedTag(paragraph);
+                    if (!allMarkers.Contains(paragraph) && !IsInsideFailedElement(paragraph))
+                    {
+                        ReportOrphanMarkers(paragraph, checkConditionals: !conditionalsFailed, checkLoops: !loopsFailed);
+                    }
+                }
+            }
+
+            foreach (OdtLoopBlock loop in loops)
+            {
                 // Nested loops in the content are detected when the content is processed per iteration.
                 WalkBlocks(loop.ContentElements);
             }
@@ -366,37 +399,100 @@ internal sealed class OdtTemplateValidator
                 loops.SelectMany(OdtBlockMarkerLoss.Find).Concat(conditionals.SelectMany(OdtBlockMarkerLoss.Find));
             foreach ((XElement marker, string message) in losses)
             {
-                if (_lostTextReported.Add(marker))
+                Report(marker, "R2", ValidationErrorType.BlockMarkerWithText, message);
+            }
+        }
+
+        /// <summary>R3: a removed marker element (paragraph, row, list item) holding more than one block marker.</summary>
+        private void ReportMultipleMarkers(IReadOnlyList<OdtLoopBlock> loops, IReadOnlyList<OdtConditionalBlock> conditionals)
+        {
+            IEnumerable<XElement> removed = loops.Where(l => l.StartMarker != l.EndMarker).SelectMany(l => new[] { l.StartMarker, l.EndMarker })
+                .Concat(conditionals
+                    .Where(c => !(c.StartMarker == c.EndMarker && OdfNames.IsParagraph(c.StartMarker)))
+                    .SelectMany(c => c.Branches.Select(b => b.Marker).Append(c.EndMarker)))
+                .Distinct();
+            foreach (XElement marker in removed)
+            {
+                IReadOnlyList<string> markers = TemplateTagText.GetBlockMarkersOutsideInlineConditionals(OdtBlockMarkerLoss.GetText(marker));
+                if (markers.Count > 1)
                 {
-                    _errors.Add(ValidationError.Create(
-                        ValidationErrorType.BlockMarkerWithText,
-                        message,
-                        BlockMarkerText.GetLocation(OdtBlockMarkerLoss.GetText(marker))));
+                    string unit = OdtBlockMarkerLoss.GetUnit(marker);
+                    Report(marker, "R3", ValidationErrorType.MultipleBlockMarkers,
+                        $"More than one block marker in one {unit}: {string.Join(", ", markers.Select(m => $"'{m}'"))}. " +
+                        $"Put each block marker in a {unit} of its own.");
                 }
             }
         }
 
-        private IReadOnlyList<T> Detect<T>(Func<IReadOnlyList<T>> detect)
+        private void ReportUnterminatedTag(XElement paragraph)
+        {
+            string? tag = TemplateTagText.FindUnterminatedTag(OdtParagraphTextModel.GetText(paragraph));
+            if (tag != null)
+            {
+                string quoted = tag.Length <= MaxQuotedTagLength ? tag : tag.Substring(0, MaxQuotedTagLength) + "…";
+                Report(paragraph, "R1", ValidationErrorType.UnterminatedTag,
+                    $"Unterminated tag '{quoted}': a placeholder or marker must open and close in the same paragraph.");
+            }
+        }
+
+        private void ReportOrphanMarkers(XElement paragraph, bool checkConditionals, bool checkLoops)
+        {
+            foreach (string marker in TemplateTagText.GetEndAndBranchMarkers(OdtParagraphTextModel.GetText(paragraph)))
+            {
+                bool isLoopEnd = Loops.LoopDetector.ForeachEnd.IsMatch(marker);
+                if (isLoopEnd && checkLoops)
+                {
+                    Report(paragraph, "R9:" + marker, ValidationErrorType.UnmatchedLoopEnd,
+                        "Loop end marker '{{/foreach}}' has no matching '{{#foreach}}'.");
+                }
+                else if (!isLoopEnd && checkConditionals)
+                {
+                    Report(paragraph, "R9:" + marker, ValidationErrorType.UnmatchedConditionalEnd,
+                        $"Conditional marker '{marker}' has no matching '{{{{#if}}}}'.");
+                }
+            }
+        }
+
+        private void Report(XElement element, string rule, ValidationErrorType type, string message)
+        {
+            if (_reportedElements.Add((element, rule)))
+            {
+                _errors.Add(ValidationError.Create(type, message, _locator.Describe(element)));
+            }
+        }
+
+        private (IReadOnlyList<T> Blocks, bool Failed) Detect<T>(Func<IReadOnlyList<T>> detect)
         {
             try
             {
-                return detect();
+                return (detect(), false);
             }
             catch (TemplateSyntaxException ex)
             {
-                // A marker that fails at row or list-item level is found again inside its cell or item, with the
-                // cell-level wording ("Conditional start marker '{{#if A}}' ..."); report each marker once, with
-                // the message of the outermost level, which is the one processing fails with.
-                Match marker = _quotedMarker.Match(ex.Message);
-                string key = marker.Success ? $"{ex.ErrorType}:{marker.Groups[1].Value}" : ex.Message;
-                if (_reported.Add(key))
+                // Processing stops at the outermost error: a row or list item that fails at its level is detected again
+                // inside its cells or paragraphs (and loop content again per walk); those follow-ups are not reported.
+                // The same problem at another place (body and header) is reported at each place.
+                XElement? element = ex.SourceElement as XElement;
+                if (element != null && IsInsideFailedElement(element))
                 {
-                    _errors.Add(ValidationError.Create(ex.ErrorType, ex.Message));
+                    return (Array.Empty<T>(), true);
                 }
 
-                return Array.Empty<T>();
+                if (_reported.Add((element, ex.ErrorType, ex.Message)))
+                {
+                    _errors.Add(ValidationError.Create(ex.ErrorType, ex.Message, element != null ? _locator.Describe(element) : null));
+                    if (element != null)
+                    {
+                        _failedElements.Add(element);
+                    }
+                }
+
+                return (Array.Empty<T>(), true);
             }
         }
+
+        private bool IsInsideFailedElement(XElement element) =>
+            _failedElements.Count > 0 && element.Ancestors().Any(_failedElements.Contains);
     }
 
     /// <summary>

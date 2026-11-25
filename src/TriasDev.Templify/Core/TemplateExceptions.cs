@@ -46,6 +46,12 @@ internal sealed class TemplateSyntaxException : InvalidOperationException
 
     /// <summary>Gets the validation error category this syntax error maps to.</summary>
     public ValidationErrorType ErrorType { get; }
+
+    /// <summary>
+    /// The template element the error is about (an <c>OpenXmlElement</c> or an <c>XElement</c>), so validation can say
+    /// where it is (#255); <c>null</c> when there is no element (text templates, inline parsing).
+    /// </summary>
+    public object? SourceElement { get; init; }
 }
 
 /// <summary>

@@ -232,7 +232,7 @@ public sealed class ValidationInlineExpressionTests
             ValidationError error = Assert.Single(result.Errors);
             Assert.Equal(ValidationErrorType.InvalidConditionalExpression, error.Type);
             Assert.StartsWith($"Invalid expression '{expression}': ", error.Message);
-            Assert.Equal(paragraph, error.Location);
+            Assert.Equal($"body, paragraph 1: '{paragraph}'", error.Location);
             Assert.False(result.IsValid);
             Assert.Empty(result.MissingVariables);
             Assert.DoesNotContain(result.AllPlaceholders, p => p.StartsWith('('));

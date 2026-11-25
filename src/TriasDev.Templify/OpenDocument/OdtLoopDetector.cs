@@ -57,14 +57,15 @@ internal static partial class OdtLoopDetector
                 continue;
             }
 
-            (string collectionName, string? iterationVariable) = ReadStartMarker(match);
+            (string collectionName, string? iterationVariable) = ReadStartMarker(match, elements[i]);
 
             int endIndex = FindMatchingEnd(elements, i);
             if (endIndex == -1)
             {
                 throw new TemplateSyntaxException(
                     ValidationErrorType.UnmatchedLoopStart,
-                    $"Loop start marker '{{{{#foreach {collectionName}}}}}' has no matching '{{{{/foreach}}}}'.");
+                    $"Loop start marker '{{{{#foreach {collectionName}}}}}' has no matching '{{{{/foreach}}}}'.")
+                { SourceElement = elements[i] };
             }
 
             // A container (row, cell, list) that holds a complete loop is not a loop marker:
@@ -121,7 +122,7 @@ internal static partial class OdtLoopDetector
                 continue;
             }
 
-            (string collectionName, string? iterationVariable) = ReadStartMarker(match);
+            (string collectionName, string? iterationVariable) = ReadStartMarker(match, units[i]);
 
             if (IsLoopContainedInSinglePart(getTexts(units[i]), collectionName))
             {
@@ -134,7 +135,9 @@ internal static partial class OdtLoopDetector
             {
                 throw new TemplateSyntaxException(
                     ValidationErrorType.UnmatchedLoopStart,
-                    $"{kind} loop start marker '{{{{#foreach {collectionName}}}}}' has no matching '{{{{/foreach}}}}'.");
+                    $"{kind} loop start marker '{{{{#foreach {collectionName}}}}}' has no matching '{{{{/foreach}}}}'." +
+                    (OdtMarkerText.IsRow(units[i]) && _foreachEndPattern.IsMatch(text) ? LoopDetector.SameRowLoopMarkersMessage : string.Empty))
+                { SourceElement = units[i] };
             }
 
             loops.Add(new OdtLoopBlock(
@@ -151,7 +154,7 @@ internal static partial class OdtLoopDetector
         return loops;
     }
 
-    private static (string CollectionName, string? IterationVariable) ReadStartMarker(Match match)
+    private static (string CollectionName, string? IterationVariable) ReadStartMarker(Match match, XElement marker)
     {
         // Group 1: optional iteration variable ("item" in "item in Items"); group 2: collection name.
         string? iterationVariable = match.Groups[1].Success && match.Groups[1].Length > 0 ? match.Groups[1].Value : null;
@@ -159,7 +162,7 @@ internal static partial class OdtLoopDetector
 
         if (iterationVariable != null)
         {
-            LoopDetector.ValidateIterationVariableName(iterationVariable, collectionName);
+            LoopDetector.ValidateIterationVariableName(iterationVariable, collectionName, marker);
         }
 
         return (collectionName, iterationVariable);

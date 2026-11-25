@@ -1,3 +1,5 @@
 #nullable enable
 TriasDev.Templify.Core.ProcessingWarningType.BlockMarkerWithText = 4 -> TriasDev.Templify.Core.ProcessingWarningType
 TriasDev.Templify.Core.ValidationErrorType.BlockMarkerWithText = 8 -> TriasDev.Templify.Core.ValidationErrorType
+TriasDev.Templify.Core.ValidationErrorType.UnterminatedTag = 9 -> TriasDev.Templify.Core.ValidationErrorType
+TriasDev.Templify.Core.ValidationErrorType.MultipleBlockMarkers = 10 -> TriasDev.Templify.Core.ValidationErrorType

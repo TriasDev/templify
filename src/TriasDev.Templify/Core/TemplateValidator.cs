@@ -65,33 +65,28 @@ internal sealed class TemplateValidator
 
                 Body body = document.MainDocumentPart.Document.Body;
                 List<OpenXmlElement> elements = body.Elements<OpenXmlElement>().ToList();
+                WordTemplateLocator locator = new WordTemplateLocator(document);
 
-                // 1. Validate conditionals, their expressions, and collect variables from conditions
-                _ = ValidateConditionals(elements, allPlaceholders, errors);
-                ValidateConditionExpressions(elements, allPlaceholders, errors, warnings, data);
+                // 1. Structural lint (#255) over the containers processing visits: detector syntax errors, text next to
+                //    block markers, multiple and orphan markers, unterminated tags; collects loop collection names
+                TemplateLintWalker lint = new TemplateLintWalker(locator, errors, allPlaceholders);
+                lint.ValidateBlocks(elements);
 
-                // 2. Validate loops and collect collection names
-                ValidateLoops(elements, allPlaceholders, errors);
-
-                // 3. Validate table row loops and collect collection names
-                ValidateTableRowLoops(body, allPlaceholders, errors);
-
-                // 4. Find all regular placeholders in the document and validate the inline expressions
+                // 2. Condition expressions (and the variables they reference) and inline expressions, in every paragraph
+                ValidateConditionExpressions(elements, allPlaceholders, errors, warnings, data, locator);
                 FindAllPlaceholders(body, allPlaceholders);
-                ValidateInlineExpressions(elements, errors);
+                ValidateInlineExpressions(elements, errors, locator);
 
-                // 5. Validate headers and footers
-                ValidateHeadersAndFooters(document, allPlaceholders, errors, warnings, data);
-
-                // 6. Block markers whose paragraph or row holds other text: processing removes the text (#253)
-                BlockMarkerValidator blockMarkers = new BlockMarkerValidator(errors);
-                blockMarkers.ValidateBlocks(elements);
+                // 3. Headers, footers and notes
                 foreach (List<OpenXmlElement> partElements in GetHeaderFooterElements(document))
                 {
-                    blockMarkers.ValidateBlocks(partElements);
+                    lint.ValidateBlocks(partElements);
+                    ValidateConditionExpressions(partElements, allPlaceholders, errors, warnings, data, locator);
+                    FindAllPlaceholdersInElements(partElements, allPlaceholders);
+                    ValidateInlineExpressions(partElements, errors, locator);
                 }
 
-                // 7. Check for missing variables if data is provided
+                // 4. Check for missing variables if data is provided
                 if (data != null)
                 {
                     ValidateMissingVariables(elements, data, allPlaceholders, missingVariables, warnings, errors, _options.WarnOnEmptyLoopCollections);
@@ -120,106 +115,6 @@ internal sealed class TemplateValidator
         return errors.Count == 0
             ? ValidationResult.Success(allPlaceholdersList, missingVariablesList, warningsList)
             : ValidationResult.Failure(errors, allPlaceholdersList, missingVariablesList, warningsList);
-    }
-
-    /// <summary>
-    /// Validates conditional blocks and collects variables from condition expressions.
-    /// </summary>
-    private static IReadOnlyList<ConditionalBlock> ValidateConditionals(
-        List<OpenXmlElement> elements,
-        HashSet<string> allPlaceholders,
-        List<ValidationError> errors)
-    {
-        IReadOnlyList<ConditionalBlock> conditionalBlocks = new List<ConditionalBlock>();
-        try
-        {
-            // Variables referenced by the conditions are collected by ValidateConditionExpressions.
-            conditionalBlocks = ConditionalDetector.DetectConditionalsInElements(elements);
-        }
-        catch (TemplateSyntaxException ex)
-        {
-            errors.Add(ValidationError.Create(ex.ErrorType, ex.Message));
-        }
-
-        return conditionalBlocks;
-    }
-
-    /// <summary>
-    /// Validates loop blocks and collects collection names.
-    /// </summary>
-    private static void ValidateLoops(
-        List<OpenXmlElement> elements,
-        HashSet<string> allPlaceholders,
-        List<ValidationError> errors)
-    {
-        try
-        {
-            IReadOnlyList<LoopBlock> loopBlocks = LoopDetector.DetectLoopsInElements(elements);
-
-            // Extract collection names from loops, including loops nested in loop content (those are otherwise
-            // only listed when data is passed and the outer collection has items).
-            foreach (LoopBlock block in loopBlocks)
-            {
-                allPlaceholders.Add(block.CollectionName);
-                ValidateLoops(block.ContentElements.ToList(), allPlaceholders, errors);
-            }
-        }
-        catch (TemplateSyntaxException ex)
-        {
-            errors.Add(ValidationError.Create(ex.ErrorType, ex.Message));
-        }
-    }
-
-    /// <summary>
-    /// Validates table row loops and collects collection names.
-    /// </summary>
-    private static void ValidateTableRowLoops(
-        Body body,
-        HashSet<string> allPlaceholders,
-        List<ValidationError> errors)
-    {
-        ValidateTableRowLoopsInElements(body.Elements<OpenXmlElement>().ToList(), allPlaceholders, errors);
-    }
-
-    /// <summary>
-    /// Validates table row loops in a list of elements (used for headers/footers), including the
-    /// loops of tables nested in cells, loops or content controls.
-    /// </summary>
-    private static void ValidateTableRowLoopsInElements(
-        List<OpenXmlElement> elements,
-        HashSet<string> allPlaceholders,
-        List<ValidationError> errors)
-    {
-        IEnumerable<Table> tables = elements.SelectMany(e => e is Table table
-            ? table.Descendants<Table>().Prepend(table)
-            : e.Descendants<Table>());
-
-        foreach (Table table in tables)
-        {
-            try
-            {
-                IReadOnlyList<LoopBlock> tableLoops = LoopDetector.DetectTableRowLoops(table);
-                foreach (LoopBlock block in tableLoops)
-                {
-                    allPlaceholders.Add(block.CollectionName);
-                }
-            }
-            catch (TemplateSyntaxException ex)
-            {
-                errors.Add(ValidationError.Create(ex.ErrorType, ex.Message));
-            }
-
-            // Table row conditionals (markers in rows of their own) fail processing when unmatched, so they must
-            // fail validation too.
-            try
-            {
-                _ = ConditionalDetector.DetectTableRowConditionals(table);
-            }
-            catch (TemplateSyntaxException ex)
-            {
-                errors.Add(ValidationError.Create(ex.ErrorType, ex.Message));
-            }
-        }
     }
 
     /// <summary>
@@ -266,7 +161,8 @@ internal sealed class TemplateValidator
         HashSet<string> allPlaceholders,
         List<ValidationError> errors,
         List<ValidationWarning> warnings,
-        IReadOnlyDictionary<string, object>? data)
+        IReadOnlyDictionary<string, object>? data,
+        WordTemplateLocator locator)
     {
         ConditionalEvaluator evaluator = new ConditionalEvaluator();
         ValueResolver resolver = new ValueResolver();
@@ -295,7 +191,7 @@ internal sealed class TemplateValidator
                     errors.Add(ValidationError.Create(
                         ValidationErrorType.InvalidConditionalExpression,
                         $"Invalid condition '{expression}': {details}",
-                        match.Value));
+                        locator.Describe(paragraph)));
                     continue;
                 }
 
@@ -310,7 +206,7 @@ internal sealed class TemplateValidator
                             ValidationWarningType.ReservedWordAsVariable,
                             $"Condition '{expression}' uses '{variable.Path}', which is also a keyword, as a variable. " +
                             $"Write '[{variable.Path}]' to reference the variable unambiguously.",
-                            match.Value));
+                            locator.Describe(paragraph)));
                     }
                 }
             }
@@ -377,27 +273,6 @@ internal sealed class TemplateValidator
         type?.Value is not FootnoteEndnoteValues value || value == FootnoteEndnoteValues.Normal;
 
     /// <summary>
-    /// Validates template elements in all headers and footers.
-    /// </summary>
-    private static void ValidateHeadersAndFooters(
-        WordprocessingDocument document,
-        HashSet<string> allPlaceholders,
-        List<ValidationError> errors,
-        List<ValidationWarning> warnings,
-        IReadOnlyDictionary<string, object>? data)
-    {
-        foreach (List<OpenXmlElement> elements in GetHeaderFooterElements(document))
-        {
-            _ = ValidateConditionals(elements, allPlaceholders, errors);
-            ValidateConditionExpressions(elements, allPlaceholders, errors, warnings, data);
-            ValidateLoops(elements, allPlaceholders, errors);
-            ValidateTableRowLoopsInElements(elements, allPlaceholders, errors);
-            FindAllPlaceholdersInElements(elements, allPlaceholders);
-            ValidateInlineExpressions(elements, errors);
-        }
-    }
-
-    /// <summary>
     /// Validates missing variables in headers and footers.
     /// </summary>
     private static void ValidateHeaderFooterMissingVariables(
@@ -435,11 +310,11 @@ internal sealed class TemplateValidator
     /// <summary>
     /// Reports the inline expression placeholders (<c>{{(...)}}</c>) that cannot be parsed.
     /// </summary>
-    private static void ValidateInlineExpressions(List<OpenXmlElement> elements, List<ValidationError> errors)
+    private static void ValidateInlineExpressions(List<OpenXmlElement> elements, List<ValidationError> errors, WordTemplateLocator locator)
     {
         foreach (Paragraph paragraph in EnumerateParagraphs(elements))
         {
-            InlineExpressionValidation.CheckSyntax(ParagraphTextModel.GetText(paragraph), errors);
+            InlineExpressionValidation.CheckSyntax(ParagraphTextModel.GetText(paragraph), errors, () => locator.Describe(paragraph));
         }
     }
 }

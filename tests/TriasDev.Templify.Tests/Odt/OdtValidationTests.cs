@@ -69,7 +69,7 @@ public sealed class OdtValidationTests
 
         ValidationError error = Assert.Single(result.Errors);
         Assert.Equal(ValidationErrorType.InvalidConditionalExpression, error.Type);
-        Assert.Equal("{{#if Count >}}", error.Location);
+        Assert.Equal("body, paragraph 1: '{{#if Count >}}'", error.Location);
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public sealed class OdtValidationTests
         Assert.Equal(
             "Condition 'contains' uses 'contains', which is also a keyword, as a variable. Write '[contains]' to reference the variable unambiguously.",
             warning.Message);
-        Assert.Equal("{{#if contains}}", warning.Location);
+        Assert.Equal("body, paragraph 1: '{{#if contains}}'", warning.Location);
     }
 
     [Fact]
@@ -251,14 +251,16 @@ public sealed class OdtValidationTests
     }
 
     [Fact]
-    public void SameUnmatchedMarker_InTwoParagraphs_IsReportedOnce()
+    public void SameUnmatchedMarker_InTwoPlaces_IsReportedAtEach()
     {
+        // Each problem is reported once, at its place (#255): the row (which processing fails on) and the paragraph.
         ValidationResult result = Validate(new OdtDocumentBuilder()
             .AddTable(new[] { "{{#if A}} x" }, new[] { "y" })
             .AddParagraph("{{#if A}}"));
 
-        ValidationError error = Assert.Single(result.Errors);
-        Assert.Equal("Conditional start marker '{{#if A}}' has no matching '{{/if}}'.", error.Message);
+        Assert.Equal(2, result.Errors.Count);
+        Assert.Contains(result.Errors, e => e.Location == "body, paragraph 1: '{{#if A}}'");
+        Assert.Contains(result.Errors, e => e.Location!.StartsWith("body, table 1, row 1", StringComparison.Ordinal));
     }
 
     [Fact]

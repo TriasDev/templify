@@ -58,7 +58,8 @@ internal static partial class ConditionalDetector
                     {
                         throw new TemplateSyntaxException(
                             ValidationErrorType.UnmatchedConditionalStart,
-                            $"Conditional start marker '{{{{#if {conditionExpression}}}}}' has no matching '{{{{/if}}}}'.");
+                            $"Conditional start marker '{{{{#if {conditionExpression}}}}}' has no matching '{{{{/if}}}}'.")
+                        { SourceElement = element };
                     }
 
                     // Build branches
@@ -206,7 +207,8 @@ internal static partial class ConditionalDetector
                     throw new TemplateSyntaxException(
                         ValidationErrorType.InvalidConditionalExpression,
                         "Invalid conditional structure: '{{#elseif}}' cannot appear after '{{#else}}'. " +
-                        "The '{{#else}}' branch must be the last branch before '{{/if}}'.");
+                        "The '{{#else}}' branch must be the last branch before '{{/if}}'.")
+                    { SourceElement = elements[i] };
                 }
 
                 elseIfMarkers.Add((i, elseIfMatch.Groups[1].Value.Trim()));
@@ -324,7 +326,8 @@ internal static partial class ConditionalDetector
                             throw new TemplateSyntaxException(
                                 ValidationErrorType.InvalidConditionalExpression,
                                 "Invalid conditional structure: '{{#elseif}}' cannot appear after '{{#else}}'. " +
-                                "The '{{#else}}' branch must be the last branch before '{{/if}}'.");
+                                "The '{{#else}}' branch must be the last branch before '{{/if}}'.")
+                            { SourceElement = rows[j] };
                         }
 
                         branchMarkers.Add((j, marker.Condition));
@@ -340,7 +343,8 @@ internal static partial class ConditionalDetector
             {
                 throw new TemplateSyntaxException(
                     ValidationErrorType.UnmatchedConditionalStart,
-                    $"Table row conditional start marker '{{{{#if {conditionExpression}}}}}' has no matching '{{{{/if}}}}'.");
+                    $"Table row conditional start marker '{{{{#if {conditionExpression}}}}}' has no matching '{{{{/if}}}}'.")
+                { SourceElement = rows[i] };
             }
 
             List<ConditionalBranch> branches = new List<ConditionalBranch>();
@@ -443,7 +447,8 @@ internal static partial class ConditionalDetector
             throw new TemplateSyntaxException(
                 ValidationErrorType.InvalidConditionalExpression,
                 "Invalid table row conditional: each '{{#if}}', '{{#elseif}}', '{{#else}}' and '{{/if}}' " +
-                "that spans table rows must be placed in its own row.");
+                "that spans table rows must be placed in its own row.")
+            { SourceElement = row };
         }
 
         return rowMarkers.Count == 1 ? rowMarkers[0] : null;
