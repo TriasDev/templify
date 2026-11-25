@@ -30,6 +30,9 @@ override TriasDev.Templify.Builder.PageSize.ToString() -> string!
 override TriasDev.Templify.Builder.ParagraphStyleKey.Equals(object? obj) -> bool
 override TriasDev.Templify.Builder.ParagraphStyleKey.GetHashCode() -> int
 override TriasDev.Templify.Builder.ParagraphStyleKey.ToString() -> string!
+override TriasDev.Templify.Builder.RawBlock.Equals(object? obj) -> bool
+override TriasDev.Templify.Builder.RawBlock.GetHashCode() -> int
+override TriasDev.Templify.Builder.RawBlock.ToString() -> string!
 override TriasDev.Templify.Builder.TableStyleKey.Equals(object? obj) -> bool
 override TriasDev.Templify.Builder.TableStyleKey.GetHashCode() -> int
 override TriasDev.Templify.Builder.TableStyleKey.ToString() -> string!
@@ -98,6 +101,8 @@ static TriasDev.Templify.Builder.PageSize.operator !=(TriasDev.Templify.Builder.
 static TriasDev.Templify.Builder.PageSize.operator ==(TriasDev.Templify.Builder.PageSize? left, TriasDev.Templify.Builder.PageSize? right) -> bool
 static TriasDev.Templify.Builder.ParagraphStyleKey.operator !=(TriasDev.Templify.Builder.ParagraphStyleKey? left, TriasDev.Templify.Builder.ParagraphStyleKey? right) -> bool
 static TriasDev.Templify.Builder.ParagraphStyleKey.operator ==(TriasDev.Templify.Builder.ParagraphStyleKey? left, TriasDev.Templify.Builder.ParagraphStyleKey? right) -> bool
+static TriasDev.Templify.Builder.RawBlock.operator !=(TriasDev.Templify.Builder.RawBlock? left, TriasDev.Templify.Builder.RawBlock? right) -> bool
+static TriasDev.Templify.Builder.RawBlock.operator ==(TriasDev.Templify.Builder.RawBlock? left, TriasDev.Templify.Builder.RawBlock? right) -> bool
 static TriasDev.Templify.Builder.StyleSheet.Create(System.Action<TriasDev.Templify.Builder.StyleSheetComposer!>! styles) -> TriasDev.Templify.Builder.StyleSheet!
 static TriasDev.Templify.Builder.TableStyleKey.operator !=(TriasDev.Templify.Builder.TableStyleKey? left, TriasDev.Templify.Builder.TableStyleKey? right) -> bool
 static TriasDev.Templify.Builder.TableStyleKey.operator ==(TriasDev.Templify.Builder.TableStyleKey? left, TriasDev.Templify.Builder.TableStyleKey? right) -> bool
@@ -159,6 +164,7 @@ TriasDev.Templify.Builder.BlockComposer.Paragraph(TriasDev.Templify.Builder.Para
 TriasDev.Templify.Builder.BlockComposer.Paragraph(TriasDev.Templify.Builder.ParagraphStyleKey! style, System.Action<TriasDev.Templify.Builder.InlineComposer!>! content) -> void
 TriasDev.Templify.Builder.BlockComposer.Paragraph(TriasDev.Templify.Builder.ParagraphStyleKey! style, TriasDev.Templify.Builder.TemplatePath value) -> void
 TriasDev.Templify.Builder.BlockComposer.Paragraph(TriasDev.Templify.Builder.TemplatePath value) -> void
+TriasDev.Templify.Builder.BlockComposer.Raw(TriasDev.Templify.Builder.RawBlock! raw) -> void
 TriasDev.Templify.Builder.BlockComposer.Rule(TriasDev.Templify.Builder.Length thickness, TriasDev.Templify.Builder.Color color, TriasDev.Templify.Builder.Length spaceAbove, TriasDev.Templify.Builder.Length spaceBelow) -> void
 TriasDev.Templify.Builder.BlockComposer.Rule(TriasDev.Templify.Builder.Length thickness, TriasDev.Templify.Builder.Color color) -> void
 TriasDev.Templify.Builder.BlockComposer.Switch(TriasDev.Templify.Builder.TemplatePath value, System.Action<TriasDev.Templify.Builder.SwitchComposer!>! cases) -> void
@@ -375,6 +381,19 @@ TriasDev.Templify.Builder.ParagraphStyleKey.DisplayName.get -> string!
 TriasDev.Templify.Builder.ParagraphStyleKey.Equals(TriasDev.Templify.Builder.ParagraphStyleKey? other) -> bool
 TriasDev.Templify.Builder.ParagraphStyleKey.Id.get -> string!
 TriasDev.Templify.Builder.ParagraphStyleKey.ParagraphStyleKey(string! id, string! displayName) -> void
+TriasDev.Templify.Builder.RawBlock
+TriasDev.Templify.Builder.RawBlock.<Clone>$() -> TriasDev.Templify.Builder.RawBlock!
+TriasDev.Templify.Builder.RawBlock.Docx.get -> System.Func<TriasDev.Templify.Builder.RawContext!, System.Xml.Linq.XElement!>!
+TriasDev.Templify.Builder.RawBlock.Docx.init -> void
+TriasDev.Templify.Builder.RawBlock.Equals(TriasDev.Templify.Builder.RawBlock? other) -> bool
+TriasDev.Templify.Builder.RawBlock.Odt.get -> System.Func<TriasDev.Templify.Builder.RawContext!, System.Xml.Linq.XElement!>!
+TriasDev.Templify.Builder.RawBlock.Odt.init -> void
+TriasDev.Templify.Builder.RawBlock.RawBlock() -> void
+TriasDev.Templify.Builder.RawBlock.Uses.get -> System.Collections.Generic.IReadOnlyList<TriasDev.Templify.Builder.TemplatePath>!
+TriasDev.Templify.Builder.RawBlock.Uses.init -> void
+TriasDev.Templify.Builder.RawContext
+TriasDev.Templify.Builder.RawContext.Frame.get -> TriasDev.Templify.Builder.Length
+TriasDev.Templify.Builder.RawContext.Placeholder(TriasDev.Templify.Builder.TemplatePath path, TriasDev.Templify.Builder.ValueFormat? format = null) -> string!
 TriasDev.Templify.Builder.RowComposer
 TriasDev.Templify.Builder.RowComposer.AllowSplit() -> void
 TriasDev.Templify.Builder.RowComposer.Cell(string! text) -> void

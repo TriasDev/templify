@@ -559,13 +559,15 @@ internal static class DocxWriter
             List<OpenXmlElement> elements = new List<OpenXmlElement>();
             foreach (Block block in BlockFlattener.Flatten(blocks))
             {
+                List<OpenXmlElement> written = WriteBlock(block, frame).ToList();
+
                 // Word merges two tables that touch; a paragraph keeps them apart.
-                if (block is TableBlock && elements.Count > 0 && elements[^1] is Table)
+                if (written.Count > 0 && written[0] is Table && elements.Count > 0 && elements[^1] is Table)
                 {
                     elements.Add(new Paragraph());
                 }
 
-                elements.AddRange(WriteBlock(block, frame));
+                elements.AddRange(written);
             }
 
             return elements;
@@ -581,8 +583,18 @@ internal static class DocxWriter
             TableBlock table => WriteTable(table, frame),
             RuleBlock rule => [RuleParagraph(rule)],
             TocBlock toc => [TocParagraph(toc)],
+            RawXmlBlock raw => [RawElement(raw.Raw, frame)],
             _ => throw new NotSupportedException($"Block {block.GetType().Name} is not supported by the DOCX writer."),
         };
+
+        /// <summary>A raw block as a typed paragraph or table, so the writer's own checks (tables that touch, the
+        /// closing paragraph) see what it is.</summary>
+        private static OpenXmlElement RawElement(RawBlock raw, Length frame)
+        {
+            System.Xml.Linq.XElement element = RawContext.Check(raw.Docx(new RawContext(raw, frame)), RawContext.DocxRoots, "DOCX");
+            string xml = element.ToString(System.Xml.Linq.SaveOptions.DisableFormatting);
+            return element.Name.LocalName == "tbl" ? new Table(xml) : new Paragraph(xml);
+        }
 
         /// <summary>A rule: an empty 1 pt paragraph whose top border is the line (CT_PPrBase order: pBdr, spacing).</summary>
         private static Paragraph RuleParagraph(RuleBlock rule) => new Paragraph(new ParagraphProperties(

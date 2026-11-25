@@ -96,6 +96,12 @@ internal static class DiagnosticCodes
     /// <summary>A row's cells do not span the table's columns.</summary>
     public const string RowCellCount = "TB7003";
 
+    /// <summary>A raw block's XML has a root element that cannot stand at block level.</summary>
+    public const string InvalidRawBlock = "TB9101";
+
+    /// <summary>A raw block asks for a placeholder of a path it does not declare.</summary>
+    public const string UndeclaredRawPath = "TB9102";
+
     /// <summary>A table of contents is built only by an application that updates it (Word on open; not LibreOffice).</summary>
     public const string TableOfContentsNotBuilt = "TB9001";
 

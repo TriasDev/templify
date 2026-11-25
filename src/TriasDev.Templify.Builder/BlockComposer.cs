@@ -238,6 +238,23 @@ public class BlockComposer
         composer.Close();
     }
 
+    /// <summary>Adds a block written as format XML, for a construct the vocabulary does not have; both formats are required.</summary>
+    /// <param name="raw">The DOCX and ODT XML and the paths it reads.</param>
+    public void Raw(RawBlock raw)
+    {
+        ArgumentNullException.ThrowIfNull(raw);
+        ArgumentNullException.ThrowIfNull(raw.Docx);
+        ArgumentNullException.ThrowIfNull(raw.Odt);
+        ArgumentNullException.ThrowIfNull(raw.Uses);
+        EnsureOpen();
+        foreach (TemplatePath path in raw.Uses)
+        {
+            LoopScope.CheckUse(_context, _scope, path);
+        }
+
+        _blocks.Add(new RawXmlBlock(raw));
+    }
+
     /// <summary>Adds a table of contents over the headings of outline levels 1 to 3.</summary>
     public void TableOfContents() => TableOfContents(3);
 

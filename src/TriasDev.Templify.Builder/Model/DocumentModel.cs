@@ -194,6 +194,9 @@ internal sealed class BoxStyleDefinition(BoxStyleKey key)
     };
 }
 
+/// <summary>A block of format XML (escape hatch).</summary>
+internal sealed record RawXmlBlock(RawBlock Raw) : Block;
+
 /// <summary>A table of contents over the headings up to <paramref name="MaxLevel"/>.</summary>
 internal sealed record TocBlock(int MaxLevel) : Block;
 

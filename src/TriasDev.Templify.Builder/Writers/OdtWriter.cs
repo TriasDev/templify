@@ -116,6 +116,7 @@ internal static class OdtWriter
             TableBlock table => WriteTable(table, frame),
             RuleBlock rule => new XElement(_text + "p", new XAttribute(_text + "style-name", RuleStyle(rule))),
             TocBlock toc => TableOfContents(toc),
+            RawXmlBlock raw => new XElement(RawContext.Check(raw.Raw.Odt(new RawContext(raw.Raw, frame)), RawContext.OdtRoots, "ODT")),
             // An empty paragraph of its own carries the break (break-after: no empty line on the new page), so it
             // survives when the engine removes the paragraphs around it.
             PageBreakBlock => new XElement(_text + "p", new XAttribute(_text + "style-name", PageBreakStyle())),
