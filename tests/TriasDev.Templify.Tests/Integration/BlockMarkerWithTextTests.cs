@@ -1,6 +1,9 @@
 // Copyright (c) 2026 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Diagnostics;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using TriasDev.Templify.Core;
 using TriasDev.Templify.Tests.Helpers;
@@ -30,6 +33,7 @@ public sealed class BlockMarkerWithTextTests
         { "inline conditional", ["Assets: {{#if Flag}}yes{{/if}}."] },
         { "block conditional with else", ["{{#if Off}}", "a", "{{#else}}", "b", "{{/if}}"] },
         { "nested blocks", ["{{#foreach Items}}", "{{#if Flag}}", "{{Name}}", "{{/if}}", "{{/foreach}}"] },
+        { "invisible format characters", ["\u200B{{#if Flag}}\u200F", "x", "\u00AD{{/if}}\uFEFF"] },
     };
 
     [Theory]
@@ -173,6 +177,85 @@ public sealed class BlockMarkerWithTextTests
 
         AssertReportedOnce(builder.ToStream().ToArray(), "Sub:");
     }
+
+    [Fact]
+    public void ContentControlAsLoopStartMarker_WithMoreText_IsReported()
+    {
+        DocumentBuilder builder = new DocumentBuilder()
+            .AddElement(new SdtBlock(new SdtProperties(), new SdtContentBlock(P("{{#foreach Items}}"), P("extra"))))
+            .AddParagraph("{{Name}}")
+            .AddParagraph("{{/foreach}}");
+
+        byte[] template = builder.ToStream().ToArray();
+        AssertReportedOnce(template, "extra");
+        using TemplateTestRun run = TemplateTestHarness.Process(new MemoryStream(template), CreateData());
+        Assert.Contains("together with its content control:", Assert.Single(run.Result.Warnings).Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkersInsideContentControl_AreReported()
+    {
+        DocumentBuilder builder = new DocumentBuilder().AddElement(new SdtBlock(
+            new SdtProperties(),
+            new SdtContentBlock(P("Assets: {{#foreach Items}}"), P("{{Name}}"), P("{{/foreach}}"))));
+
+        AssertReportedOnce(builder.ToStream().ToArray(), "Assets:");
+    }
+
+    [Fact]
+    public void MarkersInsideTextBox_AreReported()
+    {
+        DocumentBuilder builder = new DocumentBuilder().AddElement(new Paragraph(
+            new Run(new Text("anchor")),
+            new Run(new Picture(new DocumentFormat.OpenXml.Vml.Shape(
+                new DocumentFormat.OpenXml.Vml.TextBox(new TextBoxContent(P("Intro {{#if Flag}}"), P("x"), P("{{/if}}"))))
+            { Id = "tb1", Style = "width:72pt;height:36pt" }))));
+
+        AssertReportedOnce(builder.ToStream().ToArray(), "Intro");
+    }
+
+    [Fact]
+    public void MarkersInFootnote_AreReported()
+    {
+        DocumentBuilder builder = new DocumentBuilder();
+        FootnotesPart part = builder.MainPart.AddNewPart<FootnotesPart>();
+        part.Footnotes = new Footnotes(
+            new Footnote(new Paragraph(new Run(new SeparatorMark()))) { Type = FootnoteEndnoteValues.Separator, Id = -1 },
+            new Footnote(P("{{#if Flag}}"), P("x"), P("{{/if}} outro")) { Id = 1 });
+        builder.AddElement(new Paragraph(new Run(new Text("body")), new Run(new FootnoteReference { Id = 1 })));
+
+        AssertReportedOnce(builder.ToStream().ToArray(), "outro");
+    }
+
+    [Fact]
+    [Trait("Category", "Performance")]
+    public void ValidateTemplate_DeeplyNestedLoopsInTables_IsNotExponential()
+    {
+        // loop > table > cell > loop > ... : each level used to double the validator's visits.
+        const int Depth = 20;
+        OpenXmlElement[] content = [P("Sub: {{#foreach Items}}"), P("{{Name}}"), P("{{/foreach}}")];
+        for (int level = 0; level < Depth; level++)
+        {
+            Table table = new Table(new TableRow(new TableCell(content)));
+            content = [P("{{#foreach Items}}"), table, P("{{/foreach}}")];
+        }
+
+        DocumentBuilder builder = new DocumentBuilder();
+        foreach (OpenXmlElement element in content)
+        {
+            builder.AddElement(element);
+        }
+
+        byte[] template = builder.ToStream().ToArray();
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        ValidationResult result = TemplateTestHarness.CreateInvariantProcessor().ValidateTemplate(new MemoryStream(template));
+        stopwatch.Stop();
+
+        Assert.Equal(ValidationErrorType.BlockMarkerWithText, Assert.Single(result.Errors).Type);
+        Assert.True(stopwatch.ElapsedMilliseconds < 5000, $"Validation took {stopwatch.ElapsedMilliseconds} ms");
+    }
+
+    private static Paragraph P(string text) => new Paragraph(new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve }));
 
     private static void AssertReportedOnce(byte[] template, string lostText)
     {

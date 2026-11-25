@@ -39,14 +39,18 @@ internal sealed class BlockMarkerValidator
         IReadOnlyList<ConditionalBlock> conditionals = Detect(() => ConditionalDetector.DetectConditionalsInElements(elements));
         HashSet<OpenXmlElement> markers = Report(loops, conditionals);
 
+        // Loop content is walked as a list of its own (nested loops are detected per iteration); skipping it below
+        // keeps the traversal linear in nested loop > table > cell > loop structures.
+        HashSet<OpenXmlElement> loopContent = new HashSet<OpenXmlElement>();
         foreach (LoopBlock loop in loops)
         {
+            loopContent.UnionWith(loop.ContentElements);
             ValidateBlocks(loop.ContentElements.ToList());
         }
 
         foreach (OpenXmlElement element in elements)
         {
-            if (markers.Contains(element))
+            if (markers.Contains(element) || loopContent.Contains(element))
             {
                 continue;
             }
@@ -95,12 +99,14 @@ internal sealed class BlockMarkerValidator
         IReadOnlyList<ConditionalBlock> conditionals = Detect(() => ConditionalDetector.DetectTableRowConditionals(rows));
         HashSet<OpenXmlElement> markers = Report(loops, conditionals);
 
+        HashSet<OpenXmlElement> loopContent = new HashSet<OpenXmlElement>();
         foreach (LoopBlock loop in loops)
         {
+            loopContent.UnionWith(loop.ContentElements);
             ValidateRows(loop.ContentElements.OfType<TableRow>().ToList());
         }
 
-        foreach (TableRow row in rows.Where(r => !markers.Contains(r)))
+        foreach (TableRow row in rows.Where(r => !markers.Contains(r) && !loopContent.Contains(r)))
         {
             foreach (TableCell cell in TemplateElementText.GetRowCells(row))
             {

@@ -142,6 +142,38 @@ public sealed class OdtBlockMarkerWithTextTests
         AssertReportedOnce(template, LostTextMessage("{{#foreach Items}}", "Sub:"));
     }
 
+    [Fact]
+    public void MarkersInFrameOfInlineConditionalParagraph_AreReported()
+    {
+        // The paragraph of an inline conditional stays; its frames are processed like other containers.
+        OdtDocumentBuilder template = new OdtDocumentBuilder().AddXml(
+            "<text:p>Status {{#if Flag}}yes{{/if}}<draw:frame draw:name=\"Box\" text:anchor-type=\"as-char\"><draw:text-box>" +
+            "<text:p>Intro {{#if Flag}}</text:p><text:p>x</text:p><text:p>{{/if}}</text:p>" +
+            "</draw:text-box></draw:frame></text:p>");
+
+        AssertReportedOnce(template, LostTextMessage("{{#if Flag}}", "Intro"));
+    }
+
+    [Fact]
+    public void MarkersInSection_AreReported()
+    {
+        OdtDocumentBuilder template = new OdtDocumentBuilder().AddXml(
+            "<text:section text:name=\"S\"><text:p>{{#foreach Items}}</text:p><text:p>{{Name}}</text:p><text:p>{{/foreach}} tail</text:p></text:section>");
+
+        AssertReportedOnce(template, LostTextMessage("{{/foreach}}", "tail"));
+    }
+
+    [Fact]
+    public void MarkerHeading_IsReported()
+    {
+        OdtDocumentBuilder template = new OdtDocumentBuilder()
+            .AddHeading("Assets {{#if Flag}}")
+            .AddParagraph("x")
+            .AddParagraph("{{/if}}");
+
+        AssertReportedOnce(template, LostTextMessage("{{#if Flag}}", "Assets"));
+    }
+
     private static string LostTextMessage(string marker, string lostText) =>
         $"Text next to the block marker '{marker}' is removed together with its paragraph: '{lostText}'. " +
         "Put block markers in paragraphs of their own.";

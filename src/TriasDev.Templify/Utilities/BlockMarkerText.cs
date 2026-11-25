@@ -33,6 +33,10 @@ internal static partial class BlockMarkerText
     [GeneratedRegex(@"\s+", RegexOptions.CultureInvariant)]
     private static partial Regex WhitespaceRegex();
 
+    // Invisible format characters (zero-width space, bidi marks, soft hyphen, BOM) are not lost text a reader sees.
+    [GeneratedRegex(@"\p{Cf}", RegexOptions.CultureInvariant)]
+    private static partial Regex FormatCharacterRegex();
+
     /// <summary>
     /// Returns the message for a marker element whose text other than its block markers is lost when the element is
     /// removed, or <c>null</c> when the element holds only markers and whitespace.
@@ -112,7 +116,8 @@ internal static partial class BlockMarkerText
         return (markers, Normalize(remainder.ToString()));
     }
 
-    private static string Normalize(string text) => WhitespaceRegex().Replace(text, " ").Trim();
+    private static string Normalize(string text) =>
+        WhitespaceRegex().Replace(FormatCharacterRegex().Replace(text, string.Empty), " ").Trim();
 
     private static string Quote(string text) =>
         text.Length <= MaxQuotedLength ? text : text.Substring(0, MaxQuotedLength) + "…";

@@ -323,13 +323,20 @@ internal sealed class OdtTemplateValidator
 
             // Marker blocks are removed by processing. A marker row or list item holds its marker in a paragraph of
             // its own, which must not be detected again as an unmatched marker inside the cell or item.
+            // An inline conditional's paragraph stays (only its markers are removed): its frames are walked.
             HashSet<XElement> markers = new HashSet<XElement>(
                 loops.SelectMany(l => new[] { l.StartMarker, l.EndMarker })
-                    .Concat(conditionals.SelectMany(c => c.Branches.Select(b => b.Marker).Append(c.EndMarker))));
+                    .Concat(conditionals
+                        .Where(c => !(c.StartMarker == c.EndMarker && OdfNames.IsParagraph(c.StartMarker)))
+                        .SelectMany(c => c.Branches.Select(b => b.Marker).Append(c.EndMarker))));
 
+            // Loop content is walked as a sequence of its own; skipping it below keeps the walk linear in nested
+            // loop > table > cell > loop structures.
+            HashSet<XElement> loopContent = new HashSet<XElement>();
             foreach (OdtLoopBlock loop in loops)
             {
                 _allPlaceholders.Add(loop.CollectionName);
+                loopContent.UnionWith(loop.ContentElements);
 
                 // Nested loops in the content are detected when the content is processed per iteration.
                 WalkBlocks(loop.ContentElements);
@@ -337,7 +344,7 @@ internal sealed class OdtTemplateValidator
 
             foreach (XElement block in blocks)
             {
-                if (markers.Contains(block))
+                if (markers.Contains(block) || loopContent.Contains(block))
                 {
                     continue;
                 }
