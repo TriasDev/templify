@@ -630,6 +630,26 @@ Every builder test asserts these invariants for both formats, through a shared h
 The consumer-facing test kit, `TriasDev.Templify.Builder.Testing` (task 18), packages the same checks plus a canonical
 text dump for snapshot tests. A consumer builds at runtime, so its CI is where its definitions get verified.
 
+As built (#286), test-framework neutral:
+
+- `TemplateVerifier.VerifyAll(definitionFactory, options)` builds every language × format (`TemplateVerificationOptions`:
+  `Languages`, `Formats`, `Texts` per language, `SampleData` as JSON, `RequireEqualContracts`, `FailOnBuildWarnings`,
+  `DeterminismCultures` = tr-TR, ar-SA) and throws `TemplateVerificationException` listing every failure; `Verify`
+  returns the `TemplateVerificationReport` instead. Checks (`VerificationCheck`): build, structure (`ValidateTemplate`),
+  contract (`ValidateTemplate(witness)` reports no missing variable, and the witness fills without warnings), fill
+  (sample data, the target language as fill culture), package (template and every filled document), determinism
+  (a fresh definition from the factory under each culture), contract parity. Single checks: `CheckTemplate`,
+  `CheckFill`, `CheckPackage`.
+- The ODT package check is the kit's own (no test-project code ships): `mimetype` first, stored, no data descriptor,
+  no extra field, ODT media type; manifest root type and listed files present; well-formed XML.
+- `TemplateSnapshot.Create` dumps templates or filled documents in one notation for both formats (style per paragraph,
+  `→` tab, `↵` break, `[image]`, `{FIELD}`, `[list n]`, tables as indented rows/cells, then headers and footers). The
+  DOCX and ODT dumps of the same definition are equal unless DOCX needs layout paragraphs (after a table that ends a
+  part, between touching tables); a test asserts the equality.
+- `LibreOfficeConverter` (`IsAvailable`, `Convert`, `ToPdf`, `ToText`) with a private profile per conversion.
+- Dogfooding: the builder tests' `AssertInvariants`/`AssertPackage` are `CheckTemplate`/`CheckPackage`, so every builder
+  test now also fills the contract's witness.
+
 ## 6. Support matrix
 
 | Target | Supported |
@@ -665,12 +685,14 @@ Known differences become build warnings when the construct is used. The first en
   - `src/TriasDev.Templify.Builder`: TFMs as the library, its own `PublicAPI.Shipped.txt`/`PublicAPI.Unshipped.txt`
     and `packages.lock.json`, and a `ProjectReference` to core, which becomes a NuGet dependency on the core version of
     the build;
+  - `src/TriasDev.Templify.Builder.Testing` (#286): the consumer test kit, same TFMs, own `PublicAPI` files, released
+    with the builder on its version line;
   - `tests/TriasDev.Templify.Builder.Tests`.
 
-  Both are added to `templify.slnx` under the existing solution folders.
+  All are added to `templify.slnx` under the existing solution folders.
 - **Release.**
-  - **Since task 1:** the root release-please package has `exclude-paths` for `src/TriasDev.Templify.Builder` and
-    `tests/TriasDev.Templify.Builder.Tests`. A commit whose files all lie there does not bump core. A commit that also
+  - **Since task 1:** the root release-please package has `exclude-paths` for `src/TriasDev.Templify.Builder`,
+    `src/TriasDev.Templify.Builder.Testing` and `tests/TriasDev.Templify.Builder.Tests`. A commit whose files all lie there does not bump core. A commit that also
     touches shared files (`templify.slnx`, docs, CI) still counts for core; its release-notes entry is edited by hand,
     as today.
   - **Before the first preview release:** a second release-please package, component `templify-builder`, with tags
