@@ -631,20 +631,9 @@ public sealed class DocumentTemplateProcessor
             settingsPart.Settings = new Settings();
         }
 
-        Settings settings = settingsPart.Settings;
-
-        // Check if UpdateFieldsOnOpen already exists
-        UpdateFieldsOnOpen? existingElement = settings.GetFirstChild<UpdateFieldsOnOpen>();
-        if (existingElement != null)
-        {
-            // Update the existing element
-            existingElement.Val = true;
-        }
-        else
-        {
-            // Add new UpdateFieldsOnOpen element
-            settings.PrependChild(new UpdateFieldsOnOpen { Val = true });
-        }
+        // CT_Settings is a sequence. AddChild removes every existing w:updateFields child (also a misplaced one,
+        // e.g. written first by Templify <= 1.10, or duplicates) and inserts one at its schema position (#254).
+        settingsPart.Settings.AddChild(new UpdateFieldsOnOpen { Val = true });
 
         settingsPart.Settings.Save();
     }
