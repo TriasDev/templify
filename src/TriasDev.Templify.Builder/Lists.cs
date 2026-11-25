@@ -139,6 +139,17 @@ public sealed class ListComposer
         _blocks.Add(new ParagraphBlock(composer.Close(), null, new ListItemInfo(_style, level)));
     }
 
+    /// <summary>Repeats items for every item of a typed collection.</summary>
+    /// <typeparam name="T">The item type.</typeparam>
+    /// <param name="collection">The collection, from <see cref="TemplatePath{T}.Items{TItem}"/>.</param>
+    /// <param name="itemName">The iteration variable.</param>
+    /// <param name="items">Describes the items for each element; it receives the typed element.</param>
+    public void ForEach<T>(TemplateCollection<T> collection, string itemName, Action<LoopItem<T>, ListComposer> items)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+        ForEach(collection.Untyped, itemName, (item, l) => items(new LoopItem<T>(item, collection.Naming), l));
+    }
+
     /// <summary>Repeats items for every item of a collection.</summary>
     /// <param name="collection">The data path of the collection.</param>
     /// <param name="itemName">The iteration variable.</param>

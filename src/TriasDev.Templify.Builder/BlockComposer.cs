@@ -141,6 +141,17 @@ public class BlockComposer
         _blocks.AddRange(composer.Close(value));
     }
 
+    /// <summary>Repeats blocks for every item of a typed collection.</summary>
+    /// <typeparam name="T">The item type.</typeparam>
+    /// <param name="collection">The collection, from <see cref="TemplatePath{T}.Items{TItem}"/>.</param>
+    /// <param name="itemName">The iteration variable.</param>
+    /// <param name="body">Describes the blocks for each item; it receives the typed item.</param>
+    public void ForEach<T>(TemplateCollection<T> collection, string itemName, Action<LoopItem<T>, BlockComposer> body)
+    {
+        ArgumentNullException.ThrowIfNull(body);
+        ForEach(collection.Untyped, itemName, (item, b) => body(new LoopItem<T>(item, collection.Naming), b));
+    }
+
     /// <summary>
     /// Repeats blocks for every item of a collection: <c>{{#foreach item in collection}}</c> … <c>{{/foreach}}</c>.
     /// The iteration variable is always named, so the template stays readable and an inner loop can still reach the

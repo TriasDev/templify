@@ -35,6 +35,16 @@ public sealed class TemplateComposer
     /// </summary>
     public TemplatePath Data => default;
 
+    /// <summary>
+    /// Gets the root of the data, typed by a C# model of it: paths are chosen with
+    /// <see cref="TemplatePath{T}.Path{TProperty}"/> and named as the data's JSON (camelCase by default;
+    /// <see cref="System.Text.Json.Serialization.JsonPropertyNameAttribute"/> wins).
+    /// </summary>
+    /// <typeparam name="T">The data's type.</typeparam>
+    /// <param name="naming">How C# property names become data names; null for camelCase.</param>
+    /// <returns>The root.</returns>
+    public TemplatePath<T> DataAs<T>(System.Text.Json.JsonNamingPolicy? naming = null) => new TemplatePath<T>(default, naming);
+
     /// <summary>Sets the template's named styles. Call it once.</summary>
     /// <param name="styles">The style sheet, typically built from the product's theme.</param>
     public void Styles(StyleSheet styles)

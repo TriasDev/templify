@@ -39,6 +39,9 @@ override TriasDev.Templify.Builder.TableStyleKey.ToString() -> string!
 override TriasDev.Templify.Builder.TemplateBuildOptions.Equals(object? obj) -> bool
 override TriasDev.Templify.Builder.TemplateBuildOptions.GetHashCode() -> int
 override TriasDev.Templify.Builder.TemplateBuildOptions.ToString() -> string!
+override TriasDev.Templify.Builder.TemplateCollection<TItem>.Equals(object? obj) -> bool
+override TriasDev.Templify.Builder.TemplateCollection<TItem>.GetHashCode() -> int
+override TriasDev.Templify.Builder.TemplateCollection<TItem>.ToString() -> string!
 override TriasDev.Templify.Builder.TemplateIdentity.Equals(object? obj) -> bool
 override TriasDev.Templify.Builder.TemplateIdentity.GetHashCode() -> int
 override TriasDev.Templify.Builder.TemplateIdentity.ToString() -> string!
@@ -48,6 +51,9 @@ override TriasDev.Templify.Builder.TemplateInspection.ToString() -> string!
 override TriasDev.Templify.Builder.TemplatePath.Equals(object? obj) -> bool
 override TriasDev.Templify.Builder.TemplatePath.GetHashCode() -> int
 override TriasDev.Templify.Builder.TemplatePath.ToString() -> string!
+override TriasDev.Templify.Builder.TemplatePath<T>.Equals(object? obj) -> bool
+override TriasDev.Templify.Builder.TemplatePath<T>.GetHashCode() -> int
+override TriasDev.Templify.Builder.TemplatePath<T>.ToString() -> string!
 override TriasDev.Templify.Builder.TemplateStamp.Equals(object? obj) -> bool
 override TriasDev.Templify.Builder.TemplateStamp.GetHashCode() -> int
 override TriasDev.Templify.Builder.TemplateStamp.ToString() -> string!
@@ -114,6 +120,10 @@ static TriasDev.Templify.Builder.TableStyleKey.operator ==(TriasDev.Templify.Bui
 static TriasDev.Templify.Builder.TemplateBuilder.Build(TriasDev.Templify.Builder.ITemplateDefinition! definition, TriasDev.Templify.Builder.TemplateBuildOptions! options) -> TriasDev.Templify.Builder.GeneratedTemplate!
 static TriasDev.Templify.Builder.TemplateBuildOptions.operator !=(TriasDev.Templify.Builder.TemplateBuildOptions? left, TriasDev.Templify.Builder.TemplateBuildOptions? right) -> bool
 static TriasDev.Templify.Builder.TemplateBuildOptions.operator ==(TriasDev.Templify.Builder.TemplateBuildOptions? left, TriasDev.Templify.Builder.TemplateBuildOptions? right) -> bool
+static TriasDev.Templify.Builder.TemplateCollection<TItem>.implicit operator TriasDev.Templify.Builder.Condition!(TriasDev.Templify.Builder.TemplateCollection<TItem> collection) -> TriasDev.Templify.Builder.Condition!
+static TriasDev.Templify.Builder.TemplateCollection<TItem>.implicit operator TriasDev.Templify.Builder.TemplatePath(TriasDev.Templify.Builder.TemplateCollection<TItem> collection) -> TriasDev.Templify.Builder.TemplatePath
+static TriasDev.Templify.Builder.TemplateCollection<TItem>.operator !=(TriasDev.Templify.Builder.TemplateCollection<TItem> left, TriasDev.Templify.Builder.TemplateCollection<TItem> right) -> bool
+static TriasDev.Templify.Builder.TemplateCollection<TItem>.operator ==(TriasDev.Templify.Builder.TemplateCollection<TItem> left, TriasDev.Templify.Builder.TemplateCollection<TItem> right) -> bool
 static TriasDev.Templify.Builder.TemplateIdentity.operator !=(TriasDev.Templify.Builder.TemplateIdentity? left, TriasDev.Templify.Builder.TemplateIdentity? right) -> bool
 static TriasDev.Templify.Builder.TemplateIdentity.operator ==(TriasDev.Templify.Builder.TemplateIdentity? left, TriasDev.Templify.Builder.TemplateIdentity? right) -> bool
 static TriasDev.Templify.Builder.TemplateInspection.operator !=(TriasDev.Templify.Builder.TemplateInspection? left, TriasDev.Templify.Builder.TemplateInspection? right) -> bool
@@ -127,6 +137,13 @@ static TriasDev.Templify.Builder.TemplatePath.operator &(TriasDev.Templify.Build
 static TriasDev.Templify.Builder.TemplatePath.operator ==(TriasDev.Templify.Builder.TemplatePath left, TriasDev.Templify.Builder.TemplatePath right) -> bool
 static TriasDev.Templify.Builder.TemplatePath.operator |(TriasDev.Templify.Builder.TemplatePath left, TriasDev.Templify.Builder.TemplatePath right) -> TriasDev.Templify.Builder.Condition!
 static TriasDev.Templify.Builder.TemplatePath.Root(string! path) -> TriasDev.Templify.Builder.TemplatePath
+static TriasDev.Templify.Builder.TemplatePath<T>.implicit operator TriasDev.Templify.Builder.Condition!(TriasDev.Templify.Builder.TemplatePath<T> path) -> TriasDev.Templify.Builder.Condition!
+static TriasDev.Templify.Builder.TemplatePath<T>.implicit operator TriasDev.Templify.Builder.TemplatePath(TriasDev.Templify.Builder.TemplatePath<T> path) -> TriasDev.Templify.Builder.TemplatePath
+static TriasDev.Templify.Builder.TemplatePath<T>.operator !(TriasDev.Templify.Builder.TemplatePath<T> path) -> TriasDev.Templify.Builder.Condition!
+static TriasDev.Templify.Builder.TemplatePath<T>.operator !=(TriasDev.Templify.Builder.TemplatePath<T> left, TriasDev.Templify.Builder.TemplatePath<T> right) -> bool
+static TriasDev.Templify.Builder.TemplatePath<T>.operator &(TriasDev.Templify.Builder.TemplatePath<T> left, TriasDev.Templify.Builder.Condition! right) -> TriasDev.Templify.Builder.Condition!
+static TriasDev.Templify.Builder.TemplatePath<T>.operator ==(TriasDev.Templify.Builder.TemplatePath<T> left, TriasDev.Templify.Builder.TemplatePath<T> right) -> bool
+static TriasDev.Templify.Builder.TemplatePath<T>.operator |(TriasDev.Templify.Builder.TemplatePath<T> left, TriasDev.Templify.Builder.Condition! right) -> TriasDev.Templify.Builder.Condition!
 static TriasDev.Templify.Builder.TemplateStamp.operator !=(TriasDev.Templify.Builder.TemplateStamp? left, TriasDev.Templify.Builder.TemplateStamp? right) -> bool
 static TriasDev.Templify.Builder.TemplateStamp.operator ==(TriasDev.Templify.Builder.TemplateStamp? left, TriasDev.Templify.Builder.TemplateStamp? right) -> bool
 static TriasDev.Templify.Builder.TemplateStampRemover.Remove(System.IO.Stream! document) -> bool
@@ -157,6 +174,7 @@ TriasDev.Templify.Builder.BlockComposer
 TriasDev.Templify.Builder.BlockComposer.Box(TriasDev.Templify.Builder.BoxStyleKey! style, System.Action<TriasDev.Templify.Builder.BlockComposer!>! content) -> void
 TriasDev.Templify.Builder.BlockComposer.Component(TriasDev.Templify.Builder.ITemplateComponent! component) -> void
 TriasDev.Templify.Builder.BlockComposer.ForEach(TriasDev.Templify.Builder.TemplatePath collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem!, TriasDev.Templify.Builder.BlockComposer!>! body) -> void
+TriasDev.Templify.Builder.BlockComposer.ForEach<T>(TriasDev.Templify.Builder.TemplateCollection<T> collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem<T>!, TriasDev.Templify.Builder.BlockComposer!>! body) -> void
 TriasDev.Templify.Builder.BlockComposer.If(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.BlockComposer!>! then) -> TriasDev.Templify.Builder.IfChain!
 TriasDev.Templify.Builder.BlockComposer.Image(TriasDev.Templify.Builder.ImageSource! image, string! altText, TriasDev.Templify.Builder.ImageFit! fit) -> void
 TriasDev.Templify.Builder.BlockComposer.Image(TriasDev.Templify.Builder.ImageSource! image, string! altText) -> void
@@ -333,6 +351,7 @@ TriasDev.Templify.Builder.Length.Millimeters.get -> double
 TriasDev.Templify.Builder.Length.Points.get -> double
 TriasDev.Templify.Builder.ListComposer
 TriasDev.Templify.Builder.ListComposer.ForEach(TriasDev.Templify.Builder.TemplatePath collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem!, TriasDev.Templify.Builder.ListComposer!>! items) -> void
+TriasDev.Templify.Builder.ListComposer.ForEach<T>(TriasDev.Templify.Builder.TemplateCollection<T> collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem<T>!, TriasDev.Templify.Builder.ListComposer!>! items) -> void
 TriasDev.Templify.Builder.ListComposer.If(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.ListComposer!>! items) -> TriasDev.Templify.Builder.ListIfChain!
 TriasDev.Templify.Builder.ListComposer.Item(int level, string! text) -> void
 TriasDev.Templify.Builder.ListComposer.Item(int level, System.Action<TriasDev.Templify.Builder.InlineComposer!>! content) -> void
@@ -359,6 +378,16 @@ TriasDev.Templify.Builder.LoopItem.IsLast.get -> TriasDev.Templify.Builder.Condi
 TriasDev.Templify.Builder.LoopItem.Number.get -> TriasDev.Templify.Builder.TemplatePath
 TriasDev.Templify.Builder.LoopItem.Self.get -> TriasDev.Templify.Builder.TemplatePath
 TriasDev.Templify.Builder.LoopItem.this[string! relative].get -> TriasDev.Templify.Builder.TemplatePath
+TriasDev.Templify.Builder.LoopItem<T>
+TriasDev.Templify.Builder.LoopItem<T>.Count.get -> TriasDev.Templify.Builder.TemplatePath
+TriasDev.Templify.Builder.LoopItem<T>.Index.get -> TriasDev.Templify.Builder.TemplatePath
+TriasDev.Templify.Builder.LoopItem<T>.IsFirst.get -> TriasDev.Templify.Builder.Condition!
+TriasDev.Templify.Builder.LoopItem<T>.IsLast.get -> TriasDev.Templify.Builder.Condition!
+TriasDev.Templify.Builder.LoopItem<T>.Item.get -> TriasDev.Templify.Builder.LoopItem!
+TriasDev.Templify.Builder.LoopItem<T>.Items<TItem>(System.Linq.Expressions.Expression<System.Func<T, System.Collections.Generic.IEnumerable<TItem>!>!>! member) -> TriasDev.Templify.Builder.TemplateCollection<TItem>
+TriasDev.Templify.Builder.LoopItem<T>.Number.get -> TriasDev.Templify.Builder.TemplatePath
+TriasDev.Templify.Builder.LoopItem<T>.Path<TProperty>(System.Linq.Expressions.Expression<System.Func<T, TProperty>!>! member) -> TriasDev.Templify.Builder.TemplatePath<TProperty>
+TriasDev.Templify.Builder.LoopItem<T>.Self.get -> TriasDev.Templify.Builder.TemplatePath<T>
 TriasDev.Templify.Builder.PageComposer
 TriasDev.Templify.Builder.PageComposer.FirstPage(System.Action<TriasDev.Templify.Builder.FirstPageComposer!>! firstPage) -> TriasDev.Templify.Builder.PageComposer!
 TriasDev.Templify.Builder.PageComposer.Footer(System.Action<TriasDev.Templify.Builder.BlockComposer!>! footer) -> TriasDev.Templify.Builder.PageComposer!
@@ -421,6 +450,7 @@ TriasDev.Templify.Builder.RowComposer.Cell(TriasDev.Templify.Builder.ParagraphSt
 TriasDev.Templify.Builder.RowComposer.Cell(TriasDev.Templify.Builder.TemplatePath value) -> void
 TriasDev.Templify.Builder.RowsComposer
 TriasDev.Templify.Builder.RowsComposer.ForEachRow(TriasDev.Templify.Builder.TemplatePath collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem!, TriasDev.Templify.Builder.RowsComposer!>! rows) -> void
+TriasDev.Templify.Builder.RowsComposer.ForEachRow<T>(TriasDev.Templify.Builder.TemplateCollection<T> collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem<T>!, TriasDev.Templify.Builder.RowsComposer!>! rows) -> void
 TriasDev.Templify.Builder.RowsComposer.Row(System.Action<TriasDev.Templify.Builder.RowComposer!>! row) -> void
 TriasDev.Templify.Builder.RowsComposer.RowsIf(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.RowsComposer!>! rows) -> TriasDev.Templify.Builder.RowsIfChain!
 TriasDev.Templify.Builder.RowsIfChain
@@ -441,6 +471,7 @@ TriasDev.Templify.Builder.SwitchComposer.Default(System.Action<TriasDev.Templify
 TriasDev.Templify.Builder.TableComposer
 TriasDev.Templify.Builder.TableComposer.Columns(System.Action<TriasDev.Templify.Builder.ColumnsComposer!>! columns) -> TriasDev.Templify.Builder.TableComposer!
 TriasDev.Templify.Builder.TableComposer.ForEachRow(TriasDev.Templify.Builder.TemplatePath collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem!, TriasDev.Templify.Builder.RowsComposer!>! rows) -> void
+TriasDev.Templify.Builder.TableComposer.ForEachRow<T>(TriasDev.Templify.Builder.TemplateCollection<T> collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem<T>!, TriasDev.Templify.Builder.RowsComposer!>! rows) -> void
 TriasDev.Templify.Builder.TableComposer.HeaderRow(System.Action<TriasDev.Templify.Builder.RowComposer!>! row) -> void
 TriasDev.Templify.Builder.TableComposer.Row(System.Action<TriasDev.Templify.Builder.RowComposer!>! row) -> void
 TriasDev.Templify.Builder.TableComposer.RowsIf(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.RowsComposer!>! rows) -> TriasDev.Templify.Builder.RowsIfChain!
@@ -472,9 +503,17 @@ TriasDev.Templify.Builder.TemplateBuildOptions.Language.init -> void
 TriasDev.Templify.Builder.TemplateBuildOptions.TemplateBuildOptions() -> void
 TriasDev.Templify.Builder.TemplateBuildOptions.Texts.get -> TriasDev.Templify.Builder.ITextCatalog!
 TriasDev.Templify.Builder.TemplateBuildOptions.Texts.init -> void
+TriasDev.Templify.Builder.TemplateCollection<TItem>
+TriasDev.Templify.Builder.TemplateCollection<TItem>.Equals(TriasDev.Templify.Builder.TemplateCollection<TItem> other) -> bool
+TriasDev.Templify.Builder.TemplateCollection<TItem>.Exists.get -> TriasDev.Templify.Builder.Condition!
+TriasDev.Templify.Builder.TemplateCollection<TItem>.IsEmpty.get -> TriasDev.Templify.Builder.Condition!
+TriasDev.Templify.Builder.TemplateCollection<TItem>.IsNotEmpty.get -> TriasDev.Templify.Builder.Condition!
+TriasDev.Templify.Builder.TemplateCollection<TItem>.TemplateCollection() -> void
+TriasDev.Templify.Builder.TemplateCollection<TItem>.Untyped.get -> TriasDev.Templify.Builder.TemplatePath
 TriasDev.Templify.Builder.TemplateComposer
 TriasDev.Templify.Builder.TemplateComposer.Content(System.Action<TriasDev.Templify.Builder.BlockComposer!>! content) -> void
 TriasDev.Templify.Builder.TemplateComposer.Data.get -> TriasDev.Templify.Builder.TemplatePath
+TriasDev.Templify.Builder.TemplateComposer.DataAs<T>(System.Text.Json.JsonNamingPolicy? naming = null) -> TriasDev.Templify.Builder.TemplatePath<T>
 TriasDev.Templify.Builder.TemplateComposer.Page(System.Action<TriasDev.Templify.Builder.PageComposer!>! page) -> void
 TriasDev.Templify.Builder.TemplateComposer.Properties(System.Action<TriasDev.Templify.Builder.DocumentPropertiesComposer!>! properties) -> void
 TriasDev.Templify.Builder.TemplateComposer.Styles(TriasDev.Templify.Builder.StyleSheet! styles) -> void
@@ -522,6 +561,27 @@ TriasDev.Templify.Builder.TemplatePath.NotEq(string! value) -> TriasDev.Templify
 TriasDev.Templify.Builder.TemplatePath.StartsWith(string! value) -> TriasDev.Templify.Builder.Condition!
 TriasDev.Templify.Builder.TemplatePath.TemplatePath() -> void
 TriasDev.Templify.Builder.TemplatePath.this[string! relative].get -> TriasDev.Templify.Builder.TemplatePath
+TriasDev.Templify.Builder.TemplatePath<T>
+TriasDev.Templify.Builder.TemplatePath<T>.Contains(string! value) -> TriasDev.Templify.Builder.Condition!
+TriasDev.Templify.Builder.TemplatePath<T>.EndsWith(string! value) -> TriasDev.Templify.Builder.Condition!
+TriasDev.Templify.Builder.TemplatePath<T>.Eq(double value) -> TriasDev.Templify.Builder.Condition!
+TriasDev.Templify.Builder.TemplatePath<T>.Eq(string! value) -> TriasDev.Templify.Builder.Condition!
+TriasDev.Templify.Builder.TemplatePath<T>.Equals(TriasDev.Templify.Builder.TemplatePath<T> other) -> bool
+TriasDev.Templify.Builder.TemplatePath<T>.Exists.get -> TriasDev.Templify.Builder.Condition!
+TriasDev.Templify.Builder.TemplatePath<T>.Ge(double value) -> TriasDev.Templify.Builder.Condition!
+TriasDev.Templify.Builder.TemplatePath<T>.Gt(double value) -> TriasDev.Templify.Builder.Condition!
+TriasDev.Templify.Builder.TemplatePath<T>.In(params string![]! values) -> TriasDev.Templify.Builder.Condition!
+TriasDev.Templify.Builder.TemplatePath<T>.IsEmpty.get -> TriasDev.Templify.Builder.Condition!
+TriasDev.Templify.Builder.TemplatePath<T>.IsNotEmpty.get -> TriasDev.Templify.Builder.Condition!
+TriasDev.Templify.Builder.TemplatePath<T>.Items<TItem>(System.Linq.Expressions.Expression<System.Func<T, System.Collections.Generic.IEnumerable<TItem>!>!>! member) -> TriasDev.Templify.Builder.TemplateCollection<TItem>
+TriasDev.Templify.Builder.TemplatePath<T>.Le(double value) -> TriasDev.Templify.Builder.Condition!
+TriasDev.Templify.Builder.TemplatePath<T>.Lt(double value) -> TriasDev.Templify.Builder.Condition!
+TriasDev.Templify.Builder.TemplatePath<T>.NotEq(double value) -> TriasDev.Templify.Builder.Condition!
+TriasDev.Templify.Builder.TemplatePath<T>.NotEq(string! value) -> TriasDev.Templify.Builder.Condition!
+TriasDev.Templify.Builder.TemplatePath<T>.Path<TProperty>(System.Linq.Expressions.Expression<System.Func<T, TProperty>!>! member) -> TriasDev.Templify.Builder.TemplatePath<TProperty>
+TriasDev.Templify.Builder.TemplatePath<T>.StartsWith(string! value) -> TriasDev.Templify.Builder.Condition!
+TriasDev.Templify.Builder.TemplatePath<T>.TemplatePath() -> void
+TriasDev.Templify.Builder.TemplatePath<T>.Untyped.get -> TriasDev.Templify.Builder.TemplatePath
 TriasDev.Templify.Builder.TemplateStamp
 TriasDev.Templify.Builder.TemplateStamp.<Clone>$() -> TriasDev.Templify.Builder.TemplateStamp!
 TriasDev.Templify.Builder.TemplateStamp.BuilderVersion.get -> string!

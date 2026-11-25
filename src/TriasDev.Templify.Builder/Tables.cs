@@ -224,6 +224,17 @@ public sealed class TableComposer
         _table.Rows.Add(ComposeRow(row, isHeader: false));
     }
 
+    /// <summary>Repeats rows for every item of a typed collection.</summary>
+    /// <typeparam name="T">The item type.</typeparam>
+    /// <param name="collection">The collection, from <see cref="TemplatePath{T}.Items{TItem}"/>.</param>
+    /// <param name="itemName">The iteration variable.</param>
+    /// <param name="rows">Describes the rows for each item; it receives the typed item.</param>
+    public void ForEachRow<T>(TemplateCollection<T> collection, string itemName, Action<LoopItem<T>, RowsComposer> rows)
+    {
+        ArgumentNullException.ThrowIfNull(rows);
+        ForEachRow(collection.Untyped, itemName, (item, r) => rows(new LoopItem<T>(item, collection.Naming), r));
+    }
+
     /// <summary>
     /// Repeats rows for every item of a collection: <c>{{#foreach item in collection}}</c> and <c>{{/foreach}}</c> in marker
     /// rows of their own, which Templify removes when it fills the table.
@@ -285,6 +296,17 @@ public sealed class RowsComposer
         ArgumentNullException.ThrowIfNull(row);
         EnsureOpen();
         _rows.Add(ComposeRow(_context, _scope, row, isHeader: false));
+    }
+
+    /// <summary>Repeats rows for every item of a typed collection.</summary>
+    /// <typeparam name="T">The item type.</typeparam>
+    /// <param name="collection">The collection, from <see cref="TemplatePath{T}.Items{TItem}"/>.</param>
+    /// <param name="itemName">The iteration variable.</param>
+    /// <param name="rows">Describes the rows for each item; it receives the typed item.</param>
+    public void ForEachRow<T>(TemplateCollection<T> collection, string itemName, Action<LoopItem<T>, RowsComposer> rows)
+    {
+        ArgumentNullException.ThrowIfNull(rows);
+        ForEachRow(collection.Untyped, itemName, (item, r) => rows(new LoopItem<T>(item, collection.Naming), r));
     }
 
     /// <summary>Repeats rows for every item of a collection, in marker rows of their own.</summary>
