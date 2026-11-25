@@ -227,7 +227,8 @@ public sealed class ValidationResultTests
         Assert.Equal(5, (int)ValidationErrorType.MissingVariable);
         Assert.Equal(6, (int)ValidationErrorType.InvalidConditionalExpression);
         Assert.Equal(7, (int)ValidationErrorType.InvalidDocument);
-        Assert.Equal(8, Enum.GetValues<ValidationErrorType>().Length);
+        Assert.Equal(8, (int)ValidationErrorType.BlockMarkerWithText);
+        Assert.Equal(9, Enum.GetValues<ValidationErrorType>().Length);
     }
 
     [Fact]

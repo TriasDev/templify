@@ -404,14 +404,44 @@ public sealed class ProcessingWarningsIntegrationTests
     }
 
     [Fact]
+    public void GetWarningReport_BlockMarkerWithText_HasItsOwnSection()
+    {
+        // Arrange: text next to a loop marker is removed with the marker's paragraph (#253)
+        DocumentBuilder builder = new DocumentBuilder();
+        builder.AddParagraph("Assets: {{#foreach Items}}");
+        builder.AddParagraph("{{.}}");
+        builder.AddParagraph("{{/foreach}}");
+
+        Dictionary<string, object> data = new Dictionary<string, object> { ["Items"] = new List<string> { "a" } };
+
+        using MemoryStream templateStream = builder.ToStream();
+        using MemoryStream outputStream = new MemoryStream();
+        ProcessingResult result = new DocumentTemplateProcessor().ProcessTemplate(templateStream, outputStream, data);
+
+        // Act
+        using MemoryStream reportStream = result.GetWarningReport();
+
+        // Assert
+        using WordprocessingDocument doc = WordprocessingDocument.Open(reportStream, false);
+        string text = doc.MainDocumentPart!.Document!.Body!.InnerText;
+        Assert.Contains("Total Warnings: 1", text);
+        Assert.Contains("Text Removed With Block Markers", text);
+        Assert.Contains(Assert.Single(result.Warnings).Message, text);
+    }
+
+    [Fact]
     public void GetWarningReport_MixedWarnings_ContainsAllSections()
     {
         // Arrange - create warnings of all types
         DocumentBuilder builder = new DocumentBuilder();
         builder.AddParagraph("{{MissingVar1}}");
         builder.AddParagraph("{{MissingVar2}}");
-        builder.AddParagraph("{{#foreach MissingCollection}}{{.}}{{/foreach}}");
-        builder.AddParagraph("{{#foreach NullCollection}}{{.}}{{/foreach}}");
+        builder.AddParagraph("{{#foreach MissingCollection}}");
+        builder.AddParagraph("{{.}}");
+        builder.AddParagraph("{{/foreach}}");
+        builder.AddParagraph("{{#foreach NullCollection}}");
+        builder.AddParagraph("{{.}}");
+        builder.AddParagraph("{{/foreach}}");
 
         Dictionary<string, object?> data = new Dictionary<string, object?>
         {

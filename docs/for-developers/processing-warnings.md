@@ -36,6 +36,7 @@ if (result.IsSuccess)
 | `MissingLoopCollection` | Loop collection not found | `{{#foreach Items}}` when `Items` is not in the data dictionary |
 | `NullLoopCollection` | Loop collection is null | `{{#foreach Items}}` when `Items` exists but is `null` |
 | `ExpressionFailed` | Expression parsing or evaluation failed | An inline expression with invalid syntax, e.g. `{{(Status === "Active")}}` (use `=` or `==`; context `expression`), or a `{{#if}}`/`{{#elseif}}` condition that cannot be parsed, e.g. `{{#if A && B}}` (context `conditional`; the condition is treated as false) |
+| `BlockMarkerWithText` | Text was removed together with a block marker | A block marker shares its paragraph or table row with other text, e.g. `Assets: {{#foreach Items}}` (the text `Assets:` is removed with the marker paragraph), or a loop opens and closes in one paragraph (`{{#foreach Tags}}{{.}}, {{/foreach}}`, not supported: the paragraph is removed). The message names the marker and the lost text; context `block marker`. The output is unchanged |
 
 A failed **inline** expression is then handled like a missing variable: it adds an `ExpressionFailed` warning
 *and* a `MissingVariable` warning, its text (e.g. `(Status === "Active")`) is listed in
@@ -109,6 +110,9 @@ if (result.HasWarnings)
                 _logger.LogWarning("Expression failed: {Expression} - {Message}",
                     warning.VariableName, warning.Message);
                 break;
+            case ProcessingWarningType.BlockMarkerWithText:
+                _logger.LogWarning("Template text removed: {Message}", warning.Message);
+                break;
         }
     }
 }
@@ -120,5 +124,5 @@ if (result.HasWarnings)
 - **Valid expressions with missing variables** evaluate to `false` without warnings (e.g., `{{(Price > 100)}}` where `Price` is missing returns `false`)
 - **Invalid expression syntax** generates `ExpressionFailed` (e.g., using `===` instead of `=` or `==`, or `&&` instead of `and`)
 - Warnings are collected even when `MissingVariableBehavior` is set to `LeaveUnchanged` or `ReplaceWithEmpty`
-- Warnings are not de-duplicated: a missing placeholder inside a loop adds one warning per iteration. `ProcessingResult.MissingVariables` is the de-duplicated, sorted list of names.
+- Warnings are not de-duplicated: a missing placeholder inside a loop adds one warning per iteration (except `BlockMarkerWithText`, which is reported once per message). `ProcessingResult.MissingVariables` is the de-duplicated, sorted list of names.
 - Template syntax errors (e.g. an unmatched `{{#if}}`) and data errors (a `{{#foreach}}` over a value that is not a collection) are not warnings: processing fails with `IsSuccess == false` and `ErrorMessage` set.

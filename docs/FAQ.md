@@ -252,8 +252,9 @@ an inline conditional (`Dear {{#if IsVip}}valued {{/if}}customer`).
 ```
 
 The `{{#foreach}}` and `{{/foreach}}` markers must each be in their own paragraph: the paragraph that contains a
-marker is removed, together with any other text in it. A loop written inside a single paragraph
-(`{{#foreach Tags}}{{.}}, {{/foreach}}`) is not supported in Word templates. For a collection of simple values,
+marker is removed, together with any other text in it (reported as `BlockMarkerWithText`: an error in
+`ValidateTemplate`, a warning when processing). A loop written inside a single paragraph
+(`{{#foreach Tags}}{{.}}, {{/foreach}}`) is not supported: the paragraph is removed. For a collection of simple values,
 use `{{.}}` (or `{{this}}`) for the current item.
 
 ### Q: What are loop special variables?
@@ -649,7 +650,7 @@ the formatting of the run where the placeholder starts.
 **A:** Checklist:
 1. **Collection exists**: Verify data contains the collection (`MissingLoopCollection` / `NullLoopCollection` warnings)
 2. **Collection is enumerable**: Use `List<T>`, `T[]`, or `IEnumerable<T>`; a string or other scalar fails processing ("is not a collection")
-3. **Markers in their own paragraphs** (or table rows): a paragraph with a marker is removed entirely
+3. **Markers in their own paragraphs** (or table rows): a paragraph with a marker is removed entirely (`BlockMarkerWithText` warning)
 4. **Closing tag**: Must have `{{/foreach}}`
 5. **Correct variable name**: Case-sensitive!
 

@@ -63,6 +63,10 @@ public sealed class OdtValidationParityTests
             }
         },
         { "nested unmatched conditional in loop", new[] { "{{#foreach Items}}", "{{#if Active}}", "{{Title}}", "{{/foreach}}" } },
+        { "text next to loop markers", new[] { "Assets: {{#foreach Items}}", "{{Title}}", "{{/foreach}} tail" } },
+        { "text next to conditional markers", new[] { "Intro {{#if A}}", "a", "{{#elseif B}} or", "b", "{{#else}} else", "c", "{{/if}} outro" } },
+        { "inline loop", new[] { "Assets: {{#foreach Items}}{{Title}}, {{/foreach}}." } },
+        { "text next to nested markers", new[] { "{{#foreach Items}}", "Sub: {{#if Active}}", "{{Title}}", "{{/if}}", "{{/foreach}}" } },
     };
 
     [Theory]

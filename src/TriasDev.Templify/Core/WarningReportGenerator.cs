@@ -70,6 +70,7 @@ internal static class WarningReportGenerator
         List<Dictionary<string, object>> missingCollections = new();
         List<Dictionary<string, object>> nullCollections = new();
         List<Dictionary<string, object>> failedExpressions = new();
+        List<Dictionary<string, object>> blockMarkerTexts = new();
 
         foreach (ProcessingWarning warning in warnings)
         {
@@ -94,6 +95,9 @@ internal static class WarningReportGenerator
                 case ProcessingWarningType.ExpressionFailed:
                     failedExpressions.Add(warningData);
                     break;
+                case ProcessingWarningType.BlockMarkerWithText:
+                    blockMarkerTexts.Add(warningData);
+                    break;
             }
         }
 
@@ -105,14 +109,17 @@ internal static class WarningReportGenerator
             ["MissingCollectionCount"] = missingCollections.Count,
             ["NullCollectionCount"] = nullCollections.Count,
             ["FailedExpressionCount"] = failedExpressions.Count,
+            ["BlockMarkerTextCount"] = blockMarkerTexts.Count,
             ["HasMissingVariables"] = missingVariables.Count > 0,
             ["HasMissingCollections"] = missingCollections.Count > 0,
             ["HasNullCollections"] = nullCollections.Count > 0,
             ["HasFailedExpressions"] = failedExpressions.Count > 0,
+            ["HasBlockMarkerTexts"] = blockMarkerTexts.Count > 0,
             ["MissingVariables"] = missingVariables,
             ["MissingCollections"] = missingCollections,
             ["NullCollections"] = nullCollections,
-            ["FailedExpressions"] = failedExpressions
+            ["FailedExpressions"] = failedExpressions,
+            ["BlockMarkerTexts"] = blockMarkerTexts
         };
     }
 }

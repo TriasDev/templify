@@ -283,6 +283,7 @@ Inline expressions get no `MissingConditionVariable` warning, because their miss
 | `MissingVariable` | A variable or loop collection is not in the data (only when data is passed) |
 | `InvalidConditionalExpression` | A condition or an inline `{{(...)}}` expression cannot be parsed |
 | `InvalidDocument` | The input cannot be read as a supported template: unsupported format, unreadable stream, or corrupted or rejected package |
+| `BlockMarkerWithText` | A block marker shares its paragraph or table row with other text (`Assets: {{#foreach Items}}`), or a loop opens and closes in one paragraph: processing would remove that text. `Location` holds the paragraph's text. Processing reports the same case as a `BlockMarkerWithText` warning |
 
 `InvalidDocument` is reported by `TemplateProcessor` and `OdtTemplateProcessor`. `DocumentTemplateProcessor` still
 reports an unreadable Word document as `InvalidPlaceholderSyntax` ("Validation failed: ..."), for compatibility with

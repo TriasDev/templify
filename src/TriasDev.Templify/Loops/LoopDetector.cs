@@ -39,6 +39,12 @@ internal static partial class LoopDetector
 
     private static readonly Regex _foreachEndPattern = ForeachEndRegex();
 
+    /// <summary>The <c>{{#foreach}}</c> start marker pattern the detector uses.</summary>
+    internal static Regex ForeachStart => _foreachStartPattern;
+
+    /// <summary>The <c>{{/foreach}}</c> end marker pattern the detector uses.</summary>
+    internal static Regex ForeachEnd => _foreachEndPattern;
+
     [GeneratedRegex(
         @"\{\{#foreach\s+" + IterationVariablePrefixPattern + @"([\w.]+)\}\}",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]

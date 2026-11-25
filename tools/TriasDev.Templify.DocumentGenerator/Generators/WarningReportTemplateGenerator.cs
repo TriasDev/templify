@@ -41,6 +41,7 @@ public class WarningReportTemplateGenerator : BaseExampleGenerator
             AddTableRow(summaryTable, "Missing Collections", "{{MissingCollectionCount}}");
             AddTableRow(summaryTable, "Null Collections", "{{NullCollectionCount}}");
             AddTableRow(summaryTable, "Failed Expressions", "{{FailedExpressionCount}}");
+            AddTableRow(summaryTable, "Text Removed With Block Markers", "{{BlockMarkerTextCount}}");
             body.AppendChild(summaryTable);
             AddEmptyParagraph(body);
 
@@ -104,6 +105,21 @@ public class WarningReportTemplateGenerator : BaseExampleGenerator
             AddEmptyParagraph(body);
             AddParagraph(body, "{{/if}}");
 
+            // Text removed with block markers section (conditional)
+            AddParagraph(body, "{{#if HasBlockMarkerTexts}}");
+            AddParagraph(body, "Text Removed With Block Markers", isBold: true);
+            AddParagraph(body, "The following text shared a paragraph or table row with a block marker and was removed with it:");
+            AddEmptyParagraph(body);
+
+            var blockMarkerTable = CreateTable(1);
+            AddTableHeaderRow(blockMarkerTable, "Message");
+            AddTableRow(blockMarkerTable, "{{#foreach BlockMarkerTexts}}");
+            AddTableRow(blockMarkerTable, "{{Message}}");
+            AddTableRow(blockMarkerTable, "{{/foreach}}");
+            body.AppendChild(blockMarkerTable);
+            AddEmptyParagraph(body);
+            AddParagraph(body, "{{/if}}");
+
             // Footer
             AddEmptyParagraph(body);
             AddParagraph(body, "End of Warning Report");
@@ -120,15 +136,17 @@ public class WarningReportTemplateGenerator : BaseExampleGenerator
         return new Dictionary<string, object>
         {
             ["GeneratedAt"] = ExampleGenerators.SampleDate.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
-            ["TotalWarnings"] = 7,
+            ["TotalWarnings"] = 8,
             ["MissingVariableCount"] = 2,
             ["MissingCollectionCount"] = 2,
             ["NullCollectionCount"] = 1,
             ["FailedExpressionCount"] = 2,
+            ["BlockMarkerTextCount"] = 1,
             ["HasMissingVariables"] = true,
             ["HasMissingCollections"] = true,
             ["HasNullCollections"] = true,
             ["HasFailedExpressions"] = true,
+            ["HasBlockMarkerTexts"] = true,
             ["MissingVariables"] = new List<Dictionary<string, object>>
             {
                 new() { ["VariableName"] = "CustomerName", ["Context"] = "placeholder" },
@@ -147,6 +165,17 @@ public class WarningReportTemplateGenerator : BaseExampleGenerator
             {
                 new() { ["VariableName"] = "Price > 100", ["Message"] = "Variable 'Price' was not found in the data." },
                 new() { ["VariableName"] = "Status = \"Active\"", ["Message"] = "Variable 'Status' was not found in the data." }
+            },
+            ["BlockMarkerTexts"] = new List<Dictionary<string, object>>
+            {
+                new()
+                {
+                    ["VariableName"] = "",
+                    ["Context"] = "block marker",
+                    // Real messages quote the marker in braces; the sample avoids them so no "{{" is left in the output.
+                    ["Message"] = "Text next to the block marker of the loop over Items is removed together with its paragraph: " +
+                                  "'Assets:'. Put block markers in paragraphs of their own."
+                }
             }
         };
     }

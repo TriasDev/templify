@@ -58,6 +58,7 @@ condition engine, contexts and value conversion; see [Other Entry Points](#other
 | Malformed `{{#if}}` / `{{#elseif}}` condition | condition is false, `ExpressionFailed` warning |
 | Malformed inline `{{(...)}}` expression | treated as a missing variable, `ExpressionFailed` + `MissingVariable` warnings |
 | Missing / null loop collection | loop removed, `MissingLoopCollection` / `NullLoopCollection` warning |
+| Text next to a block marker (or an inline loop) | removed with the marker element, `BlockMarkerWithText` warning (once per message) |
 | Invalid JSON passed to a JSON overload | `JsonException` / `ArgumentException` from `JsonDataParser` (thrown before processing) |
 
 Internally, `Core/TemplateExceptions.cs` defines `MissingVariableException`, `TemplateSyntaxException` (carrying a
@@ -215,6 +216,10 @@ expression string
   `Core/ScopedVariableValidator.cs`, which traverses containers like the walker (body loops, table row loops per table
   and per loop row list, cells, nested tables, text boxes, content controls) and resolves names inside a loop against
   the items of that loop and its enclosing loops (implicit properties, named iteration variables, metadata).
+  Block markers that share their paragraph or row with other text (and inline loops) are `BlockMarkerWithText`
+  errors, found by `Core/BlockMarkerValidator.cs`: it runs the processing detectors over the walker's containers and
+  words the error like the processing warning (`Utilities/BlockMarkerLoss.cs`, `Utilities/BlockMarkerText.cs`;
+  `OpenDocument/OdtBlockMarkerLoss.cs` for ODT).
   Inline `{{(...)}}` expressions are validated by `Core/InlineExpressionValidation.cs` with the processing parser
   (`ConditionAstCache.InlineExpressions`): parse failures are `InvalidConditionalExpression` errors, `AllPlaceholders`
   gets the referenced variables, and the variables processing reads from the data without a literal fallback

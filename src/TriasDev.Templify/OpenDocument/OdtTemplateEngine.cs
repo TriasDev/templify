@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Xml.Linq;
 using TriasDev.Templify.Core;
 using TriasDev.Templify.Loops;
+using TriasDev.Templify.Utilities;
 
 namespace TriasDev.Templify.OpenDocument;
 
@@ -386,8 +387,11 @@ internal sealed class OdtTemplateEngine
         }
     }
 
-    private static void RemoveLoop(OdtLoopBlock loop)
+    private void RemoveLoop(OdtLoopBlock loop)
     {
+        // Marker elements are removed as a whole: report text next to the markers that goes with them (#253).
+        BlockMarkerText.Report(_warningCollector, OdtBlockMarkerLoss.Find(loop).Select(l => l.Message));
+
         SafeRemove(loop.StartMarker);
         foreach (XElement element in loop.ContentElements)
         {

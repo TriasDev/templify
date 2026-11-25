@@ -114,6 +114,15 @@ public sealed class ProcessingWarning
             "conditional");
     }
 
+    /// <summary>
+    /// Creates a warning for text that is removed together with a block marker's paragraph or row (#253).
+    /// </summary>
+    /// <param name="message">The message from <c>BlockMarkerText</c>, naming the marker and the lost text.</param>
+    internal static ProcessingWarning BlockMarkerWithText(string message)
+    {
+        return new ProcessingWarning(ProcessingWarningType.BlockMarkerWithText, message, variableName: null, context: "block marker");
+    }
+
     /// <inheritdoc/>
     public override string ToString()
     {
@@ -145,5 +154,13 @@ public enum ProcessingWarningType
     /// <summary>
     /// An expression (e.g., in a conditional or placeholder) could not be evaluated.
     /// </summary>
-    ExpressionFailed
+    ExpressionFailed,
+
+    /// <summary>
+    /// A block marker (<c>{{#foreach}}</c>, <c>{{#if}}</c>, <c>{{#elseif}}</c>, <c>{{#else}}</c>, <c>{{/if}}</c>,
+    /// <c>{{/foreach}}</c>) shares its paragraph or table row with other text. The marker's paragraph or row is
+    /// removed, and the text with it. Also reported for a loop that opens and closes in one paragraph, which is
+    /// not supported and removes the paragraph.
+    /// </summary>
+    BlockMarkerWithText = 4
 }
