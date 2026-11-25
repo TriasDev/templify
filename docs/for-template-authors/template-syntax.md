@@ -471,6 +471,8 @@ Format specifiers control how values are displayed. Add them after a colon (`:`)
 | `:lowercase` | Convert to lowercase | "HELLO" | hello |
 | `:yesno` | true/false → Yes/No | true | Yes |
 | `:raw` | Insert text without markdown | "my_file.docx" | my_file.docx |
+| `:join` | List → text, separated by `, ` | ["a", "b"] | a, b |
+| `:join:Name:"; "` | Property of each item, own separator (`""` = none) | [{Name: "A"}, {Name: "B"}] | A; B |
 | `:checkbox` | true/false → ☑/☐ | false | ☐ |
 | `:number:N2` | Format number with 2 decimals | 1234.5 | 1,234.50 |
 | `:currency` | Format as currency (en-US culture) | 1234.5 | $1,234.50 |

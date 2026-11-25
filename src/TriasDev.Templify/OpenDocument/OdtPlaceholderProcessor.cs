@@ -4,7 +4,6 @@
 using System.Xml.Linq;
 using TriasDev.Templify.Core;
 using TriasDev.Templify.Placeholders;
-using TriasDev.Templify.Replacements;
 using TriasDev.Templify.Utilities;
 
 namespace TriasDev.Templify.OpenDocument;
@@ -82,24 +81,15 @@ internal sealed class OdtPlaceholderProcessor
             return;
         }
 
-        // The :raw specifier only disables markdown; the value itself uses default conversion.
-        bool isRaw = string.Equals(placeholder.Format, "raw", StringComparison.OrdinalIgnoreCase);
-        string replacementValue = ValueConverter.ConvertToString(
-            value,
-            _options.Culture,
-            isRaw ? null : placeholder.Format,
-            _options.BooleanFormatterRegistry);
-
-        replacementValue = TextReplacements.Apply(replacementValue, _options.TextReplacements)!;
-
-        // Characters invalid in XML 1.0 would make the part unserializable.
-        replacementValue = XmlCharacterSanitizer.Sanitize(replacementValue)!;
+        // :join by an item property that no item has (likely misspelled): report it like a missing variable.
+        if (JoinFormat.TryGetMissingItemVariable(placeholder.VariableName, value, placeholder.Format, out string? missingItemVariable))
+        {
+            _missingVariables.Add(missingItemVariable);
+            _warningCollector.AddWarning(ProcessingWarning.MissingVariable(missingItemVariable));
+        }
 
         // Markdown becomes nested spans with automatic text styles (see OdtTextStyles).
-        ReplacementContent content = ReplacementContent.FromValue(
-            replacementValue,
-            _options.EnableNewlineSupport,
-            parseMarkdown: _options.EnableMarkdown && !isRaw);
+        ReplacementContent content = PlaceholderReplacementContent.Create(value, placeholder.Format, _options);
 
         Replace(paragraph, placeholder, content);
     }

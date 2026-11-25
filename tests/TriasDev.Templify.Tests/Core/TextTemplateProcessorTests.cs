@@ -685,4 +685,28 @@ You have tasks due today:
     }
 
     #endregion
+
+    [Fact]
+    public void ProcessTemplate_JoinFormat_JoinsCollection()
+    {
+        TextTemplateProcessor processor = new TextTemplateProcessor();
+        Dictionary<string, object> data = new() { ["Tags"] = new List<string> { "a", "b" } };
+
+        TextProcessingResult result = processor.ProcessTemplate("Tags: {{Tags:join}}", data);
+
+        Assert.Equal("Tags: a, b", result.ProcessedText);
+    }
+
+    [Fact]
+    public void ProcessTemplate_JoinPropertyMissingOnAllItems_Warns()
+    {
+        TextTemplateProcessor processor = new TextTemplateProcessor();
+        Dictionary<string, object> data = new() { ["Assets"] = new List<Dictionary<string, object>> { new() { ["Name"] = "A" } } };
+
+        TextProcessingResult result = processor.ProcessTemplate("{{Assets:join:Nmae}}", data);
+
+        Assert.Equal(string.Empty, result.ProcessedText);
+        Assert.Equal("Assets.Nmae", Assert.Single(result.Warnings).VariableName);
+        Assert.Contains("Assets.Nmae", result.MissingVariables);
+    }
 }

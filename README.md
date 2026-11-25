@@ -196,6 +196,8 @@ Control how values are displayed using format specifiers (outputs shown for `en-
 {{IsActive:checkbox}}           → ☑ or ☐
 {{IsActive:yesno}}              → Yes or No
 {{FileName:raw}}                → my_report_final.docx (no markdown interpretation)
+{{Tags:join}}                   → red, green, blue
+{{Assets:join:Name:"; "}}       → Server; Laptop
 ```
 
 Format specifiers use `PlaceholderReplacementOptions.Culture`, which defaults to the current culture. Set it explicitly for reproducible output:

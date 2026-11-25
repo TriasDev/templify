@@ -48,6 +48,12 @@ internal static class ValueConverter
     /// <returns>The string representation of the value.</returns>
     public static string ConvertToString(object? value, CultureInfo culture, string? format, BooleanFormatterRegistry? formatterRegistry)
     {
+        // :join renders a collection as one text (any other value ignores it)
+        if (JoinFormat.TryParse(format, out JoinFormat? join) && JoinFormat.IsCollection(value))
+        {
+            return join.Join(value!, culture);
+        }
+
         // Handle boolean formatting with format specifier
         if (value is bool boolValue && !string.IsNullOrWhiteSpace(format))
         {
