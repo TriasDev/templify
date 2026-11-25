@@ -177,7 +177,7 @@ public static class Units                      // 12.Pt(), 25.Mm()
     public static Length Mm(this double value);
 }
 public readonly record struct Color;            // Color.FromHex("1F4E79")
-public sealed record FontFace(string Family, string? Fallback = null);
+public sealed record FontFace(string Family);       // referenced by name, not embedded; no fallback (no ODF equivalent; additive later)
 
 public sealed record ParagraphStyleKey(string Id, string DisplayName);   // DisplayName is what Word / LibreOffice show
 public sealed record CharacterStyleKey(string Id, string DisplayName);
@@ -568,6 +568,12 @@ text dump for snapshot tests. A consumer builds at runtime, so its CI is where i
 | DOCX in LibreOffice (including the PDF conversion path) | yes |
 | ODT in LibreOffice | yes |
 | ODT in Word | best effort, not tested |
+
+Known behaviour of the converters, documented rather than worked around:
+
+- **Word's built-in style names.** LibreOffice maps a DOCX style named like a built-in Word style (`Body Text`,
+  `Heading 1`, `Title`) to its own style (`Text body`, `Heading 1`, …) when it opens the file. A display name of
+  your own (`Body Copy`) survives unchanged. Measured in task 2 (#263).
 
 Known differences become build warnings when the construct is used. The first entries arrive with their tasks:
 
