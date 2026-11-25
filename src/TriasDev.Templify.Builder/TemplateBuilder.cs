@@ -50,6 +50,13 @@ public static class TemplateBuilder
         }
 
         context.AddRange(styles.Problems);
+        foreach (IGrouping<string, FontFace> family in styles.Fonts.Where(f => f.IsEmbedded).Distinct().GroupBy(f => f.Family, StringComparer.Ordinal).Where(g => g.Count() > 1))
+        {
+            context.Error(
+                DiagnosticCodes.ConflictingEmbeddedFont,
+                $"The font family '{family.Key}' is embedded with {family.Count()} different files; a document can embed one file per family.");
+        }
+
         CheckStylesAreDefined(allBlocks, styles, context);
         TableLayout.Check(allBlocks, page.FrameWidth, styles, context);
 

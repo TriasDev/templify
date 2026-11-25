@@ -74,17 +74,30 @@ internal static class DocxWriter
 
         List<PackagePart> package = new List<PackagePart>
         {
-            new PackagePart("[Content_Types].xml", Utf8(ContentTypes(parts, media, numbering.Count > 0))),
+            new PackagePart("[Content_Types].xml", Utf8(ContentTypes(parts, media, numbering.Count > 0, model.Styles.EmbeddedFonts.Count > 0))),
             new PackagePart("_rels/.rels", Utf8(PackageRelationships())),
             new PackagePart("docProps/core.xml", Utf8(CoreProperties(model))),
             new PackagePart("docProps/custom.xml", Utf8(CustomProperties(model))),
             new PackagePart("word/document.xml", Utf8(document)),
-            new PackagePart("word/_rels/document.xml.rels", Utf8(DocumentRelationships(parts, bodyWriter.Images, numbering.Count > 0 ? numberingRelationship : null))),
+            new PackagePart("word/_rels/document.xml.rels", Utf8(DocumentRelationships(parts, bodyWriter.Images, numbering.Count > 0 ? numberingRelationship : null, model.Styles.EmbeddedFonts.Count > 0))),
             new PackagePart("word/styles.xml", Utf8(XmlDeclaration + StylesPart(model).OuterXml)),
         };
         if (numbering.Count > 0)
         {
             package.Add(new PackagePart("word/numbering.xml", Utf8(XmlDeclaration + NumberingPart(model, numbering).OuterXml)));
+        }
+
+        // Embedded fonts (ECMA-376 part 1, 17.8): obfuscated parts, related from the font table, and the settings
+        // flag that tells Word to keep them. Without embedded fonts neither part is written.
+        IReadOnlyList<FontFace> fonts = model.Styles.EmbeddedFonts;
+        if (fonts.Count > 0)
+        {
+            package.Add(new PackagePart("word/settings.xml", Utf8(XmlDeclaration + "<w:settings xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:embedTrueTypeFonts/></w:settings>")));
+            package.Add(new PackagePart("word/fontTable.xml", Utf8(FontTable(fonts))));
+            package.Add(new PackagePart(
+                "word/_rels/fontTable.xml.rels",
+                Utf8(Relationships(fonts.Select((f, i) => (FontRelationshipId(i), FontRelationship, FontTarget(i)))))));
+            package.AddRange(fonts.Select((f, i) => new PackagePart("word/" + FontTarget(i), f.Embedding!.ObfuscatedForDocx())));
         }
 
         package.AddRange(partFiles);
@@ -93,6 +106,30 @@ internal static class DocxWriter
     }
 
     private const string ImageRelationship = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image";
+    private const string FontRelationship = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/font";
+
+    // Named ids, so the numbered ids of styles, parts and images do not shift when fonts are embedded.
+    private const string FontTableRelationshipId = "rIdFontTable";
+    private const string SettingsRelationshipId = "rIdSettings";
+
+    private static string FontRelationshipId(int index) => "rIdFont" + (index + 1).ToString(CultureInfo.InvariantCulture);
+
+    private static string FontTarget(int index) => "fonts/font" + (index + 1).ToString(CultureInfo.InvariantCulture) + ".odttf";
+
+    /// <summary>fontTable.xml: a <c>w:font</c> per embedded family with its regular face and obfuscation key.</summary>
+    private static string FontTable(IReadOnlyList<FontFace> fonts)
+    {
+        StringBuilder xml = new StringBuilder(XmlDeclaration).Append(
+            "<w:fonts xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">");
+        for (int i = 0; i < fonts.Count; i++)
+        {
+            xml.Append("<w:font w:name=\"").Append(SecurityElement.Escape(fonts[i].Family)).Append("\">")
+                .Append("<w:embedRegular r:id=\"").Append(FontRelationshipId(i)).Append("\" w:fontKey=\"").Append(fonts[i].Embedding!.DocxFontKey).Append("\"/>")
+                .Append("</w:font>");
+        }
+
+        return xml.Append("</w:fonts>").ToString();
+    }
 
     /// <summary>The images of a document: each distinct image once in <c>word/media</c>, and drawing ids unique across all parts.</summary>
     private sealed class MediaStore
@@ -170,7 +207,7 @@ internal static class DocxWriter
         return parts;
     }
 
-    private static string ContentTypes(List<HeaderFooterPart> parts, MediaStore media, bool hasNumbering)
+    private static string ContentTypes(List<HeaderFooterPart> parts, MediaStore media, bool hasNumbering, bool hasFonts)
     {
         StringBuilder xml = new StringBuilder(XmlDeclaration)
             .Append("<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">")
@@ -181,8 +218,18 @@ internal static class DocxWriter
             xml.Append($"<Default Extension=\"{extension}\" ContentType=\"image/{extension}\"/>");
         }
 
+        if (hasFonts)
+        {
+            xml.Append("<Default Extension=\"odttf\" ContentType=\"application/vnd.openxmlformats-officedocument.obfuscatedFont\"/>");
+        }
+
         xml.Append($"<Override PartName=\"/word/document.xml\" ContentType=\"{MainContentType}\"/>")
             .Append($"<Override PartName=\"/word/styles.xml\" ContentType=\"{StylesContentType}\"/>");
+        if (hasFonts)
+        {
+            xml.Append("<Override PartName=\"/word/settings.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml\"/>")
+                .Append("<Override PartName=\"/word/fontTable.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml\"/>");
+        }
         if (hasNumbering)
         {
             xml.Append("<Override PartName=\"/word/numbering.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml\"/>");
@@ -209,12 +256,19 @@ internal static class DocxWriter
         + $"<Relationship Id=\"rId3\" Type=\"{CustomPropertiesRelationship}\" Target=\"docProps/custom.xml\"/>"
         + "</Relationships>";
 
-    private static string DocumentRelationships(List<HeaderFooterPart> parts, IReadOnlyList<(string Id, string Target)> images, string? numberingRelationship) =>
+    private static string DocumentRelationships(List<HeaderFooterPart> parts, IReadOnlyList<(string Id, string Target)> images, string? numberingRelationship, bool hasFonts) =>
         Relationships(
             new[] { ("rId1", StylesRelationship, "styles.xml") }
                 .Concat(parts.Select(p => (p.RelationshipId, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/" + (p.IsHeader ? "header" : "footer"), p.FileName)))
                 .Concat(numberingRelationship is null ? [] : new[] { (numberingRelationship, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering", "numbering.xml") })
-                .Concat(images.Select(i => (i.Id, ImageRelationship, i.Target))));
+                .Concat(images.Select(i => (i.Id, ImageRelationship, i.Target)))
+                .Concat(hasFonts
+                    ? new[]
+                    {
+                        (SettingsRelationshipId, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings", "settings.xml"),
+                        (FontTableRelationshipId, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable", "fontTable.xml"),
+                    }
+                    : []));
 
     /// <summary>numbering.xml: an abstract numbering (bullet levels) and an instance per list style used.</summary>
     private static Numbering NumberingPart(DocumentModel model, Dictionary<ListStyleKey, int> numbering)

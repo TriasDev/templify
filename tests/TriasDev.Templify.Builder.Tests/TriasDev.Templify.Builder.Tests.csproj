@@ -20,4 +20,9 @@
     <Compile Include="..\TriasDev.Templify.Tests\Odt\LibreOfficeRunner.cs" Link="Shared\LibreOfficeRunner.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- A font no machine has installed, for the embedding tests (Fixtures/README.md). -->
+    <EmbeddedResource Include="Fixtures\TemplifyEmbedTest-Regular.ttf" LogicalName="TemplifyEmbedTest-Regular.ttf" />
+  </ItemGroup>
+
 </Project>

@@ -46,7 +46,9 @@ internal static class OdtWriter
             new PackagePart("meta.xml", Serialize(Meta(model))),
         };
         parts.AddRange(pictures.Files.Select(f => new PackagePart(f.Path, f.Image.Data)));
-        parts.Add(new PackagePart("META-INF/manifest.xml", Serialize(Manifest(pictures))));
+        List<FontFile> fonts = model.Styles.EmbeddedFonts.Select(f => f.Embedding!).DistinctBy(f => f.Hash).ToList();
+        parts.AddRange(fonts.Select(f => new PackagePart(FontPath(f), f.Data)));
+        parts.Add(new PackagePart("META-INF/manifest.xml", Serialize(Manifest(pictures, fonts))));
         return DeterministicZip.Create(parts);
     }
 
@@ -799,20 +801,32 @@ internal static class OdtWriter
         return new XElement(_style + name, content.Count > 0 ? content : new XElement(_text + "p", new XAttribute(_text + "style-name", StandardStyleName)));
     }
 
+    /// <summary>The package path of an embedded font file (named by content, so equal files are stored once).</summary>
+    private static string FontPath(FontFile file) => "Fonts/" + file.Hash[..16] + ".ttf";
+
     /// <summary>One <c>style:font-face</c> per family the styles use, in first-use order.</summary>
     private static XElement FontFaceDeclarations(StyleSheet sheet)
     {
-        IEnumerable<FontFace?> fonts = new[] { sheet.Defaults.Font }
-            .Concat(sheet.ParagraphStyles.Select(s => s.Text.Font))
-            .Concat(sheet.CharacterStyles.Select(s => s.Text.Font));
-
         XElement declarations = new XElement(_office + "font-face-decls");
-        foreach (string family in fonts.OfType<FontFace>().Select(f => f.Family).Distinct(StringComparer.Ordinal))
+        foreach (string family in sheet.Fonts.Select(f => f.Family).Distinct(StringComparer.Ordinal))
         {
-            declarations.Add(new XElement(
+            XElement face = new XElement(
                 _style + "font-face",
                 new XAttribute(_style + "name", family),
-                new XAttribute(_svg + "font-family", family.Contains(' ', StringComparison.Ordinal) ? "'" + family + "'" : family)));
+                new XAttribute(_svg + "font-family", family.Contains(' ', StringComparison.Ordinal) ? "'" + family + "'" : family));
+            if (sheet.EmbeddedFonts.FirstOrDefault(f => f.Family == family)?.Embedding is { } file)
+            {
+                // ODF 1.3 part 3, 16.23: the embedded file, which LibreOffice loads for the document.
+                face.Add(new XElement(
+                    _svg + "font-face-src",
+                    new XElement(
+                        _svg + "font-face-uri",
+                        new XAttribute(_xlink + "href", FontPath(file)),
+                        new XAttribute(_xlink + "type", "simple"),
+                        new XElement(_svg + "font-face-format", new XAttribute(_svg + "string", "truetype")))));
+            }
+
+            declarations.Add(face);
         }
 
         return declarations;
@@ -960,7 +974,7 @@ internal static class OdtWriter
             meta);
     }
 
-    private static XElement Manifest(PictureStore pictures) =>
+    private static XElement Manifest(PictureStore pictures, List<FontFile> fonts) =>
         new XElement(
             _manifest + "manifest",
             new XAttribute(XNamespace.Xmlns + "manifest", _manifest.NamespaceName),
@@ -969,7 +983,8 @@ internal static class OdtWriter
             FileEntry("content.xml", "text/xml"),
             FileEntry("styles.xml", "text/xml"),
             FileEntry("meta.xml", "text/xml"),
-            pictures.Files.Select(f => FileEntry(f.Path, f.Image.MediaType)));
+            pictures.Files.Select(f => FileEntry(f.Path, f.Image.MediaType)),
+            fonts.Select(f => FileEntry(FontPath(f), "application/x-font-ttf")));
 
     private static XElement FileEntry(string path, string mediaType, bool version = false) =>
         new XElement(

@@ -98,6 +98,18 @@ public sealed class StyleSheet
         new StyleSheet(Defaults, ParagraphStyles.Append(definition).ToList(), CharacterStyles, TableStyles, BoxStyles, ListStyles);
 
     /// <summary>Finds the definition of a paragraph style.</summary>
+    /// <summary>Every font face the styles use, defaults first, in definition order (with repeats).</summary>
+    internal IEnumerable<FontFace> Fonts => new[] { Defaults.Font }
+        .Concat(ParagraphStyles.Select(s => s.Text.Font))
+        .Concat(CharacterStyles.Select(s => s.Text.Font))
+        .OfType<FontFace>();
+
+    /// <summary>The embedded font of each family that embeds one, in first-use order.</summary>
+    internal IReadOnlyList<FontFace> EmbeddedFonts => Fonts
+        .Where(f => f.IsEmbedded)
+        .DistinctBy(f => f.Family, StringComparer.Ordinal)
+        .ToList();
+
     internal ParagraphStyleDefinition? Find(ParagraphStyleKey key) => ParagraphStyles.FirstOrDefault(s => s.Key == key);
 
     /// <summary>Finds the definition of a character style.</summary>

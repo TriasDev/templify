@@ -63,6 +63,9 @@ internal static class DiagnosticCodes
     /// <summary>Content uses a style the style sheet does not define.</summary>
     public const string UndefinedStyle = "TB2010";
 
+    /// <summary>One font family is embedded with two different files.</summary>
+    public const string ConflictingEmbeddedFont = "TB2011";
+
     /// <summary>A switch has no <c>Default</c>.</summary>
     public const string SwitchWithoutDefault = "TB3001";
 

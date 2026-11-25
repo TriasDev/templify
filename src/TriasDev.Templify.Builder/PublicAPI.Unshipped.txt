@@ -70,6 +70,8 @@ static TriasDev.Templify.Builder.Condition.Raw(string! expression, params TriasD
 static TriasDev.Templify.Builder.ContractEntry.operator !=(TriasDev.Templify.Builder.ContractEntry? left, TriasDev.Templify.Builder.ContractEntry? right) -> bool
 static TriasDev.Templify.Builder.ContractEntry.operator ==(TriasDev.Templify.Builder.ContractEntry? left, TriasDev.Templify.Builder.ContractEntry? right) -> bool
 static TriasDev.Templify.Builder.DataContract.FromJson(string! json) -> TriasDev.Templify.Builder.DataContract!
+static TriasDev.Templify.Builder.FontFace.Embedded(byte[]! fontFile) -> TriasDev.Templify.Builder.FontFace!
+static TriasDev.Templify.Builder.FontFace.Embedded(string! family, byte[]! fontFile) -> TriasDev.Templify.Builder.FontFace!
 static TriasDev.Templify.Builder.FontFace.operator !=(TriasDev.Templify.Builder.FontFace? left, TriasDev.Templify.Builder.FontFace? right) -> bool
 static TriasDev.Templify.Builder.FontFace.operator ==(TriasDev.Templify.Builder.FontFace? left, TriasDev.Templify.Builder.FontFace? right) -> bool
 static TriasDev.Templify.Builder.ImageFit.Height(TriasDev.Templify.Builder.Length height) -> TriasDev.Templify.Builder.ImageFit!
@@ -259,6 +261,7 @@ TriasDev.Templify.Builder.FontFace.<Clone>$() -> TriasDev.Templify.Builder.FontF
 TriasDev.Templify.Builder.FontFace.Equals(TriasDev.Templify.Builder.FontFace? other) -> bool
 TriasDev.Templify.Builder.FontFace.Family.get -> string!
 TriasDev.Templify.Builder.FontFace.FontFace(string! family) -> void
+TriasDev.Templify.Builder.FontFace.IsEmbedded.get -> bool
 TriasDev.Templify.Builder.GeneratedTemplate
 TriasDev.Templify.Builder.GeneratedTemplate.Content.get -> System.ReadOnlyMemory<byte>
 TriasDev.Templify.Builder.GeneratedTemplate.ContentHash.get -> string!
