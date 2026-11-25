@@ -66,7 +66,8 @@ internal static partial class OdtConditionalDetector
             {
                 throw new TemplateSyntaxException(
                     ValidationErrorType.UnmatchedConditionalStart,
-                    $"Conditional start marker '{{{{#if {conditionExpression}}}}}' has no matching '{{{{/if}}}}'.") { SourceElement = elements[i] };
+                    $"Conditional start marker '{{{{#if {conditionExpression}}}}}' has no matching '{{{{/if}}}}'.")
+                { SourceElement = elements[i] };
             }
 
             // A container (row, cell, list) that holds a complete conditional is not a marker: the conditional
@@ -266,7 +267,8 @@ internal static partial class OdtConditionalDetector
             {
                 throw new TemplateSyntaxException(
                     ValidationErrorType.UnmatchedConditionalStart,
-                    $"{Capitalize(kind.Name)} conditional start marker '{{{{#if {conditionExpression}}}}}' has no matching '{{{{/if}}}}'.") { SourceElement = rows[i] };
+                    $"{Capitalize(kind.Name)} conditional start marker '{{{{#if {conditionExpression}}}}}' has no matching '{{{{/if}}}}'.")
+                { SourceElement = rows[i] };
             }
 
             List<OdtConditionalBranch> branches = CreateBranches(rows, branchMarkers, endIndex);
@@ -338,7 +340,8 @@ internal static partial class OdtConditionalDetector
             throw new TemplateSyntaxException(
                 ValidationErrorType.InvalidConditionalExpression,
                 $"Invalid {kind.Name} conditional: each '{{{{#if}}}}', '{{{{#elseif}}}}', '{{{{#else}}}}' and '{{{{/if}}}}' " +
-                $"that spans {kind.Plural} must be placed in its own {(kind == _tableRows ? "row" : "list item")}.") { SourceElement = row };
+                $"that spans {kind.Plural} must be placed in its own {(kind == _tableRows ? "row" : "list item")}.")
+            { SourceElement = row };
         }
 
         return rowMarkers.Count == 1 ? rowMarkers[0] : null;

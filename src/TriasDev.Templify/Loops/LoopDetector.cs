@@ -72,7 +72,8 @@ internal static partial class LoopDetector
             throw new TemplateSyntaxException(
                 ValidationErrorType.InvalidPlaceholderSyntax,
                 $"Invalid iteration variable name '{variableName}' in '{{{{#foreach {variableName} in {collectionName}}}}}'. " +
-                $"'{variableName}' is a reserved keyword.") { SourceElement = sourceElement };
+                $"'{variableName}' is a reserved keyword.")
+            { SourceElement = sourceElement };
         }
 
         // Check for metadata prefix (@)
@@ -81,7 +82,8 @@ internal static partial class LoopDetector
             throw new TemplateSyntaxException(
                 ValidationErrorType.InvalidPlaceholderSyntax,
                 $"Invalid iteration variable name '{variableName}' in '{{{{#foreach {variableName} in {collectionName}}}}}'. " +
-                $"Iteration variable names cannot start with '@' as this is reserved for loop metadata.") { SourceElement = sourceElement };
+                $"Iteration variable names cannot start with '@' as this is reserved for loop metadata.")
+            { SourceElement = sourceElement };
         }
     }
 
@@ -126,7 +128,8 @@ internal static partial class LoopDetector
                     {
                         throw new TemplateSyntaxException(
                             ValidationErrorType.UnmatchedLoopStart,
-                            $"Loop start marker '{{{{#foreach {collectionName}}}}}' has no matching '{{{{/foreach}}}}'.") { SourceElement = element };
+                            $"Loop start marker '{{{{#foreach {collectionName}}}}}' has no matching '{{{{/foreach}}}}'.")
+                        { SourceElement = element };
                     }
 
                     // A content control that contains a complete loop is not a loop marker:
@@ -288,7 +291,8 @@ internal static partial class LoopDetector
                         throw new TemplateSyntaxException(
                             ValidationErrorType.UnmatchedLoopStart,
                             $"Table row loop start marker '{{{{#foreach {collectionName}}}}}' has no matching '{{{{/foreach}}}}'." +
-                            (_foreachEndPattern.IsMatch(text) ? SameRowLoopMarkersMessage : string.Empty)) { SourceElement = row };
+                            (_foreachEndPattern.IsMatch(text) ? SameRowLoopMarkersMessage : string.Empty))
+                        { SourceElement = row };
                     }
 
                     // Get content rows (between start and end markers)

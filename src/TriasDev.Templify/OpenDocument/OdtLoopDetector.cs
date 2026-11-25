@@ -64,7 +64,8 @@ internal static partial class OdtLoopDetector
             {
                 throw new TemplateSyntaxException(
                     ValidationErrorType.UnmatchedLoopStart,
-                    $"Loop start marker '{{{{#foreach {collectionName}}}}}' has no matching '{{{{/foreach}}}}'.") { SourceElement = elements[i] };
+                    $"Loop start marker '{{{{#foreach {collectionName}}}}}' has no matching '{{{{/foreach}}}}'.")
+                { SourceElement = elements[i] };
             }
 
             // A container (row, cell, list) that holds a complete loop is not a loop marker:
