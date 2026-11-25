@@ -34,16 +34,33 @@ public static class TemplateBuilder
 
         TemplateComposer composer = new TemplateComposer(context);
         definition.Compose(composer);
-        IReadOnlyList<Block> body = composer.Close();
+        (IReadOnlyList<Block> body, StyleSheet styles, DocumentInfo info) = composer.Close();
+
+        context.AddRange(styles.Problems);
+        CheckStylesAreDefined(body, styles, context);
 
         if (context.Errors.Count > 0)
         {
             throw new TemplateBuildException(context.Errors);
         }
 
-        DocumentModel model = new DocumentModel(body, options.Language);
+        DocumentModel model = new DocumentModel(body, options.Language, styles, info);
         byte[] content = options.Format == TemplateFormat.Docx ? DocxWriter.Write(model) : OdtWriter.Write(model);
         return new GeneratedTemplate(options.Format, content);
+    }
+
+    private static void CheckStylesAreDefined(IReadOnlyList<Block> body, StyleSheet styles, BuildContext context)
+    {
+        HashSet<ParagraphStyleKey> reported = new HashSet<ParagraphStyleKey>();
+        foreach (ParagraphBlock paragraph in body.OfType<ParagraphBlock>())
+        {
+            if (paragraph.Style is { } style && styles.Find(style) == null && reported.Add(style))
+            {
+                context.Error(
+                    DiagnosticCodes.UndefinedStyle,
+                    $"A paragraph uses the style '{style.Id}' (\"{style.DisplayName}\"), which the template's style sheet does not define.");
+            }
+        }
     }
 
     private static void ValidateOptions(TemplateBuildOptions options)

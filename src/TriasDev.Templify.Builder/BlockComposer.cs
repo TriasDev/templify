@@ -21,35 +21,68 @@ public sealed class BlockComposer
         _blocks = blocks;
     }
 
-    /// <summary>Adds a paragraph with literal text.</summary>
+    /// <summary>Adds a paragraph with literal text, in the default paragraph style.</summary>
     /// <param name="text">The text. Tabs and line breaks become the format's tab and line break.</param>
-    public void Paragraph(string text)
+    public void Paragraph(string text) => AddText(null, text);
+
+    /// <summary>Adds a paragraph with literal text.</summary>
+    /// <param name="style">The paragraph style; the style sheet must define it.</param>
+    /// <param name="text">The text. Tabs and line breaks become the format's tab and line break.</param>
+    public void Paragraph(ParagraphStyleKey style, string text)
+    {
+        ArgumentNullException.ThrowIfNull(style);
+        AddText(style, text);
+    }
+
+    /// <summary>Adds a paragraph that holds one value from the data, in the default paragraph style: <c>{{path}}</c>.</summary>
+    /// <param name="value">The data path of the value.</param>
+    public void Paragraph(TemplatePath value) => AddValue(null, value);
+
+    /// <summary>Adds a paragraph that holds one value from the data: <c>{{path}}</c>.</summary>
+    /// <param name="style">The paragraph style; the style sheet must define it.</param>
+    /// <param name="value">The data path of the value.</param>
+    public void Paragraph(ParagraphStyleKey style, TemplatePath value)
+    {
+        ArgumentNullException.ThrowIfNull(style);
+        AddValue(style, value);
+    }
+
+    /// <summary>Adds a paragraph with mixed content, in the default paragraph style.</summary>
+    /// <param name="content">Describes the paragraph's content.</param>
+    public void Paragraph(Action<InlineComposer> content) => AddComposed(null, content);
+
+    /// <summary>Adds a paragraph with mixed content: literal text and values.</summary>
+    /// <param name="style">The paragraph style; the style sheet must define it.</param>
+    /// <param name="content">Describes the paragraph's content.</param>
+    public void Paragraph(ParagraphStyleKey style, Action<InlineComposer> content)
+    {
+        ArgumentNullException.ThrowIfNull(style);
+        AddComposed(style, content);
+    }
+
+    internal void Close() => _isOpen = false;
+
+    private void AddText(ParagraphStyleKey? style, string text)
     {
         ArgumentNullException.ThrowIfNull(text);
         EnsureOpen();
-        _blocks.Add(new ParagraphBlock(text.Length == 0 ? Array.Empty<Inline>() : new Inline[] { new TextInline(text) }));
+        _blocks.Add(new ParagraphBlock(text.Length == 0 ? Array.Empty<Inline>() : new Inline[] { new TextInline(text) }, style));
     }
 
-    /// <summary>Adds a paragraph that holds one value from the data: <c>{{path}}</c>.</summary>
-    /// <param name="value">The data path of the value.</param>
-    public void Paragraph(TemplatePath value)
+    private void AddValue(ParagraphStyleKey? style, TemplatePath value)
     {
         EnsureOpen();
-        _blocks.Add(new ParagraphBlock(new Inline[] { InlineComposer.CreateValue(_context, value) }));
+        _blocks.Add(new ParagraphBlock(new Inline[] { InlineComposer.CreateValue(_context, value) }, style));
     }
 
-    /// <summary>Adds a paragraph with mixed content: literal text and values.</summary>
-    /// <param name="content">Describes the paragraph's content.</param>
-    public void Paragraph(Action<InlineComposer> content)
+    private void AddComposed(ParagraphStyleKey? style, Action<InlineComposer> content)
     {
         ArgumentNullException.ThrowIfNull(content);
         EnsureOpen();
         InlineComposer composer = new InlineComposer(_context);
         content(composer);
-        _blocks.Add(new ParagraphBlock(composer.Close()));
+        _blocks.Add(new ParagraphBlock(composer.Close(), style));
     }
-
-    internal void Close() => _isOpen = false;
 
     private void EnsureOpen()
     {

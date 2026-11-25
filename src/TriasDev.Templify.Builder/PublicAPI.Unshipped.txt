@@ -2,6 +2,21 @@
 override TriasDev.Templify.Builder.BuildDiagnostic.Equals(object? obj) -> bool
 override TriasDev.Templify.Builder.BuildDiagnostic.GetHashCode() -> int
 override TriasDev.Templify.Builder.BuildDiagnostic.ToString() -> string!
+override TriasDev.Templify.Builder.CharacterStyleKey.Equals(object? obj) -> bool
+override TriasDev.Templify.Builder.CharacterStyleKey.GetHashCode() -> int
+override TriasDev.Templify.Builder.CharacterStyleKey.ToString() -> string!
+override TriasDev.Templify.Builder.Color.Equals(object? obj) -> bool
+override TriasDev.Templify.Builder.Color.GetHashCode() -> int
+override TriasDev.Templify.Builder.Color.ToString() -> string!
+override TriasDev.Templify.Builder.FontFace.Equals(object? obj) -> bool
+override TriasDev.Templify.Builder.FontFace.GetHashCode() -> int
+override TriasDev.Templify.Builder.FontFace.ToString() -> string!
+override TriasDev.Templify.Builder.Length.Equals(object? obj) -> bool
+override TriasDev.Templify.Builder.Length.GetHashCode() -> int
+override TriasDev.Templify.Builder.Length.ToString() -> string!
+override TriasDev.Templify.Builder.ParagraphStyleKey.Equals(object? obj) -> bool
+override TriasDev.Templify.Builder.ParagraphStyleKey.GetHashCode() -> int
+override TriasDev.Templify.Builder.ParagraphStyleKey.ToString() -> string!
 override TriasDev.Templify.Builder.TemplateBuildOptions.Equals(object? obj) -> bool
 override TriasDev.Templify.Builder.TemplateBuildOptions.GetHashCode() -> int
 override TriasDev.Templify.Builder.TemplateBuildOptions.ToString() -> string!
@@ -13,6 +28,29 @@ override TriasDev.Templify.Builder.TemplatePath.GetHashCode() -> int
 override TriasDev.Templify.Builder.TemplatePath.ToString() -> string!
 static TriasDev.Templify.Builder.BuildDiagnostic.operator !=(TriasDev.Templify.Builder.BuildDiagnostic? left, TriasDev.Templify.Builder.BuildDiagnostic? right) -> bool
 static TriasDev.Templify.Builder.BuildDiagnostic.operator ==(TriasDev.Templify.Builder.BuildDiagnostic? left, TriasDev.Templify.Builder.BuildDiagnostic? right) -> bool
+static TriasDev.Templify.Builder.CharacterStyleKey.operator !=(TriasDev.Templify.Builder.CharacterStyleKey? left, TriasDev.Templify.Builder.CharacterStyleKey? right) -> bool
+static TriasDev.Templify.Builder.CharacterStyleKey.operator ==(TriasDev.Templify.Builder.CharacterStyleKey? left, TriasDev.Templify.Builder.CharacterStyleKey? right) -> bool
+static TriasDev.Templify.Builder.Color.FromHex(string! hex) -> TriasDev.Templify.Builder.Color
+static TriasDev.Templify.Builder.Color.FromRgb(byte red, byte green, byte blue) -> TriasDev.Templify.Builder.Color
+static TriasDev.Templify.Builder.Color.operator !=(TriasDev.Templify.Builder.Color left, TriasDev.Templify.Builder.Color right) -> bool
+static TriasDev.Templify.Builder.Color.operator ==(TriasDev.Templify.Builder.Color left, TriasDev.Templify.Builder.Color right) -> bool
+static TriasDev.Templify.Builder.FontFace.operator !=(TriasDev.Templify.Builder.FontFace? left, TriasDev.Templify.Builder.FontFace? right) -> bool
+static TriasDev.Templify.Builder.FontFace.operator ==(TriasDev.Templify.Builder.FontFace? left, TriasDev.Templify.Builder.FontFace? right) -> bool
+static TriasDev.Templify.Builder.Length.FromMillimeters(double millimeters) -> TriasDev.Templify.Builder.Length
+static TriasDev.Templify.Builder.Length.FromPoints(double points) -> TriasDev.Templify.Builder.Length
+static TriasDev.Templify.Builder.Length.operator -(TriasDev.Templify.Builder.Length left, TriasDev.Templify.Builder.Length right) -> TriasDev.Templify.Builder.Length
+static TriasDev.Templify.Builder.Length.operator -(TriasDev.Templify.Builder.Length value) -> TriasDev.Templify.Builder.Length
+static TriasDev.Templify.Builder.Length.operator !=(TriasDev.Templify.Builder.Length left, TriasDev.Templify.Builder.Length right) -> bool
+static TriasDev.Templify.Builder.Length.operator +(TriasDev.Templify.Builder.Length left, TriasDev.Templify.Builder.Length right) -> TriasDev.Templify.Builder.Length
+static TriasDev.Templify.Builder.Length.operator <(TriasDev.Templify.Builder.Length left, TriasDev.Templify.Builder.Length right) -> bool
+static TriasDev.Templify.Builder.Length.operator <=(TriasDev.Templify.Builder.Length left, TriasDev.Templify.Builder.Length right) -> bool
+static TriasDev.Templify.Builder.Length.operator ==(TriasDev.Templify.Builder.Length left, TriasDev.Templify.Builder.Length right) -> bool
+static TriasDev.Templify.Builder.Length.operator >(TriasDev.Templify.Builder.Length left, TriasDev.Templify.Builder.Length right) -> bool
+static TriasDev.Templify.Builder.Length.operator >=(TriasDev.Templify.Builder.Length left, TriasDev.Templify.Builder.Length right) -> bool
+static TriasDev.Templify.Builder.Length.Zero.get -> TriasDev.Templify.Builder.Length
+static TriasDev.Templify.Builder.ParagraphStyleKey.operator !=(TriasDev.Templify.Builder.ParagraphStyleKey? left, TriasDev.Templify.Builder.ParagraphStyleKey? right) -> bool
+static TriasDev.Templify.Builder.ParagraphStyleKey.operator ==(TriasDev.Templify.Builder.ParagraphStyleKey? left, TriasDev.Templify.Builder.ParagraphStyleKey? right) -> bool
+static TriasDev.Templify.Builder.StyleSheet.Create(System.Action<TriasDev.Templify.Builder.StyleSheetComposer!>! styles) -> TriasDev.Templify.Builder.StyleSheet!
 static TriasDev.Templify.Builder.TemplateBuilder.Build(TriasDev.Templify.Builder.ITemplateDefinition! definition, TriasDev.Templify.Builder.TemplateBuildOptions! options) -> TriasDev.Templify.Builder.GeneratedTemplate!
 static TriasDev.Templify.Builder.TemplateBuildOptions.operator !=(TriasDev.Templify.Builder.TemplateBuildOptions? left, TriasDev.Templify.Builder.TemplateBuildOptions? right) -> bool
 static TriasDev.Templify.Builder.TemplateBuildOptions.operator ==(TriasDev.Templify.Builder.TemplateBuildOptions? left, TriasDev.Templify.Builder.TemplateBuildOptions? right) -> bool
@@ -21,9 +59,16 @@ static TriasDev.Templify.Builder.TemplateIdentity.operator ==(TriasDev.Templify.
 static TriasDev.Templify.Builder.TemplatePath.operator !=(TriasDev.Templify.Builder.TemplatePath left, TriasDev.Templify.Builder.TemplatePath right) -> bool
 static TriasDev.Templify.Builder.TemplatePath.operator ==(TriasDev.Templify.Builder.TemplatePath left, TriasDev.Templify.Builder.TemplatePath right) -> bool
 static TriasDev.Templify.Builder.TemplatePath.Root(string! path) -> TriasDev.Templify.Builder.TemplatePath
+static TriasDev.Templify.Builder.Units.Mm(this double millimeters) -> TriasDev.Templify.Builder.Length
+static TriasDev.Templify.Builder.Units.Mm(this int millimeters) -> TriasDev.Templify.Builder.Length
+static TriasDev.Templify.Builder.Units.Pt(this double points) -> TriasDev.Templify.Builder.Length
+static TriasDev.Templify.Builder.Units.Pt(this int points) -> TriasDev.Templify.Builder.Length
 TriasDev.Templify.Builder.BlockComposer
 TriasDev.Templify.Builder.BlockComposer.Paragraph(string! text) -> void
 TriasDev.Templify.Builder.BlockComposer.Paragraph(System.Action<TriasDev.Templify.Builder.InlineComposer!>! content) -> void
+TriasDev.Templify.Builder.BlockComposer.Paragraph(TriasDev.Templify.Builder.ParagraphStyleKey! style, string! text) -> void
+TriasDev.Templify.Builder.BlockComposer.Paragraph(TriasDev.Templify.Builder.ParagraphStyleKey! style, System.Action<TriasDev.Templify.Builder.InlineComposer!>! content) -> void
+TriasDev.Templify.Builder.BlockComposer.Paragraph(TriasDev.Templify.Builder.ParagraphStyleKey! style, TriasDev.Templify.Builder.TemplatePath value) -> void
 TriasDev.Templify.Builder.BlockComposer.Paragraph(TriasDev.Templify.Builder.TemplatePath value) -> void
 TriasDev.Templify.Builder.BuildDiagnostic
 TriasDev.Templify.Builder.BuildDiagnostic.<Clone>$() -> TriasDev.Templify.Builder.BuildDiagnostic!
@@ -34,6 +79,38 @@ TriasDev.Templify.Builder.BuildDiagnostic.Deconstruct(out string! Code, out stri
 TriasDev.Templify.Builder.BuildDiagnostic.Equals(TriasDev.Templify.Builder.BuildDiagnostic? other) -> bool
 TriasDev.Templify.Builder.BuildDiagnostic.Message.get -> string!
 TriasDev.Templify.Builder.BuildDiagnostic.Message.init -> void
+TriasDev.Templify.Builder.CharacterStyleComposer
+TriasDev.Templify.Builder.CharacterStyleComposer.BasedOn(TriasDev.Templify.Builder.CharacterStyleKey! parent) -> TriasDev.Templify.Builder.CharacterStyleComposer!
+TriasDev.Templify.Builder.CharacterStyleComposer.Bold(bool value = true) -> TriasDev.Templify.Builder.CharacterStyleComposer!
+TriasDev.Templify.Builder.CharacterStyleComposer.Color(TriasDev.Templify.Builder.Color color) -> TriasDev.Templify.Builder.CharacterStyleComposer!
+TriasDev.Templify.Builder.CharacterStyleComposer.Font(TriasDev.Templify.Builder.FontFace! font) -> TriasDev.Templify.Builder.CharacterStyleComposer!
+TriasDev.Templify.Builder.CharacterStyleComposer.Italic(bool value = true) -> TriasDev.Templify.Builder.CharacterStyleComposer!
+TriasDev.Templify.Builder.CharacterStyleComposer.Size(TriasDev.Templify.Builder.Length size) -> TriasDev.Templify.Builder.CharacterStyleComposer!
+TriasDev.Templify.Builder.CharacterStyleKey
+TriasDev.Templify.Builder.CharacterStyleKey.<Clone>$() -> TriasDev.Templify.Builder.CharacterStyleKey!
+TriasDev.Templify.Builder.CharacterStyleKey.CharacterStyleKey(string! id, string! displayName) -> void
+TriasDev.Templify.Builder.CharacterStyleKey.DisplayName.get -> string!
+TriasDev.Templify.Builder.CharacterStyleKey.Equals(TriasDev.Templify.Builder.CharacterStyleKey? other) -> bool
+TriasDev.Templify.Builder.CharacterStyleKey.Id.get -> string!
+TriasDev.Templify.Builder.Color
+TriasDev.Templify.Builder.Color.B.get -> byte
+TriasDev.Templify.Builder.Color.Color() -> void
+TriasDev.Templify.Builder.Color.Equals(TriasDev.Templify.Builder.Color other) -> bool
+TriasDev.Templify.Builder.Color.G.get -> byte
+TriasDev.Templify.Builder.Color.R.get -> byte
+TriasDev.Templify.Builder.DefaultStyleComposer
+TriasDev.Templify.Builder.DefaultStyleComposer.Color(TriasDev.Templify.Builder.Color color) -> TriasDev.Templify.Builder.DefaultStyleComposer!
+TriasDev.Templify.Builder.DefaultStyleComposer.Font(TriasDev.Templify.Builder.FontFace! font) -> TriasDev.Templify.Builder.DefaultStyleComposer!
+TriasDev.Templify.Builder.DefaultStyleComposer.Size(TriasDev.Templify.Builder.Length size) -> TriasDev.Templify.Builder.DefaultStyleComposer!
+TriasDev.Templify.Builder.DocumentPropertiesComposer
+TriasDev.Templify.Builder.DocumentPropertiesComposer.Author(string! author) -> TriasDev.Templify.Builder.DocumentPropertiesComposer!
+TriasDev.Templify.Builder.DocumentPropertiesComposer.Subject(string! subject) -> TriasDev.Templify.Builder.DocumentPropertiesComposer!
+TriasDev.Templify.Builder.DocumentPropertiesComposer.Title(string! title) -> TriasDev.Templify.Builder.DocumentPropertiesComposer!
+TriasDev.Templify.Builder.FontFace
+TriasDev.Templify.Builder.FontFace.<Clone>$() -> TriasDev.Templify.Builder.FontFace!
+TriasDev.Templify.Builder.FontFace.Equals(TriasDev.Templify.Builder.FontFace? other) -> bool
+TriasDev.Templify.Builder.FontFace.Family.get -> string!
+TriasDev.Templify.Builder.FontFace.FontFace(string! family) -> void
 TriasDev.Templify.Builder.GeneratedTemplate
 TriasDev.Templify.Builder.GeneratedTemplate.Content.get -> System.ReadOnlyMemory<byte>
 TriasDev.Templify.Builder.GeneratedTemplate.ContentHash.get -> string!
@@ -48,6 +125,43 @@ TriasDev.Templify.Builder.InlineComposer.Value(TriasDev.Templify.Builder.Templat
 TriasDev.Templify.Builder.ITemplateDefinition
 TriasDev.Templify.Builder.ITemplateDefinition.Compose(TriasDev.Templify.Builder.TemplateComposer! template) -> void
 TriasDev.Templify.Builder.ITemplateDefinition.Identity.get -> TriasDev.Templify.Builder.TemplateIdentity!
+TriasDev.Templify.Builder.Length
+TriasDev.Templify.Builder.Length.CompareTo(TriasDev.Templify.Builder.Length other) -> int
+TriasDev.Templify.Builder.Length.Equals(TriasDev.Templify.Builder.Length other) -> bool
+TriasDev.Templify.Builder.Length.Length() -> void
+TriasDev.Templify.Builder.Length.Millimeters.get -> double
+TriasDev.Templify.Builder.Length.Points.get -> double
+TriasDev.Templify.Builder.ParagraphStyleComposer
+TriasDev.Templify.Builder.ParagraphStyleComposer.Alignment(TriasDev.Templify.Builder.TextAlignment alignment) -> TriasDev.Templify.Builder.ParagraphStyleComposer!
+TriasDev.Templify.Builder.ParagraphStyleComposer.BasedOn(TriasDev.Templify.Builder.ParagraphStyleKey! parent) -> TriasDev.Templify.Builder.ParagraphStyleComposer!
+TriasDev.Templify.Builder.ParagraphStyleComposer.Bold(bool value = true) -> TriasDev.Templify.Builder.ParagraphStyleComposer!
+TriasDev.Templify.Builder.ParagraphStyleComposer.Color(TriasDev.Templify.Builder.Color color) -> TriasDev.Templify.Builder.ParagraphStyleComposer!
+TriasDev.Templify.Builder.ParagraphStyleComposer.FirstLineIndent(TriasDev.Templify.Builder.Length indent) -> TriasDev.Templify.Builder.ParagraphStyleComposer!
+TriasDev.Templify.Builder.ParagraphStyleComposer.Font(TriasDev.Templify.Builder.FontFace! font) -> TriasDev.Templify.Builder.ParagraphStyleComposer!
+TriasDev.Templify.Builder.ParagraphStyleComposer.IndentEnd(TriasDev.Templify.Builder.Length indent) -> TriasDev.Templify.Builder.ParagraphStyleComposer!
+TriasDev.Templify.Builder.ParagraphStyleComposer.IndentStart(TriasDev.Templify.Builder.Length indent) -> TriasDev.Templify.Builder.ParagraphStyleComposer!
+TriasDev.Templify.Builder.ParagraphStyleComposer.Italic(bool value = true) -> TriasDev.Templify.Builder.ParagraphStyleComposer!
+TriasDev.Templify.Builder.ParagraphStyleComposer.KeepLinesTogether(bool value = true) -> TriasDev.Templify.Builder.ParagraphStyleComposer!
+TriasDev.Templify.Builder.ParagraphStyleComposer.KeepWithNext(bool value = true) -> TriasDev.Templify.Builder.ParagraphStyleComposer!
+TriasDev.Templify.Builder.ParagraphStyleComposer.LineHeight(TriasDev.Templify.Builder.Length height) -> TriasDev.Templify.Builder.ParagraphStyleComposer!
+TriasDev.Templify.Builder.ParagraphStyleComposer.LineSpacing(double multiple) -> TriasDev.Templify.Builder.ParagraphStyleComposer!
+TriasDev.Templify.Builder.ParagraphStyleComposer.MinimumLineHeight(TriasDev.Templify.Builder.Length height) -> TriasDev.Templify.Builder.ParagraphStyleComposer!
+TriasDev.Templify.Builder.ParagraphStyleComposer.Next(TriasDev.Templify.Builder.ParagraphStyleKey! next) -> TriasDev.Templify.Builder.ParagraphStyleComposer!
+TriasDev.Templify.Builder.ParagraphStyleComposer.OutlineLevel(int level) -> TriasDev.Templify.Builder.ParagraphStyleComposer!
+TriasDev.Templify.Builder.ParagraphStyleComposer.Size(TriasDev.Templify.Builder.Length size) -> TriasDev.Templify.Builder.ParagraphStyleComposer!
+TriasDev.Templify.Builder.ParagraphStyleComposer.SpaceAfter(TriasDev.Templify.Builder.Length space) -> TriasDev.Templify.Builder.ParagraphStyleComposer!
+TriasDev.Templify.Builder.ParagraphStyleComposer.SpaceBefore(TriasDev.Templify.Builder.Length space) -> TriasDev.Templify.Builder.ParagraphStyleComposer!
+TriasDev.Templify.Builder.ParagraphStyleKey
+TriasDev.Templify.Builder.ParagraphStyleKey.<Clone>$() -> TriasDev.Templify.Builder.ParagraphStyleKey!
+TriasDev.Templify.Builder.ParagraphStyleKey.DisplayName.get -> string!
+TriasDev.Templify.Builder.ParagraphStyleKey.Equals(TriasDev.Templify.Builder.ParagraphStyleKey? other) -> bool
+TriasDev.Templify.Builder.ParagraphStyleKey.Id.get -> string!
+TriasDev.Templify.Builder.ParagraphStyleKey.ParagraphStyleKey(string! id, string! displayName) -> void
+TriasDev.Templify.Builder.StyleSheet
+TriasDev.Templify.Builder.StyleSheetComposer
+TriasDev.Templify.Builder.StyleSheetComposer.Character(TriasDev.Templify.Builder.CharacterStyleKey! key, System.Action<TriasDev.Templify.Builder.CharacterStyleComposer!>! style) -> void
+TriasDev.Templify.Builder.StyleSheetComposer.Defaults(System.Action<TriasDev.Templify.Builder.DefaultStyleComposer!>! defaults) -> void
+TriasDev.Templify.Builder.StyleSheetComposer.Paragraph(TriasDev.Templify.Builder.ParagraphStyleKey! key, System.Action<TriasDev.Templify.Builder.ParagraphStyleComposer!>! style) -> void
 TriasDev.Templify.Builder.TemplateBuilder
 TriasDev.Templify.Builder.TemplateBuildException
 TriasDev.Templify.Builder.TemplateBuildException.Errors.get -> System.Collections.Generic.IReadOnlyList<TriasDev.Templify.Builder.BuildDiagnostic!>!
@@ -63,6 +177,8 @@ TriasDev.Templify.Builder.TemplateBuildOptions.TemplateBuildOptions() -> void
 TriasDev.Templify.Builder.TemplateComposer
 TriasDev.Templify.Builder.TemplateComposer.Content(System.Action<TriasDev.Templify.Builder.BlockComposer!>! content) -> void
 TriasDev.Templify.Builder.TemplateComposer.Data.get -> TriasDev.Templify.Builder.TemplatePath
+TriasDev.Templify.Builder.TemplateComposer.Properties(System.Action<TriasDev.Templify.Builder.DocumentPropertiesComposer!>! properties) -> void
+TriasDev.Templify.Builder.TemplateComposer.Styles(TriasDev.Templify.Builder.StyleSheet! styles) -> void
 TriasDev.Templify.Builder.TemplateIdentity
 TriasDev.Templify.Builder.TemplateIdentity.<Clone>$() -> TriasDev.Templify.Builder.TemplateIdentity!
 TriasDev.Templify.Builder.TemplateIdentity.Deconstruct(out string! Id, out int Version) -> void
@@ -76,3 +192,9 @@ TriasDev.Templify.Builder.TemplatePath
 TriasDev.Templify.Builder.TemplatePath.Equals(TriasDev.Templify.Builder.TemplatePath other) -> bool
 TriasDev.Templify.Builder.TemplatePath.TemplatePath() -> void
 TriasDev.Templify.Builder.TemplatePath.this[string! relative].get -> TriasDev.Templify.Builder.TemplatePath
+TriasDev.Templify.Builder.TextAlignment
+TriasDev.Templify.Builder.TextAlignment.Center = 1 -> TriasDev.Templify.Builder.TextAlignment
+TriasDev.Templify.Builder.TextAlignment.End = 2 -> TriasDev.Templify.Builder.TextAlignment
+TriasDev.Templify.Builder.TextAlignment.Justify = 3 -> TriasDev.Templify.Builder.TextAlignment
+TriasDev.Templify.Builder.TextAlignment.Start = 0 -> TriasDev.Templify.Builder.TextAlignment
+TriasDev.Templify.Builder.Units

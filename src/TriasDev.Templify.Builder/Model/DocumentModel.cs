@@ -8,14 +8,17 @@ namespace TriasDev.Templify.Builder.Model;
 /// <summary>The format-neutral description of a template that the writers turn into a package.</summary>
 /// <param name="Body">The blocks of the document body, in order.</param>
 /// <param name="Language">The document language.</param>
-internal sealed record DocumentModel(IReadOnlyList<Block> Body, CultureInfo Language);
+/// <param name="Styles">The named styles; <see cref="StyleSheet.Empty"/> when the definition sets none.</param>
+/// <param name="Info">The standard document properties.</param>
+internal sealed record DocumentModel(IReadOnlyList<Block> Body, CultureInfo Language, StyleSheet Styles, DocumentInfo Info);
 
 /// <summary>A block-level element of the document.</summary>
 internal abstract record Block;
 
 /// <summary>A paragraph.</summary>
 /// <param name="Inlines">The paragraph content, in order.</param>
-internal sealed record ParagraphBlock(IReadOnlyList<Inline> Inlines) : Block;
+/// <param name="Style">The paragraph style; null for the format's default paragraph style.</param>
+internal sealed record ParagraphBlock(IReadOnlyList<Inline> Inlines, ParagraphStyleKey? Style = null) : Block;
 
 /// <summary>Content inside a paragraph.</summary>
 internal abstract record Inline;

@@ -77,6 +77,17 @@ internal static class BuilderHarness
         new OdtDocumentVerifier(package).AssertValidOdtPackage();
     }
 
+    /// <summary>Reads one entry of a package as XML.</summary>
+    public static System.Xml.Linq.XDocument ReadXml(byte[] package, string entryName)
+    {
+        using MemoryStream stream = new MemoryStream(package);
+        using System.IO.Compression.ZipArchive archive = new System.IO.Compression.ZipArchive(stream, System.IO.Compression.ZipArchiveMode.Read);
+        System.IO.Compression.ZipArchiveEntry entry = archive.GetEntry(entryName)
+            ?? throw new InvalidOperationException($"The package has no entry '{entryName}'.");
+        using Stream entryStream = entry.Open();
+        return System.Xml.Linq.XDocument.Load(entryStream);
+    }
+
     /// <summary>The rendered text of the body's paragraphs.</summary>
     public static List<string> ParagraphTexts(TemplateFormat format, byte[] package)
     {
