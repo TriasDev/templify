@@ -10,7 +10,7 @@ namespace TriasDev.Templify.Tests.Odt;
 
 public sealed class OdtTemplateLocatorTests
 {
-    private static readonly XNamespace Text = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";
+    private static readonly XNamespace _text = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";
 
     [Fact]
     public void Odt_BodyParagraph() =>
@@ -48,7 +48,7 @@ public sealed class OdtTemplateLocatorTests
         XElement content = XDocument.Load(zip.GetEntry("content.xml")!.Open()).Root!;
         XElement styles = XDocument.Load(zip.GetEntry("styles.xml")!.Open()).Root!;
         XElement paragraph = content.Descendants().Concat(styles.Descendants())
-            .First(e => (e.Name == Text + "p" || e.Name == Text + "h") && e.Value == paragraphText);
+            .First(e => (e.Name == _text + "p" || e.Name == _text + "h") && e.Value == paragraphText);
 
         return new OdtTemplateLocator(content, styles).Describe(paragraph);
     }

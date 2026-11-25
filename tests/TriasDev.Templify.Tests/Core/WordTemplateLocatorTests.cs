@@ -107,7 +107,8 @@ public sealed class WordTemplateLocatorTests
         Paragraph anchor = new Paragraph(
             new Run(new Text("anchor")),
             new Run(new Picture(new DocumentFormat.OpenXml.Vml.Shape(
-                new DocumentFormat.OpenXml.Vml.TextBox(new TextBoxContent(P("t")))) { Id = "tb1", Style = "width:72pt;height:36pt" })));
+                new DocumentFormat.OpenXml.Vml.TextBox(new TextBoxContent(P("t"))))
+            { Id = "tb1", Style = "width:72pt;height:36pt" })));
 
         Assert.Equal("body, paragraph 2, text box 1, paragraph 1: 't'", Describe(new DocumentBuilder().AddParagraph("a").AddElement(anchor), "t"));
     }
