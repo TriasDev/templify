@@ -7,10 +7,13 @@
     <!-- NuGet package identity; shared package metadata is in src/Directory.Build.props.
          Own version line, 0.x until the API has carried one real document (design spec, D7). -->
     <PackageId>TriasDev.Templify.Builder</PackageId>
-    <Version>0.1.0</Version>
+    <!-- version.txt is the builder's single version source: release-please (component "builder") updates it, and the
+         test kit reads the same file. -->
+    <Version>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)version.txt').Trim())</Version>
     <Description>Code-first template builder for TriasDev.Templify: describe Word (.docx) and OpenDocument Text (.odt) templates in C# — styles, placeholders, conditionals and loops — and generate them at runtime. Templify fills the generated templates.</Description>
     <PackageTags>word;docx;odt;opendocument;libreoffice;template;templify;document-generation;templating;builder;fluent</PackageTags>
-    <!-- No PackageValidationBaselineVersion until the first release (design spec, section 7). -->
+    <!-- No PackageValidationBaselineVersion until the first release; then the previous 0.x release (CONTRIBUTING.md,
+         "Builder releases"). -->
   </PropertyGroup>
 
   <ItemGroup>

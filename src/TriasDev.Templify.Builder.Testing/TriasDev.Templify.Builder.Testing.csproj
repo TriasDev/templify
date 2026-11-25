@@ -6,7 +6,7 @@
 
     <!-- Released together with the builder, on the builder's 0.x version line (design spec, section 7). -->
     <PackageId>TriasDev.Templify.Builder.Testing</PackageId>
-    <Version>0.1.0</Version>
+    <Version>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)../TriasDev.Templify.Builder/version.txt').Trim())</Version>
     <Description>Test kit for TriasDev.Templify.Builder: verify template definitions in your CI (build, validate, fill with sample data and the contract's witness, DOCX schema and ODT package checks, byte determinism, contract parity across languages and formats), snapshot dumps for golden tests and a LibreOffice conversion helper. Test-framework neutral.</Description>
     <PackageTags>word;docx;odt;opendocument;libreoffice;template;templify;builder;testing;snapshot</PackageTags>
     <!-- No PackageValidationBaselineVersion until the first release (design spec, section 7). -->
