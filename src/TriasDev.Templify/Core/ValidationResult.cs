@@ -171,7 +171,14 @@ public enum ValidationErrorType
     /// <see cref="DocumentTemplateProcessor"/> still reports unreadable documents as
     /// <see cref="InvalidPlaceholderSyntax"/> for compatibility.
     /// </remarks>
-    InvalidDocument = 7
+    InvalidDocument = 7,
+
+    /// <summary>
+    /// A block marker (<c>{{#foreach}}</c>, <c>{{#if}}</c>, <c>{{#elseif}}</c>, <c>{{#else}}</c>, <c>{{/if}}</c>,
+    /// <c>{{/foreach}}</c>) shares its paragraph or table row with other text, which processing removes together
+    /// with the marker. Also reported for a loop that opens and closes in one paragraph, which is not supported.
+    /// </summary>
+    BlockMarkerWithText = 8
 }
 
 /// <summary>

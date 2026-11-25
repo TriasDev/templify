@@ -8,6 +8,7 @@ using TriasDev.Templify.Conditionals;
 using TriasDev.Templify.Core;
 using TriasDev.Templify.Loops;
 using TriasDev.Templify.Placeholders;
+using TriasDev.Templify.Utilities;
 
 namespace TriasDev.Templify.Visitors;
 
@@ -160,6 +161,9 @@ internal sealed class LoopVisitor : ITemplateElementVisitor
     /// </summary>
     private void RemoveLoopBlock(LoopBlock loop)
     {
+        // Marker elements are removed as a whole: report text next to the markers that goes with them (#253).
+        BlockMarkerText.Report(_warningCollector, BlockMarkerLoss.Find(loop).Select(l => l.Message));
+
         TemplateElementHelper.SafeRemove(loop.StartMarker);
         TemplateElementHelper.SafeRemoveRange(loop.ContentElements);
         TemplateElementHelper.SafeRemove(loop.EndMarker);

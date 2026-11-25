@@ -91,6 +91,9 @@ internal sealed class ConditionalVisitor : ITemplateElementVisitor
         // Captured BEFORE mutating the tree, so ancestor lookups still resolve.
         HashSet<TableCell> affectedCells = CollectAncestorCells(conditional);
 
+        // Marker elements are removed as a whole: report text next to the markers that goes with them (#253).
+        BlockMarkerText.Report(_warningCollector, BlockMarkerLoss.Find(conditional).Select(l => l.Message));
+
         // Remove all branch markers
         foreach (ConditionalBranch branch in conditional.Branches)
         {

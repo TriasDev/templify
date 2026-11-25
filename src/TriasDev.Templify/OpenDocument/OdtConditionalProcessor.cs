@@ -4,6 +4,7 @@
 using System.Xml.Linq;
 using TriasDev.Templify.Conditionals;
 using TriasDev.Templify.Core;
+using TriasDev.Templify.Utilities;
 
 namespace TriasDev.Templify.OpenDocument;
 
@@ -36,6 +37,9 @@ internal sealed class OdtConditionalProcessor
 
         OdtConditionalBranch? match = conditional.Branches.FirstOrDefault(
             b => b.IsElseBranch || _evaluator.Evaluate(b.ConditionExpression!, context, _warningCollector));
+
+        // Marker elements are removed as a whole: report text next to the markers that goes with them (#253).
+        BlockMarkerText.Report(_warningCollector, OdtBlockMarkerLoss.Find(conditional).Select(l => l.Message));
 
         foreach (OdtConditionalBranch branch in conditional.Branches)
         {

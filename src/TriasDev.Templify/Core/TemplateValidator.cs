@@ -83,7 +83,15 @@ internal sealed class TemplateValidator
                 // 5. Validate headers and footers
                 ValidateHeadersAndFooters(document, allPlaceholders, errors, warnings, data);
 
-                // 6. Check for missing variables if data is provided
+                // 6. Block markers whose paragraph or row holds other text: processing removes the text (#253)
+                BlockMarkerValidator blockMarkers = new BlockMarkerValidator(errors);
+                blockMarkers.ValidateBlocks(elements);
+                foreach (List<OpenXmlElement> partElements in GetHeaderFooterElements(document))
+                {
+                    blockMarkers.ValidateBlocks(partElements);
+                }
+
+                // 7. Check for missing variables if data is provided
                 if (data != null)
                 {
                     ValidateMissingVariables(elements, data, allPlaceholders, missingVariables, warnings, errors, _options.WarnOnEmptyLoopCollections);

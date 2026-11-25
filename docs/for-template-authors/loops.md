@@ -29,8 +29,8 @@ This syntax gives the current item an explicit name (`item`), which you can use 
 A loop repeats **whole paragraphs** (or whole table rows):
 
 - Put `{{#foreach ...}}` and `{{/foreach}}` in **their own paragraphs**, above and below the content to repeat.
-- The marker paragraphs are removed from the output, including any other text in them: in `Items: {{#foreach Items}}`, the text `Items:` is lost.
-- A loop whose start and end marker are in the **same paragraph** (`{{#foreach Tags}}{{.}}, {{/foreach}}`) produces no output. To show a list on a single line, provide the joined text in your data (for example `"TagList": "red, green, blue"`).
+- The marker paragraphs are removed from the output, including any other text in them: in `Items: {{#foreach Items}}`, the text `Items:` is lost. Template validation reports this as an error and processing as a warning (`BlockMarkerWithText`), naming the marker and the lost text. Images, text boxes (and, in LibreOffice, notes) anchored in a marker paragraph are removed with it too, but are not reported.
+- A loop whose start and end marker are in the **same paragraph** (`{{#foreach Tags}}{{.}}, {{/foreach}}`) is not supported: the whole paragraph is removed (also reported as `BlockMarkerWithText`). To show a list on a single line, provide the joined text in your data (for example `"TagList": "red, green, blue"`).
 - Marker keywords are case-insensitive (`{{#FOREACH Items}}` works); collection names are not.
 
 ## Simple Lists
