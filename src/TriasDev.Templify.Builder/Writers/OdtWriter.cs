@@ -115,6 +115,7 @@ internal static class OdtWriter
             ParagraphBlock paragraph => WriteParagraph(paragraph, frame),
             TableBlock table => WriteTable(table, frame),
             RuleBlock rule => new XElement(_text + "p", new XAttribute(_text + "style-name", RuleStyle(rule))),
+            TocBlock toc => TableOfContents(toc),
             // An empty paragraph of its own carries the break (break-after: no empty line on the new page), so it
             // survives when the engine removes the paragraphs around it.
             PageBreakBlock => new XElement(_text + "p", new XAttribute(_text + "style-name", PageBreakStyle())),
@@ -347,6 +348,36 @@ internal static class OdtWriter
         }
 
         private readonly Dictionary<string, string> _ruleStyles = new Dictionary<string, string>(StringComparer.Ordinal);
+        private int _tocs;
+
+        /// <summary>A table of contents over the outline levels, with an empty index body (filled when a user updates it).</summary>
+        private XElement TableOfContents(TocBlock toc)
+        {
+            XElement source = new XElement(
+                _text + "table-of-content-source",
+                new XAttribute(_text + "outline-level", toc.MaxLevel),
+                new XAttribute(_text + "use-index-marks", "false"),
+                new XElement(_text + "index-title-template"));
+            for (int level = 1; level <= toc.MaxLevel; level++)
+            {
+                source.Add(new XElement(
+                    _text + "table-of-content-entry-template",
+                    new XAttribute(_text + "outline-level", level),
+                    new XAttribute(_text + "style-name", "Contents_20_" + level.ToString(CultureInfo.InvariantCulture)),
+                    new XElement(_text + "index-entry-link-start"),
+                    new XElement(_text + "index-entry-text"),
+                    new XElement(_text + "index-entry-tab-stop", new XAttribute(_style + "type", "right"), new XAttribute(_style + "leader-char", ".")),
+                    new XElement(_text + "index-entry-page-number"),
+                    new XElement(_text + "index-entry-link-end")));
+            }
+
+            return new XElement(
+                _text + "table-of-content",
+                new XAttribute(_text + "protected", "false"),
+                new XAttribute(_text + "name", prefix + "Toc" + (++_tocs).ToString(CultureInfo.InvariantCulture)),
+                source,
+                new XElement(_text + "index-body"));
+        }
 
         /// <summary>An automatic paragraph style for a rule: a 1 pt line height and the line as the top border.</summary>
         private string RuleStyle(RuleBlock rule)

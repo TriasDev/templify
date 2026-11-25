@@ -14,8 +14,9 @@ public sealed class GeneratedTemplate
 {
     private readonly byte[] _content;
 
-    internal GeneratedTemplate(TemplateFormat format, byte[] content, DataContract contract, TemplateStamp stamp)
+    internal GeneratedTemplate(TemplateFormat format, byte[] content, DataContract contract, TemplateStamp stamp, IReadOnlyList<BuildDiagnostic> warnings)
     {
+        Warnings = warnings;
         Format = format;
         _content = content;
         Contract = contract;
@@ -36,6 +37,12 @@ public sealed class GeneratedTemplate
 
     /// <summary>Gets the data the template needs: every path it prints, tests or loops over.</summary>
     public DataContract Contract { get; }
+
+    /// <summary>
+    /// Gets the warnings of the build: the template is valid, but something behaves differently than one might expect,
+    /// for example an ODT table of contents that LibreOffice does not rebuild on load.
+    /// </summary>
+    public IReadOnlyList<BuildDiagnostic> Warnings { get; }
 
     /// <summary>Gets the stamp written into the template's document properties.</summary>
     public TemplateStamp Stamp { get; }

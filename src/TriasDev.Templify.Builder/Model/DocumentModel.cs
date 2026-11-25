@@ -194,6 +194,9 @@ internal sealed class BoxStyleDefinition(BoxStyleKey key)
     };
 }
 
+/// <summary>A table of contents over the headings up to <paramref name="MaxLevel"/>.</summary>
+internal sealed record TocBlock(int MaxLevel) : Block;
+
 /// <summary>A horizontal rule: an empty paragraph whose top border is the line.</summary>
 internal sealed record RuleBlock(BorderLine Line, Length SpaceBefore, Length SpaceAfter) : Block;
 

@@ -238,6 +238,27 @@ public class BlockComposer
         composer.Close();
     }
 
+    /// <summary>Adds a table of contents over the headings of outline levels 1 to 3.</summary>
+    public void TableOfContents() => TableOfContents(3);
+
+    /// <summary>
+    /// Adds a table of contents over the headings (paragraph styles with an outline level) up to a level. It is built
+    /// by the application that opens the document: Word does for DOCX on open (fill with
+    /// <c>UpdateFieldsOnOpen = Auto</c>); LibreOffice — also when converting to PDF — does not, so it stays empty there
+    /// until a user updates it. The build reports this as a warning (<see cref="GeneratedTemplate.Warnings"/>).
+    /// </summary>
+    /// <param name="maxLevel">The deepest outline level listed, 1 to 9.</param>
+    public void TableOfContents(int maxLevel)
+    {
+        EnsureOpen();
+        if (maxLevel is < 1 or > 9)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxLevel), maxLevel, "The deepest level is between 1 and 9.");
+        }
+
+        _blocks.Add(new TocBlock(maxLevel));
+    }
+
     /// <summary>Adds a reusable component's content.</summary>
     /// <param name="component">The component.</param>
     public void Component(ITemplateComponent component)

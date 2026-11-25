@@ -9,6 +9,13 @@ namespace TriasDev.Templify.Builder;
 internal sealed class BuildContext
 {
     private readonly List<BuildDiagnostic> _errors = new List<BuildDiagnostic>();
+    private readonly List<BuildDiagnostic> _warnings = new List<BuildDiagnostic>();
+
+    /// <summary>Gets the warnings found so far; they do not fail the build.</summary>
+    public IReadOnlyList<BuildDiagnostic> Warnings => _warnings;
+
+    /// <summary>Records a warning: the template builds, but something behaves differently than one might expect.</summary>
+    public void Warn(string code, string message) => _warnings.Add(new BuildDiagnostic(code, message));
 
     /// <summary>Gets the errors found so far.</summary>
     public IReadOnlyList<BuildDiagnostic> Errors => _errors;
@@ -88,6 +95,9 @@ internal static class DiagnosticCodes
 
     /// <summary>A row's cells do not span the table's columns.</summary>
     public const string RowCellCount = "TB7003";
+
+    /// <summary>A table of contents is built only by an application that updates it (Word on open; not LibreOffice).</summary>
+    public const string TableOfContentsNotBuilt = "TB9001";
 
     /// <summary>A list item uses a level its list style does not define.</summary>
     public const string UndefinedListLevel = "TB8001";

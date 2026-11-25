@@ -58,11 +58,20 @@ public static class TemplateBuilder
             throw new TemplateBuildException(context.Errors);
         }
 
+        if (BlockTree.All(allBlocks).OfType<TocBlock>().Any())
+        {
+            context.Warn(
+                DiagnosticCodes.TableOfContentsNotBuilt,
+                options.Format == TemplateFormat.Docx
+                    ? "The table of contents is a field without a result: Word builds it when it opens the document (fill with UpdateFieldsOnOpen = Auto). LibreOffice — also when it converts to PDF — does not; there it stays empty until a user updates it."
+                    : "The table of contents is an index without entries: LibreOffice does not build it when it opens or converts the document; it stays empty until a user updates it (Tools > Update > Update All).");
+        }
+
         DataContract contract = DataContract.Collect(allBlocks);
         TemplateStamp stamp = TemplateStamp.For(definition.Identity!, contract, options.Language);
         DocumentModel model = new DocumentModel(body, options.Language, styles, info, stamp, page);
         byte[] content = options.Format == TemplateFormat.Docx ? DocxWriter.Write(model) : OdtWriter.Write(model);
-        return new GeneratedTemplate(options.Format, content, contract, stamp);
+        return new GeneratedTemplate(options.Format, content, contract, stamp, context.Warnings);
     }
 
     private static void CheckStylesAreDefined(IReadOnlyList<Block> body, StyleSheet styles, BuildContext context)

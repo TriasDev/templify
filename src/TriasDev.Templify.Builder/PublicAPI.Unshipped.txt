@@ -163,6 +163,8 @@ TriasDev.Templify.Builder.BlockComposer.Rule(TriasDev.Templify.Builder.Length th
 TriasDev.Templify.Builder.BlockComposer.Rule(TriasDev.Templify.Builder.Length thickness, TriasDev.Templify.Builder.Color color) -> void
 TriasDev.Templify.Builder.BlockComposer.Switch(TriasDev.Templify.Builder.TemplatePath value, System.Action<TriasDev.Templify.Builder.SwitchComposer!>! cases) -> void
 TriasDev.Templify.Builder.BlockComposer.Table(System.Action<TriasDev.Templify.Builder.TableComposer!>! table) -> void
+TriasDev.Templify.Builder.BlockComposer.TableOfContents() -> void
+TriasDev.Templify.Builder.BlockComposer.TableOfContents(int maxLevel) -> void
 TriasDev.Templify.Builder.BoxStyleComposer
 TriasDev.Templify.Builder.BoxStyleComposer.Background(TriasDev.Templify.Builder.Color color) -> TriasDev.Templify.Builder.BoxStyleComposer!
 TriasDev.Templify.Builder.BoxStyleComposer.Border(TriasDev.Templify.Builder.Length width, TriasDev.Templify.Builder.Color color) -> TriasDev.Templify.Builder.BoxStyleComposer!
@@ -260,6 +262,7 @@ TriasDev.Templify.Builder.GeneratedTemplate.Format.get -> TriasDev.Templify.Core
 TriasDev.Templify.Builder.GeneratedTemplate.MediaType.get -> string!
 TriasDev.Templify.Builder.GeneratedTemplate.OpenRead() -> System.IO.Stream!
 TriasDev.Templify.Builder.GeneratedTemplate.Stamp.get -> TriasDev.Templify.Builder.TemplateStamp!
+TriasDev.Templify.Builder.GeneratedTemplate.Warnings.get -> System.Collections.Generic.IReadOnlyList<TriasDev.Templify.Builder.BuildDiagnostic!>!
 TriasDev.Templify.Builder.GeneratedTemplate.WriteTo(System.IO.Stream! destination) -> void
 TriasDev.Templify.Builder.IfChain
 TriasDev.Templify.Builder.IfChain.Else(System.Action<TriasDev.Templify.Builder.BlockComposer!>! otherwise) -> void
