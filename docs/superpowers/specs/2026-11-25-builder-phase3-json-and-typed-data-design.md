@@ -334,7 +334,7 @@ own kind.
 ## 9. Phase 3 evaluation (2026-11-25)
 
 Measured on the sample (`samples/TriasDev.Templify.Builder.Sample`, `dotnet run -- phase3 <dir>`), every builder
-test and the new JSON/typed tests (491 builder tests, all green; every test that checks the invariants also
+test and the new JSON/typed tests (519 builder tests after the review fixes, all green; every test that checks the invariants also
 round-trips through JSON).
 
 ### What works
