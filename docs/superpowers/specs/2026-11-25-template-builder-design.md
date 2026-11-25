@@ -435,6 +435,17 @@ public sealed class UploadCheckResult
   internal ids in their metadata, calls `TemplateStampRemover.Remove(stream)` after filling. Core does not change for
   this. The helper removes only the builder's own properties, which use a builder-specific name prefix, and leaves every
   other custom property alone.
+- **Contract details** (#267).
+  - **Collected from the model:** values, every path of every condition (including `Switch` values and the declared
+    `uses` of `Condition.Raw`), loop collections, and the content of components. Loop metadata (`@index`, …) is not
+    data and is left out.
+  - **Canonical paths.** Loop variables are resolved: `line.description` inside `foreach line in order.lines`
+    becomes `order.lines[].description`, and an item printed as a whole becomes `order.lines[]`.
+  - **Hash.** SHA-256 over the sorted lines `"<usage> <path>\n"` (usage in lower case), as lower-case hex.
+  - **JSON.** `{ "version": 1, "hash": …, "entries": [ { "path": …, "usage": "value|collection|condition" } ] }`.
+    `FromJson` recomputes the hash.
+  - **Witness.** Nested dictionaries, a one-item list per collection, `"x"` for every leaf. Filling a template with
+    its own witness raises no missing variable and no warning; a test asserts this for both formats.
 - **The contract is the language parity check.** Its hash is equal across languages and formats; a test asserts this. That
   replaces a hand-written EN/DE parity test.
 
