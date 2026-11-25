@@ -8,6 +8,7 @@
       "exclude-paths": [
         "src/TriasDev.Templify.Builder",
         "src/TriasDev.Templify.Builder.Testing",
+        "samples/TriasDev.Templify.Builder.Sample",
         "tests/TriasDev.Templify.Builder.Tests"
       ],
       "changelog-sections": [

@@ -3,6 +3,7 @@
     <Project Path="benchmarks/TriasDev.Templify.Benchmarks/TriasDev.Templify.Benchmarks.csproj" />
   </Folder>
   <Folder Name="/samples/">
+    <Project Path="samples/TriasDev.Templify.Builder.Sample/TriasDev.Templify.Builder.Sample.csproj" />
     <Project Path="samples/TriasDev.Templify.Demo/TriasDev.Templify.Demo.csproj" />
   </Folder>
   <Folder Name="/src/">

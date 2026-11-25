@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Solution Structure
 
-`templify.slnx` holds 12 projects in solution folders that mirror the directories (same layout as TriasDev/tabular):
+`templify.slnx` holds 13 projects in solution folders that mirror the directories (same layout as TriasDev/tabular):
 
 - `src/` (only what ships to NuGet)
   - **TriasDev.Templify** - Core library with template processing logic
@@ -27,6 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - **TriasDev.Templify.Benchmarks** - BenchmarkDotNet performance tests
 - `samples/`
   - **TriasDev.Templify.Demo** - Demo console application
+  - **TriasDev.Templify.Builder.Sample** - Builder sample (order confirmation, DE/EN, DOCX/ODT, every construct; verified with the test kit, run by `SampleTests`)
 - `tools/` (applications that are not packages)
   - **TriasDev.Templify.Converter** - CLI tool for converting Word documents
   - **TriasDev.Templify.Gui** - Avalonia-based GUI application
