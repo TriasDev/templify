@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0](https://github.com/TriasDev/templify/compare/v1.10.0...v1.11.0) (2026-11-25)
+
+
+### Features
+
+* :join format specifier for collections ([#272](https://github.com/TriasDev/templify/issues/272)) ([#273](https://github.com/TriasDev/templify/issues/273)) ([0ac402c](https://github.com/TriasDev/templify/commit/0ac402caad2677f12d9b600eb9a722be129dc529))
+* template lint — locations, unterminated tags, multiple and orphan markers ([#255](https://github.com/TriasDev/templify/issues/255)) ([#276](https://github.com/TriasDev/templify/issues/276)) ([a9d74ce](https://github.com/TriasDev/templify/commit/a9d74ced201a600c95ca63336ab2abc9ceb09ab6))
+
+
+### Bug Fixes
+
+* insert w:updateFields at its schema position in settings ([#254](https://github.com/TriasDev/templify/issues/254)) ([#256](https://github.com/TriasDev/templify/issues/256)) ([8d9c359](https://github.com/TriasDev/templify/commit/8d9c359901bd7191e8cfbab12d184743fda9160d))
+* report text removed together with block markers ([#253](https://github.com/TriasDev/templify/issues/253)) ([#259](https://github.com/TriasDev/templify/issues/259)) ([da01316](https://github.com/TriasDev/templify/commit/da013160f497de2d0cf89675ef2195196136e0d2))
+
 ## [1.10.0](https://github.com/TriasDev/templify/compare/v1.9.0...v1.10.0) (2026-11-12)
 
 ### ⚠️ Upgrade notes
