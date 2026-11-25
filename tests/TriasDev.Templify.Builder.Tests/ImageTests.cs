@@ -24,10 +24,10 @@ public sealed class ImageTests
     internal static readonly byte[] Png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAACgAAAAUCAIAAABwJOjsAAAAJElEQVR42mOQ96scEMQwavGoxaMWj1o8avGoxaMWj1o8ciwGAO6wzt9DGVp0AAAAAElFTkSuQmCC");
 
     /// <summary>40 × 20 px PNG at 192 dpi (pHYs).</summary>
-    private static readonly byte[] HiDpiPng = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAACgAAAAUCAIAAABwJOjsAAAACXBIWXMAAB2HAAAdhwGP5fFlAAAAJElEQVR42mM4ISc3IIhh1OJRi0ctHrV41OJRi0ctHrV45FgMAFLhLK5O4QWwAAAAAElFTkSuQmCC");
+    private static readonly byte[] _hiDpiPng = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAACgAAAAUCAIAAABwJOjsAAAACXBIWXMAAB2HAAAdhwGP5fFlAAAAJElEQVR42mM4ISc3IIhh1OJRi0ctHrV41OJRi0ctHrV45FgMAFLhLK5O4QWwAAAAAElFTkSuQmCC");
 
     /// <summary>40 × 20 px JPEG, JFIF without units (96 dpi).</summary>
-    private static readonly byte[] Jpeg = Convert.FromBase64String(
+    private static readonly byte[] _jpeg = Convert.FromBase64String(
         "/9j/4AAQSkZJRgABAQAASABIAAD/4QBMRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAKKADAAQAAAABAAAAFAAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/8AAEQgAFAAoAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMAAgICAgICAwICAwUDAwMFBgUFBQUGCAYGBgYGCAoICAgICAgKCgoKCgoKCgwMDAwMDA4ODg4ODw8PDw8PDw8PD//bAEMBAgICBAQEBwQEBxALCQsQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEP/dAAQAA//aAAwDAQACEQMRAD8A+E6KKK/dD8TCiiigAooooA//0PhOiiiv3Q/EwooooAKKKKAP/9k=");
 
     [Fact]
@@ -37,15 +37,15 @@ public sealed class ImageTests
         Assert.Equal((40, 20), (png.PixelWidth, png.PixelHeight));
         Assert.Equal((30.Pt(), 15.Pt()), (png.NaturalWidth, png.NaturalHeight));
 
-        ImageSource hiDpi = ImageSource.FromBytes(HiDpiPng);
+        ImageSource hiDpi = ImageSource.FromBytes(_hiDpiPng);
         Assert.Equal(15, hiDpi.NaturalWidth.Points, 2);
 
-        ImageSource jpeg = ImageSource.Jpeg(Jpeg);
+        ImageSource jpeg = ImageSource.Jpeg(_jpeg);
         Assert.Equal((40, 20), (jpeg.PixelWidth, jpeg.PixelHeight));
         Assert.Equal(30.Pt(), jpeg.NaturalWidth);
-        Assert.Equal(20, ImageSource.FromBytes(Jpeg).PixelHeight);
+        Assert.Equal(20, ImageSource.FromBytes(_jpeg).PixelHeight);
 
-        Assert.Throws<ArgumentException>(() => ImageSource.Png(Jpeg));
+        Assert.Throws<ArgumentException>(() => ImageSource.Png(_jpeg));
         Assert.Throws<ArgumentException>(() => ImageSource.Jpeg(Png));
         Assert.Throws<ArgumentException>(() => ImageSource.FromBytes(new byte[] { 1, 2, 3, 4, 5 }));
     }
@@ -64,7 +64,7 @@ public sealed class ImageTests
     private static TestDefinition Document() => new TestDefinition(t =>
     {
         ImageSource logo = ImageSource.Png(Png);
-        ImageSource photo = ImageSource.Jpeg(Jpeg);
+        ImageSource photo = ImageSource.Jpeg(_jpeg);
         t.Page(p => p.Header(h => h.Paragraph(x =>
         {
             x.Text("Company");
