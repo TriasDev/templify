@@ -36,6 +36,11 @@ public static class TemplateBuilder
         definition.Compose(composer);
         (IReadOnlyList<Block> body, StyleSheet styles, DocumentInfo info) = composer.Close();
 
+        if (BlockFlattener.HasMarkers(body) && styles.Find(BuilderStyles.TemplateMarker) == null)
+        {
+            styles = styles.WithParagraphStyle(BuilderStyles.DefaultMarkerDefinition());
+        }
+
         context.AddRange(styles.Problems);
         CheckStylesAreDefined(body, styles, context);
 
@@ -52,7 +57,7 @@ public static class TemplateBuilder
     private static void CheckStylesAreDefined(IReadOnlyList<Block> body, StyleSheet styles, BuildContext context)
     {
         HashSet<string> reported = new HashSet<string>(StringComparer.Ordinal);
-        foreach (ParagraphBlock paragraph in body.OfType<ParagraphBlock>())
+        foreach (ParagraphBlock paragraph in BlockFlattener.Paragraphs(body))
         {
             if (paragraph.Style is { } style && styles.Find(style) == null && reported.Add("p:" + style.Id))
             {

@@ -67,6 +67,50 @@ public sealed class BlockComposer
         _blocks.Add(new PageBreakBlock());
     }
 
+    /// <summary>
+    /// Adds blocks shown only when a condition holds: <c>{{#if …}}</c> … <c>{{/if}}</c>. Continue with
+    /// <see cref="IfChain.ElseIf"/> and <see cref="IfChain.Else"/>.
+    /// </summary>
+    /// <param name="condition">The condition.</param>
+    /// <param name="then">Describes the blocks shown when it holds.</param>
+    /// <returns>The chain, to add elseif and else parts.</returns>
+    public IfChain If(Condition condition, Action<BlockComposer> then)
+    {
+        ArgumentNullException.ThrowIfNull(condition);
+        ArgumentNullException.ThrowIfNull(then);
+        EnsureOpen();
+        ConditionalBlock block = new ConditionalBlock();
+        block.Branches.Add(new ConditionalBranch(condition, Compose(_context, then)));
+        _blocks.Add(block);
+        return new IfChain(_context, block, () => _isOpen);
+    }
+
+    /// <summary>
+    /// Chooses blocks by a value: one case per value and a mandatory default, written as an if / elseif / else chain.
+    /// Use it where the design depends on data, for example a box coloured by a status.
+    /// </summary>
+    /// <param name="value">The data path of the value.</param>
+    /// <param name="cases">Describes the cases and the default.</param>
+    public void Switch(TemplatePath value, Action<SwitchComposer> cases)
+    {
+        ArgumentNullException.ThrowIfNull(cases);
+        EnsureOpen();
+        _ = (Condition)value; // checks the path where it is written: not the root, not a number
+        SwitchComposer composer = new SwitchComposer(_context);
+        cases(composer);
+        _blocks.AddRange(composer.Close(value));
+    }
+
+    /// <summary>Composes the blocks of a nested part (a branch, a cell, a loop body).</summary>
+    internal static List<Block> Compose(BuildContext context, Action<BlockComposer> content)
+    {
+        List<Block> blocks = new List<Block>();
+        BlockComposer composer = new BlockComposer(context, blocks);
+        content(composer);
+        composer.Close();
+        return blocks;
+    }
+
     internal void Close() => _isOpen = false;
 
     private void AddText(ParagraphStyleKey? style, string text)

@@ -39,6 +39,17 @@ public sealed record ParagraphStyleKey
         DisplayName = StyleKeyRules.ValidateDisplayName(displayName, nameof(displayName));
     }
 
+    /// <summary>A key the builder owns; its id may use the reserved prefix.</summary>
+    private ParagraphStyleKey(string id, string displayName, bool builtIn)
+    {
+        _ = builtIn;
+        Id = id;
+        DisplayName = displayName;
+    }
+
+    /// <summary>Creates a key the builder owns.</summary>
+    internal static ParagraphStyleKey BuiltIn(string id, string displayName) => new ParagraphStyleKey(id, displayName, builtIn: true);
+
     /// <summary>Gets the style's id in the document.</summary>
     public string Id { get; }
 

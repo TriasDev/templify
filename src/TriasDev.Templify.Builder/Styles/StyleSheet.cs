@@ -55,6 +55,10 @@ public sealed class StyleSheet
         return new StyleSheet(composer.DefaultText, composer.ParagraphStyles, composer.CharacterStyles);
     }
 
+    /// <summary>A copy of this style sheet with one more paragraph style (the builder's own default styles).</summary>
+    internal StyleSheet WithParagraphStyle(ParagraphStyleDefinition definition) =>
+        new StyleSheet(Defaults, ParagraphStyles.Append(definition).ToList(), CharacterStyles);
+
     /// <summary>Finds the definition of a paragraph style.</summary>
     internal ParagraphStyleDefinition? Find(ParagraphStyleKey key) => ParagraphStyles.FirstOrDefault(s => s.Key == key);
 

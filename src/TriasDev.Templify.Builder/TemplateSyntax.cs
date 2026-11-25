@@ -14,4 +14,16 @@ internal static class TemplateSyntax
     /// <param name="format">The format specifier, or null.</param>
     public static string Placeholder(TemplatePath path, ValueFormat? format = null) =>
         format is null ? "{{" + path + "}}" : "{{" + path + ":" + format.Specifier + "}}";
+
+    /// <summary>The else marker.</summary>
+    public const string Else = "{{#else}}";
+
+    /// <summary>The end marker of a conditional.</summary>
+    public const string EndIf = "{{/if}}";
+
+    /// <summary>The start marker of a conditional, for example <c>{{#if order.total &gt; 100}}</c>.</summary>
+    public static string If(Condition condition) => "{{#if " + condition + "}}";
+
+    /// <summary>An elseif marker.</summary>
+    public static string ElseIf(Condition condition) => "{{#elseif " + condition + "}}";
 }

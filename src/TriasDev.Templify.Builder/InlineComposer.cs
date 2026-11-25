@@ -74,7 +74,7 @@ public sealed class InlineComposer
 
     internal static ValueInline CreateValue(BuildContext context, TemplatePath path, ValueFormat? format = null, CharacterStyleKey? style = null)
     {
-        if (path.IsEmpty)
+        if (path.IsRoot)
         {
             context.Error(
                 DiagnosticCodes.EmptyValuePath,

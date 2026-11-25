@@ -49,14 +49,15 @@ internal static class OdtWriter
 
     private static XElement Content(DocumentModel model)
     {
+        List<Block> blocks = BlockFlattener.Flatten(model.Body).ToList();
         XElement text = new XElement(_office + "text");
-        foreach (Block block in model.Body)
+        foreach (Block block in blocks)
         {
             text.Add(WriteBlock(block, model.Styles));
         }
 
         XElement automaticStyles = new XElement(_office + "automatic-styles");
-        if (model.Body.OfType<PageBreakBlock>().Any())
+        if (blocks.OfType<PageBreakBlock>().Any())
         {
             automaticStyles.Add(new XElement(
                 _style + "style",
@@ -80,8 +81,18 @@ internal static class OdtWriter
         // An empty paragraph of its own carries the break (break-after: no empty line on the new page), so it
         // survives when the engine removes the paragraphs around it.
         PageBreakBlock => new XElement(_text + "p", new XAttribute(_text + "style-name", PageBreakStyleName)),
+        MarkerBlock marker => WriteMarker(marker),
         _ => throw new NotSupportedException($"Block {block.GetType().Name} is not supported by the ODT writer."),
     };
+
+    private static XElement WriteMarker(MarkerBlock marker)
+    {
+        XElement paragraph = new XElement(_text + "p", new XAttribute(_text + "style-name", BuilderStyles.TemplateMarker.Id));
+        WhitespaceEncoder encoder = new WhitespaceEncoder(paragraph);
+        encoder.Text(marker.Text);
+        encoder.Finish();
+        return paragraph;
+    }
 
     private static XElement WriteParagraph(ParagraphBlock block, StyleSheet styles)
     {

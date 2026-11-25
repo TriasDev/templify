@@ -305,7 +305,7 @@ internal static class DocxWriter
     private static Document MainDocument(DocumentModel model)
     {
         Body body = new Body();
-        foreach (Block block in model.Body)
+        foreach (Block block in BlockFlattener.Flatten(model.Body))
         {
             body.Append(WriteBlock(block));
         }
@@ -318,6 +318,10 @@ internal static class DocxWriter
         ParagraphBlock paragraph => WriteParagraph(paragraph),
         // A paragraph of its own carries the break, so it survives when the engine removes the paragraphs around it.
         PageBreakBlock => new Paragraph(new Run(new Break { Type = BreakValues.Page })),
+        // A marker is a paragraph of its own with one run, which is what the engine's block detection reads.
+        MarkerBlock marker => new Paragraph(
+            new ParagraphProperties(new ParagraphStyleId { Val = BuilderStyles.TemplateMarker.Id }),
+            new Run(new Text(marker.Text) { Space = SpaceProcessingModeValues.Preserve })),
         _ => throw new NotSupportedException($"Block {block.GetType().Name} is not supported by the DOCX writer."),
     };
 

@@ -55,4 +55,10 @@ internal static class DiagnosticCodes
 
     /// <summary>Content uses a style the style sheet does not define.</summary>
     public const string UndefinedStyle = "TB2010";
+
+    /// <summary>A switch has no <c>Default</c>.</summary>
+    public const string SwitchWithoutDefault = "TB3001";
+
+    /// <summary>A switch names the same value in more than one case.</summary>
+    public const string DuplicateSwitchCase = "TB3002";
 }
