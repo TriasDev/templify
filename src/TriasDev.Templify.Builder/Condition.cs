@@ -247,6 +247,10 @@ internal sealed class LogicalCondition(string op, int precedence, Condition left
 /// <summary>Condition text written by hand; always parenthesised when it is an operand.</summary>
 internal sealed class RawCondition(string expression, IReadOnlyList<TemplatePath> uses) : Condition
 {
+    internal string Expression => expression;
+
+    internal IReadOnlyList<TemplatePath> Uses => uses;
+
     internal override int Precedence => 0;
 
     internal override IEnumerable<TemplatePath> Paths => uses;

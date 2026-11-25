@@ -82,6 +82,7 @@ static TriasDev.Templify.Builder.ImageFit.Within(TriasDev.Templify.Builder.Lengt
 static TriasDev.Templify.Builder.ImageSource.FromBytes(byte[]! data) -> TriasDev.Templify.Builder.ImageSource!
 static TriasDev.Templify.Builder.ImageSource.Jpeg(byte[]! data) -> TriasDev.Templify.Builder.ImageSource!
 static TriasDev.Templify.Builder.ImageSource.Png(byte[]! data) -> TriasDev.Templify.Builder.ImageSource!
+static TriasDev.Templify.Builder.Json.TemplateJson.Export(TriasDev.Templify.Builder.ITemplateDefinition! definition, TriasDev.Templify.Builder.TemplateBuildOptions! options) -> TriasDev.Templify.Builder.Json.TemplateJsonDocument!
 static TriasDev.Templify.Builder.Length.FromMillimeters(double millimeters) -> TriasDev.Templify.Builder.Length
 static TriasDev.Templify.Builder.Length.FromPoints(double points) -> TriasDev.Templify.Builder.Length
 static TriasDev.Templify.Builder.Length.operator -(TriasDev.Templify.Builder.Length left, TriasDev.Templify.Builder.Length right) -> TriasDev.Templify.Builder.Length
@@ -313,6 +314,10 @@ TriasDev.Templify.Builder.ITemplateDefinition.Compose(TriasDev.Templify.Builder.
 TriasDev.Templify.Builder.ITemplateDefinition.Identity.get -> TriasDev.Templify.Builder.TemplateIdentity!
 TriasDev.Templify.Builder.ITextCatalog
 TriasDev.Templify.Builder.ITextCatalog.TryGet(string! key, System.Globalization.CultureInfo! language, out string! text) -> bool
+TriasDev.Templify.Builder.Json.TemplateJson
+TriasDev.Templify.Builder.Json.TemplateJsonDocument
+TriasDev.Templify.Builder.Json.TemplateJsonDocument.Assets.get -> System.Collections.Generic.IReadOnlyDictionary<string!, byte[]!>!
+TriasDev.Templify.Builder.Json.TemplateJsonDocument.Json.get -> string!
 TriasDev.Templify.Builder.Length
 TriasDev.Templify.Builder.Length.CompareTo(TriasDev.Templify.Builder.Length other) -> int
 TriasDev.Templify.Builder.Length.Equals(TriasDev.Templify.Builder.Length other) -> bool

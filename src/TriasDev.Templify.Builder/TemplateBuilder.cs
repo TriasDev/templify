@@ -27,6 +27,20 @@ public static class TemplateBuilder
     {
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(options);
+        ComposedTemplate composed = Compose(definition, options);
+        DocumentModel model = composed.Model;
+        byte[] content = options.Format == TemplateFormat.Docx ? DocxWriter.Write(model) : OdtWriter.Write(model);
+        return new GeneratedTemplate(options.Format, content, composed.Contract, model.Stamp, composed.Context.Warnings);
+    }
+
+    /// <summary>
+    /// Runs the definition and every check, and returns the model the writers and the JSON export start from; the
+    /// definition's own style sheet is kept apart (without the injected marker style).
+    /// </summary>
+    internal static ComposedTemplate Compose(ITemplateDefinition definition, TemplateBuildOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(definition);
+        ArgumentNullException.ThrowIfNull(options);
         ValidateOptions(options);
 
         BuildContext context = new BuildContext();
@@ -35,6 +49,7 @@ public static class TemplateBuilder
         TemplateComposer composer = new TemplateComposer(context, new TemplateTexts(context, options.Texts ?? TextCatalog.Empty, options.Language));
         definition.Compose(composer);
         (IReadOnlyList<Block> body, StyleSheet styles, DocumentInfo info, PageSetup page) = composer.Close();
+        StyleSheet userStyles = styles;
         List<Block> allBlocks = body.Concat(page.AllBlocks).ToList();
 
         if (page.FrameWidth <= Length.Zero)
@@ -76,9 +91,7 @@ public static class TemplateBuilder
 
         DataContract contract = DataContract.Collect(allBlocks);
         TemplateStamp stamp = TemplateStamp.For(definition.Identity!, contract, options.Language);
-        DocumentModel model = new DocumentModel(body, options.Language, styles, info, stamp, page);
-        byte[] content = options.Format == TemplateFormat.Docx ? DocxWriter.Write(model) : OdtWriter.Write(model);
-        return new GeneratedTemplate(options.Format, content, contract, stamp, context.Warnings);
+        return new ComposedTemplate(new DocumentModel(body, options.Language, styles, info, stamp, page), userStyles, contract, context);
     }
 
     private static void CheckStylesAreDefined(IReadOnlyList<Block> body, StyleSheet styles, BuildContext context)
@@ -151,3 +164,6 @@ public static class TemplateBuilder
         }
     }
 }
+
+/// <summary>A composed and checked definition: the model, the definition's own style sheet, the contract and the diagnostics.</summary>
+internal sealed record ComposedTemplate(DocumentModel Model, StyleSheet UserStyles, DataContract Contract, BuildContext Context);
