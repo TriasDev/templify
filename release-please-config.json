@@ -5,6 +5,10 @@
       "release-type": "simple",
       "component": "templify",
       "include-component-in-tag": false,
+      "exclude-paths": [
+        "src/TriasDev.Templify.Builder",
+        "tests/TriasDev.Templify.Builder.Tests"
+      ],
       "changelog-sections": [
         { "type": "feat", "section": "Features" },
         { "type": "fix", "section": "Bug Fixes" },
