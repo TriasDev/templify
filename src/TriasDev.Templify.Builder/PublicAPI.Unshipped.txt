@@ -257,6 +257,8 @@ TriasDev.Templify.Builder.ColumnsComposer.Fixed(TriasDev.Templify.Builder.Length
 TriasDev.Templify.Builder.ColumnsComposer.Relative(double weight) -> void
 TriasDev.Templify.Builder.ComponentCatalog
 TriasDev.Templify.Builder.ComponentCatalog.ComponentCatalog() -> void
+TriasDev.Templify.Builder.ComponentCatalog.DataNaming.get -> System.Text.Json.JsonNamingPolicy?
+TriasDev.Templify.Builder.ComponentCatalog.DataNaming.init -> void
 TriasDev.Templify.Builder.ComponentCatalog.Names.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
 TriasDev.Templify.Builder.ComponentCatalog.Register<TComponent>(string! name) -> TriasDev.Templify.Builder.ComponentCatalog!
 TriasDev.Templify.Builder.Condition

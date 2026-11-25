@@ -184,13 +184,21 @@ internal static class ConditionParser
 
         private Condition Unary()
         {
-            if (IsKeyword("not"))
+            // Iterative, so a long chain of 'not' cannot exhaust the stack.
+            int nots = 0;
+            while (IsKeyword("not"))
             {
                 _position++;
-                return !Unary();
+                nots++;
             }
 
-            return Primary();
+            Condition condition = Primary();
+            for (int i = 0; i < nots; i++)
+            {
+                condition = !condition;
+            }
+
+            return condition;
         }
 
         private Condition Primary()

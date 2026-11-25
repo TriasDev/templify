@@ -25,6 +25,12 @@ public sealed partial class ComponentCatalog
     private readonly Dictionary<string, Registration> _byName = new Dictionary<string, Registration>(StringComparer.Ordinal);
     private readonly Dictionary<Type, Registration> _byType = new Dictionary<Type, Registration>();
 
+    /// <summary>
+    /// Gets how C# property names become data names for typed parameters (<see cref="TemplatePath{T}"/>), as the
+    /// definitions pass it to <see cref="TemplateComposer.DataAs{T}"/>; null for camelCase.
+    /// </summary>
+    public System.Text.Json.JsonNamingPolicy? DataNaming { get; init; }
+
     /// <summary>Gets the registered names.</summary>
     public IReadOnlyCollection<string> Names => _byName.Keys;
 
@@ -109,20 +115,41 @@ public sealed partial class ComponentCatalog
         public Type Type { get; } = type;
 
         /// <summary>Writes the component's parameters as a JSON object.</summary>
-        public void WriteParameters(Utf8JsonWriter json, ITemplateComponent component)
+        /// <exception cref="ArgumentException">A typed path parameter uses another naming than <paramref name="dataNaming"/>, so it could not be read back.</exception>
+        public void WriteParameters(Utf8JsonWriter json, ITemplateComponent component, JsonNamingPolicy? dataNaming)
         {
             json.WriteStartObject();
             foreach ((ParameterInfo parameter, PropertyInfo property) in parameters)
             {
+                object? value = property.GetValue(component);
+                if (value is not null && TypedPathNaming(value, out JsonNamingPolicy? naming) && (naming ?? JsonNamingPolicy.CamelCase) != (dataNaming ?? JsonNamingPolicy.CamelCase))
+                {
+                    throw new ArgumentException(
+                        $"The component '{Name}' gets the typed path '{parameter.Name}' with a different naming policy than the catalog's DataNaming; set ComponentCatalog.DataNaming to the policy the definition passes to DataAs<T>().");
+                }
+
                 json.WritePropertyName(JsonNamingPolicy.CamelCase.ConvertName(parameter.Name!));
-                WriteValue(json, property.GetValue(component));
+                WriteValue(json, value);
             }
 
             json.WriteEndObject();
         }
 
+        private static bool TypedPathNaming(object value, out JsonNamingPolicy? naming)
+        {
+            naming = null;
+            Type type = value.GetType();
+            if (!type.IsGenericType || type.GetGenericTypeDefinition() != typeof(TemplatePath<>))
+            {
+                return false;
+            }
+
+            naming = (JsonNamingPolicy?)type.GetProperty("Naming", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(value);
+            return true;
+        }
+
         /// <summary>Creates the component from its JSON parameters.</summary>
-        public ITemplateComponent Create(JsonElement values, Func<string, TemplatePath> resolvePath, Func<string, ParagraphStyleKey> paragraphStyle, Func<string, CharacterStyleKey> characterStyle, string at)
+        public ITemplateComponent Create(JsonElement values, JsonNamingPolicy? dataNaming, Func<string, DataKind?, TemplatePath> resolvePath, Func<string, ParagraphStyleKey> paragraphStyle, Func<string, CharacterStyleKey> characterStyle, string at)
         {
             if (values.ValueKind != JsonValueKind.Object)
             {
@@ -137,7 +164,7 @@ public sealed partial class ComponentCatalog
                 string key = JsonNamingPolicy.CamelCase.ConvertName(parameter.Name!);
                 unknown.Remove(key);
                 arguments[i] = values.TryGetProperty(key, out JsonElement value)
-                    ? ReadValue(value, parameter.ParameterType, resolvePath, paragraphStyle, characterStyle, at + "/" + key)
+                    ? ReadValue(value, parameter.ParameterType, dataNaming, resolvePath, paragraphStyle, characterStyle, at + "/" + key)
                     : throw new JsonImportException(at, $"The parameter '{key}' of '{Name}' is missing.");
             }
 
@@ -147,7 +174,15 @@ public sealed partial class ComponentCatalog
                 throw new JsonImportException(at + "/" + first, $"'{Name}' has no parameter '{first}'.");
             }
 
-            return (ITemplateComponent)constructor.Invoke(arguments);
+            try
+            {
+                return (ITemplateComponent)constructor.Invoke(arguments);
+            }
+            catch (TargetInvocationException exception) when (exception.InnerException is { } inner)
+            {
+                // The component rejected its parameters: reported as an invalid value (TB9201) at the reference.
+                throw new ArgumentException($"The component '{Name}' rejected its parameters: {inner.Message}", inner);
+            }
         }
 
         private static void WriteValue(Utf8JsonWriter json, object? value)
@@ -224,7 +259,7 @@ public sealed partial class ComponentCatalog
             }
         }
 
-        private static object? ReadValue(JsonElement value, Type type, Func<string, TemplatePath> resolvePath, Func<string, ParagraphStyleKey> paragraphStyle, Func<string, CharacterStyleKey> characterStyle, string at)
+        private static object? ReadValue(JsonElement value, Type type, JsonNamingPolicy? dataNaming, Func<string, DataKind?, TemplatePath> resolvePath, Func<string, ParagraphStyleKey> paragraphStyle, Func<string, CharacterStyleKey> characterStyle, string at)
         {
             Type? underlying = Nullable.GetUnderlyingType(type);
             if (value.ValueKind == JsonValueKind.Null)
@@ -242,7 +277,7 @@ public sealed partial class ComponentCatalog
                     int i = 0;
                     foreach (JsonElement item in value.EnumerateArray())
                     {
-                        list.Add(ReadValue(item, itemType, resolvePath, paragraphStyle, characterStyle, at + "/" + i++));
+                        list.Add(ReadValue(item, itemType, dataNaming, resolvePath, paragraphStyle, characterStyle, at + "/" + i++));
                     }
 
                     return list;
@@ -250,12 +285,13 @@ public sealed partial class ComponentCatalog
 
                 if (type == typeof(TemplatePath))
                 {
-                    return resolvePath(value.GetString()!);
+                    return resolvePath(value.GetString()!, null);
                 }
 
                 if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(TemplatePath<>))
                 {
-                    return Activator.CreateInstance(type, BindingFlags.NonPublic | BindingFlags.Instance, null, [resolvePath(value.GetString()!), null], null);
+                    TemplatePath path = resolvePath(value.GetString()!, DataCatalog.KindOfType(type.GetGenericArguments()[0]));
+                    return Activator.CreateInstance(type, BindingFlags.NonPublic | BindingFlags.Instance, null, [path, dataNaming], null);
                 }
 
                 if (type.IsEnum)

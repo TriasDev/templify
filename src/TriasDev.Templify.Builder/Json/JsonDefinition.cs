@@ -16,7 +16,16 @@ namespace TriasDev.Templify.Builder.Json;
 /// is TB9200 at its pointer, a value a composer rejects is TB9201, raw XML without permission TB9202. The element is
 /// skipped and composing goes on, so one build lists every problem.
 /// </remarks>
-internal sealed class JsonDefinition : ITemplateDefinition
+internal sealed class JsonDefinition(JsonElement root, TemplateIdentity identity, TemplateJsonImportOptions options) : ITemplateDefinition
+{
+    public TemplateIdentity Identity { get; } = identity;
+
+    /// <summary>Composes through a fresh <see cref="JsonComposition"/>: the definition holds no per-build state, so one import can be built concurrently.</summary>
+    public void Compose(TemplateComposer template) => new JsonComposition(root, Identity, options).Compose(template);
+}
+
+/// <summary>One composition of a JSON definition: the loop scope and diagnostics of a single build.</summary>
+internal sealed class JsonComposition
 {
     private readonly JsonElement _root;
     private readonly TemplateJsonImportOptions _options;
@@ -26,7 +35,7 @@ internal sealed class JsonDefinition : ITemplateDefinition
     private BuildContext _context = null!;
     private TemplateComposer _template = null!;
 
-    public JsonDefinition(JsonElement root, TemplateIdentity identity, TemplateJsonImportOptions options)
+    public JsonComposition(JsonElement root, TemplateIdentity identity, TemplateJsonImportOptions options)
     {
         _root = root;
         Identity = identity;
@@ -355,6 +364,7 @@ internal sealed class JsonDefinition : ITemplateDefinition
         else if (block.TryGetProperty("pageBreak", out _))
         {
             Keys(block, at, "pageBreak");
+            Flag(block, "pageBreak", at);
             c.PageBreak();
         }
         else if (block.TryGetProperty("if", out JsonElement condition))
@@ -379,7 +389,7 @@ internal sealed class JsonDefinition : ITemplateDefinition
             Keys(block, at, "forEach", "as", "body");
             string name = String(block, "as", at) ?? throw Missing(at, "as");
             JsonElement body = Required(block, "body", at);
-            c.ForEach(Path(collection, at + "/forEach"), name, (item, b) => InScope(name, item, () => Blocks(b, body, at + "/body")));
+            c.ForEach(Path(collection, at + "/forEach", DataKind.Collection), name, (item, b) => InScope(name, item, () => Blocks(b, body, at + "/body")));
         }
         else if (block.TryGetProperty("component", out JsonElement component))
         {
@@ -387,7 +397,7 @@ internal sealed class JsonDefinition : ITemplateDefinition
             string name = String(block, "component", at)!;
             ComponentCatalog.Registration registration = _options.Components?.Find(name)
                 ?? throw new JsonImportException(at, $"The component '{name}' is not registered (TemplateJsonImportOptions.Components).");
-            c.Component(registration.Create(Required(block, "params", at), text => Resolve(text, at + "/params"), ParagraphStyle, CharacterStyle, at + "/params"));
+            c.Component(registration.Create(Required(block, "params", at), _options.Components!.DataNaming, (text, kind) => Resolve(text, at + "/params", kind), ParagraphStyle, CharacterStyle, at + "/params"));
         }
         else if (block.TryGetProperty("group", out JsonElement group))
         {
@@ -515,7 +525,7 @@ internal sealed class JsonDefinition : ITemplateDefinition
             Keys(item, at, "forEach", "as", "items");
             string name = String(item, "as", at) ?? throw Missing(at, "as");
             JsonElement body = Required(item, "items", at);
-            l.ForEach(Path(collection, at + "/forEach"), name, (loopItem, li) => InScope(name, loopItem, () => ListItems(li, body, at + "/items")));
+            l.ForEach(Path(collection, at + "/forEach", DataKind.Collection), name, (loopItem, li) => InScope(name, loopItem, () => ListItems(li, body, at + "/items")));
         }
         else if (item.TryGetProperty("if", out JsonElement condition))
         {
@@ -656,7 +666,7 @@ internal sealed class JsonDefinition : ITemplateDefinition
             Keys(item, at, "forEachRow", "as", "rows");
             string name = String(item, "as", at) ?? throw Missing(at, "as");
             JsonElement body = Required(item, "rows", at);
-            target.ForEachRow(Path(collection, at + "/forEachRow"), name, (loopItem, inner) => InScope(name, loopItem, () => Rows(Target(inner), body, at + "/rows")));
+            target.ForEachRow(Path(collection, at + "/forEachRow", DataKind.Collection), name, (loopItem, inner) => InScope(name, loopItem, () => Rows(Target(inner), body, at + "/rows")));
         }
         else if (item.TryGetProperty("rowsIf", out JsonElement condition))
         {
@@ -743,7 +753,9 @@ internal sealed class JsonDefinition : ITemplateDefinition
         else if (inline.TryGetProperty("value", out JsonElement value))
         {
             Keys(inline, at, "value", "format", "style");
-            TemplatePath path = Path(value, at + "/value");
+            // :join prints a collection; every other value reads a single value.
+            bool join = String(inline, "format", at) is { } joined && (joined == "join" || joined.StartsWith("join:", StringComparison.Ordinal));
+            TemplatePath path = Path(value, at + "/value", join ? null : DataKind.Value);
             ValueFormat? format = String(inline, "format", at) is { } specifier ? ValueFormat.Custom(specifier) : null;
             switch (format, style)
             {
@@ -764,21 +776,25 @@ internal sealed class JsonDefinition : ITemplateDefinition
         else if (inline.TryGetProperty("tab", out _))
         {
             Keys(inline, at, "tab");
+            Flag(inline, "tab", at);
             x.Tab();
         }
         else if (inline.TryGetProperty("lineBreak", out _))
         {
             Keys(inline, at, "lineBreak");
+            Flag(inline, "lineBreak", at);
             x.LineBreak();
         }
         else if (inline.TryGetProperty("tabRight", out _))
         {
             Keys(inline, at, "tabRight");
+            Flag(inline, "tabRight", at);
             x.TabRight();
         }
         else if (inline.TryGetProperty("pageNumber", out _))
         {
             Keys(inline, at, "pageNumber", "style");
+            Flag(inline, "pageNumber", at);
             if (style is null)
             {
                 x.PageNumber();
@@ -791,6 +807,7 @@ internal sealed class JsonDefinition : ITemplateDefinition
         else if (inline.TryGetProperty("pageCount", out _))
         {
             Keys(inline, at, "pageCount", "style");
+            Flag(inline, "pageCount", at);
             if (style is null)
             {
                 x.PageCount();
@@ -859,7 +876,9 @@ internal sealed class JsonDefinition : ITemplateDefinition
         else if (inline.TryGetProperty("value", out JsonElement value))
         {
             Keys(inline, at, "value", "format", "style");
-            TemplatePath path = Path(value, at + "/value");
+            // :join prints a collection; every other value reads a single value.
+            bool join = String(inline, "format", at) is { } joined && (joined == "join" || joined.StartsWith("join:", StringComparison.Ordinal));
+            TemplatePath path = Path(value, at + "/value", join ? null : DataKind.Value);
             _ = String(inline, "format", at) is { } specifier
                 ? t.Value(path, ValueFormat.Custom(specifier))
                 : style is null ? t.Value(path) : t.Value(path, style);
@@ -931,31 +950,53 @@ internal sealed class JsonDefinition : ITemplateDefinition
         return _template.Data[text];
     }
 
-    private TemplatePath Path(JsonElement path, string at)
+    private TemplatePath Path(JsonElement path, string at, DataKind? expected = null)
     {
         if (path.ValueKind != JsonValueKind.String)
         {
             throw new JsonImportException(at, "A path is a string such as \"order.customer.name\".");
         }
 
-        return Resolve(path.GetString()!, at);
+        return Resolve(path.GetString()!, at, expected);
     }
 
-    /// <summary>Resolves a path and, with a data catalogue, checks that the data has it (TB9203 at the pointer).</summary>
-    private TemplatePath Resolve(string text, string at)
+    /// <summary>
+    /// Resolves a path and, with a data catalogue, checks that the data has it and that its kind fits the use
+    /// (a value for a value, a collection for a loop, an object for an object parameter; open shapes fit anything).
+    /// Problems are TB9203 at the pointer.
+    /// </summary>
+    private TemplatePath Resolve(string text, string at, DataKind? expected = null)
     {
         TemplatePath path = ResolvePath(text);
         if (_options.Data is { } catalog && !path.IsMetadata && !path.IsRoot)
         {
             string canonical = DataContract.Canonical(path);
-            if (!catalog.Contains(canonical))
+            DataKind? kind = catalog.KindOf(canonical);
+            if (kind is null)
             {
                 _context.Error(DiagnosticCodes.UnknownDataPath, $"The data has no '{canonical}' (written as '{text}').", at);
+            }
+            else if (expected is { } wanted && kind != wanted && kind != DataKind.Open)
+            {
+                _context.Error(DiagnosticCodes.UnknownDataPath, $"'{canonical}' is {Article(kind.Value)}, not {Article(wanted)}.", at);
             }
         }
 
         return path;
     }
+
+    private static string Article(DataKind kind) => kind switch
+    {
+        DataKind.Value => "a value",
+        DataKind.Object => "an object",
+        DataKind.Collection => "a collection",
+        _ => "an open shape",
+    };
+
+    /// <summary>Conditions longer than this, or nested deeper, are refused before they are parsed (stack safety).</summary>
+    private const int MaximumConditionLength = 10_000;
+
+    private const int MaximumConditionDepth = 64;
 
     private Condition Condition(JsonElement condition, string at)
     {
@@ -969,7 +1010,9 @@ internal sealed class JsonDefinition : ITemplateDefinition
                 uses.Add(Path(use, at + "/uses/" + i++));
             }
 
-            return Builder.Condition.Raw(String(condition, "raw", at) ?? throw Missing(at, "raw"), uses.ToArray());
+            string raw = String(condition, "raw", at) ?? throw Missing(at, "raw");
+            CheckConditionSize(raw, at);
+            return Builder.Condition.Raw(raw, uses.ToArray());
         }
 
         if (condition.ValueKind != JsonValueKind.String)
@@ -977,13 +1020,61 @@ internal sealed class JsonDefinition : ITemplateDefinition
             throw new JsonImportException(at, "A condition is a string such as \"order.total > 1000\".");
         }
 
+        string text = condition.GetString()!;
+        CheckConditionSize(text, at);
         try
         {
-            return ConditionParser.Parse(condition.GetString()!, text => Resolve(text, at));
+            return ConditionParser.Parse(text, path => Resolve(path, at));
         }
         catch (FormatException exception)
         {
             throw new JsonImportException(at, exception.Message);
+        }
+    }
+
+    /// <summary>Refuses conditions whose length or parenthesis depth could exhaust the stack of a recursive parser.</summary>
+    private static void CheckConditionSize(string text, string at)
+    {
+        int depth = 0;
+        bool inString = false;
+        for (int i = 0; i < text.Length; i++)
+        {
+            char c = text[i];
+            if (inString)
+            {
+                if (c == '\\')
+                {
+                    i++;
+                }
+                else if (c == '"')
+                {
+                    inString = false;
+                }
+
+                continue;
+            }
+
+            switch (c)
+            {
+                case '"':
+                    inString = true;
+                    break;
+                case '(':
+                    if (++depth > MaximumConditionDepth)
+                    {
+                        throw new JsonImportException(at, $"The condition is nested deeper than {MaximumConditionDepth} levels.");
+                    }
+
+                    break;
+                case ')':
+                    depth--;
+                    break;
+            }
+        }
+
+        if (text.Length > MaximumConditionLength)
+        {
+            throw new JsonImportException(at, $"The condition is longer than {MaximumConditionLength} characters.");
         }
     }
 
@@ -1111,6 +1202,15 @@ internal sealed class JsonDefinition : ITemplateDefinition
     private static JsonElement Required(JsonElement owner, string name, string at) =>
         owner.ValueKind == JsonValueKind.Object && owner.TryGetProperty(name, out JsonElement value) ? value : throw Missing(at, name);
 
+    /// <summary>A flag such as <c>"pageBreak": true</c>: anything but <c>true</c> is a problem, never a silent element.</summary>
+    private static void Flag(JsonElement owner, string name, string at)
+    {
+        if (owner.GetProperty(name).ValueKind != JsonValueKind.True)
+        {
+            throw new JsonImportException(at + "/" + name, $"'{name}' must be true; leave the element out instead.");
+        }
+    }
+
     private static JsonImportException Missing(string at, string name) => new JsonImportException(at, $"'{name}' is missing.");
 
     /// <summary>Reports every key of an object that its kind does not have; false when the element is not an object.</summary>
@@ -1176,7 +1276,7 @@ internal sealed class JsonDefinition : ITemplateDefinition
         {
             Fail(at, "The XML is not well-formed: " + exception.Message);
         }
-        catch (ArgumentException exception)
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
         {
             _context.Error(DiagnosticCodes.InvalidJsonValue, exception.Message, at);
         }

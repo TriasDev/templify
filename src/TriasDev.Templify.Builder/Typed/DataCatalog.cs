@@ -80,6 +80,25 @@ public sealed class DataCatalog
             || _open.Any(open => path.StartsWith(open, StringComparison.Ordinal) && path.Length > open.Length && path[open.Length] is '.' or '[');
     }
 
+    /// <summary>The kind of a path: its entry's kind, <see cref="DataKind.Open"/> below an open shape, or null.</summary>
+    internal DataKind? KindOf(string path)
+    {
+        DataCatalogEntry? entry = Entries.FirstOrDefault(e => e.Path == path);
+        if (entry != null)
+        {
+            return entry.Kind;
+        }
+
+        return Contains(path) ? DataKind.Open : null;
+    }
+
+    /// <summary>The kind a value of a C# type has (for typed component parameters).</summary>
+    internal static DataKind KindOfType(Type type)
+    {
+        Type bare = Nullable.GetUnderlyingType(type) ?? type;
+        return IsValue(bare) ? DataKind.Value : IsOpen(bare) ? DataKind.Open : ItemType(bare) is not null ? DataKind.Collection : DataKind.Object;
+    }
+
     private static void Properties(Type type, string prefix, JsonNamingPolicy naming, List<Type> branch, List<DataCatalogEntry> entries, int depth)
     {
         foreach (PropertyInfo property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))

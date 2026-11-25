@@ -25,6 +25,9 @@ public readonly struct TemplatePath<T> : IEquatable<TemplatePath<T>>
     /// <summary>Gets the path as a plain <see cref="TemplatePath"/>.</summary>
     public TemplatePath Untyped { get; }
 
+    /// <summary>How C# names become data names below this path (null: camelCase).</summary>
+    internal JsonNamingPolicy? Naming => _naming;
+
     /// <summary>A value below this one: a chain of properties and constant dictionary keys.</summary>
     /// <typeparam name="TProperty">The type of the value.</typeparam>
     /// <param name="member">The member chain, for example <c>o =&gt; o.Customer.Name</c>.</param>

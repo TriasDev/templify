@@ -63,12 +63,14 @@ public static class TemplateJson
         if (root.ValueKind != System.Text.Json.JsonValueKind.Object
             || !root.TryGetProperty("templifyDefinition", out System.Text.Json.JsonElement version)
             || version.ValueKind != System.Text.Json.JsonValueKind.Number
-            || version.GetInt32() != ModelJsonWriter.FormatVersion)
+            || !version.TryGetInt32(out int formatVersion)
+            || formatVersion != ModelJsonWriter.FormatVersion)
         {
             throw Invalid("/templifyDefinition", $"A JSON definition starts with \"templifyDefinition\": {ModelJsonWriter.FormatVersion}.");
         }
 
         if (!root.TryGetProperty("identity", out System.Text.Json.JsonElement identity)
+            || identity.ValueKind != System.Text.Json.JsonValueKind.Object
             || !identity.TryGetProperty("id", out System.Text.Json.JsonElement id) || id.ValueKind != System.Text.Json.JsonValueKind.String
             || !identity.TryGetProperty("version", out System.Text.Json.JsonElement number) || !number.TryGetInt32(out int identityVersion))
         {

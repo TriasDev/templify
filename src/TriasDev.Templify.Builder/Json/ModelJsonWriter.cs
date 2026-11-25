@@ -377,7 +377,7 @@ internal sealed class ModelJsonWriter
                 _json.WriteStartObject();
                 _json.WriteString("component", registration.Name);
                 _json.WritePropertyName("params");
-                registration.WriteParameters(_json, component.Component);
+                registration.WriteParameters(_json, component.Component, _components!.DataNaming);
                 _json.WriteEndObject();
                 break;
 

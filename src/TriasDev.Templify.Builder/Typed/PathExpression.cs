@@ -27,7 +27,18 @@ internal static class PathExpression
                     expression = convert.Operand;
                     continue;
 
+                case MemberExpression { Expression: not null, Member: PropertyInfo { Name: "Value" } } nullable
+                    when nullable.Member.DeclaringType is { IsGenericType: true } declaring && declaring.GetGenericTypeDefinition() == typeof(Nullable<>):
+                    // o.Discount.Value reads the same data as o.Discount.
+                    expression = nullable.Expression;
+                    continue;
+
                 case MemberExpression { Expression: not null, Member: PropertyInfo or FieldInfo } member:
+                    if (member.Member.DeclaringType?.Namespace is { } ns && (ns == "System" || ns.StartsWith("System.", StringComparison.Ordinal)))
+                    {
+                        throw Unsupported(lambda, $"'{member.Member.Name}' is computed by {member.Member.DeclaringType.Name}, not a value in the data");
+                    }
+
                     segments.Add(member.Member.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name ?? policy.ConvertName(member.Member.Name));
                     expression = member.Expression;
                     continue;
@@ -35,6 +46,11 @@ internal static class PathExpression
                 case MethodCallExpression { Method.Name: "get_Item", Object: not null, Arguments.Count: 1 } indexer:
                     if (indexer.Arguments[0] is ConstantExpression { Value: string key })
                     {
+                        if (key.Length == 0 || !key.All(c => char.IsAsciiLetterOrDigit(c) || c == '_'))
+                        {
+                            throw Unsupported(lambda, $"the dictionary key '{key}' is not one path segment (letters, digits and '_')");
+                        }
+
                         segments.Add(key);
                         expression = indexer.Object;
                         continue;
