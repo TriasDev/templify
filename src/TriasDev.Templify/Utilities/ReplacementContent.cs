@@ -113,7 +113,8 @@ internal sealed class ReplacementContent
 
     /// <summary>
     /// Concatenates the items with <paramref name="separator"/> as plain text between them (a <c>:join</c> list):
-    /// each item keeps its own pieces, the separator is never parsed as markdown.
+    /// each item keeps its own pieces, the separator is never parsed as markdown. Adjacent plain pieces are merged,
+    /// so a list without formatting stays one piece and is replaced in place like any plain value.
     /// </summary>
     public static ReplacementContent Join(IReadOnlyList<ReplacementContent> items, string separator)
     {
@@ -122,14 +123,31 @@ internal sealed class ReplacementContent
         {
             if (i > 0 && separator.Length > 0)
             {
-                pieces.Add(new ReplacementPiece(separator));
+                AddMerged(pieces, new ReplacementPiece(separator));
             }
 
-            pieces.AddRange(items[i].Pieces);
+            foreach (ReplacementPiece piece in items[i].Pieces)
+            {
+                AddMerged(pieces, piece);
+            }
         }
 
         return pieces.Count == 0 ? Empty : new ReplacementContent(pieces);
     }
+
+    private static void AddMerged(List<ReplacementPiece> pieces, ReplacementPiece piece)
+    {
+        if (pieces.Count > 0 && IsPlain(pieces[^1]) && IsPlain(piece))
+        {
+            pieces[^1] = new ReplacementPiece(pieces[^1].Text + piece.Text);
+        }
+        else
+        {
+            pieces.Add(piece);
+        }
+    }
+
+    private static bool IsPlain(ReplacementPiece piece) => !piece.IsLineBreak && !piece.HasFormatting;
 
     private static void AddMarkdownPieces(List<ReplacementPiece> pieces, string text)
     {

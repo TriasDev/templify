@@ -6,7 +6,6 @@ using TriasDev.Templify.Conditionals;
 using TriasDev.Templify.Core;
 using TriasDev.Templify.Loops;
 using TriasDev.Templify.Placeholders;
-using TriasDev.Templify.Replacements;
 using TriasDev.Templify.Utilities;
 
 namespace TriasDev.Templify.Visitors;
@@ -80,7 +79,11 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
             switch (_options.MissingVariableBehavior)
             {
                 case MissingVariableBehavior.ReplaceWithEmpty:
-                    ReplacePlaceholderInParagraph(paragraph, placeholder, string.Empty, applyMarkdown: false);
+                    ParagraphTextRewriter.Replace(
+                        paragraph,
+                        placeholder.StartIndex,
+                        placeholder.StartIndex + placeholder.Length,
+                        ReplacementContent.Empty);
                     _replacementCount++;
                     break;
 
@@ -139,32 +142,5 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
     {
         // PlaceholderVisitor doesn't process regular paragraphs
         // This method is no-op to satisfy the interface
-    }
-
-    /// <summary>
-    /// Replaces a single placeholder in the paragraph with the replacement value.
-    /// Newlines become line breaks (if enabled) and markdown becomes formatting (if requested);
-    /// the replacement takes the formatting of the run where the placeholder starts.
-    /// </summary>
-    /// <param name="paragraph">The paragraph containing the placeholder.</param>
-    /// <param name="placeholder">The placeholder to replace.</param>
-    /// <param name="replacementValue">The value to replace it with.</param>
-    /// <param name="applyMarkdown">Whether markdown syntax in the value is rendered as formatting.</param>
-    private void ReplacePlaceholderInParagraph(
-        Paragraph paragraph,
-        PlaceholderToken placeholder,
-        string replacementValue,
-        bool applyMarkdown)
-    {
-        ReplacementContent content = ReplacementContent.FromValue(
-            replacementValue,
-            _options.EnableNewlineSupport,
-            applyMarkdown);
-
-        ParagraphTextRewriter.Replace(
-            paragraph,
-            placeholder.StartIndex,
-            placeholder.StartIndex + placeholder.Length,
-            content);
     }
 }

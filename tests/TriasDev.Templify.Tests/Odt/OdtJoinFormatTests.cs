@@ -65,6 +65,16 @@ public sealed class OdtJoinFormatTests
     }
 
     [Fact]
+    public void Join_ItemEmptyAfterCleaning_IsSkipped()
+    {
+        (_, OdtDocumentVerifier output) = OdtTestHelper.Process(
+            new OdtDocumentBuilder().AddParagraph("{{T:join}}"),
+            new Dictionary<string, object> { ["T"] = new List<string> { "a", "\u0002", "b" } });
+
+        Assert.Equal(["a, b"], output.GetParagraphTexts());
+    }
+
+    [Fact]
     public void Join_PropertyMissingOnAllItems_WarnsOnce()
     {
         (ProcessingResult result, OdtDocumentVerifier output) = OdtTestHelper.Process(

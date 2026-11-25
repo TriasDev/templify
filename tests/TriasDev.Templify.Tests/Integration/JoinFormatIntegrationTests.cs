@@ -104,6 +104,23 @@ public sealed class JoinFormatIntegrationTests
     }
 
     [Fact]
+    public void Join_PlainList_IsReplacedInPlace()
+    {
+        using TemplateTestRun run = Process(["Pre {{T:join}} post"], new() { ["T"] = new List<string> { "a", "b", "c" } });
+
+        Assert.Equal(["Pre a, b, c post"], run.Verifier.GetAllParagraphTexts());
+        Assert.Single(run.Verifier.GetRuns(0));
+    }
+
+    [Fact]
+    public void Join_ItemEmptyAfterCleaning_IsSkipped()
+    {
+        using TemplateTestRun run = Process(["{{T:join}}"], new() { ["T"] = new List<string> { "a", "\u0002", "b" } });
+
+        Assert.Equal(["a, b"], run.Verifier.GetAllParagraphTexts());
+    }
+
+    [Fact]
     public void Join_KeepsPlaceholderRunFormatting()
     {
         DocumentBuilder builder = new DocumentBuilder().AddParagraph("{{Assets:join:Name}}", new RunProperties(new Bold()));

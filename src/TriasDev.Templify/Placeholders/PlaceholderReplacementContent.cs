@@ -15,16 +15,23 @@ namespace TriasDev.Templify.Placeholders;
 /// </summary>
 internal static class PlaceholderReplacementContent
 {
+    /// <summary>Builds the replacement for a resolved placeholder <paramref name="value"/>.</summary>
+    /// <param name="value">The resolved value.</param>
+    /// <param name="format">The placeholder's format specifier, or <c>null</c>.</param>
+    /// <param name="options">Culture, formatters, text replacements, newline and markdown options.</param>
     public static ReplacementContent Create(object? value, string? format, PlaceholderReplacementOptions options)
     {
         // The :raw specifier only disables markdown; the value itself uses default conversion.
         bool isRaw = string.Equals(format, "raw", StringComparison.OrdinalIgnoreCase);
         bool parseMarkdown = options.EnableMarkdown && !isRaw;
 
-        if (!isRaw && JoinFormat.TryParse(format, out JoinFormat? join) && JoinFormat.IsCollection(value))
+        if (JoinFormat.TryParse(format, out JoinFormat? join) && JoinFormat.IsCollection(value))
         {
+            // Items that become empty only after cleaning are skipped too, so there is no "a, , b".
             List<ReplacementContent> items = join.GetItemTexts(value!, options.Culture)
-                .Select(text => ReplacementContent.FromValue(Clean(text, options), options.EnableNewlineSupport, parseMarkdown))
+                .Select(text => Clean(text, options))
+                .Where(text => text.Length > 0)
+                .Select(text => ReplacementContent.FromValue(text, options.EnableNewlineSupport, parseMarkdown))
                 .ToList();
             return ReplacementContent.Join(items, join.Separator);
         }
