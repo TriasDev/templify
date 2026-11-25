@@ -154,8 +154,11 @@ public sealed class TemplateBuildException : Exception
 ```
 
 - **An invalid definition is a programming error, so `Build` throws.** It collects every error first (missing
-  translations, undefined style keys, invalid paths, scope violations) and throws once. Core returns a
+  translations, undefined style keys, an empty path used as a value, scope violations) and throws once. Core returns a
   `ProcessingResult` because its errors come from users' templates and data; here they come from code.
+  - **Path syntax is checked where the path is written.** An invalid segment throws `ArgumentException` from the
+    `TemplatePath` indexer, so the stack trace points at the line in the definition.
+  - **Composers are valid only inside their lambda.** Using one afterwards throws `InvalidOperationException`.
 - **`Compose` does not see the format.** Definitions cannot branch on it, except through `Raw` (section 3.9).
 - **`TemplateFormat` is core's enum.** The builder depends on core anyway, so it does not define a second one.
 - **Thread safety.** `Build` is a pure function. Concurrent builds share nothing mutable.
@@ -497,15 +500,27 @@ ITemplateDefinition.Compose ──▶ composers ──▶ semantic model (intern
   `Table`, `List`, `Box`, `Rule`, `Image`, `Toc`, `Raw`) and inlines (`Text`, `Value`, `Tab`, `Break`, and later
   `InlineIf`, `Expression`, `Image`, `Field`). `If` and `ForEach` stay semantic until the writer, which chooses their
   carrier: a marker paragraph, a full-grid row, or an ODT list item, which core treats like a row.
-- **DocxWriter.** Uses the OpenXML SDK, whose typed setters keep the schema's child order. It writes `document.xml`,
-  `styles.xml`, `settings.xml`, `docProps/core.xml` and `docProps/custom.xml`, and later `numbering.xml` and the
-  header, footer and media parts. Ids come from counters: `docPr`, bookmarks, numbering. It writes no rsids. The SDK
-  stays behind the writer boundary.
+- **DocxWriter.** Builds the XML parts with the OpenXML SDK's typed elements, which keep the schema's child order. It
+  writes `document.xml`, `docProps/core.xml`, and later `styles.xml`, `settings.xml`, `docProps/custom.xml`,
+  `numbering.xml` and the header, footer and media parts. Ids come from counters: `docPr`, bookmarks, numbering. It
+  writes no rsids. The SDK stays behind the writer boundary.
+
+  The writer assembles **the package itself** rather than through the SDK's packaging, because that packaging is not
+  deterministic. Measured with SDK 3.5.1 while building task 1, it gives every build:
+  - random relationship ids (`R2a7031b3f8ae41e2`);
+  - a random core-properties part name (`package/services/metadata/core-properties/<guid>.psmdcp`);
+  - the current time on every entry.
+
+  The writer therefore uses fixed ids (`rId1`, …), the standard part names (`docProps/core.xml`) and a content-types
+  part of its own.
 - **OdtWriter.** Uses `System.Xml.Linq` and `System.IO.Compression`, the same stack as core's ODT engine. It writes
   `content.xml`, `styles.xml`, `meta.xml` and `META-INF/manifest.xml`, with `mimetype` first and stored. Automatic styles
   get a builder prefix (`B…`), so they cannot collide with core's markdown `T{n}` styles.
-- **DeterministicZip.** Repacks both formats with a fixed entry order and a fixed timestamp. This is needed because the
-  SDK's packaging stamps entries with the current time.
+- **DeterministicZip.** Writes both formats with a fixed entry order, a fixed timestamp (2000-01-01) and zeroed
+  external attributes.
+  - The bytes are reproducible on the same runtime and operating system family.
+  - They are not byte-identical between Windows and Unix: `ZipArchive` records the host platform in the "version made
+    by" field. That is acceptable, because `ContentHash` serves as a cache key within a deployment.
 
   Determinism also requires:
   - no GUIDs;
@@ -568,9 +583,14 @@ Known differences become build warnings when the construct is used. The first en
   - `tests/TriasDev.Templify.Builder.Tests`.
 
   Both are added to `templify.slnx` under the existing solution folders.
-- **Release.** A second release-please package, component `templify-builder`, tags `builder-v0.x.y`, with
-  `bump-minor-pre-major`. The root package excludes the builder paths, so builder commits do not bump core. Task 1
-  verifies the exact release-please configuration (`exclude-paths`, changelog location).
+- **Release.**
+  - **Since task 1:** the root release-please package has `exclude-paths` for `src/TriasDev.Templify.Builder` and
+    `tests/TriasDev.Templify.Builder.Tests`. A commit whose files all lie there does not bump core. A commit that also
+    touches shared files (`templify.slnx`, docs, CI) still counts for core; its release-notes entry is edited by hand,
+    as today.
+  - **Before the first preview release:** a second release-please package, component `templify-builder`, with tags
+    `builder-v0.x.y` and `bump-minor-pre-major`. The publish job packs and pushes the builder too. Until then nothing
+    publishes the builder, so it cannot reach NuGet by accident.
 - **Package validation.** Off until the first release. During `0.x` the baseline points at the previous `0.x` release.
   Breaking changes are allowed there but must be deliberate: entries move in `PublicAPI.Shipped.txt`.
 - **The LibreOffice helper.** Core's test helper for finding and running `soffice` is shared with the builder tests by
