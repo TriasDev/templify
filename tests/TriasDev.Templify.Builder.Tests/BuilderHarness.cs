@@ -81,6 +81,19 @@ internal static class BuilderHarness
 
         GeneratedTemplate again = TemplateBuilder.Build(definition, options ?? Options(template.Format));
         Assert.Equal(template.ContentHash, again.ContentHash);
+        AssertJsonRoundTrip(definition, template, options ?? Options(template.Format));
+    }
+
+    /// <summary>
+    /// Phase 3 (#274): exporting the definition to JSON and importing it builds the same bytes, and the import exports
+    /// to the same JSON.
+    /// </summary>
+    public static void AssertJsonRoundTrip(ITemplateDefinition definition, GeneratedTemplate template, TemplateBuildOptions options)
+    {
+        Json.TemplateJsonDocument exported = Json.TemplateJson.Export(definition, options);
+        ITemplateDefinition imported = Json.TemplateJson.Import(exported.Json, new Json.TemplateJsonImportOptions { Assets = exported.Assets, AllowRawXml = true });
+        Assert.Equal(template.ContentHash, TemplateBuilder.Build(imported, options).ContentHash);
+        Assert.Equal(exported.Json, Json.TemplateJson.Export(imported, options).Json);
     }
 
     /// <summary>DOCX: OOXML schema validation. ODT: package structure (mimetype first, stored, no extra field; manifest).</summary>

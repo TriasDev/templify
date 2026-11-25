@@ -13,6 +13,9 @@ public sealed class LoopItem
 {
     private readonly LoopScope _scope;
 
+    /// <summary>The loop's scope (for the JSON importer's metadata paths).</summary>
+    internal LoopScope Scope => _scope;
+
     internal LoopItem(LoopScope scope)
     {
         _scope = scope;

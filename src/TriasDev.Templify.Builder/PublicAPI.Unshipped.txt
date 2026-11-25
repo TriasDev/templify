@@ -83,6 +83,7 @@ static TriasDev.Templify.Builder.ImageSource.FromBytes(byte[]! data) -> TriasDev
 static TriasDev.Templify.Builder.ImageSource.Jpeg(byte[]! data) -> TriasDev.Templify.Builder.ImageSource!
 static TriasDev.Templify.Builder.ImageSource.Png(byte[]! data) -> TriasDev.Templify.Builder.ImageSource!
 static TriasDev.Templify.Builder.Json.TemplateJson.Export(TriasDev.Templify.Builder.ITemplateDefinition! definition, TriasDev.Templify.Builder.TemplateBuildOptions! options) -> TriasDev.Templify.Builder.Json.TemplateJsonDocument!
+static TriasDev.Templify.Builder.Json.TemplateJson.Import(string! json, TriasDev.Templify.Builder.Json.TemplateJsonImportOptions? options = null) -> TriasDev.Templify.Builder.ITemplateDefinition!
 static TriasDev.Templify.Builder.Length.FromMillimeters(double millimeters) -> TriasDev.Templify.Builder.Length
 static TriasDev.Templify.Builder.Length.FromPoints(double points) -> TriasDev.Templify.Builder.Length
 static TriasDev.Templify.Builder.Length.operator -(TriasDev.Templify.Builder.Length left, TriasDev.Templify.Builder.Length right) -> TriasDev.Templify.Builder.Length
@@ -318,6 +319,12 @@ TriasDev.Templify.Builder.Json.TemplateJson
 TriasDev.Templify.Builder.Json.TemplateJsonDocument
 TriasDev.Templify.Builder.Json.TemplateJsonDocument.Assets.get -> System.Collections.Generic.IReadOnlyDictionary<string!, byte[]!>!
 TriasDev.Templify.Builder.Json.TemplateJsonDocument.Json.get -> string!
+TriasDev.Templify.Builder.Json.TemplateJsonImportOptions
+TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.AllowRawXml.get -> bool
+TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.AllowRawXml.init -> void
+TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.Assets.get -> System.Collections.Generic.IReadOnlyDictionary<string!, byte[]!>?
+TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.Assets.init -> void
+TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.TemplateJsonImportOptions() -> void
 TriasDev.Templify.Builder.Length
 TriasDev.Templify.Builder.Length.CompareTo(TriasDev.Templify.Builder.Length other) -> int
 TriasDev.Templify.Builder.Length.Equals(TriasDev.Templify.Builder.Length other) -> bool

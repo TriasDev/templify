@@ -375,7 +375,7 @@ internal sealed class ModelJsonWriter
                 _json.WriteStartObject();
                 _json.WritePropertyName("group");
                 Blocks(component.Body);
-                _json.WriteString("from", component.Component.GetType().Name);
+                StringIf("from", component.Component is JsonGroupComponent group ? group.From : component.Component.GetType().Name);
                 _json.WriteEndObject();
                 break;
 
@@ -429,8 +429,8 @@ internal sealed class ModelJsonWriter
                 RawContext context = new RawContext(raw.Raw, _page.FrameWidth);
                 _json.WriteStartObject();
                 _json.WriteStartObject("raw");
-                _json.WriteString("docx", raw.Raw.Docx(context).ToString(SaveOptions.DisableFormatting));
-                _json.WriteString("odt", raw.Raw.Odt(context).ToString(SaveOptions.DisableFormatting));
+                _json.WriteString("docx", CanonicalXml(raw.Raw.Docx(context)));
+                _json.WriteString("odt", CanonicalXml(raw.Raw.Odt(context)));
                 Paths("uses", raw.Raw.Uses);
                 _json.WriteEndObject();
                 _json.WriteEndObject();
@@ -761,6 +761,13 @@ internal sealed class ModelJsonWriter
 
         _json.WriteStringValue(condition.ToString());
     }
+
+    /// <summary>
+    /// XML text that does not depend on how the element was built: an element built in code and the same element
+    /// parsed back declare their namespace prefixes differently, so the text is parsed once and written again.
+    /// </summary>
+    private static string CanonicalXml(XElement element) =>
+        XElement.Parse(element.ToString(SaveOptions.DisableFormatting)).ToString(SaveOptions.DisableFormatting);
 
     private void Paths(string name, IEnumerable<TemplatePath> paths)
     {

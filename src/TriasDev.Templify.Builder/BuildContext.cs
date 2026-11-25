@@ -108,6 +108,18 @@ internal static class DiagnosticCodes
     /// <summary>A raw block asks for a placeholder of a path it does not declare.</summary>
     public const string UndeclaredRawPath = "TB9102";
 
+    /// <summary>A JSON definition is malformed: its structure, an unknown key or kind, a wrong value, an unknown asset or component.</summary>
+    public const string InvalidJson = "TB9200";
+
+    /// <summary>A value in a JSON definition is not accepted by the builder (a composer rejected it).</summary>
+    public const string InvalidJsonValue = "TB9201";
+
+    /// <summary>A JSON definition contains raw XML, which the import options do not allow.</summary>
+    public const string RawXmlNotAllowed = "TB9202";
+
+    /// <summary>A JSON definition reads a data path the data catalogue does not list.</summary>
+    public const string UnknownDataPath = "TB9203";
+
     /// <summary>A table of contents is built only by an application that updates it (Word on open; not LibreOffice).</summary>
     public const string TableOfContentsNotBuilt = "TB9001";
 

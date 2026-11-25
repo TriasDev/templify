@@ -11,6 +11,9 @@ namespace TriasDev.Templify.Builder;
 public sealed class TemplateComposer
 {
     private readonly BuildContext _context;
+
+    /// <summary>The build's diagnostics (for the JSON importer, which reports through it).</summary>
+    internal BuildContext Context => _context;
     private readonly List<Block> _body = new List<Block>();
     private readonly DocumentPropertiesComposer _properties = new DocumentPropertiesComposer();
     private StyleSheet? _styles;

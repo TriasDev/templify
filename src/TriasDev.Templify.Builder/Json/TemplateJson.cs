@@ -25,4 +25,48 @@ public static class TemplateJson
         (string json, IReadOnlyDictionary<string, byte[]> assets) = ModelJsonWriter.Write(composed, definition.Identity!);
         return new TemplateJsonDocument(json, assets);
     }
+
+    /// <summary>
+    /// Imports a JSON definition. The result builds with <see cref="TemplateBuilder.Build"/> like a C# definition;
+    /// problems are reported as build errors with the JSON pointer in <see cref="BuildDiagnostic.Location"/>.
+    /// </summary>
+    /// <param name="json">The JSON text.</param>
+    /// <param name="options">The assets and what the import allows; null for none.</param>
+    /// <returns>The definition.</returns>
+    /// <exception cref="TemplateBuildException">The text is not a JSON definition (TB9200).</exception>
+    public static ITemplateDefinition Import(string json, TemplateJsonImportOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(json);
+        options ??= new TemplateJsonImportOptions();
+        System.Text.Json.JsonElement root;
+        try
+        {
+            using System.Text.Json.JsonDocument document = System.Text.Json.JsonDocument.Parse(json);
+            root = document.RootElement.Clone();
+        }
+        catch (System.Text.Json.JsonException exception)
+        {
+            throw Invalid(string.Empty, "The text is not JSON: " + exception.Message);
+        }
+
+        if (root.ValueKind != System.Text.Json.JsonValueKind.Object
+            || !root.TryGetProperty("templifyDefinition", out System.Text.Json.JsonElement version)
+            || version.ValueKind != System.Text.Json.JsonValueKind.Number
+            || version.GetInt32() != ModelJsonWriter.FormatVersion)
+        {
+            throw Invalid("/templifyDefinition", $"A JSON definition starts with \"templifyDefinition\": {ModelJsonWriter.FormatVersion}.");
+        }
+
+        if (!root.TryGetProperty("identity", out System.Text.Json.JsonElement identity)
+            || !identity.TryGetProperty("id", out System.Text.Json.JsonElement id) || id.ValueKind != System.Text.Json.JsonValueKind.String
+            || !identity.TryGetProperty("version", out System.Text.Json.JsonElement number) || !number.TryGetInt32(out int identityVersion))
+        {
+            throw Invalid("/identity", "The identity { \"id\": …, \"version\": … } is missing or incomplete.");
+        }
+
+        return new JsonDefinition(root, new TemplateIdentity(id.GetString()!, identityVersion), options);
+    }
+
+    private static TemplateBuildException Invalid(string location, string message) =>
+        new TemplateBuildException([new BuildDiagnostic(DiagnosticCodes.InvalidJson, message) { Location = location }]);
 }
