@@ -381,6 +381,14 @@ internal sealed class JsonDefinition : ITemplateDefinition
             JsonElement body = Required(block, "body", at);
             c.ForEach(Path(collection, at + "/forEach"), name, (item, b) => InScope(name, item, () => Blocks(b, body, at + "/body")));
         }
+        else if (block.TryGetProperty("component", out JsonElement component))
+        {
+            Keys(block, at, "component", "params");
+            string name = String(block, "component", at)!;
+            ComponentCatalog.Registration registration = _options.Components?.Find(name)
+                ?? throw new JsonImportException(at, $"The component '{name}' is not registered (TemplateJsonImportOptions.Components).");
+            c.Component(registration.Create(Required(block, "params", at), ResolvePath, ParagraphStyle, CharacterStyle, at + "/params"));
+        }
         else if (block.TryGetProperty("group", out JsonElement group))
         {
             Keys(block, at, "group", "from");
@@ -430,7 +438,7 @@ internal sealed class JsonDefinition : ITemplateDefinition
         }
         else
         {
-            throw new JsonImportException(at, $"Unknown block {Names(block)}; expected paragraph, pageBreak, if, forEach, group, list, box, table, rule, toc or raw.");
+            throw new JsonImportException(at, $"Unknown block {Names(block)}; expected paragraph, pageBreak, if, forEach, component, group, list, box, table, rule, toc or raw.");
         }
     }
 

@@ -17,12 +17,23 @@ public static class TemplateJson
     /// <param name="options">The language and texts to compose with.</param>
     /// <returns>The JSON and its assets.</returns>
     /// <exception cref="TemplateBuildException">The definition does not build.</exception>
-    public static TemplateJsonDocument Export(ITemplateDefinition definition, TemplateBuildOptions options)
+    public static TemplateJsonDocument Export(ITemplateDefinition definition, TemplateBuildOptions options) => Export(definition, options, null);
+
+    /// <summary>
+    /// Exports a definition; components registered in <paramref name="components"/> are written as references with
+    /// their parameters, others as the blocks they produced.
+    /// </summary>
+    /// <param name="definition">The definition.</param>
+    /// <param name="options">The language and texts to compose with.</param>
+    /// <param name="components">The registered components, or null.</param>
+    /// <returns>The JSON and its assets.</returns>
+    /// <exception cref="TemplateBuildException">The definition does not build.</exception>
+    public static TemplateJsonDocument Export(ITemplateDefinition definition, TemplateBuildOptions options, ComponentCatalog? components)
     {
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(options);
         ComposedTemplate composed = TemplateBuilder.Compose(definition, options);
-        (string json, IReadOnlyDictionary<string, byte[]> assets) = ModelJsonWriter.Write(composed, definition.Identity!);
+        (string json, IReadOnlyDictionary<string, byte[]> assets) = ModelJsonWriter.Write(composed, definition.Identity!, components);
         return new TemplateJsonDocument(json, assets);
     }
 

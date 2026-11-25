@@ -21,15 +21,17 @@ internal sealed class ModelJsonWriter
     private readonly Utf8JsonWriter _json;
     private readonly SortedDictionary<string, byte[]> _assets = new SortedDictionary<string, byte[]>(StringComparer.Ordinal);
     private readonly PageSetup _page;
+    private readonly ComponentCatalog? _components;
 
-    private ModelJsonWriter(Utf8JsonWriter json, PageSetup page)
+    private ModelJsonWriter(Utf8JsonWriter json, PageSetup page, ComponentCatalog? components)
     {
         _json = json;
         _page = page;
+        _components = components;
     }
 
     /// <summary>Writes the definition.</summary>
-    public static (string Json, IReadOnlyDictionary<string, byte[]> Assets) Write(ComposedTemplate composed, TemplateIdentity identity)
+    public static (string Json, IReadOnlyDictionary<string, byte[]> Assets) Write(ComposedTemplate composed, TemplateIdentity identity, ComponentCatalog? components)
     {
         using MemoryStream stream = new MemoryStream();
         ModelJsonWriter writer;
@@ -40,7 +42,7 @@ internal sealed class ModelJsonWriter
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         }))
         {
-            writer = new ModelJsonWriter(json, composed.Model.Page);
+            writer = new ModelJsonWriter(json, composed.Model.Page, components);
             writer.Document(composed, identity);
         }
 
@@ -368,6 +370,14 @@ internal sealed class ModelJsonWriter
                 _json.WriteString("as", loop.ItemName);
                 _json.WritePropertyName("body");
                 Blocks(loop.Body);
+                _json.WriteEndObject();
+                break;
+
+            case ComponentBlock component when _components?.Find(component.Component.GetType()) is { } registration:
+                _json.WriteStartObject();
+                _json.WriteString("component", registration.Name);
+                _json.WritePropertyName("params");
+                registration.WriteParameters(_json, component.Component);
                 _json.WriteEndObject();
                 break;
 

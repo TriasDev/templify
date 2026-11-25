@@ -88,6 +88,7 @@ static TriasDev.Templify.Builder.ImageFit.Within(TriasDev.Templify.Builder.Lengt
 static TriasDev.Templify.Builder.ImageSource.FromBytes(byte[]! data) -> TriasDev.Templify.Builder.ImageSource!
 static TriasDev.Templify.Builder.ImageSource.Jpeg(byte[]! data) -> TriasDev.Templify.Builder.ImageSource!
 static TriasDev.Templify.Builder.ImageSource.Png(byte[]! data) -> TriasDev.Templify.Builder.ImageSource!
+static TriasDev.Templify.Builder.Json.TemplateJson.Export(TriasDev.Templify.Builder.ITemplateDefinition! definition, TriasDev.Templify.Builder.TemplateBuildOptions! options, TriasDev.Templify.Builder.ComponentCatalog? components) -> TriasDev.Templify.Builder.Json.TemplateJsonDocument!
 static TriasDev.Templify.Builder.Json.TemplateJson.Export(TriasDev.Templify.Builder.ITemplateDefinition! definition, TriasDev.Templify.Builder.TemplateBuildOptions! options) -> TriasDev.Templify.Builder.Json.TemplateJsonDocument!
 static TriasDev.Templify.Builder.Json.TemplateJson.Import(string! json, TriasDev.Templify.Builder.Json.TemplateJsonImportOptions? options = null) -> TriasDev.Templify.Builder.ITemplateDefinition!
 static TriasDev.Templify.Builder.Length.FromMillimeters(double millimeters) -> TriasDev.Templify.Builder.Length
@@ -247,6 +248,10 @@ TriasDev.Templify.Builder.Color.R.get -> byte
 TriasDev.Templify.Builder.ColumnsComposer
 TriasDev.Templify.Builder.ColumnsComposer.Fixed(TriasDev.Templify.Builder.Length width) -> void
 TriasDev.Templify.Builder.ColumnsComposer.Relative(double weight) -> void
+TriasDev.Templify.Builder.ComponentCatalog
+TriasDev.Templify.Builder.ComponentCatalog.ComponentCatalog() -> void
+TriasDev.Templify.Builder.ComponentCatalog.Names.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+TriasDev.Templify.Builder.ComponentCatalog.Register<TComponent>(string! name) -> TriasDev.Templify.Builder.ComponentCatalog!
 TriasDev.Templify.Builder.Condition
 TriasDev.Templify.Builder.ContractEntry
 TriasDev.Templify.Builder.ContractEntry.<Clone>$() -> TriasDev.Templify.Builder.ContractEntry!
@@ -342,6 +347,8 @@ TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.AllowRawXml.get -> bool
 TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.AllowRawXml.init -> void
 TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.Assets.get -> System.Collections.Generic.IReadOnlyDictionary<string!, byte[]!>?
 TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.Assets.init -> void
+TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.Components.get -> TriasDev.Templify.Builder.ComponentCatalog?
+TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.Components.init -> void
 TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.TemplateJsonImportOptions() -> void
 TriasDev.Templify.Builder.Length
 TriasDev.Templify.Builder.Length.CompareTo(TriasDev.Templify.Builder.Length other) -> int

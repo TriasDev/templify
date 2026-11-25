@@ -9,6 +9,9 @@ public sealed class TemplateJsonImportOptions
     /// <summary>Gets the images and embedded fonts the JSON refers to (keys as in <see cref="TemplateJsonDocument.Assets"/>).</summary>
     public IReadOnlyDictionary<string, byte[]>? Assets { get; init; }
 
+    /// <summary>Gets the components the JSON may refer to by name.</summary>
+    public ComponentCatalog? Components { get; init; }
+
     /// <summary>Gets a value indicating whether raw XML blocks are accepted. Default: false (a JSON definition is input from outside).</summary>
     public bool AllowRawXml { get; init; }
 }
