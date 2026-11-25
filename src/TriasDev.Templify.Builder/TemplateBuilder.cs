@@ -51,7 +51,7 @@ public static class TemplateBuilder
 
         DocumentModel model = new DocumentModel(body, options.Language, styles, info);
         byte[] content = options.Format == TemplateFormat.Docx ? DocxWriter.Write(model) : OdtWriter.Write(model);
-        return new GeneratedTemplate(options.Format, content);
+        return new GeneratedTemplate(options.Format, content, DataContract.Collect(body));
     }
 
     private static void CheckStylesAreDefined(IReadOnlyList<Block> body, StyleSheet styles, BuildContext context)

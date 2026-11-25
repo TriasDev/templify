@@ -14,10 +14,11 @@ public sealed class GeneratedTemplate
 {
     private readonly byte[] _content;
 
-    internal GeneratedTemplate(TemplateFormat format, byte[] content)
+    internal GeneratedTemplate(TemplateFormat format, byte[] content, DataContract contract)
     {
         Format = format;
         _content = content;
+        Contract = contract;
         ContentHash = Convert.ToHexStringLower(SHA256.HashData(content));
     }
 
@@ -31,6 +32,9 @@ public sealed class GeneratedTemplate
     public string MediaType => Format == TemplateFormat.Docx
         ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         : "application/vnd.oasis.opendocument.text";
+
+    /// <summary>Gets the data the template needs: every path it prints, tests or loops over.</summary>
+    public DataContract Contract { get; }
 
     /// <summary>Gets the template's bytes.</summary>
     public ReadOnlyMemory<byte> Content => _content;

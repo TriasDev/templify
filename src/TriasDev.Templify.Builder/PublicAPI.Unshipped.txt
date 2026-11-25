@@ -9,6 +9,9 @@ override TriasDev.Templify.Builder.Color.Equals(object? obj) -> bool
 override TriasDev.Templify.Builder.Color.GetHashCode() -> int
 override TriasDev.Templify.Builder.Color.ToString() -> string!
 override TriasDev.Templify.Builder.Condition.ToString() -> string!
+override TriasDev.Templify.Builder.ContractEntry.Equals(object? obj) -> bool
+override TriasDev.Templify.Builder.ContractEntry.GetHashCode() -> int
+override TriasDev.Templify.Builder.ContractEntry.ToString() -> string!
 override TriasDev.Templify.Builder.FontFace.Equals(object? obj) -> bool
 override TriasDev.Templify.Builder.FontFace.GetHashCode() -> int
 override TriasDev.Templify.Builder.FontFace.ToString() -> string!
@@ -41,6 +44,9 @@ static TriasDev.Templify.Builder.Condition.operator !(TriasDev.Templify.Builder.
 static TriasDev.Templify.Builder.Condition.operator &(TriasDev.Templify.Builder.Condition! left, TriasDev.Templify.Builder.Condition! right) -> TriasDev.Templify.Builder.Condition!
 static TriasDev.Templify.Builder.Condition.operator |(TriasDev.Templify.Builder.Condition! left, TriasDev.Templify.Builder.Condition! right) -> TriasDev.Templify.Builder.Condition!
 static TriasDev.Templify.Builder.Condition.Raw(string! expression, params TriasDev.Templify.Builder.TemplatePath[]! uses) -> TriasDev.Templify.Builder.Condition!
+static TriasDev.Templify.Builder.ContractEntry.operator !=(TriasDev.Templify.Builder.ContractEntry? left, TriasDev.Templify.Builder.ContractEntry? right) -> bool
+static TriasDev.Templify.Builder.ContractEntry.operator ==(TriasDev.Templify.Builder.ContractEntry? left, TriasDev.Templify.Builder.ContractEntry? right) -> bool
+static TriasDev.Templify.Builder.DataContract.FromJson(string! json) -> TriasDev.Templify.Builder.DataContract!
 static TriasDev.Templify.Builder.FontFace.operator !=(TriasDev.Templify.Builder.FontFace? left, TriasDev.Templify.Builder.FontFace? right) -> bool
 static TriasDev.Templify.Builder.FontFace.operator ==(TriasDev.Templify.Builder.FontFace? left, TriasDev.Templify.Builder.FontFace? right) -> bool
 static TriasDev.Templify.Builder.Length.FromMillimeters(double millimeters) -> TriasDev.Templify.Builder.Length
@@ -131,6 +137,24 @@ TriasDev.Templify.Builder.Color.Equals(TriasDev.Templify.Builder.Color other) ->
 TriasDev.Templify.Builder.Color.G.get -> byte
 TriasDev.Templify.Builder.Color.R.get -> byte
 TriasDev.Templify.Builder.Condition
+TriasDev.Templify.Builder.ContractEntry
+TriasDev.Templify.Builder.ContractEntry.<Clone>$() -> TriasDev.Templify.Builder.ContractEntry!
+TriasDev.Templify.Builder.ContractEntry.ContractEntry(string! Path, TriasDev.Templify.Builder.ContractUsage Usage) -> void
+TriasDev.Templify.Builder.ContractEntry.Deconstruct(out string! Path, out TriasDev.Templify.Builder.ContractUsage Usage) -> void
+TriasDev.Templify.Builder.ContractEntry.Equals(TriasDev.Templify.Builder.ContractEntry? other) -> bool
+TriasDev.Templify.Builder.ContractEntry.Path.get -> string!
+TriasDev.Templify.Builder.ContractEntry.Path.init -> void
+TriasDev.Templify.Builder.ContractEntry.Usage.get -> TriasDev.Templify.Builder.ContractUsage
+TriasDev.Templify.Builder.ContractEntry.Usage.init -> void
+TriasDev.Templify.Builder.ContractUsage
+TriasDev.Templify.Builder.ContractUsage.Collection = 1 -> TriasDev.Templify.Builder.ContractUsage
+TriasDev.Templify.Builder.ContractUsage.Condition = 2 -> TriasDev.Templify.Builder.ContractUsage
+TriasDev.Templify.Builder.ContractUsage.Value = 0 -> TriasDev.Templify.Builder.ContractUsage
+TriasDev.Templify.Builder.DataContract
+TriasDev.Templify.Builder.DataContract.CreateWitness() -> System.Collections.Generic.IReadOnlyDictionary<string!, object?>!
+TriasDev.Templify.Builder.DataContract.Entries.get -> System.Collections.Generic.IReadOnlyList<TriasDev.Templify.Builder.ContractEntry!>!
+TriasDev.Templify.Builder.DataContract.Hash.get -> string!
+TriasDev.Templify.Builder.DataContract.ToJson() -> string!
 TriasDev.Templify.Builder.DefaultStyleComposer
 TriasDev.Templify.Builder.DefaultStyleComposer.Color(TriasDev.Templify.Builder.Color color) -> TriasDev.Templify.Builder.DefaultStyleComposer!
 TriasDev.Templify.Builder.DefaultStyleComposer.Font(TriasDev.Templify.Builder.FontFace! font) -> TriasDev.Templify.Builder.DefaultStyleComposer!
@@ -147,6 +171,7 @@ TriasDev.Templify.Builder.FontFace.FontFace(string! family) -> void
 TriasDev.Templify.Builder.GeneratedTemplate
 TriasDev.Templify.Builder.GeneratedTemplate.Content.get -> System.ReadOnlyMemory<byte>
 TriasDev.Templify.Builder.GeneratedTemplate.ContentHash.get -> string!
+TriasDev.Templify.Builder.GeneratedTemplate.Contract.get -> TriasDev.Templify.Builder.DataContract!
 TriasDev.Templify.Builder.GeneratedTemplate.FileExtension.get -> string!
 TriasDev.Templify.Builder.GeneratedTemplate.Format.get -> TriasDev.Templify.Core.TemplateFormat
 TriasDev.Templify.Builder.GeneratedTemplate.MediaType.get -> string!

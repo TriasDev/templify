@@ -33,6 +33,10 @@ internal static class BuilderHarness
     public static (GeneratedTemplate Template, byte[] Filled) BuildAndFill(ITemplateDefinition definition, TemplateFormat format, Dictionary<string, object> data) =>
         BuildAndFill(definition, format, (processor, input, output) => processor.ProcessTemplate(input, output, data));
 
+    /// <summary>As <see cref="BuildAndFill(ITemplateDefinition, TemplateFormat, string)"/>, with read-only data (a contract's witness).</summary>
+    public static (GeneratedTemplate Template, byte[] Filled) BuildAndFill(ITemplateDefinition definition, TemplateFormat format, IReadOnlyDictionary<string, object?> data) =>
+        BuildAndFill(definition, format, (processor, input, output) => processor.ProcessTemplate(input, output, data));
+
     /// <summary>The options every fill uses: missing variables throw, invariant culture.</summary>
     public static PlaceholderReplacementOptions FillOptions => new PlaceholderReplacementOptions
     {
