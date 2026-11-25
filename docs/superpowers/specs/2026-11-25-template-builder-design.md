@@ -592,6 +592,7 @@ ITemplateDefinition.Compose ──▶ composers ──▶ semantic model (intern
 | Image (#280) | `word/media/imageN.{png,jpeg}`, each distinct image (by SHA-256) once; relationships per part (`document.xml.rels`, `header1.xml.rels`, …); inline DrawingML with a document-wide `docPr` counter and the alt text as `descr`; EMU = pt × 12 700 | `Pictures/<hash>.{png,jpeg}` + manifest entries; `draw:frame` (`text:anchor-type="as-char"`, unique `draw:name` per part prefix) with `draw:image` and `svg:title`/`svg:desc` (alt text) |
 | Box / Rule (#282) | a box is a one-cell `w:tbl` over the container's width: the box style's border as `tblBorders`, padding as `tblCellMar`, background as the cell's `shd`; rows may split. A rule is an empty paragraph (exact 1 pt line) with a top `pBdr` and spacing | the same one-cell `table:table` with per-cell border, padding and background; a rule is an empty paragraph in an automatic style (`fo:border-top`, `fo:line-height` 1 pt) |
 | Bullet list (#283) | items are paragraphs with `numPr` (`ilvl`, one `numId` per list style used) after `pStyle` (the list's item style); `numbering.xml` with an `abstractNum` of bullet levels (`lvlText`, `ind left/hanging`); loops and conditionals over items are block markers between item paragraphs | `text:list-style` (`text:list-level-style-bullet`, label alignment: tab stop at the indent, `fo:text-indent` = −hanging); each item is a `text:list` of its own, nested to its level — consecutive lists of one style read as one list, and loop/conditional markers stay paragraphs between them. LibreOffice's *text* export draws its own bullets per level; the rendered document shows the style's |
+| Table of contents (#284) | a paragraph with a complex field `TOC \o "1-N" \h \z \u`, `w:dirty="true"`, no cached result | `text:table-of-content` (`text:outline-level` N, an entry template per level with link, text, right tab with dot leader, page number), empty `text:index-body` |
 | End of a part | the body, headers and footers always end with a paragraph (Word keeps one after a final table; LibreOffice 26.8's text export loops forever on a DOCX whose body ends with a table — found in #279) | — |
 | Column widths | fixed widths as given; relative weights share the container frame (page frame, or a cell's width minus its horizontal padding for nested tables) | same resolution |
 | Right tab (`TabRight`) | `w:tabs/w:tab w:val="right"` at the frame width, measured from the frame's start | an automatic paragraph style with `style:tab-stop style:type="right"`, positioned at frame width − the style's start indent (ODF measures from the indent) |
@@ -637,7 +638,12 @@ Known behaviour of the converters, documented rather than worked around:
 
 Known differences become build warnings when the construct is used. The first entries arrive with their tasks:
 
-- the ODT table of contents is not refreshed on load (task 16);
+- **table of contents (#284, measured):** a DOCX TOC field (dirty, `\o "1-N" \h \z \u`, no `\t`) is built by
+  Word on open (fill with `UpdateFieldsOnOpen = Auto`, which writes `w:updateFields`). LibreOffice does **not**
+  build a TOC on load or on PDF conversion, neither from DOCX nor from ODT (an empty `text:index-body`); it stays
+  empty until a user updates it. The build warns (TB9001, `GeneratedTemplate.Warnings`) in both formats. For a
+  server-side PDF with a TOC, the converter has to update the indexes (for example a LibreOffice macro);
+  out of scope for the MVP;
 - paragraph-border "between" rules have no ODF equivalent, which is why boxes are tables (task 14).
 
 ## 7. Packaging and release
