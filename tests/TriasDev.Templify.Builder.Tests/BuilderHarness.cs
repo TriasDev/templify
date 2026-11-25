@@ -94,6 +94,50 @@ internal static class BuilderHarness
         new OdtDocumentVerifier(package).AssertValidOdtPackage();
     }
 
+    /// <summary>
+    /// Edits one entry of a package as text, the way a hand edit changes a document; the entry order is kept and the
+    /// ODF <c>mimetype</c> stays stored.
+    /// </summary>
+    public static byte[] EditEntry(byte[] package, string entryName, Func<string, string> edit)
+    {
+        List<(string Name, byte[] Data)> entries = new List<(string, byte[])>();
+        using (MemoryStream input = new MemoryStream(package))
+        using (System.IO.Compression.ZipArchive archive = new System.IO.Compression.ZipArchive(input, System.IO.Compression.ZipArchiveMode.Read))
+        {
+            foreach (System.IO.Compression.ZipArchiveEntry entry in archive.Entries)
+            {
+                using Stream entryStream = entry.Open();
+                using MemoryStream data = new MemoryStream();
+                entryStream.CopyTo(data);
+                byte[] content = data.ToArray();
+                if (entry.FullName == entryName)
+                {
+                    content = System.Text.Encoding.UTF8.GetBytes(edit(System.Text.Encoding.UTF8.GetString(content)));
+                }
+
+                entries.Add((entry.FullName, content));
+            }
+        }
+
+        using MemoryStream output = new MemoryStream();
+        using (System.IO.Compression.ZipArchive archive = new System.IO.Compression.ZipArchive(output, System.IO.Compression.ZipArchiveMode.Create, leaveOpen: true))
+        {
+            foreach ((string name, byte[] data) in entries)
+            {
+                System.IO.Compression.ZipArchiveEntry entry = archive.CreateEntry(
+                    name,
+                    name == "mimetype" ? System.IO.Compression.CompressionLevel.NoCompression : System.IO.Compression.CompressionLevel.Optimal);
+                using Stream entryStream = entry.Open();
+                entryStream.Write(data);
+            }
+        }
+
+        return output.ToArray();
+    }
+
+    /// <summary>The main XML part of a template: <c>word/document.xml</c> or <c>content.xml</c>.</summary>
+    public static string MainPart(TemplateFormat format) => format == TemplateFormat.Docx ? "word/document.xml" : "content.xml";
+
     /// <summary>Reads one entry of a package as XML.</summary>
     public static System.Xml.Linq.XDocument ReadXml(byte[] package, string entryName)
     {

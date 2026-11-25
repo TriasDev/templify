@@ -10,7 +10,8 @@ namespace TriasDev.Templify.Builder.Model;
 /// <param name="Language">The document language.</param>
 /// <param name="Styles">The named styles; <see cref="StyleSheet.Empty"/> when the definition sets none.</param>
 /// <param name="Info">The standard document properties.</param>
-internal sealed record DocumentModel(IReadOnlyList<Block> Body, CultureInfo Language, StyleSheet Styles, DocumentInfo Info);
+/// <param name="Stamp">The builder's stamp, written as custom document properties.</param>
+internal sealed record DocumentModel(IReadOnlyList<Block> Body, CultureInfo Language, StyleSheet Styles, DocumentInfo Info, TemplateStamp Stamp);
 
 /// <summary>A block-level element of the document.</summary>
 internal abstract record Block;

@@ -376,6 +376,10 @@ internal static class OdtWriter
         }
 
         meta.Add(new XElement(_dc + "language", model.Language.Name));
+        foreach ((string name, string value) in model.Stamp.ToProperties())
+        {
+            meta.Add(new XElement(_meta + "user-defined", new XAttribute(_meta + "name", name), value));
+        }
 
         return new XElement(
             _office + "document-meta",

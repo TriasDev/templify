@@ -29,6 +29,11 @@ internal static class DocxWriter
     private const string OfficeDocumentRelationship = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument";
     private const string StylesRelationship = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles";
     private const string CorePropertiesRelationship = "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties";
+    private const string CustomPropertiesContentType = "application/vnd.openxmlformats-officedocument.custom-properties+xml";
+    private const string CustomPropertiesRelationship = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties";
+
+    /// <summary>The format id every custom document property carries (FMTID_UserDefinedProperties).</summary>
+    private const string UserDefinedPropertiesFormatId = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}";
 
     /// <summary>Word's default paragraph style; the builder reserves the id.</summary>
     private const string NormalStyleId = "Normal";
@@ -43,6 +48,7 @@ internal static class DocxWriter
             new PackagePart("[Content_Types].xml", Utf8(ContentTypes())),
             new PackagePart("_rels/.rels", Utf8(PackageRelationships())),
             new PackagePart("docProps/core.xml", Utf8(CoreProperties(model))),
+            new PackagePart("docProps/custom.xml", Utf8(CustomProperties(model))),
             new PackagePart("word/document.xml", Utf8(XmlDeclaration + MainDocument(model).OuterXml)),
             new PackagePart("word/_rels/document.xml.rels", Utf8(DocumentRelationships())),
             new PackagePart("word/styles.xml", Utf8(XmlDeclaration + StylesPart(model).OuterXml)),
@@ -57,6 +63,7 @@ internal static class DocxWriter
         + $"<Override PartName=\"/word/document.xml\" ContentType=\"{MainContentType}\"/>"
         + $"<Override PartName=\"/word/styles.xml\" ContentType=\"{StylesContentType}\"/>"
         + $"<Override PartName=\"/docProps/core.xml\" ContentType=\"{CorePropertiesContentType}\"/>"
+        + $"<Override PartName=\"/docProps/custom.xml\" ContentType=\"{CustomPropertiesContentType}\"/>"
         + "</Types>";
 
     private static string PackageRelationships() =>
@@ -64,6 +71,7 @@ internal static class DocxWriter
         + "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
         + $"<Relationship Id=\"rId1\" Type=\"{OfficeDocumentRelationship}\" Target=\"word/document.xml\"/>"
         + $"<Relationship Id=\"rId2\" Type=\"{CorePropertiesRelationship}\" Target=\"docProps/core.xml\"/>"
+        + $"<Relationship Id=\"rId3\" Type=\"{CustomPropertiesRelationship}\" Target=\"docProps/custom.xml\"/>"
         + "</Relationships>";
 
     private static string DocumentRelationships() =>
@@ -83,6 +91,22 @@ internal static class DocxWriter
         AppendElement(xml, "dc:creator", model.Info.Author);
         AppendElement(xml, "dc:language", model.Language.Name);
         return xml.Append("</cp:coreProperties>").ToString();
+    }
+
+    private static string CustomProperties(DocumentModel model)
+    {
+        StringBuilder xml = new StringBuilder(XmlDeclaration)
+            .Append("<Properties xmlns=\"http://schemas.openxmlformats.org/officeDocument/2006/custom-properties\"")
+            .Append(" xmlns:vt=\"http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes\">");
+        int pid = 2;
+        foreach ((string name, string value) in model.Stamp.ToProperties())
+        {
+            xml.Append("<property fmtid=\"").Append(UserDefinedPropertiesFormatId).Append("\" pid=\"")
+                .Append(pid++.ToString(CultureInfo.InvariantCulture)).Append("\" name=\"").Append(SecurityElement.Escape(name)).Append("\">")
+                .Append("<vt:lpwstr>").Append(SecurityElement.Escape(value)).Append("</vt:lpwstr></property>");
+        }
+
+        return xml.Append("</Properties>").ToString();
     }
 
     private static void AppendElement(StringBuilder xml, string name, string? value)

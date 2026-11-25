@@ -49,9 +49,11 @@ public static class TemplateBuilder
             throw new TemplateBuildException(context.Errors);
         }
 
-        DocumentModel model = new DocumentModel(body, options.Language, styles, info);
+        DataContract contract = DataContract.Collect(body);
+        TemplateStamp stamp = TemplateStamp.For(definition.Identity!, contract, options.Language);
+        DocumentModel model = new DocumentModel(body, options.Language, styles, info, stamp);
         byte[] content = options.Format == TemplateFormat.Docx ? DocxWriter.Write(model) : OdtWriter.Write(model);
-        return new GeneratedTemplate(options.Format, content, DataContract.Collect(body));
+        return new GeneratedTemplate(options.Format, content, contract, stamp);
     }
 
     private static void CheckStylesAreDefined(IReadOnlyList<Block> body, StyleSheet styles, BuildContext context)

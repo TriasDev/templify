@@ -14,11 +14,12 @@ public sealed class GeneratedTemplate
 {
     private readonly byte[] _content;
 
-    internal GeneratedTemplate(TemplateFormat format, byte[] content, DataContract contract)
+    internal GeneratedTemplate(TemplateFormat format, byte[] content, DataContract contract, TemplateStamp stamp)
     {
         Format = format;
         _content = content;
         Contract = contract;
+        Stamp = stamp;
         ContentHash = Convert.ToHexStringLower(SHA256.HashData(content));
     }
 
@@ -35,6 +36,9 @@ public sealed class GeneratedTemplate
 
     /// <summary>Gets the data the template needs: every path it prints, tests or loops over.</summary>
     public DataContract Contract { get; }
+
+    /// <summary>Gets the stamp written into the template's document properties.</summary>
+    public TemplateStamp Stamp { get; }
 
     /// <summary>Gets the template's bytes.</summary>
     public ReadOnlyMemory<byte> Content => _content;
