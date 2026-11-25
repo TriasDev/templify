@@ -8,6 +8,8 @@
     <ProjectReference Include="..\..\src\TriasDev.Templify.Builder\TriasDev.Templify.Builder.csproj" />
     <!-- Dogfooding: the invariants below are the test kit's checks (#286). -->
     <ProjectReference Include="..\..\src\TriasDev.Templify.Builder.Testing\TriasDev.Templify.Builder.Testing.csproj" />
+    <!-- The sample runs as a test, so CI runs it (#287). -->
+    <ProjectReference Include="..\..\samples\TriasDev.Templify.Builder.Sample\TriasDev.Templify.Builder.Sample.csproj" />
   </ItemGroup>
 
   <ItemGroup>

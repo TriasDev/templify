@@ -148,6 +148,13 @@
           "TriasDev.Templify": "[1.10.0, )"
         }
       },
+      "triasdev.templify.builder.sample": {
+        "type": "Project",
+        "dependencies": {
+          "TriasDev.Templify.Builder": "[0.1.0, )",
+          "TriasDev.Templify.Builder.Testing": "[0.1.0, )"
+        }
+      },
       "triasdev.templify.builder.testing": {
         "type": "Project",
         "dependencies": {

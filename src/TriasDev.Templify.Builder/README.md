@@ -74,6 +74,19 @@ UploadCheckResult check = TemplateInspector.CheckUpload(upload, template.Contrac
 The output is deterministic: the same definition and options produce the same bytes, so
 `GeneratedTemplate.ContentHash` can serve as a cache key.
 
+The [documentation page](https://triasdev.github.io/templify/for-developers/template-builder/) explains the
+concepts, the support matrix and the known limits. The sample
+[`samples/TriasDev.Templify.Builder.Sample`](https://github.com/TriasDev/templify/tree/main/samples/TriasDev.Templify.Builder.Sample)
+uses every construct. Verify your definitions in CI with
+[TriasDev.Templify.Builder.Testing](https://www.nuget.org/packages/TriasDev.Templify.Builder.Testing):
+
+```csharp
+[Fact]
+public void InvoiceTemplate_IsValid() => TemplateVerifier.VerifyAll(
+    () => new InvoiceTemplate(theme),
+    new TemplateVerificationOptions { Languages = [de, en], Texts = _ => texts, SampleData = [sampleJson] });
+```
+
 The design and the roadmap are in the
 [design spec](https://github.com/TriasDev/templify/blob/main/docs/superpowers/specs/2026-11-25-template-builder-design.md)
 and in [epic #261](https://github.com/TriasDev/templify/issues/261).

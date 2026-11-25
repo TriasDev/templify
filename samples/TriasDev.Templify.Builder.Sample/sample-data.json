@@ -1,0 +1,25 @@
+{
+  "order": {
+    "number": "EX-2026-0417",
+    "date": "2026-11-25T10:00:00",
+    "status": "paid",
+    "isExpress": true,
+    "total": 1849.5,
+    "discount": 0,
+    "notes": "Please deliver **before noon**.",
+    "customer": {
+      "name": "Example Trading GmbH",
+      "contact": "Erika Example",
+      "isNew": true,
+      "address": { "street": "Sample Street 12", "postalCode": "80331", "city": "Munich", "country": "DE" }
+    },
+    "lines": [
+      { "description": "Laptop 14\"", "quantity": 1, "amount": 1499.0, "inStock": true, "tags": [ "Hardware", "3-year warranty" ] },
+      { "description": "USB-C dock", "quantity": 2, "amount": 175.25, "inStock": false, "tags": [] }
+    ],
+    "checks": [
+      { "title": "Credit limit", "passed": true },
+      { "title": "Export control", "passed": true }
+    ]
+  }
+}
