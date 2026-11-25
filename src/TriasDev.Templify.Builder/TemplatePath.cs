@@ -19,13 +19,27 @@ public readonly partial struct TemplatePath : IEquatable<TemplatePath>
 {
     private readonly string? _value;
 
-    private TemplatePath(string value)
+    private TemplatePath(string value, LoopScope? scope = null, bool isMetadata = false)
     {
         _value = value;
+        Scope = scope;
+        IsMetadata = isMetadata;
     }
 
     /// <summary>Gets a value indicating whether this is the empty path (the root of the data).</summary>
     internal bool IsRoot => _value is null;
+
+    /// <summary>Gets the loop whose iteration variable this path starts from; null for a path from the data's root.</summary>
+    internal LoopScope? Scope { get; }
+
+    /// <summary>Gets a value indicating whether this is loop metadata (<c>@index</c>, <c>@first</c>, …) of <see cref="Scope"/>.</summary>
+    internal bool IsMetadata { get; }
+
+    /// <summary>The path of a loop's iteration variable, for example <c>line</c>.</summary>
+    internal static TemplatePath ForItem(LoopScope scope) => new TemplatePath(scope.ItemName, scope);
+
+    /// <summary>A loop metadata path, for example <c>@index</c>, of the innermost loop <paramref name="scope"/>.</summary>
+    internal static TemplatePath ForMetadata(LoopScope scope, string name) => new TemplatePath("@" + name, scope, isMetadata: true);
 
     /// <summary>
     /// Appends one or more dot-separated segments, for example <c>path["address.city"]</c>.
@@ -37,6 +51,11 @@ public readonly partial struct TemplatePath : IEquatable<TemplatePath>
         get
         {
             ArgumentNullException.ThrowIfNull(relative);
+            if (IsMetadata)
+            {
+                throw new InvalidOperationException($"Loop metadata ({_value}) has no properties.");
+            }
+
             string[] segments = relative.Split('.');
             foreach (string segment in segments)
             {
@@ -50,7 +69,7 @@ public readonly partial struct TemplatePath : IEquatable<TemplatePath>
                     nameof(relative));
             }
 
-            return new TemplatePath(_value is null ? relative : _value + "." + relative);
+            return new TemplatePath(_value is null ? relative : _value + "." + relative, Scope);
         }
     }
 

@@ -13,12 +13,14 @@ public sealed class BlockComposer
 {
     private readonly BuildContext _context;
     private readonly List<Block> _blocks;
+    private readonly LoopScope? _scope;
     private bool _isOpen = true;
 
-    internal BlockComposer(BuildContext context, List<Block> blocks)
+    internal BlockComposer(BuildContext context, List<Block> blocks, LoopScope? scope)
     {
         _context = context;
         _blocks = blocks;
+        _scope = scope;
     }
 
     /// <summary>Adds a paragraph with literal text, in the default paragraph style.</summary>
@@ -79,10 +81,11 @@ public sealed class BlockComposer
         ArgumentNullException.ThrowIfNull(condition);
         ArgumentNullException.ThrowIfNull(then);
         EnsureOpen();
+        CheckCondition(_context, _scope, condition);
         ConditionalBlock block = new ConditionalBlock();
-        block.Branches.Add(new ConditionalBranch(condition, Compose(_context, then)));
+        block.Branches.Add(new ConditionalBranch(condition, Compose(_context, _scope, then)));
         _blocks.Add(block);
-        return new IfChain(_context, block, () => _isOpen);
+        return new IfChain(_context, _scope, block, () => _isOpen);
     }
 
     /// <summary>
@@ -96,16 +99,64 @@ public sealed class BlockComposer
         ArgumentNullException.ThrowIfNull(cases);
         EnsureOpen();
         _ = (Condition)value; // checks the path where it is written: not the root, not a number
-        SwitchComposer composer = new SwitchComposer(_context);
+        LoopScope.CheckUse(_context, _scope, value);
+        SwitchComposer composer = new SwitchComposer(_context, _scope);
         cases(composer);
         _blocks.AddRange(composer.Close(value));
     }
 
-    /// <summary>Composes the blocks of a nested part (a branch, a cell, a loop body).</summary>
-    internal static List<Block> Compose(BuildContext context, Action<BlockComposer> content)
+    /// <summary>
+    /// Repeats blocks for every item of a collection: <c>{{#foreach item in collection}}</c> … <c>{{/foreach}}</c>.
+    /// The iteration variable is always named, so the template stays readable and an inner loop can still reach the
+    /// outer item.
+    /// </summary>
+    /// <param name="collection">The data path of the collection; a path from the root or from an enclosing loop's item.</param>
+    /// <param name="itemName">
+    /// The iteration variable: letters, digits and <c>_</c>; not a Templify keyword and not the name of an enclosing
+    /// loop's variable.
+    /// </param>
+    /// <param name="body">Describes the blocks repeated for each item; it receives the item.</param>
+    public void ForEach(TemplatePath collection, string itemName, Action<LoopItem, BlockComposer> body)
+    {
+        ArgumentNullException.ThrowIfNull(body);
+        EnsureOpen();
+        if (collection.IsRoot || collection.IsMetadata)
+        {
+            throw new ArgumentException("A loop needs a collection path from the data or from a loop item.", nameof(collection));
+        }
+
+        LoopScope.CheckUse(_context, _scope, collection);
+        LoopScope scope = new LoopScope(LoopScope.ValidateItemName(itemName, _scope), collection, _scope);
+        List<Block> blocks = new List<Block>();
+        BlockComposer composer = new BlockComposer(_context, blocks, scope);
+        body(new LoopItem(scope), composer);
+        composer.Close();
+        _blocks.Add(new LoopBlock(collection, itemName, blocks));
+    }
+
+    /// <summary>Adds a reusable component's content.</summary>
+    /// <param name="component">The component.</param>
+    public void Component(ITemplateComponent component)
+    {
+        ArgumentNullException.ThrowIfNull(component);
+        EnsureOpen();
+        _blocks.Add(new ComponentBlock(component, Compose(_context, _scope, component.Compose)));
+    }
+
+    /// <summary>Reports paths of a condition that cannot be used here.</summary>
+    internal static void CheckCondition(BuildContext context, LoopScope? scope, Condition condition)
+    {
+        foreach (TemplatePath path in condition.Paths)
+        {
+            LoopScope.CheckUse(context, scope, path);
+        }
+    }
+
+    /// <summary>Composes the blocks of a nested part (a branch, a cell, a loop body) in the given loop scope.</summary>
+    internal static List<Block> Compose(BuildContext context, LoopScope? scope, Action<BlockComposer> content)
     {
         List<Block> blocks = new List<Block>();
-        BlockComposer composer = new BlockComposer(context, blocks);
+        BlockComposer composer = new BlockComposer(context, blocks, scope);
         content(composer);
         composer.Close();
         return blocks;
@@ -125,14 +176,14 @@ public sealed class BlockComposer
     private void AddValue(ParagraphStyleKey? style, TemplatePath value)
     {
         EnsureOpen();
-        _blocks.Add(new ParagraphBlock(new Inline[] { InlineComposer.CreateValue(_context, value) }, style));
+        _blocks.Add(new ParagraphBlock(new Inline[] { InlineComposer.CreateValue(_context, _scope, value) }, style));
     }
 
     private void AddComposed(ParagraphStyleKey? style, Action<InlineComposer> content)
     {
         ArgumentNullException.ThrowIfNull(content);
         EnsureOpen();
-        InlineComposer composer = new InlineComposer(_context);
+        InlineComposer composer = new InlineComposer(_context, _scope);
         content(composer);
         _blocks.Add(new ParagraphBlock(composer.Close(), style));
     }

@@ -13,12 +13,14 @@ namespace TriasDev.Templify.Builder;
 public sealed class IfChain
 {
     private readonly BuildContext _context;
+    private readonly LoopScope? _scope;
     private readonly ConditionalBlock _block;
     private readonly Func<bool> _isOpen;
 
-    internal IfChain(BuildContext context, ConditionalBlock block, Func<bool> isOpen)
+    internal IfChain(BuildContext context, LoopScope? scope, ConditionalBlock block, Func<bool> isOpen)
     {
         _context = context;
+        _scope = scope;
         _block = block;
         _isOpen = isOpen;
     }
@@ -32,7 +34,8 @@ public sealed class IfChain
         ArgumentNullException.ThrowIfNull(condition);
         ArgumentNullException.ThrowIfNull(then);
         EnsureOpen();
-        _block.Branches.Add(new ConditionalBranch(condition, BlockComposer.Compose(_context, then)));
+        BlockComposer.CheckCondition(_context, _scope, condition);
+        _block.Branches.Add(new ConditionalBranch(condition, BlockComposer.Compose(_context, _scope, then)));
         return this;
     }
 
@@ -42,7 +45,7 @@ public sealed class IfChain
     {
         ArgumentNullException.ThrowIfNull(otherwise);
         EnsureOpen();
-        _block.Else = BlockComposer.Compose(_context, otherwise);
+        _block.Else = BlockComposer.Compose(_context, _scope, otherwise);
     }
 
     private void EnsureOpen()
@@ -66,13 +69,15 @@ public sealed class IfChain
 public sealed class SwitchComposer
 {
     private readonly BuildContext _context;
+    private readonly LoopScope? _scope;
     private readonly List<(IReadOnlyList<string> Values, List<Block> Body)> _cases = new List<(IReadOnlyList<string>, List<Block>)>();
     private List<Block>? _default;
     private bool _isOpen = true;
 
-    internal SwitchComposer(BuildContext context)
+    internal SwitchComposer(BuildContext context, LoopScope? scope)
     {
         _context = context;
+        _scope = scope;
     }
 
     /// <summary>Adds a case for one value: <c>value = "x"</c>.</summary>
@@ -103,7 +108,7 @@ public sealed class SwitchComposer
             ConditionText.String(value, nameof(values));
         }
 
-        _cases.Add((list, BlockComposer.Compose(_context, then)));
+        _cases.Add((list, BlockComposer.Compose(_context, _scope, then)));
     }
 
     /// <summary>
@@ -120,7 +125,7 @@ public sealed class SwitchComposer
             throw new InvalidOperationException("The switch already has a default.");
         }
 
-        _default = BlockComposer.Compose(_context, otherwise);
+        _default = BlockComposer.Compose(_context, _scope, otherwise);
     }
 
     /// <summary>Ends composing and returns the blocks: a conditional chain, or the default alone when there are no cases.</summary>

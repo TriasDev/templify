@@ -12,12 +12,14 @@ namespace TriasDev.Templify.Builder;
 public sealed class InlineComposer
 {
     private readonly BuildContext _context;
+    private readonly LoopScope? _scope;
     private readonly List<Inline> _inlines = new List<Inline>();
     private bool _isOpen = true;
 
-    internal InlineComposer(BuildContext context)
+    internal InlineComposer(BuildContext context, LoopScope? scope)
     {
         _context = context;
+        _scope = scope;
     }
 
     /// <summary>Adds literal text in the paragraph's formatting.</summary>
@@ -72,8 +74,9 @@ public sealed class InlineComposer
     /// <summary>Adds a line break inside the paragraph.</summary>
     public void LineBreak() => AddText("\n", null);
 
-    internal static ValueInline CreateValue(BuildContext context, TemplatePath path, ValueFormat? format = null, CharacterStyleKey? style = null)
+    internal static ValueInline CreateValue(BuildContext context, LoopScope? scope, TemplatePath path, ValueFormat? format = null, CharacterStyleKey? style = null)
     {
+        LoopScope.CheckUse(context, scope, path);
         if (path.IsRoot)
         {
             context.Error(
@@ -137,7 +140,7 @@ public sealed class InlineComposer
     private void AddValue(TemplatePath path, ValueFormat? format, CharacterStyleKey? style)
     {
         EnsureOpen();
-        _inlines.Add(CreateValue(_context, path, format, style));
+        _inlines.Add(CreateValue(_context, _scope, path, format, style));
     }
 
     private void EnsureOpen()

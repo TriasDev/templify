@@ -32,6 +32,12 @@ internal sealed record ConditionalBlock : Block
     public List<Block>? Else { get; set; }
 }
 
+/// <summary>A paragraph-level loop: <c>{{#foreach item in collection}}</c> … <c>{{/foreach}}</c>.</summary>
+internal sealed record LoopBlock(TemplatePath Collection, string ItemName, List<Block> Body) : Block;
+
+/// <summary>The content of a component, kept as a unit together with the component that produced it.</summary>
+internal sealed record ComponentBlock(ITemplateComponent Component, List<Block> Body) : Block;
+
 /// <summary>One condition of a <see cref="ConditionalBlock"/> and the blocks it guards.</summary>
 internal sealed record ConditionalBranch(Condition Condition, List<Block> Body);
 
@@ -46,6 +52,28 @@ internal static class BlockFlattener
     {
         foreach (Block block in blocks)
         {
+            if (block is LoopBlock loop)
+            {
+                yield return new MarkerBlock(TemplateSyntax.ForEach(loop.ItemName, loop.Collection));
+                foreach (Block inner in Flatten(loop.Body))
+                {
+                    yield return inner;
+                }
+
+                yield return new MarkerBlock(TemplateSyntax.EndForEach);
+                continue;
+            }
+
+            if (block is ComponentBlock component)
+            {
+                foreach (Block inner in Flatten(component.Body))
+                {
+                    yield return inner;
+                }
+
+                continue;
+            }
+
             if (block is not ConditionalBlock conditional)
             {
                 yield return block;

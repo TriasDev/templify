@@ -24,6 +24,12 @@ internal static class TemplateSyntax
     /// <summary>The start marker of a conditional, for example <c>{{#if order.total &gt; 100}}</c>.</summary>
     public static string If(Condition condition) => "{{#if " + condition + "}}";
 
+    /// <summary>The end marker of a loop.</summary>
+    public const string EndForEach = "{{/foreach}}";
+
+    /// <summary>The start marker of a loop with a named iteration variable, for example <c>{{#foreach line in order.lines}}</c>.</summary>
+    public static string ForEach(string itemName, TemplatePath collection) => "{{#foreach " + itemName + " in " + collection + "}}";
+
     /// <summary>An elseif marker.</summary>
     public static string ElseIf(Condition condition) => "{{#elseif " + condition + "}}";
 }

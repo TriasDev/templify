@@ -57,7 +57,7 @@ public sealed class TemplateComposer
     {
         ArgumentNullException.ThrowIfNull(content);
         EnsureOpen();
-        BlockComposer composer = new BlockComposer(_context, _body);
+        BlockComposer composer = new BlockComposer(_context, _body, null);
         content(composer);
         composer.Close();
     }

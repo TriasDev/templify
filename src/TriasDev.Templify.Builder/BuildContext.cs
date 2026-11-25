@@ -61,4 +61,13 @@ internal static class DiagnosticCodes
 
     /// <summary>A switch names the same value in more than one case.</summary>
     public const string DuplicateSwitchCase = "TB3002";
+
+    /// <summary>A path from a loop variable is used outside its loop.</summary>
+    public const string LoopVariableOutOfScope = "TB4001";
+
+    /// <summary>Loop metadata of an outer loop is used inside a nested loop.</summary>
+    public const string OuterLoopMetadata = "TB4002";
+
+    /// <summary>A path from the data's root starts with the name of an enclosing loop variable.</summary>
+    public const string RootPathHidden = "TB4003";
 }

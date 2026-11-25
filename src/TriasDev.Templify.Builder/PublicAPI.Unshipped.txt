@@ -90,6 +90,8 @@ static TriasDev.Templify.Builder.ValueFormat.TrueFalse.get -> TriasDev.Templify.
 static TriasDev.Templify.Builder.ValueFormat.Uppercase.get -> TriasDev.Templify.Builder.ValueFormat!
 static TriasDev.Templify.Builder.ValueFormat.YesNo.get -> TriasDev.Templify.Builder.ValueFormat!
 TriasDev.Templify.Builder.BlockComposer
+TriasDev.Templify.Builder.BlockComposer.Component(TriasDev.Templify.Builder.ITemplateComponent! component) -> void
+TriasDev.Templify.Builder.BlockComposer.ForEach(TriasDev.Templify.Builder.TemplatePath collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem!, TriasDev.Templify.Builder.BlockComposer!>! body) -> void
 TriasDev.Templify.Builder.BlockComposer.If(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.BlockComposer!>! then) -> TriasDev.Templify.Builder.IfChain!
 TriasDev.Templify.Builder.BlockComposer.PageBreak() -> void
 TriasDev.Templify.Builder.BlockComposer.Paragraph(string! text) -> void
@@ -162,6 +164,8 @@ TriasDev.Templify.Builder.InlineComposer.Value(TriasDev.Templify.Builder.Templat
 TriasDev.Templify.Builder.InlineComposer.Value(TriasDev.Templify.Builder.TemplatePath path, TriasDev.Templify.Builder.ValueFormat! format, TriasDev.Templify.Builder.CharacterStyleKey! style) -> void
 TriasDev.Templify.Builder.InlineComposer.Value(TriasDev.Templify.Builder.TemplatePath path, TriasDev.Templify.Builder.ValueFormat! format) -> void
 TriasDev.Templify.Builder.InlineComposer.Value(TriasDev.Templify.Builder.TemplatePath path) -> void
+TriasDev.Templify.Builder.ITemplateComponent
+TriasDev.Templify.Builder.ITemplateComponent.Compose(TriasDev.Templify.Builder.BlockComposer! content) -> void
 TriasDev.Templify.Builder.ITemplateDefinition
 TriasDev.Templify.Builder.ITemplateDefinition.Compose(TriasDev.Templify.Builder.TemplateComposer! template) -> void
 TriasDev.Templify.Builder.ITemplateDefinition.Identity.get -> TriasDev.Templify.Builder.TemplateIdentity!
@@ -171,6 +175,14 @@ TriasDev.Templify.Builder.Length.Equals(TriasDev.Templify.Builder.Length other) 
 TriasDev.Templify.Builder.Length.Length() -> void
 TriasDev.Templify.Builder.Length.Millimeters.get -> double
 TriasDev.Templify.Builder.Length.Points.get -> double
+TriasDev.Templify.Builder.LoopItem
+TriasDev.Templify.Builder.LoopItem.Count.get -> TriasDev.Templify.Builder.TemplatePath
+TriasDev.Templify.Builder.LoopItem.Index.get -> TriasDev.Templify.Builder.TemplatePath
+TriasDev.Templify.Builder.LoopItem.IsFirst.get -> TriasDev.Templify.Builder.Condition!
+TriasDev.Templify.Builder.LoopItem.IsLast.get -> TriasDev.Templify.Builder.Condition!
+TriasDev.Templify.Builder.LoopItem.Number.get -> TriasDev.Templify.Builder.TemplatePath
+TriasDev.Templify.Builder.LoopItem.Self.get -> TriasDev.Templify.Builder.TemplatePath
+TriasDev.Templify.Builder.LoopItem.this[string! relative].get -> TriasDev.Templify.Builder.TemplatePath
 TriasDev.Templify.Builder.ParagraphStyleComposer
 TriasDev.Templify.Builder.ParagraphStyleComposer.Alignment(TriasDev.Templify.Builder.TextAlignment alignment) -> TriasDev.Templify.Builder.ParagraphStyleComposer!
 TriasDev.Templify.Builder.ParagraphStyleComposer.BasedOn(TriasDev.Templify.Builder.ParagraphStyleKey! parent) -> TriasDev.Templify.Builder.ParagraphStyleComposer!
