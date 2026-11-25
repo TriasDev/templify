@@ -69,7 +69,7 @@ public sealed class OdtValidationTests
 
         ValidationError error = Assert.Single(result.Errors);
         Assert.Equal(ValidationErrorType.InvalidConditionalExpression, error.Type);
-        Assert.Equal("{{#if Count >}}", error.Location);
+        Assert.Equal("body, paragraph 1: '{{#if Count >}}'", error.Location);
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public sealed class OdtValidationTests
         Assert.Equal(
             "Condition 'contains' uses 'contains', which is also a keyword, as a variable. Write '[contains]' to reference the variable unambiguously.",
             warning.Message);
-        Assert.Equal("{{#if contains}}", warning.Location);
+        Assert.Equal("body, paragraph 1: '{{#if contains}}'", warning.Location);
     }
 
     [Fact]

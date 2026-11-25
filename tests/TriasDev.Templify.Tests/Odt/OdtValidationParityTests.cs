@@ -66,6 +66,10 @@ public sealed class OdtValidationParityTests
         { "text next to loop markers", new[] { "Assets: {{#foreach Items}}", "{{Title}}", "{{/foreach}} tail" } },
         { "text next to conditional markers", new[] { "Intro {{#if A}}", "a", "{{#elseif B}} or", "b", "{{#else}} else", "c", "{{/if}} outro" } },
         { "inline loop", new[] { "Assets: {{#foreach Items}}{{Title}}, {{/foreach}}." } },
+        { "unterminated tags", new[] { "Hello {{Na", "me}} world", "{{#if", "A}}", "{{ no tag", "{\"a\":{\"b\":1}}" } },
+        { "multiple block markers", new[] { "{{#if A}}{{#foreach Items}}", "{{Title}}", "{{/foreach}}{{/if}}" } },
+        { "orphan else and elseif", new[] { "{{#else}}", "x", "{{#elseif B}}" } },
+        { "nested end markers in loop", new[] { "{{#foreach Items}}", "{{#if A}}", "{{Title}}", "{{/if}}{{/foreach}}" } },
         { "text next to nested markers", new[] { "{{#foreach Items}}", "Sub: {{#if Active}}", "{{Title}}", "{{/if}}", "{{/foreach}}" } },
     };
 
@@ -106,7 +110,7 @@ public sealed class OdtValidationParityTests
         data == null ? processor.ValidateTemplate(stream) : processor.ValidateTemplate(stream, data);
 
     private static List<string> Describe(IEnumerable<ValidationError> errors) =>
-        errors.Select(e => $"{e.Type}: {e.Message}").Order(StringComparer.Ordinal).ToList();
+        errors.Select(e => $"{e.Type}: {e.Message} @ {e.Location}").Order(StringComparer.Ordinal).ToList();
 
     private static Dictionary<string, object> CreateData() => new Dictionary<string, object>
     {

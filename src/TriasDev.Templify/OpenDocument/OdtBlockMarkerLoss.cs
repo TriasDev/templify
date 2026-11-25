@@ -50,7 +50,7 @@ internal static class OdtBlockMarkerLoss
         }
     }
 
-    private static string GetUnit(XElement marker)
+    internal static string GetUnit(XElement marker)
     {
         if (OdtMarkerText.IsRow(marker))
         {
