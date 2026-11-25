@@ -9,6 +9,9 @@ public sealed class TemplateJsonImportOptions
     /// <summary>Gets the images and embedded fonts the JSON refers to (keys as in <see cref="TemplateJsonDocument.Assets"/>).</summary>
     public IReadOnlyDictionary<string, byte[]>? Assets { get; init; }
 
+    /// <summary>Gets the data the JSON may read: every path outside the catalogue is an error (TB9203). Null for no check.</summary>
+    public DataCatalog? Data { get; init; }
+
     /// <summary>Gets the components the JSON may refer to by name.</summary>
     public ComponentCatalog? Components { get; init; }
 

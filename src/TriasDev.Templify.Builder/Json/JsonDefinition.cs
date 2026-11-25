@@ -387,7 +387,7 @@ internal sealed class JsonDefinition : ITemplateDefinition
             string name = String(block, "component", at)!;
             ComponentCatalog.Registration registration = _options.Components?.Find(name)
                 ?? throw new JsonImportException(at, $"The component '{name}' is not registered (TemplateJsonImportOptions.Components).");
-            c.Component(registration.Create(Required(block, "params", at), ResolvePath, ParagraphStyle, CharacterStyle, at + "/params"));
+            c.Component(registration.Create(Required(block, "params", at), text => Resolve(text, at + "/params"), ParagraphStyle, CharacterStyle, at + "/params"));
         }
         else if (block.TryGetProperty("group", out JsonElement group))
         {
@@ -938,7 +938,23 @@ internal sealed class JsonDefinition : ITemplateDefinition
             throw new JsonImportException(at, "A path is a string such as \"order.customer.name\".");
         }
 
-        return ResolvePath(path.GetString()!);
+        return Resolve(path.GetString()!, at);
+    }
+
+    /// <summary>Resolves a path and, with a data catalogue, checks that the data has it (TB9203 at the pointer).</summary>
+    private TemplatePath Resolve(string text, string at)
+    {
+        TemplatePath path = ResolvePath(text);
+        if (_options.Data is { } catalog && !path.IsMetadata && !path.IsRoot)
+        {
+            string canonical = DataContract.Canonical(path);
+            if (!catalog.Contains(canonical))
+            {
+                _context.Error(DiagnosticCodes.UnknownDataPath, $"The data has no '{canonical}' (written as '{text}').", at);
+            }
+        }
+
+        return path;
     }
 
     private Condition Condition(JsonElement condition, string at)
@@ -963,7 +979,7 @@ internal sealed class JsonDefinition : ITemplateDefinition
 
         try
         {
-            return ConditionParser.Parse(condition.GetString()!, ResolvePath);
+            return ConditionParser.Parse(condition.GetString()!, text => Resolve(text, at));
         }
         catch (FormatException exception)
         {

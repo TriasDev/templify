@@ -15,6 +15,9 @@ override TriasDev.Templify.Builder.Condition.ToString() -> string!
 override TriasDev.Templify.Builder.ContractEntry.Equals(object? obj) -> bool
 override TriasDev.Templify.Builder.ContractEntry.GetHashCode() -> int
 override TriasDev.Templify.Builder.ContractEntry.ToString() -> string!
+override TriasDev.Templify.Builder.DataCatalogEntry.Equals(object? obj) -> bool
+override TriasDev.Templify.Builder.DataCatalogEntry.GetHashCode() -> int
+override TriasDev.Templify.Builder.DataCatalogEntry.ToString() -> string!
 override TriasDev.Templify.Builder.FontFace.Equals(object? obj) -> bool
 override TriasDev.Templify.Builder.FontFace.GetHashCode() -> int
 override TriasDev.Templify.Builder.FontFace.ToString() -> string!
@@ -75,6 +78,10 @@ static TriasDev.Templify.Builder.Condition.operator |(TriasDev.Templify.Builder.
 static TriasDev.Templify.Builder.Condition.Raw(string! expression, params TriasDev.Templify.Builder.TemplatePath[]! uses) -> TriasDev.Templify.Builder.Condition!
 static TriasDev.Templify.Builder.ContractEntry.operator !=(TriasDev.Templify.Builder.ContractEntry? left, TriasDev.Templify.Builder.ContractEntry? right) -> bool
 static TriasDev.Templify.Builder.ContractEntry.operator ==(TriasDev.Templify.Builder.ContractEntry? left, TriasDev.Templify.Builder.ContractEntry? right) -> bool
+static TriasDev.Templify.Builder.DataCatalog.ForType(System.Type! type, System.Text.Json.JsonNamingPolicy? naming = null) -> TriasDev.Templify.Builder.DataCatalog!
+static TriasDev.Templify.Builder.DataCatalog.From<T>(System.Text.Json.JsonNamingPolicy? naming = null) -> TriasDev.Templify.Builder.DataCatalog!
+static TriasDev.Templify.Builder.DataCatalogEntry.operator !=(TriasDev.Templify.Builder.DataCatalogEntry? left, TriasDev.Templify.Builder.DataCatalogEntry? right) -> bool
+static TriasDev.Templify.Builder.DataCatalogEntry.operator ==(TriasDev.Templify.Builder.DataCatalogEntry? left, TriasDev.Templify.Builder.DataCatalogEntry? right) -> bool
 static TriasDev.Templify.Builder.DataContract.FromJson(string! json) -> TriasDev.Templify.Builder.DataContract!
 static TriasDev.Templify.Builder.FontFace.Embedded(byte[]! fontFile) -> TriasDev.Templify.Builder.FontFace!
 static TriasDev.Templify.Builder.FontFace.Embedded(string! family, byte[]! fontFile) -> TriasDev.Templify.Builder.FontFace!
@@ -266,11 +273,30 @@ TriasDev.Templify.Builder.ContractUsage
 TriasDev.Templify.Builder.ContractUsage.Collection = 1 -> TriasDev.Templify.Builder.ContractUsage
 TriasDev.Templify.Builder.ContractUsage.Condition = 2 -> TriasDev.Templify.Builder.ContractUsage
 TriasDev.Templify.Builder.ContractUsage.Value = 0 -> TriasDev.Templify.Builder.ContractUsage
+TriasDev.Templify.Builder.DataCatalog
+TriasDev.Templify.Builder.DataCatalog.Contains(string! path) -> bool
+TriasDev.Templify.Builder.DataCatalog.Entries.get -> System.Collections.Generic.IReadOnlyList<TriasDev.Templify.Builder.DataCatalogEntry!>!
+TriasDev.Templify.Builder.DataCatalogEntry
+TriasDev.Templify.Builder.DataCatalogEntry.<Clone>$() -> TriasDev.Templify.Builder.DataCatalogEntry!
+TriasDev.Templify.Builder.DataCatalogEntry.ClrType.get -> System.Type!
+TriasDev.Templify.Builder.DataCatalogEntry.ClrType.init -> void
+TriasDev.Templify.Builder.DataCatalogEntry.DataCatalogEntry(string! Path, TriasDev.Templify.Builder.DataKind Kind, System.Type! ClrType) -> void
+TriasDev.Templify.Builder.DataCatalogEntry.Deconstruct(out string! Path, out TriasDev.Templify.Builder.DataKind Kind, out System.Type! ClrType) -> void
+TriasDev.Templify.Builder.DataCatalogEntry.Equals(TriasDev.Templify.Builder.DataCatalogEntry? other) -> bool
+TriasDev.Templify.Builder.DataCatalogEntry.Kind.get -> TriasDev.Templify.Builder.DataKind
+TriasDev.Templify.Builder.DataCatalogEntry.Kind.init -> void
+TriasDev.Templify.Builder.DataCatalogEntry.Path.get -> string!
+TriasDev.Templify.Builder.DataCatalogEntry.Path.init -> void
 TriasDev.Templify.Builder.DataContract
 TriasDev.Templify.Builder.DataContract.CreateWitness() -> System.Collections.Generic.IReadOnlyDictionary<string!, object?>!
 TriasDev.Templify.Builder.DataContract.Entries.get -> System.Collections.Generic.IReadOnlyList<TriasDev.Templify.Builder.ContractEntry!>!
 TriasDev.Templify.Builder.DataContract.Hash.get -> string!
 TriasDev.Templify.Builder.DataContract.ToJson() -> string!
+TriasDev.Templify.Builder.DataKind
+TriasDev.Templify.Builder.DataKind.Collection = 2 -> TriasDev.Templify.Builder.DataKind
+TriasDev.Templify.Builder.DataKind.Object = 1 -> TriasDev.Templify.Builder.DataKind
+TriasDev.Templify.Builder.DataKind.Open = 3 -> TriasDev.Templify.Builder.DataKind
+TriasDev.Templify.Builder.DataKind.Value = 0 -> TriasDev.Templify.Builder.DataKind
 TriasDev.Templify.Builder.DefaultStyleComposer
 TriasDev.Templify.Builder.DefaultStyleComposer.Color(TriasDev.Templify.Builder.Color color) -> TriasDev.Templify.Builder.DefaultStyleComposer!
 TriasDev.Templify.Builder.DefaultStyleComposer.Font(TriasDev.Templify.Builder.FontFace! font) -> TriasDev.Templify.Builder.DefaultStyleComposer!
@@ -349,6 +375,8 @@ TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.Assets.get -> System.Co
 TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.Assets.init -> void
 TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.Components.get -> TriasDev.Templify.Builder.ComponentCatalog?
 TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.Components.init -> void
+TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.Data.get -> TriasDev.Templify.Builder.DataCatalog?
+TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.Data.init -> void
 TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.TemplateJsonImportOptions() -> void
 TriasDev.Templify.Builder.Length
 TriasDev.Templify.Builder.Length.CompareTo(TriasDev.Templify.Builder.Length other) -> int
