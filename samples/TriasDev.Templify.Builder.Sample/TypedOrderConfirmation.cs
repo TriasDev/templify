@@ -1,0 +1,206 @@
+// Copyright (c) 2026 TriasDev GmbH & Co. KG
+// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+namespace TriasDev.Templify.Builder.Sample;
+
+/// <summary>
+/// The address block of <see cref="AddressBlock"/> with a typed parameter: the component navigates the address with
+/// the compiler's help and builds the same output.
+/// </summary>
+public sealed record OrderAddressBlock(TemplatePath<Address> Address) : ITemplateComponent
+{
+    public void Compose(BlockComposer c)
+    {
+        c.Paragraph(Styles.Body, x =>
+        {
+            x.Value(Address.Path(a => a.Street));
+            x.LineBreak();
+            x.Value(Address.Path(a => a.PostalCode));
+            x.Text(" ");
+            x.Value(Address.Path(a => a.City));
+            x.If(Address.Path(a => a.Country).NotEq("DE"), t => t.Text(", ").Value(Address.Path(a => a.Country)));
+        });
+    }
+}
+
+/// <summary>
+/// The order confirmation of <see cref="OrderConfirmation"/>, with data paths from <see cref="OrderData"/> instead of
+/// strings. It builds byte for byte the same templates.
+/// </summary>
+public sealed class TypedOrderConfirmation(BrandTheme theme) : ITemplateDefinition
+{
+    public TemplateIdentity Identity { get; } = new("order-confirmation", 1);
+
+    public void Compose(TemplateComposer template)
+    {
+        TemplateTexts t = template.Texts;
+        TemplatePath<Order> order = template.DataAs<OrderData>().Path(d => d.Order);
+
+        template.Styles(Styles.Create(theme));
+        template.Properties(p => p.Title(t["title"]).Author("Example Trading").Subject(t["title"]));
+
+        template.Page(page => page
+            .Size(PageSize.A4)
+            .Margins(25.Mm(), 20.Mm(), 22.Mm(), 20.Mm())
+            .Header(h => h.Paragraph(Styles.Small, x =>
+            {
+                x.Text(t["title"] + " ");
+                x.Value(order.Path(o => o.Number));
+                x.TabRight();
+                x.Text(t["page"] + " ");
+                x.PageNumber();
+                x.Text(" / ");
+                x.PageCount();
+            }))
+            .Footer(f => f.Paragraph(Styles.Small, t["footer"]))
+            .FirstPage(first =>
+            {
+                first.Header(h => h.Paragraph(x => x.Image(theme.Logo, "Example Trading", ImageFit.Height(12.Mm()))));
+                first.Footer(f => f.Paragraph(Styles.Small, t["footer"]));
+            }));
+
+        template.Content(c =>
+        {
+            c.Paragraph(Styles.Title, t["title"]);
+            c.Paragraph(Styles.Subtitle, x =>
+            {
+                x.Text(t["orderNo"] + " ");
+                x.Value(order.Path(o => o.Number), Styles.Strong);
+                x.Text(" · ");
+                x.Value(order.Path(o => o.Date), ValueFormat.Date(t["dateFormat"]));
+            });
+
+            c.TableOfContents(1);
+
+            Customer(c, t, order);
+            Items(c, t, order);
+            Status(c, t, order);
+            Checks(c, t, order);
+            Notes(c, t, order);
+
+            c.PageBreak();
+            c.Paragraph(Styles.Heading, t["terms"]);
+            c.Paragraph(Styles.Small, t["termsText"]);
+            c.Rule(0.5.Pt(), theme.Line, 12.Pt(), 4.Pt());
+            c.Raw(OrderConfirmation.PrintedOn(t["printedOn"]));
+        });
+    }
+
+    private static void Customer(BlockComposer c, TemplateTexts t, TemplatePath<Order> order)
+    {
+        TemplatePath<Customer> customer = order.Path(o => o.Customer);
+        c.Paragraph(Styles.Heading, t["customer"]);
+        c.Paragraph(Styles.Body, x =>
+        {
+            x.Value(customer.Path(k => k.Name), Styles.Strong);
+            x.If(customer.Path(k => k.IsNew), s => s.Text(" (" + t["newCustomer"] + ")", Styles.Muted));
+        });
+        c.If(customer.Path(k => k.Contact).IsNotEmpty, b => b.Paragraph(Styles.Body, x =>
+        {
+            x.Text(t["attn"] + " ", Styles.Muted);
+            x.Value(customer.Path(k => k.Contact));
+        }));
+        c.Component(new OrderAddressBlock(customer.Path(k => k.Address)));
+    }
+
+    private static void Items(BlockComposer c, TemplateTexts t, TemplatePath<Order> order)
+    {
+        c.Paragraph(Styles.Heading, t["items"]);
+        c.Table(table =>
+        {
+            table.Style(Styles.Grid).SpaceAfter(8.Pt());
+            table.Columns(cols =>
+            {
+                cols.Fixed(10.Mm());
+                cols.Relative(4);
+                cols.Fixed(16.Mm());
+                cols.Fixed(30.Mm());
+            });
+            table.HeaderRow(r =>
+            {
+                r.Cell(Styles.TableHeader, "#");
+                r.Cell(Styles.TableHeader, t["description"]);
+                r.Cell(Styles.TableHeader, t["quantity"]);
+                r.Cell(Styles.TableHeader, t["amount"]);
+            });
+            table.ForEachRow(order.Items(o => o.Lines), "line", (line, rows) =>
+            {
+                rows.Row(r =>
+                {
+                    r.Cell(Styles.TableText, line.Number);
+                    r.Cell(cell =>
+                    {
+                        cell.Paragraph(Styles.TableText, x =>
+                        {
+                            x.Value(line.Path(l => l.Description));
+                            x.Text(" — ", Styles.Muted);
+                            x.If(line.Path(l => l.InStock), s => s.Text(t["inStock"], Styles.Muted)).Else(s => s.Text(t["backOrdered"], Styles.Muted));
+                        });
+                        cell.If(line.Path(l => l.Tags).IsNotEmpty, b => b.Paragraph(Styles.Small, x => x.Value(line.Path(l => l.Tags), ValueFormat.Join(separator: " · "))));
+                    });
+                    r.Cell(Styles.TableText, line.Path(l => l.Quantity));
+                    r.Cell(cell => cell.Paragraph(Styles.TableText, x => x.Value(line.Path(l => l.Amount), ValueFormat.Currency)));
+                });
+            });
+            table.RowsIf(order.Path(o => o.Discount).Gt(0), rows => rows.Row(r =>
+            {
+                r.Cell(cell => cell.ColumnSpan(3).Paragraph(Styles.TableText, t["discount"]));
+                r.Cell(cell => cell.Paragraph(Styles.TableText, x => x.Value(order.Path(o => o.Discount), ValueFormat.Currency)));
+            }));
+            table.Row(r =>
+            {
+                r.Cell(cell => cell.ColumnSpan(3).Paragraph(Styles.TableHeader, t["total"]));
+                r.Cell(cell => cell.Paragraph(Styles.TableHeader, x => x.Value(order.Path(o => o.Total), ValueFormat.Currency)));
+            });
+        });
+
+        c.Paragraph(Styles.Body, x =>
+        {
+            x.Text(t["freeExpress"] + " ");
+            x.Expression(order.Path(o => o.IsExpress) & order.Path(o => o.Total).Gt(1000), ValueFormat.YesNo);
+        });
+    }
+
+    private static void Status(BlockComposer c, TemplateTexts t, TemplatePath<Order> order)
+    {
+        c.Switch(order.Path(o => o.Status), s =>
+        {
+            s.Case("paid", b => b.Box(Styles.Success, x => x.Paragraph(Styles.Body, t["statusPaid"])));
+            s.Case(new[] { "overdue", "reminded" }, b => b.Box(Styles.Warning, x => x.Paragraph(Styles.Body, t["statusOverdue"])));
+            s.Default(b => b.Paragraph(Styles.Body, t["statusOpen"]));
+        });
+
+        Condition expressFree = order.Path(o => o.IsExpress) & order.Path(o => o.Total).Gt(1000);
+        c.If(expressFree, b => b.Paragraph(Styles.Body, t["expressFree"]))
+         .ElseIf(order.Path(o => o.IsExpress), b => b.Paragraph(Styles.Body, t["express"]))
+         .Else(b => b.Paragraph(Styles.Body, t["standard"]));
+    }
+
+    private static void Checks(BlockComposer c, TemplateTexts t, TemplatePath<Order> order)
+    {
+        TemplateCollection<Check> checks = order.Items(o => o.Checks);
+        c.If(checks.IsNotEmpty, b =>
+        {
+            b.Paragraph(Styles.Heading, t["checks"]);
+            b.List(Styles.Bullets, list => list.ForEach(checks, "check", (check, items) =>
+            {
+                items.Item(x =>
+                {
+                    x.Value(check.Path(k => k.Title));
+                    x.Text(": ");
+                    x.Value(check.Path(k => k.Passed), ValueFormat.Checkmark);
+                });
+                items.If(check.Path(k => k.Note).Exists, notes => notes.Item(1, check.Path(k => k.Note)));
+            }));
+        });
+    }
+
+    private static void Notes(BlockComposer c, TemplateTexts t, TemplatePath<Order> order)
+    {
+        c.If(order.Path(o => o.Notes).IsNotEmpty, b =>
+        {
+            b.Paragraph(Styles.Heading, t["notes"]);
+            b.Paragraph(Styles.Body, order.Path(o => o.Notes));
+        });
+    }
+}

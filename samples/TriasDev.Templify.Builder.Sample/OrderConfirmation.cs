@@ -68,19 +68,22 @@ public static class Styles
     });
 }
 
-/// <summary>A reusable block: any template that prints an address uses it.</summary>
-public sealed class AddressBlock(TemplatePath address) : ITemplateComponent
+/// <summary>
+/// A reusable block: any template that prints an address uses it. A record whose parameters are paths, so a
+/// <see cref="ComponentCatalog"/> can write it to JSON as a reference.
+/// </summary>
+public sealed record AddressBlock(TemplatePath Address) : ITemplateComponent
 {
     public void Compose(BlockComposer c)
     {
         c.Paragraph(Styles.Body, x =>
         {
-            x.Value(address["street"]);
+            x.Value(Address["street"]);
             x.LineBreak();
-            x.Value(address["postalCode"]);
+            x.Value(Address["postalCode"]);
             x.Text(" ");
-            x.Value(address["city"]);
-            x.If(address["country"].NotEq("DE"), t => t.Text(", ").Value(address["country"]));
+            x.Value(Address["city"]);
+            x.If(Address["country"].NotEq("DE"), t => t.Text(", ").Value(Address["country"]));
         });
     }
 }
@@ -270,7 +273,7 @@ public sealed class OrderConfirmation(BrandTheme theme) : ITemplateDefinition
     /// A raw block: a date field the application fills when it prints. The builder has no date-field construct, so
     /// the XML is written per format.
     /// </summary>
-    private static RawBlock PrintedOn(string label)
+    internal static RawBlock PrintedOn(string label)
     {
         XNamespace w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
         XNamespace text = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";

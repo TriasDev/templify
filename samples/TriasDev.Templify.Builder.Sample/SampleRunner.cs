@@ -2,6 +2,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Globalization;
+using TriasDev.Templify.Builder.Json;
 using TriasDev.Templify.Builder.Testing;
 using TriasDev.Templify.Core;
 
@@ -15,6 +16,9 @@ public static class SampleRunner
 {
     /// <summary>The languages the sample builds.</summary>
     public static readonly CultureInfo[] Languages = [CultureInfo.GetCultureInfo("de-DE"), CultureInfo.GetCultureInfo("en-GB")];
+
+    /// <summary>The components a JSON definition of the sample may refer to by name.</summary>
+    public static ComponentCatalog Components { get; } = new ComponentCatalog().Register<AddressBlock>("address");
 
     /// <summary>Runs the sample.</summary>
     /// <param name="outputDirectory">Where the files go.</param>
@@ -70,6 +74,72 @@ public static class SampleRunner
         {
             UploadCheckResult check = TemplateInspector.CheckUpload(upload, first.Contract, new OrderConfirmation(theme).Identity);
             log.WriteLine($"upload check of the unchanged template: usable={check.IsUsable}, origin={check.Origin}");
+        }
+
+        return files;
+    }
+
+    /// <summary>
+    /// Phase 3 (#274): exports the definition to JSON per language, imports it again (checked against the data
+    /// catalogue of <see cref="OrderData"/>), builds and fills DOCX and ODT from the import and checks that the
+    /// templates are the bytes the C# definition builds.
+    /// </summary>
+    /// <param name="outputDirectory">Where the files go.</param>
+    /// <param name="log">Where progress and sizes go.</param>
+    /// <returns>The written files.</returns>
+    public static IReadOnlyList<string> RunPhase3(string outputDirectory, TextWriter log)
+    {
+        ArgumentNullException.ThrowIfNull(outputDirectory);
+        ArgumentNullException.ThrowIfNull(log);
+        Directory.CreateDirectory(Path.Combine(outputDirectory, "assets"));
+        BrandTheme theme = BrandTheme.CreateDefault();
+        string data = SampleResources.SampleData;
+        List<string> files = new List<string>();
+
+        foreach (CultureInfo language in Languages)
+        {
+            TemplateBuildOptions options = new TemplateBuildOptions { Format = TemplateFormat.Docx, Language = language, Texts = SampleTexts.Catalog };
+            TemplateJsonDocument exported = TemplateJson.Export(new OrderConfirmation(theme), options, Components);
+            string name = $"order-confirmation.{language.Name}";
+            files.Add(Write(outputDirectory, name + ".json", System.Text.Encoding.UTF8.GetBytes(exported.Json)));
+            foreach ((string key, byte[] asset) in exported.Assets)
+            {
+                files.Add(Write(Path.Combine(outputDirectory, "assets"), key.Replace("sha256:", string.Empty, StringComparison.Ordinal)[..16] + ".png", asset));
+            }
+
+            ITemplateDefinition imported = TemplateJson.Import(exported.Json, new TemplateJsonImportOptions
+            {
+                Assets = exported.Assets,
+                Components = Components,
+                Data = DataCatalog.From<OrderData>(),
+                AllowRawXml = true,
+            });
+
+            int lines = exported.Json.Count(c => c == '\n') + 1;
+            log.WriteLine($"{name}.json: {exported.Json.Length} characters, {lines} lines, about {exported.Json.Length / 4} tokens");
+            foreach (TemplateFormat format in new[] { TemplateFormat.Docx, TemplateFormat.Odt })
+            {
+                TemplateBuildOptions formatOptions = options with { Format = format };
+                GeneratedTemplate fromJson = TemplateBuilder.Build(imported, formatOptions);
+                GeneratedTemplate fromCSharp = TemplateBuilder.Build(new OrderConfirmation(theme), formatOptions);
+                if (fromJson.ContentHash != fromCSharp.ContentHash)
+                {
+                    throw new InvalidOperationException($"{name}{fromJson.FileExtension}: the template built from JSON differs from the C# one.");
+                }
+
+                files.Add(Write(outputDirectory, $"{name}.from-json{fromJson.FileExtension}", fromJson.Content.ToArray()));
+                using Stream input = fromJson.OpenRead();
+                using MemoryStream output = new MemoryStream();
+                ProcessingResult result = new TemplateProcessor(new PlaceholderReplacementOptions { Culture = language, MissingVariableBehavior = MissingVariableBehavior.ThrowException })
+                    .ProcessTemplate(input, output, data);
+                if (!result.IsSuccess)
+                {
+                    throw new InvalidOperationException(result.ErrorMessage);
+                }
+
+                files.Add(Write(outputDirectory, $"{name}.from-json.filled{fromJson.FileExtension}", output.ToArray()));
+                log.WriteLine($"{name}.from-json{fromJson.FileExtension}: same bytes as C# ({fromJson.ContentHash[..12]})");
+            }
         }
 
         return files;

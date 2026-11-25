@@ -1,6 +1,8 @@
 // Copyright (c) 2026 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Globalization;
+using TriasDev.Templify.Builder.Json;
 using TriasDev.Templify.Builder.Sample;
 using TriasDev.Templify.Builder.Testing;
 using TriasDev.Templify.Core;
@@ -48,5 +50,78 @@ public sealed class SampleTests
                 Directory.Delete(directory, recursive: true);
             }
         }
+    }
+
+    [Fact]
+    public void Phase3_JsonRoundTripIsByteIdentical()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "templify-phase3-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            StringWriter log = new StringWriter();
+
+            IReadOnlyList<string> files = SampleRunner.RunPhase3(directory, log);
+
+            foreach (string language in new[] { "de-DE", "en-GB" })
+            {
+                Assert.Contains(files, f => Path.GetFileName(f) == $"order-confirmation.{language}.json");
+                foreach (string extension in new[] { "docx", "odt" })
+                {
+                    Assert.Contains(files, f => Path.GetFileName(f) == $"order-confirmation.{language}.from-json.{extension}");
+                    Assert.Contains(files, f => Path.GetFileName(f) == $"order-confirmation.{language}.from-json.filled.{extension}");
+                }
+            }
+
+            Assert.Contains(files, f => Path.GetFileName(Path.GetDirectoryName(f)) == "assets" && f.EndsWith(".png", StringComparison.Ordinal));
+            Assert.Equal(4, System.Text.RegularExpressions.Regex.Matches(log.ToString(), "same bytes as C#").Count);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(TemplateFormat.Docx, "de-DE")]
+    [InlineData(TemplateFormat.Odt, "de-DE")]
+    [InlineData(TemplateFormat.Docx, "en-GB")]
+    [InlineData(TemplateFormat.Odt, "en-GB")]
+    public void Typed_SampleProducesTheSameBytes(TemplateFormat format, string language)
+    {
+        TemplateBuildOptions options = new TemplateBuildOptions { Format = format, Language = CultureInfo.GetCultureInfo(language), Texts = SampleTexts.Catalog };
+        BrandTheme theme = BrandTheme.CreateDefault();
+
+        Assert.Equal(TemplateBuilder.Build(new OrderConfirmation(theme), options).ContentHash, TemplateBuilder.Build(new TypedOrderConfirmation(theme), options).ContentHash);
+    }
+
+    [Fact]
+    public void Typed_SampleVerifies()
+    {
+        BrandTheme theme = BrandTheme.CreateDefault();
+
+        TemplateVerifier.VerifyAll(
+            () => new TypedOrderConfirmation(theme),
+            new TemplateVerificationOptions { Languages = SampleRunner.Languages, Texts = _ => SampleTexts.Catalog, SampleData = [SampleResources.SampleData] });
+    }
+
+    [Fact]
+    public void Phase3_ImportCheckedAgainstTheDataCatalogue()
+    {
+        TemplateBuildOptions options = new TemplateBuildOptions { Format = TemplateFormat.Docx, Language = CultureInfo.GetCultureInfo("en-GB"), Texts = SampleTexts.Catalog };
+        TemplateJsonDocument exported = TemplateJson.Export(new OrderConfirmation(BrandTheme.CreateDefault()), options, SampleRunner.Components);
+
+        ITemplateDefinition imported = TemplateJson.Import(exported.Json, new TemplateJsonImportOptions
+        {
+            Assets = exported.Assets,
+            Components = SampleRunner.Components,
+            Data = DataCatalog.From<OrderData>(),
+            AllowRawXml = true,
+        });
+
+        Assert.Contains("\"component\": \"address\"", exported.Json, StringComparison.Ordinal);
+        Assert.Equal(TemplateBuilder.Build(new OrderConfirmation(BrandTheme.CreateDefault()), options).ContentHash, TemplateBuilder.Build(imported, options).ContentHash);
     }
 }
