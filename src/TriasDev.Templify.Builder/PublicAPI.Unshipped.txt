@@ -89,6 +89,10 @@ static TriasDev.Templify.Builder.TemplatePath.Root(string! path) -> TriasDev.Tem
 static TriasDev.Templify.Builder.TemplateStamp.operator !=(TriasDev.Templify.Builder.TemplateStamp? left, TriasDev.Templify.Builder.TemplateStamp? right) -> bool
 static TriasDev.Templify.Builder.TemplateStamp.operator ==(TriasDev.Templify.Builder.TemplateStamp? left, TriasDev.Templify.Builder.TemplateStamp? right) -> bool
 static TriasDev.Templify.Builder.TemplateStampRemover.Remove(System.IO.Stream! document) -> bool
+static TriasDev.Templify.Builder.TextCatalog.Combine(params TriasDev.Templify.Builder.ITextCatalog![]! catalogs) -> TriasDev.Templify.Builder.ITextCatalog!
+static TriasDev.Templify.Builder.TextCatalog.Empty.get -> TriasDev.Templify.Builder.ITextCatalog!
+static TriasDev.Templify.Builder.TextCatalog.FromDictionary(System.Collections.Generic.IReadOnlyDictionary<string!, System.Collections.Generic.IReadOnlyDictionary<string!, string!>!>! texts) -> TriasDev.Templify.Builder.ITextCatalog!
+static TriasDev.Templify.Builder.TextCatalog.FromResourceManager(System.Resources.ResourceManager! resources, System.Globalization.CultureInfo? neutralLanguage = null) -> TriasDev.Templify.Builder.ITextCatalog!
 static TriasDev.Templify.Builder.Units.Mm(this double millimeters) -> TriasDev.Templify.Builder.Length
 static TriasDev.Templify.Builder.Units.Mm(this int millimeters) -> TriasDev.Templify.Builder.Length
 static TriasDev.Templify.Builder.Units.Pt(this double points) -> TriasDev.Templify.Builder.Length
@@ -208,6 +212,8 @@ TriasDev.Templify.Builder.ITemplateComponent.Compose(TriasDev.Templify.Builder.B
 TriasDev.Templify.Builder.ITemplateDefinition
 TriasDev.Templify.Builder.ITemplateDefinition.Compose(TriasDev.Templify.Builder.TemplateComposer! template) -> void
 TriasDev.Templify.Builder.ITemplateDefinition.Identity.get -> TriasDev.Templify.Builder.TemplateIdentity!
+TriasDev.Templify.Builder.ITextCatalog
+TriasDev.Templify.Builder.ITextCatalog.TryGet(string! key, System.Globalization.CultureInfo! language, out string! text) -> bool
 TriasDev.Templify.Builder.Length
 TriasDev.Templify.Builder.Length.CompareTo(TriasDev.Templify.Builder.Length other) -> int
 TriasDev.Templify.Builder.Length.Equals(TriasDev.Templify.Builder.Length other) -> bool
@@ -269,11 +275,14 @@ TriasDev.Templify.Builder.TemplateBuildOptions.Format.init -> void
 TriasDev.Templify.Builder.TemplateBuildOptions.Language.get -> System.Globalization.CultureInfo!
 TriasDev.Templify.Builder.TemplateBuildOptions.Language.init -> void
 TriasDev.Templify.Builder.TemplateBuildOptions.TemplateBuildOptions() -> void
+TriasDev.Templify.Builder.TemplateBuildOptions.Texts.get -> TriasDev.Templify.Builder.ITextCatalog!
+TriasDev.Templify.Builder.TemplateBuildOptions.Texts.init -> void
 TriasDev.Templify.Builder.TemplateComposer
 TriasDev.Templify.Builder.TemplateComposer.Content(System.Action<TriasDev.Templify.Builder.BlockComposer!>! content) -> void
 TriasDev.Templify.Builder.TemplateComposer.Data.get -> TriasDev.Templify.Builder.TemplatePath
 TriasDev.Templify.Builder.TemplateComposer.Properties(System.Action<TriasDev.Templify.Builder.DocumentPropertiesComposer!>! properties) -> void
 TriasDev.Templify.Builder.TemplateComposer.Styles(TriasDev.Templify.Builder.StyleSheet! styles) -> void
+TriasDev.Templify.Builder.TemplateComposer.Texts.get -> TriasDev.Templify.Builder.TemplateTexts!
 TriasDev.Templify.Builder.TemplateIdentity
 TriasDev.Templify.Builder.TemplateIdentity.<Clone>$() -> TriasDev.Templify.Builder.TemplateIdentity!
 TriasDev.Templify.Builder.TemplateIdentity.Deconstruct(out string! Id, out int Version) -> void
@@ -335,11 +344,15 @@ TriasDev.Templify.Builder.TemplateStamp.TemplateStamp(string! TemplateId, int Ve
 TriasDev.Templify.Builder.TemplateStamp.Version.get -> int
 TriasDev.Templify.Builder.TemplateStamp.Version.init -> void
 TriasDev.Templify.Builder.TemplateStampRemover
+TriasDev.Templify.Builder.TemplateTexts
+TriasDev.Templify.Builder.TemplateTexts.Language.get -> System.Globalization.CultureInfo!
+TriasDev.Templify.Builder.TemplateTexts.this[string! key].get -> string!
 TriasDev.Templify.Builder.TextAlignment
 TriasDev.Templify.Builder.TextAlignment.Center = 1 -> TriasDev.Templify.Builder.TextAlignment
 TriasDev.Templify.Builder.TextAlignment.End = 2 -> TriasDev.Templify.Builder.TextAlignment
 TriasDev.Templify.Builder.TextAlignment.Justify = 3 -> TriasDev.Templify.Builder.TextAlignment
 TriasDev.Templify.Builder.TextAlignment.Start = 0 -> TriasDev.Templify.Builder.TextAlignment
+TriasDev.Templify.Builder.TextCatalog
 TriasDev.Templify.Builder.Units
 TriasDev.Templify.Builder.UploadCheckResult
 TriasDev.Templify.Builder.UploadCheckResult.Format.get -> TriasDev.Templify.Core.TemplateFormat

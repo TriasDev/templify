@@ -32,7 +32,7 @@ public static class TemplateBuilder
         BuildContext context = new BuildContext();
         ValidateIdentity(definition.Identity, context);
 
-        TemplateComposer composer = new TemplateComposer(context);
+        TemplateComposer composer = new TemplateComposer(context, new TemplateTexts(context, options.Texts ?? TextCatalog.Empty, options.Language));
         definition.Compose(composer);
         (IReadOnlyList<Block> body, StyleSheet styles, DocumentInfo info) = composer.Close();
 

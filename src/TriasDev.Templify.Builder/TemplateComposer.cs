@@ -16,10 +16,14 @@ public sealed class TemplateComposer
     private StyleSheet? _styles;
     private bool _isOpen = true;
 
-    internal TemplateComposer(BuildContext context)
+    internal TemplateComposer(BuildContext context, TemplateTexts texts)
     {
         _context = context;
+        Texts = texts;
     }
+
+    /// <summary>Gets the texts of the build's language: <c>template.Texts["invoiceTitle"]</c>.</summary>
+    public TemplateTexts Texts { get; }
 
     /// <summary>
     /// Gets the root of the data the template is filled with. Append segments with the indexer:

@@ -21,4 +21,9 @@ public sealed record TemplateBuildOptions
     /// or neutral culture, not the invariant culture.
     /// </summary>
     public required CultureInfo Language { get; init; }
+
+    /// <summary>
+    /// Gets the literal texts the definition reads through <see cref="TemplateComposer.Texts"/>; empty by default.
+    /// </summary>
+    public ITextCatalog Texts { get; init; } = TextCatalog.Empty;
 }

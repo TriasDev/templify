@@ -16,8 +16,8 @@ internal static class BuilderHarness
 {
     public static readonly TemplateFormat[] Formats = { TemplateFormat.Docx, TemplateFormat.Odt };
 
-    public static TemplateBuildOptions Options(TemplateFormat format, string language = "en-US") =>
-        new TemplateBuildOptions { Format = format, Language = CultureInfo.GetCultureInfo(language) };
+    public static TemplateBuildOptions Options(TemplateFormat format, string language = "en-US", ITextCatalog? texts = null) =>
+        new TemplateBuildOptions { Format = format, Language = CultureInfo.GetCultureInfo(language), Texts = texts ?? TextCatalog.Empty };
 
     public static GeneratedTemplate Build(ITemplateDefinition definition, TemplateFormat format) =>
         TemplateBuilder.Build(definition, Options(format));
@@ -27,15 +27,19 @@ internal static class BuilderHarness
     /// </summary>
     /// <returns>The built template and the filled document.</returns>
     public static (GeneratedTemplate Template, byte[] Filled) BuildAndFill(ITemplateDefinition definition, TemplateFormat format, string json) =>
-        BuildAndFill(definition, format, (processor, input, output) => processor.ProcessTemplate(input, output, json));
+        BuildAndFill(definition, Options(format), (processor, input, output) => processor.ProcessTemplate(input, output, json));
+
+    /// <summary>As <see cref="BuildAndFill(ITemplateDefinition, TemplateFormat, string)"/>, with explicit build options (language, texts).</summary>
+    public static (GeneratedTemplate Template, byte[] Filled) BuildAndFill(ITemplateDefinition definition, TemplateBuildOptions options, string json) =>
+        BuildAndFill(definition, options, (processor, input, output) => processor.ProcessTemplate(input, output, json));
 
     /// <summary>As <see cref="BuildAndFill(ITemplateDefinition, TemplateFormat, string)"/>, with data as a dictionary.</summary>
     public static (GeneratedTemplate Template, byte[] Filled) BuildAndFill(ITemplateDefinition definition, TemplateFormat format, Dictionary<string, object> data) =>
-        BuildAndFill(definition, format, (processor, input, output) => processor.ProcessTemplate(input, output, data));
+        BuildAndFill(definition, Options(format), (processor, input, output) => processor.ProcessTemplate(input, output, data));
 
     /// <summary>As <see cref="BuildAndFill(ITemplateDefinition, TemplateFormat, string)"/>, with read-only data (a contract's witness).</summary>
     public static (GeneratedTemplate Template, byte[] Filled) BuildAndFill(ITemplateDefinition definition, TemplateFormat format, IReadOnlyDictionary<string, object?> data) =>
-        BuildAndFill(definition, format, (processor, input, output) => processor.ProcessTemplate(input, output, data));
+        BuildAndFill(definition, Options(format), (processor, input, output) => processor.ProcessTemplate(input, output, data));
 
     /// <summary>The options every fill uses: missing variables throw, invariant culture.</summary>
     public static PlaceholderReplacementOptions FillOptions => new PlaceholderReplacementOptions
@@ -46,11 +50,12 @@ internal static class BuilderHarness
 
     private static (GeneratedTemplate Template, byte[] Filled) BuildAndFill(
         ITemplateDefinition definition,
-        TemplateFormat format,
+        TemplateBuildOptions options,
         Func<TemplateProcessor, Stream, Stream, ProcessingResult> fill)
     {
-        GeneratedTemplate template = Build(definition, format);
-        AssertInvariants(definition, template);
+        TemplateFormat format = options.Format;
+        GeneratedTemplate template = TemplateBuilder.Build(definition, options);
+        AssertInvariants(definition, template, options);
 
         TemplateProcessor processor = new TemplateProcessor(FillOptions);
         using Stream input = template.OpenRead();
@@ -65,7 +70,7 @@ internal static class BuilderHarness
     }
 
     /// <summary>The invariants of a built template: syntax, package and determinism.</summary>
-    public static void AssertInvariants(ITemplateDefinition definition, GeneratedTemplate template)
+    public static void AssertInvariants(ITemplateDefinition definition, GeneratedTemplate template, TemplateBuildOptions? options = null)
     {
         using (Stream stream = template.OpenRead())
         {
@@ -75,7 +80,7 @@ internal static class BuilderHarness
 
         AssertPackage(template.Format, template.Content.ToArray());
 
-        GeneratedTemplate again = TemplateBuilder.Build(definition, Options(template.Format));
+        GeneratedTemplate again = TemplateBuilder.Build(definition, options ?? Options(template.Format));
         Assert.Equal(template.ContentHash, again.ContentHash);
     }
 

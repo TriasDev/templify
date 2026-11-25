@@ -70,4 +70,7 @@ internal static class DiagnosticCodes
 
     /// <summary>A path from the data's root starts with the name of an enclosing loop variable.</summary>
     public const string RootPathHidden = "TB4003";
+
+    /// <summary>A text key has no translation for the build's language.</summary>
+    public const string MissingText = "TB5001";
 }
