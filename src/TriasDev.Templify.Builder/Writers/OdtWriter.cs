@@ -26,33 +26,60 @@ internal static class OdtWriter
     private static readonly XNamespace _fo = "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0";
     private static readonly XNamespace _svg = "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0";
     private static readonly XNamespace _table = "urn:oasis:names:tc:opendocument:xmlns:table:1.0";
+    private static readonly XNamespace _draw = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0";
+    private static readonly XNamespace _xlink = "http://www.w3.org/1999/xlink";
     private static readonly XNamespace _meta = "urn:oasis:names:tc:opendocument:xmlns:meta:1.0";
     private static readonly XNamespace _dc = "http://purl.org/dc/elements/1.1/";
     private static readonly XNamespace _manifest = "urn:oasis:names:tc:opendocument:xmlns:manifest:1.0";
 
     public static byte[] Write(DocumentModel model)
     {
-        return DeterministicZip.Create(new[]
+        PictureStore pictures = new PictureStore();
+        byte[] content = Serialize(Content(model, pictures));
+        byte[] styles = Serialize(Styles(model, pictures));
+        List<PackagePart> parts = new List<PackagePart>
         {
             // ODF 1.3 part 2, 3.3: the first entry, stored, without an extra field.
             new PackagePart("mimetype", Encoding.ASCII.GetBytes(MediaType), Stored: true),
-            new PackagePart("content.xml", Serialize(Content(model))),
-            new PackagePart("styles.xml", Serialize(Styles(model))),
+            new PackagePart("content.xml", content),
+            new PackagePart("styles.xml", styles),
             new PackagePart("meta.xml", Serialize(Meta(model))),
-            new PackagePart("META-INF/manifest.xml", Serialize(Manifest())),
-        });
+        };
+        parts.AddRange(pictures.Files.Select(f => new PackagePart(f.Path, f.Image.Data)));
+        parts.Add(new PackagePart("META-INF/manifest.xml", Serialize(Manifest(pictures))));
+        return DeterministicZip.Create(parts);
+    }
+
+    /// <summary>The pictures of a package: each distinct image once in <c>Pictures/</c>, named by its content.</summary>
+    private sealed class PictureStore
+    {
+        private readonly Dictionary<string, string> _paths = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        public List<(string Path, ImageSource Image)> Files { get; } = new List<(string, ImageSource)>();
+
+        public string Path(ImageSource image)
+        {
+            if (!_paths.TryGetValue(image.Hash, out string? path))
+            {
+                path = $"Pictures/{image.Hash[..32]}.{image.Extension}";
+                _paths[image.Hash] = path;
+                Files.Add((path, image));
+            }
+
+            return path;
+        }
     }
 
     // ── content.xml ──────────────────────────────────────────────────────────────
 
-    private static XElement Content(DocumentModel model)
+    private static XElement Content(DocumentModel model, PictureStore pictures)
     {
-        BlockWriter writer = new BlockWriter(model, "Templify");
+        BlockWriter writer = new BlockWriter(model, "Templify", pictures);
         XElement text = new XElement(_office + "text", writer.WriteBlocks(model.Body, model.Page.FrameWidth));
 
         return new XElement(
             _office + "document-content",
-            Namespaces(_office, _text, _style, _fo, _svg, _table),
+            Namespaces(_office, _text, _style, _fo, _svg, _table, _draw, _xlink),
             new XAttribute(_office + "version", OdfVersion),
             new XElement(_office + "automatic-styles", writer.AutomaticStyles),
             new XElement(_office + "body", text));
@@ -62,8 +89,10 @@ internal static class OdtWriter
     /// Writes blocks of the body (content.xml) or of headers and footers (styles.xml) and collects the automatic
     /// styles they need; each part gets its own name prefix.
     /// </summary>
-    private sealed class BlockWriter(DocumentModel model, string prefix)
+    private sealed class BlockWriter(DocumentModel model, string prefix, PictureStore pictures)
     {
+        private int _images;
+
         private readonly Dictionary<(string Parent, int Position), string> _tabStyles = new Dictionary<(string, int), string>();
         private bool _pageBreakStyle;
 
@@ -377,6 +406,24 @@ internal static class OdtWriter
         private static string Border(BorderLine? line) =>
             line is null ? "none" : $"{line.Width} solid #{line.Color.Hex.ToLowerInvariant()}";
 
+        /// <summary>An image as a character: <c>draw:frame</c> with the picture, its title and description (alternative text).</summary>
+        private XElement Frame(ImageInline image) =>
+            new XElement(
+                _draw + "frame",
+                new XAttribute(_draw + "name", prefix + "Image" + (++_images).ToString(CultureInfo.InvariantCulture)),
+                new XAttribute(_text + "anchor-type", "as-char"),
+                new XAttribute(_svg + "width", image.Width.ToString()),
+                new XAttribute(_svg + "height", image.Height.ToString()),
+                new XAttribute(_draw + "z-index", 0),
+                new XElement(
+                    _draw + "image",
+                    new XAttribute(_xlink + "href", pictures.Path(image.Image)),
+                    new XAttribute(_xlink + "type", "simple"),
+                    new XAttribute(_xlink + "show", "embed"),
+                    new XAttribute(_xlink + "actuate", "onLoad")),
+                new XElement(_svg + "title", image.AltText),
+                new XElement(_svg + "desc", image.AltText));
+
         private static XElement WriteMarker(MarkerBlock marker)
         {
             XElement paragraph = new XElement(_text + "p", new XAttribute(_text + "style-name", BuilderStyles.TemplateMarker.Id));
@@ -432,6 +479,10 @@ internal static class OdtWriter
                         encoder.Element(new XElement(_text + "tab"));
                         break;
 
+                    case ImageInline image:
+                        encoder.Element(Frame(image));
+                        break;
+
                     case PageFieldInline field:
                         encoder.Element(field.Field == PageField.Number
                             ? new XElement(_text + "page-number", new XAttribute(_text + "select-page", "current"), "1")
@@ -455,7 +506,7 @@ internal static class OdtWriter
 
     // ── styles.xml ───────────────────────────────────────────────────────────────
 
-    private static XElement Styles(DocumentModel model)
+    private static XElement Styles(DocumentModel model, PictureStore pictures)
     {
         StyleSheet sheet = model.Styles;
 
@@ -521,11 +572,11 @@ internal static class OdtWriter
             styles.Add(style);
         }
 
-        BlockWriter headerFooter = new BlockWriter(model, "TemplifyHf");
+        BlockWriter headerFooter = new BlockWriter(model, "TemplifyHf", pictures);
         XElement masterPage = MasterPage(model.Page, headerFooter);
         return new XElement(
             _office + "document-styles",
-            Namespaces(_office, _text, _style, _fo, _svg, _table),
+            Namespaces(_office, _text, _style, _fo, _svg, _table, _draw, _xlink),
             new XAttribute(_office + "version", OdfVersion),
             FontFaceDeclarations(sheet),
             styles,
@@ -774,7 +825,7 @@ internal static class OdtWriter
             meta);
     }
 
-    private static XElement Manifest() =>
+    private static XElement Manifest(PictureStore pictures) =>
         new XElement(
             _manifest + "manifest",
             new XAttribute(XNamespace.Xmlns + "manifest", _manifest.NamespaceName),
@@ -782,7 +833,8 @@ internal static class OdtWriter
             FileEntry("/", MediaType, version: true),
             FileEntry("content.xml", "text/xml"),
             FileEntry("styles.xml", "text/xml"),
-            FileEntry("meta.xml", "text/xml"));
+            FileEntry("meta.xml", "text/xml"),
+            pictures.Files.Select(f => FileEntry(f.Path, f.Image.MediaType)));
 
     private static XElement FileEntry(string path, string mediaType, bool version = false) =>
         new XElement(
@@ -801,6 +853,8 @@ internal static class OdtWriter
                 : ns == _fo ? "fo"
                 : ns == _svg ? "svg"
                 : ns == _table ? "table"
+                : ns == _draw ? "draw"
+                : ns == _xlink ? "xlink"
                 : ns == _meta ? "meta"
                 : ns == _dc ? "dc"
                 : throw new ArgumentOutOfRangeException(nameof(namespaces), ns.NamespaceName, "Unknown namespace.");

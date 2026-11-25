@@ -314,6 +314,9 @@ internal enum PageField
 /// <summary>A page number or page count field.</summary>
 internal sealed record PageFieldInline(PageField Field, CharacterStyleKey? Style = null) : Inline(Style);
 
+/// <summary>An image inside a paragraph, sized already.</summary>
+internal sealed record ImageInline(ImageSource Image, string AltText, Length Width, Length Height) : Inline((CharacterStyleKey?)null);
+
 /// <summary>A tab to a right-aligned tab stop at the end of the text frame.</summary>
 internal sealed record RightTabInline() : Inline((CharacterStyleKey?)null);
 

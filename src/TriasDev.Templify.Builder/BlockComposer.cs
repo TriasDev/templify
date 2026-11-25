@@ -62,6 +62,36 @@ public class BlockComposer
         AddComposed(style, content);
     }
 
+    /// <summary>Adds a paragraph holding one image at its natural size.</summary>
+    /// <param name="image">The image.</param>
+    /// <param name="altText">The text that describes the image; required.</param>
+    public void Image(ImageSource image, string altText) => AddImage(null, image, altText, ImageFit.Natural);
+
+    /// <summary>Adds a paragraph holding one image.</summary>
+    /// <param name="image">The image.</param>
+    /// <param name="altText">The text that describes the image; required.</param>
+    /// <param name="fit">How the image is sized; the aspect ratio is kept.</param>
+    public void Image(ImageSource image, string altText, ImageFit fit) => AddImage(null, image, altText, fit);
+
+    /// <summary>Adds a paragraph in a style holding one image (the style aligns and spaces it).</summary>
+    /// <param name="style">The paragraph style.</param>
+    /// <param name="image">The image.</param>
+    /// <param name="altText">The text that describes the image; required.</param>
+    /// <param name="fit">How the image is sized; the aspect ratio is kept.</param>
+    public void Image(ParagraphStyleKey style, ImageSource image, string altText, ImageFit fit)
+    {
+        ArgumentNullException.ThrowIfNull(style);
+        AddImage(style, image, altText, fit);
+    }
+
+    private void AddImage(ParagraphStyleKey? style, ImageSource image, string altText, ImageFit fit)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(fit);
+        EnsureOpen();
+        _blocks.Add(new ParagraphBlock(new Inline[] { InlineComposer.CreateImage(image, altText, fit) }, style));
+    }
+
     /// <summary>Adds a page break: the content after it starts on a new page.</summary>
     public void PageBreak()
     {

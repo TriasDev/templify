@@ -7,6 +7,9 @@ using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using TriasDev.Templify.Builder.Model;
+using A = DocumentFormat.OpenXml.Drawing;
+using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
+using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
 using ParagraphProperties = DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties;
 using Styles = DocumentFormat.OpenXml.Wordprocessing.Styles;
 
@@ -44,27 +47,73 @@ internal static class DocxWriter
     public static byte[] Write(DocumentModel model)
     {
         List<HeaderFooterPart> parts = HeaderFooterParts(model.Page);
+        MediaStore media = new MediaStore();
+
+        // The body's image relationships follow styles (rId1) and the header/footer parts.
+        BlockWriter bodyWriter = new BlockWriter(model, media, firstRelationship: parts.Count + 2);
+        string document = XmlDeclaration + MainDocument(model, parts, bodyWriter).OuterXml;
+
+        List<PackagePart> partFiles = new List<PackagePart>();
+        foreach (HeaderFooterPart part in parts)
+        {
+            BlockWriter writer = new BlockWriter(model, media, firstRelationship: 1);
+            OpenXmlCompositeElement root = part.IsHeader ? new Header() : new Footer();
+            root.Append(EndWithParagraph(writer.WriteBlocks(part.Blocks, model.Page.FrameWidth)));
+            partFiles.Add(new PackagePart("word/" + part.FileName, Utf8(XmlDeclaration + root.OuterXml)));
+            if (writer.Images.Count > 0)
+            {
+                partFiles.Add(new PackagePart($"word/_rels/{part.FileName}.rels", Utf8(Relationships(writer.Images.Select(i => (i.Id, ImageRelationship, i.Target))))));
+            }
+        }
+
         List<PackagePart> package = new List<PackagePart>
         {
-            new PackagePart("[Content_Types].xml", Utf8(ContentTypes(parts))),
+            new PackagePart("[Content_Types].xml", Utf8(ContentTypes(parts, media))),
             new PackagePart("_rels/.rels", Utf8(PackageRelationships())),
             new PackagePart("docProps/core.xml", Utf8(CoreProperties(model))),
             new PackagePart("docProps/custom.xml", Utf8(CustomProperties(model))),
-            new PackagePart("word/document.xml", Utf8(XmlDeclaration + MainDocument(model, parts).OuterXml)),
-            new PackagePart("word/_rels/document.xml.rels", Utf8(DocumentRelationships(parts))),
+            new PackagePart("word/document.xml", Utf8(document)),
+            new PackagePart("word/_rels/document.xml.rels", Utf8(DocumentRelationships(parts, bodyWriter.Images))),
             new PackagePart("word/styles.xml", Utf8(XmlDeclaration + StylesPart(model).OuterXml)),
         };
+        package.AddRange(partFiles);
+        package.AddRange(media.Files.Select(f => new PackagePart("word/" + f.Target, f.Data)));
+        return DeterministicZip.Create(package);
+    }
 
-        BlockWriter writer = new BlockWriter(model);
-        foreach (HeaderFooterPart part in parts)
+    private const string ImageRelationship = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image";
+
+    /// <summary>The images of a document: each distinct image once in <c>word/media</c>, and drawing ids unique across all parts.</summary>
+    private sealed class MediaStore
+    {
+        private readonly Dictionary<string, string> _targets = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        public List<(string Target, byte[] Data, string Extension)> Files { get; } = new List<(string, byte[], string)>();
+
+        public uint NextDrawingId { get; set; } = 1;
+
+        public string Target(ImageSource image)
         {
-            OpenXmlCompositeElement root = part.IsHeader ? new Header() : new Footer();
-            root.Append(EndWithParagraph(writer.WriteBlocks(part.Blocks, model.Page.FrameWidth)));
+            if (!_targets.TryGetValue(image.Hash, out string? target))
+            {
+                target = $"media/image{(Files.Count + 1).ToString(CultureInfo.InvariantCulture)}.{image.Extension}";
+                _targets[image.Hash] = target;
+                Files.Add((target, image.Data, image.Extension));
+            }
 
-            package.Add(new PackagePart("word/" + part.FileName, Utf8(XmlDeclaration + root.OuterXml)));
+            return target;
+        }
+    }
+
+    private static string Relationships(IEnumerable<(string Id, string Type, string Target)> relationships)
+    {
+        StringBuilder xml = new StringBuilder(XmlDeclaration).Append("<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">");
+        foreach ((string id, string type, string target) in relationships)
+        {
+            xml.Append($"<Relationship Id=\"{id}\" Type=\"{type}\" Target=\"{target}\"/>");
         }
 
-        return DeterministicZip.Create(package);
+        return xml.Append("</Relationships>").ToString();
     }
 
     /// <summary>A header or footer part: what it holds and how the section refers to it.</summary>
@@ -110,13 +159,18 @@ internal static class DocxWriter
         return parts;
     }
 
-    private static string ContentTypes(List<HeaderFooterPart> parts)
+    private static string ContentTypes(List<HeaderFooterPart> parts, MediaStore media)
     {
         StringBuilder xml = new StringBuilder(XmlDeclaration)
             .Append("<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">")
             .Append("<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>")
-            .Append("<Default Extension=\"xml\" ContentType=\"application/xml\"/>")
-            .Append($"<Override PartName=\"/word/document.xml\" ContentType=\"{MainContentType}\"/>")
+            .Append("<Default Extension=\"xml\" ContentType=\"application/xml\"/>");
+        foreach (string extension in media.Files.Select(f => f.Extension).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
+        {
+            xml.Append($"<Default Extension=\"{extension}\" ContentType=\"image/{extension}\"/>");
+        }
+
+        xml.Append($"<Override PartName=\"/word/document.xml\" ContentType=\"{MainContentType}\"/>")
             .Append($"<Override PartName=\"/word/styles.xml\" ContentType=\"{StylesContentType}\"/>");
         foreach (HeaderFooterPart part in parts)
         {
@@ -139,19 +193,11 @@ internal static class DocxWriter
         + $"<Relationship Id=\"rId3\" Type=\"{CustomPropertiesRelationship}\" Target=\"docProps/custom.xml\"/>"
         + "</Relationships>";
 
-    private static string DocumentRelationships(List<HeaderFooterPart> parts)
-    {
-        StringBuilder xml = new StringBuilder(XmlDeclaration)
-            .Append("<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">")
-            .Append($"<Relationship Id=\"rId1\" Type=\"{StylesRelationship}\" Target=\"styles.xml\"/>");
-        foreach (HeaderFooterPart part in parts)
-        {
-            string type = part.IsHeader ? "header" : "footer";
-            xml.Append($"<Relationship Id=\"{part.RelationshipId}\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/{type}\" Target=\"{part.FileName}\"/>");
-        }
-
-        return xml.Append("</Relationships>").ToString();
-    }
+    private static string DocumentRelationships(List<HeaderFooterPart> parts, IReadOnlyList<(string Id, string Target)> images) =>
+        Relationships(
+            new[] { ("rId1", StylesRelationship, "styles.xml") }
+                .Concat(parts.Select(p => (p.RelationshipId, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/" + (p.IsHeader ? "header" : "footer"), p.FileName)))
+                .Concat(images.Select(i => (i.Id, ImageRelationship, i.Target))));
 
     private static string CoreProperties(DocumentModel model)
     {
@@ -399,10 +445,10 @@ internal static class DocxWriter
 
     // ── document.xml ─────────────────────────────────────────────────────────────
 
-    private static Document MainDocument(DocumentModel model, List<HeaderFooterPart> parts)
+    private static Document MainDocument(DocumentModel model, List<HeaderFooterPart> parts, BlockWriter writer)
     {
         Body body = new Body();
-        body.Append(EndWithParagraph(new BlockWriter(model).WriteBlocks(model.Body, model.Page.FrameWidth)));
+        body.Append(EndWithParagraph(writer.WriteBlocks(model.Body, model.Page.FrameWidth)));
         body.Append(SectionProperties(model.Page, parts));
         return new Document(body);
     }
@@ -453,8 +499,13 @@ internal static class DocxWriter
     }
 
     /// <summary>Writes blocks of the body, a header or a footer.</summary>
-    private sealed class BlockWriter(DocumentModel model)
+    private sealed class BlockWriter(DocumentModel model, MediaStore media, int firstRelationship)
     {
+        private readonly Dictionary<string, string> _imageIds = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        /// <summary>Gets the image relationships of this part (id, target relative to <c>word/</c>).</summary>
+        public List<(string Id, string Target)> Images { get; } = new List<(string, string)>();
+
         /// <summary>Writes blocks in a container whose text frame is <paramref name="frame"/> wide.</summary>
         public List<OpenXmlElement> WriteBlocks(IEnumerable<Block> blocks, Length frame)
         {
@@ -720,7 +771,7 @@ internal static class DocxWriter
             return paragraph;
         }
 
-        private static IEnumerable<Run> WriteInline(Inline inline)
+        private IEnumerable<Run> WriteInline(Inline inline)
         {
             switch (inline)
             {
@@ -750,6 +801,11 @@ internal static class DocxWriter
                     tabRun.Append(new TabChar());
                     return [tabRun];
 
+                case ImageInline image:
+                    Run imageRun = NewRun(null);
+                    imageRun.Append(Drawing(image));
+                    return [imageRun];
+
                 case PageFieldInline field:
                     // A complex field with a cached result; Word and LibreOffice compute the value when they lay out.
                     string instruction = field.Field == PageField.Number ? " PAGE " : " NUMPAGES ";
@@ -766,6 +822,47 @@ internal static class DocxWriter
                     throw new NotSupportedException($"Inline {inline.GetType().Name} is not supported by the DOCX writer.");
             }
         }
+
+        /// <summary>An inline picture: DrawingML with the relationship of this part and a document-wide unique id.</summary>
+        private Drawing Drawing(ImageInline image)
+        {
+            string target = media.Target(image.Image);
+            if (!_imageIds.TryGetValue(target, out string? relationship))
+            {
+                relationship = "rId" + (firstRelationship + Images.Count).ToString(CultureInfo.InvariantCulture);
+                _imageIds[target] = relationship;
+                Images.Add((relationship, target));
+            }
+
+            uint id = media.NextDrawingId++;
+            long cx = Emu(image.Width);
+            long cy = Emu(image.Height);
+            string name = "Picture " + id.ToString(CultureInfo.InvariantCulture);
+            return new Drawing(new DW.Inline(
+                new DW.Extent { Cx = cx, Cy = cy },
+                new DW.EffectExtent { LeftEdge = 0, TopEdge = 0, RightEdge = 0, BottomEdge = 0 },
+                new DW.DocProperties { Id = id, Name = name, Description = image.AltText },
+                new DW.NonVisualGraphicFrameDrawingProperties(new A.GraphicFrameLocks { NoChangeAspect = true }),
+                new A.Graphic(new A.GraphicData(
+                    new PIC.Picture(
+                        new PIC.NonVisualPictureProperties(
+                            new PIC.NonVisualDrawingProperties { Id = 0U, Name = name, Description = image.AltText },
+                            new PIC.NonVisualPictureDrawingProperties()),
+                        new PIC.BlipFill(new A.Blip { Embed = relationship }, new A.Stretch(new A.FillRectangle())),
+                        new PIC.ShapeProperties(
+                            new A.Transform2D(new A.Offset { X = 0L, Y = 0L }, new A.Extents { Cx = cx, Cy = cy }),
+                            new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle })))
+                { Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture" }))
+            {
+                DistanceFromTop = 0U,
+                DistanceFromBottom = 0U,
+                DistanceFromLeft = 0U,
+                DistanceFromRight = 0U,
+            });
+        }
+
+        /// <summary>English metric units: 12 700 per point.</summary>
+        private static long Emu(Length length) => (long)Math.Round(length.Points * 12700, MidpointRounding.AwayFromZero);
 
         private static Run FieldRun(CharacterStyleKey? style, OpenXmlElement content)
         {

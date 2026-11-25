@@ -84,6 +84,35 @@ public sealed class InlineComposer
         _inlines.Add(new RightTabInline());
     }
 
+    /// <summary>Adds an image at its natural size, inline with the text.</summary>
+    /// <param name="image">The image.</param>
+    /// <param name="altText">The text that describes the image (accessibility); required.</param>
+    public void Image(ImageSource image, string altText) => Image(image, altText, ImageFit.Natural);
+
+    /// <summary>Adds an image inline with the text.</summary>
+    /// <param name="image">The image.</param>
+    /// <param name="altText">The text that describes the image (accessibility); required.</param>
+    /// <param name="fit">How the image is sized; the aspect ratio is kept.</param>
+    public void Image(ImageSource image, string altText, ImageFit fit)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(fit);
+        EnsureOpen();
+        _inlines.Add(CreateImage(image, altText, fit));
+    }
+
+    internal static ImageInline CreateImage(ImageSource image, string altText, ImageFit fit)
+    {
+        ArgumentNullException.ThrowIfNull(altText);
+        if (string.IsNullOrWhiteSpace(altText) || altText.Any(c => char.IsControl(c) && c is not ('\t' or '\n' or '\r')))
+        {
+            throw new ArgumentException("An image needs an alternative text without control characters.", nameof(altText));
+        }
+
+        (Length width, Length height) = fit.Resolve(image);
+        return new ImageInline(image, altText, width, height);
+    }
+
     /// <summary>Adds the current page number (a field Word and LibreOffice update).</summary>
     public void PageNumber() => AddField(PageField.Number, null);
 

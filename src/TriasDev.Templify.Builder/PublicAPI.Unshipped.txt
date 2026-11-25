@@ -61,6 +61,13 @@ static TriasDev.Templify.Builder.ContractEntry.operator ==(TriasDev.Templify.Bui
 static TriasDev.Templify.Builder.DataContract.FromJson(string! json) -> TriasDev.Templify.Builder.DataContract!
 static TriasDev.Templify.Builder.FontFace.operator !=(TriasDev.Templify.Builder.FontFace? left, TriasDev.Templify.Builder.FontFace? right) -> bool
 static TriasDev.Templify.Builder.FontFace.operator ==(TriasDev.Templify.Builder.FontFace? left, TriasDev.Templify.Builder.FontFace? right) -> bool
+static TriasDev.Templify.Builder.ImageFit.Height(TriasDev.Templify.Builder.Length height) -> TriasDev.Templify.Builder.ImageFit!
+static TriasDev.Templify.Builder.ImageFit.Natural.get -> TriasDev.Templify.Builder.ImageFit!
+static TriasDev.Templify.Builder.ImageFit.Width(TriasDev.Templify.Builder.Length width) -> TriasDev.Templify.Builder.ImageFit!
+static TriasDev.Templify.Builder.ImageFit.Within(TriasDev.Templify.Builder.Length width, TriasDev.Templify.Builder.Length height) -> TriasDev.Templify.Builder.ImageFit!
+static TriasDev.Templify.Builder.ImageSource.FromBytes(byte[]! data) -> TriasDev.Templify.Builder.ImageSource!
+static TriasDev.Templify.Builder.ImageSource.Jpeg(byte[]! data) -> TriasDev.Templify.Builder.ImageSource!
+static TriasDev.Templify.Builder.ImageSource.Png(byte[]! data) -> TriasDev.Templify.Builder.ImageSource!
 static TriasDev.Templify.Builder.Length.FromMillimeters(double millimeters) -> TriasDev.Templify.Builder.Length
 static TriasDev.Templify.Builder.Length.FromPoints(double points) -> TriasDev.Templify.Builder.Length
 static TriasDev.Templify.Builder.Length.operator -(TriasDev.Templify.Builder.Length left, TriasDev.Templify.Builder.Length right) -> TriasDev.Templify.Builder.Length
@@ -130,6 +137,9 @@ TriasDev.Templify.Builder.BlockComposer
 TriasDev.Templify.Builder.BlockComposer.Component(TriasDev.Templify.Builder.ITemplateComponent! component) -> void
 TriasDev.Templify.Builder.BlockComposer.ForEach(TriasDev.Templify.Builder.TemplatePath collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem!, TriasDev.Templify.Builder.BlockComposer!>! body) -> void
 TriasDev.Templify.Builder.BlockComposer.If(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.BlockComposer!>! then) -> TriasDev.Templify.Builder.IfChain!
+TriasDev.Templify.Builder.BlockComposer.Image(TriasDev.Templify.Builder.ImageSource! image, string! altText, TriasDev.Templify.Builder.ImageFit! fit) -> void
+TriasDev.Templify.Builder.BlockComposer.Image(TriasDev.Templify.Builder.ImageSource! image, string! altText) -> void
+TriasDev.Templify.Builder.BlockComposer.Image(TriasDev.Templify.Builder.ParagraphStyleKey! style, TriasDev.Templify.Builder.ImageSource! image, string! altText, TriasDev.Templify.Builder.ImageFit! fit) -> void
 TriasDev.Templify.Builder.BlockComposer.PageBreak() -> void
 TriasDev.Templify.Builder.BlockComposer.Paragraph(string! text) -> void
 TriasDev.Templify.Builder.BlockComposer.Paragraph(System.Action<TriasDev.Templify.Builder.InlineComposer!>! content) -> void
@@ -229,7 +239,15 @@ TriasDev.Templify.Builder.GeneratedTemplate.WriteTo(System.IO.Stream! destinatio
 TriasDev.Templify.Builder.IfChain
 TriasDev.Templify.Builder.IfChain.Else(System.Action<TriasDev.Templify.Builder.BlockComposer!>! otherwise) -> void
 TriasDev.Templify.Builder.IfChain.ElseIf(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.BlockComposer!>! then) -> TriasDev.Templify.Builder.IfChain!
+TriasDev.Templify.Builder.ImageFit
+TriasDev.Templify.Builder.ImageSource
+TriasDev.Templify.Builder.ImageSource.NaturalHeight.get -> TriasDev.Templify.Builder.Length
+TriasDev.Templify.Builder.ImageSource.NaturalWidth.get -> TriasDev.Templify.Builder.Length
+TriasDev.Templify.Builder.ImageSource.PixelHeight.get -> int
+TriasDev.Templify.Builder.ImageSource.PixelWidth.get -> int
 TriasDev.Templify.Builder.InlineComposer
+TriasDev.Templify.Builder.InlineComposer.Image(TriasDev.Templify.Builder.ImageSource! image, string! altText, TriasDev.Templify.Builder.ImageFit! fit) -> void
+TriasDev.Templify.Builder.InlineComposer.Image(TriasDev.Templify.Builder.ImageSource! image, string! altText) -> void
 TriasDev.Templify.Builder.InlineComposer.LineBreak() -> void
 TriasDev.Templify.Builder.InlineComposer.PageCount() -> void
 TriasDev.Templify.Builder.InlineComposer.PageCount(TriasDev.Templify.Builder.CharacterStyleKey! style) -> void
