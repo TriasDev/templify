@@ -97,6 +97,13 @@ internal sealed class PlaceholderVisitor : ITemplateElementVisitor
         }
         else
         {
+            // :join by an item property that no item has (likely misspelled): report it like a missing variable.
+            if (JoinFormat.TryGetMissingItemVariable(placeholder.VariableName, value, placeholder.Format, out string? missingItemVariable))
+            {
+                _missingVariables.Add(missingItemVariable);
+                _warningCollector.AddWarning(ProcessingWarning.MissingVariable(missingItemVariable));
+            }
+
             // Variable/expression found - convert to string with optional format and replace.
             // The :raw specifier only disables markdown; the value itself uses default conversion.
             bool isRaw = IsRawFormat(placeholder.Format);
