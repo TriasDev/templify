@@ -338,6 +338,7 @@ Design: `docs/superpowers/specs/2026-09-26-odt-support-design.md`.
 - `Core/ProcessingResult.cs` - Result (`IsSuccess`, `ErrorMessage`, `ReplacementCount`, `MissingVariables`, `Warnings`, `HasWarnings`, `GetWarningReport()`)
 - `Core/ProcessingWarning.cs`, `Core/IWarningCollector.cs`, `Core/WarningReportGenerator.cs` - Warnings
 - `Core/TemplateValidator.cs`, `Core/ValidationResult.cs` - Template validation
+- `Core/TemplateLintWalker.cs` - Structural lint over the processing containers (#255); `Core/WordTemplateLocator.cs` / `OpenDocument/OdtTemplateLocator.cs` + `Core/TemplateLocation.cs` - error locations; `Utilities/TemplateTagText.cs` - text rules
 - `Core/TemplateExceptions.cs` - Internal typed exceptions (`MissingVariableException`, `TemplateSyntaxException`, `TemplateDataException`)
 - `Core/IEvaluationContext.cs`, `Core/GlobalEvaluationContext.cs` - Contexts
 

@@ -54,7 +54,7 @@ internal static class BlockMarkerLoss
         }
     }
 
-    private static string GetUnit(OpenXmlElement marker) => marker switch
+    internal static string GetUnit(OpenXmlElement marker) => marker switch
     {
         TableRow => "table row",
         TableCell => "table cell",
