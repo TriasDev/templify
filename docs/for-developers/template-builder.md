@@ -86,6 +86,17 @@ public static StyleSheet Create(BrandTheme t) => StyleSheet.Create(s =>
 The marker paragraphs (`{{#if …}}`, `{{#foreach …}}`) use the style "Template Marker": small and grey, visible but
 quiet.
 
+#### Fonts
+
+`new FontFace("Source Sans 3")` refers to an installed font by name. `FontFace.Embedded(File.ReadAllBytes("Brand.ttf"))`
+embeds the file in the document, so a server-side PDF conversion and recipients without the font installed see it:
+
+- TrueType files (`.ttf`) only; the family name is read from the file;
+- the font's licence must allow installable or editable embedding (`fsType`); other fonts are refused;
+- one file per family and weight: embed the bold weight as its own family ("Brand Bold"), because Word for Mac
+  ignores embedded bold faces;
+- the builder does not subset, so pass a subset file to keep documents small.
+
 ### Paths
 
 `template.Data` is the root of the data. An indexer appends segments: `order["customer.address"]["city"]` is
@@ -269,6 +280,8 @@ Known behaviour of the applications:
   when converting to PDF. The build reports warning TB9001.
 - **Word's built-in style names.** LibreOffice maps a DOCX style named like a Word built-in (`Body Text`,
   `Heading 1`) to its own style when it opens the file. Choose your own display names ("Body Copy").
+- **Embedded fonts.** LibreOffice uses embedded fonts from DOCX and ODT, also when converting to PDF. Word uses
+  them from DOCX too (not tested automatically).
 - **Cell padding.** With a 1 pt border, cell text in DOCX and ODT can be up to 2 pt apart in LibreOffice.
 
 ## Known limits

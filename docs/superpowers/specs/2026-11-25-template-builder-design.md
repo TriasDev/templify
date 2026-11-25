@@ -25,7 +25,7 @@ them:
 | D7 | **Its own version line.** A separate release-please component; versions stay `0.x` until the API has carried one real multi-section document. |
 | D8 | The builder uses **core's public API only**. No `InternalsVisibleTo` from core to the builder. |
 | D9 | **Model paths are values** (`TemplatePath`, `LoopItem`). Typed paths (`m => m.Customer.Name`) come after the MVP, as sugar that produces the same values. |
-| D10 | **No font embedding in the MVP.** Choosing one family per weight, which avoids Word for Mac ignoring an embedded bold face, is a token decision and needs no embedding. |
+| D10 | **No font embedding in the MVP.** Choosing one family per weight, which avoids Word for Mac ignoring an embedded bold face, is a token decision and needs no embedding. *Phase 2 (#288) adds `FontFace.Embedded` (section 3.3).* |
 
 Out of scope:
 
@@ -177,7 +177,8 @@ public static class Units                      // 12.Pt(), 25.Mm()
     public static Length Mm(this double value);
 }
 public readonly record struct Color;            // Color.FromHex("1F4E79")
-public sealed record FontFace(string Family);       // referenced by name, not embedded; no fallback (no ODF equivalent; additive later)
+public sealed record FontFace(string Family);       // referenced by name; no fallback (no ODF equivalent; additive later)
+// #288: FontFace.Embedded(byte[] ttf) / Embedded(string family, byte[] ttf), IsEmbedded
 
 public sealed record ParagraphStyleKey(string Id, string DisplayName);   // DisplayName is what Word / LibreOffice show
 public sealed record CharacterStyleKey(string Id, string DisplayName);
@@ -473,6 +474,19 @@ public sealed record RawBlock
 It takes `XElement`, not OpenXML SDK types. SDK types never appear in the builder's public API, so the two packages
 cannot become version-coupled through it.
 
+Font embedding as built (#288), in section 3.3's terms:
+
+- `FontFace.Embedded(ttf)` reads the family (name id 1, Windows English first) and `Embedded(family, ttf)` accepts a
+  family the file declares (id 1 or 16). The bytes are copied; equality is family plus file hash.
+- TrueType outlines only: Word embeds TrueType, so `OTTO` (CFF), `ttcf` and WOFF are refused with a hint.
+- `fsType`: installable (0) or editable (bit 3) only. A template is edited after download, so preview-and-print
+  (bit 2), restricted (bit 1) and bitmap-only (bit 9) are refused at `Embedded`.
+- One file per family (TB2011 for two different files); one face (`embedRegular`) per family, matching the
+  one-family-per-weight rule. No subsetting: pass pre-subset files.
+- Measured with LibreOffice 26.8: a family installed nowhere renders from the document in the PDF conversion, from
+  DOCX and from ODT (test `LibreOffice_RendersWithTheEmbeddedFont`, checked with `pdffonts`). Word is not tested on
+  CI; the DOCX passes the schema validation.
+
 As built (#285):
 
 - `c.Raw(RawBlock)` is on every `BlockComposer` (body, cells, boxes, headers, footers, loop and branch bodies).
@@ -611,6 +625,7 @@ ITemplateDefinition.Compose ──▶ composers ──▶ semantic model (intern
 | Marker | one-run paragraph in `TemplateMarker` | `text:p` in `TemplateMarker` with the marker as its only text |
 | Language | `w:lang` in the defaults, `dc:language` | `fo:language` and `fo:country`, `dc:language` |
 | Properties | `docProps/core.xml` (title, creator, subject), `docProps/custom.xml` (stamp) | `meta.xml` (`dc:title`, `meta:initial-creator`, `dc:subject`, `meta:user-defined`) |
+| Embedded font (#288) | `word/fonts/fontN.odttf`, obfuscated (the first 32 bytes XOR the font key's 16 bytes in reverse order), related from `word/_rels/fontTable.xml.rels`; `word/fontTable.xml` `w:font` with `w:embedRegular r:id w:fontKey`; `word/settings.xml` `w:embedTrueTypeFonts`; the key is a GUID from the file's SHA-256 (deterministic); named relationship ids (`rIdSettings`, `rIdFontTable`), so numbered ids do not shift; nothing is written without embedded fonts | `Fonts/<sha256[..16]>.ttf` + manifest (`application/x-font-ttf`); `style:font-face` with `svg:font-face-src/svg:font-face-uri` (`svg:font-face-format svg:string="truetype"`) |
 | Raw block (#285) | the given `w:p` / `w:tbl`, as typed elements | the given `text:p` / `text:h` / `text:list` / `table:table` |
 
 Tables, boxes, lists, page setup, headers, footers, fields, images and the table of contents are mapped in the design
