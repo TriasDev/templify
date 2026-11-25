@@ -8,6 +8,7 @@
   <Folder Name="/src/">
     <Project Path="src/TriasDev.Templify/TriasDev.Templify.csproj" />
     <Project Path="src/TriasDev.Templify.Builder/TriasDev.Templify.Builder.csproj" />
+    <Project Path="src/TriasDev.Templify.Builder.Testing/TriasDev.Templify.Builder.Testing.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/TriasDev.Templify.Builder.Tests/TriasDev.Templify.Builder.Tests.csproj" />

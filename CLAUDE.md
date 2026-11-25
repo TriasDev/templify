@@ -12,16 +12,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Solution Structure
 
-`templify.slnx` holds 11 projects in solution folders that mirror the directories (same layout as TriasDev/tabular):
+`templify.slnx` holds 12 projects in solution folders that mirror the directories (same layout as TriasDev/tabular):
 
 - `src/` (only what ships to NuGet)
   - **TriasDev.Templify** - Core library with template processing logic
   - **TriasDev.Templify.Builder** - Code-first template builder (0.x preview, own version line): generates .docx/.odt templates from C#; uses the core's public API only. Design: `docs/superpowers/specs/2026-11-25-template-builder-design.md`, epic #261
+  - **TriasDev.Templify.Builder.Testing** - Consumer test kit for the builder (same version line): `TemplateVerifier` (`VerifyAll` over languages × formats: build, ValidateTemplate, witness and sample fills, DOCX schema / ODT package, determinism, contract parity), `TemplateSnapshot` (canonical text dump), `LibreOfficeConverter`
 - `tests/`
   - **TriasDev.Templify.Tests** - xUnit test suite (~2,360 tests, ~91% line / ~85% branch coverage)
   - **TriasDev.Templify.Tools.Tests** - xUnit tests for the tools/apps (GUI ViewModel/services headless, DocumentGenerator smoke tests)
   - **TriasDev.Templify.Converter.Tests** - xUnit tests for the Converter CLI (round trips through the core, file safety, CLI parsing)
-  - **TriasDev.Templify.Builder.Tests** - xUnit tests for the builder (every test: ValidateTemplate, fill through the engine, DOCX schema / ODT package checks, byte determinism; LibreOffice round trips with `Category=LibreOffice`). Links `OdtDocumentVerifier`, `OdtDocumentBuilder` and `LibreOfficeRunner` from the core tests
+  - **TriasDev.Templify.Builder.Tests** - xUnit tests for the builder (every test: ValidateTemplate, fill through the engine, DOCX schema / ODT package checks, byte determinism; LibreOffice round trips with `Category=LibreOffice`). Its invariants are the test kit's checks (dogfooding); links `OdtDocumentVerifier`, `OdtDocumentBuilder` and `LibreOfficeRunner` from the core tests
 - `benchmarks/`
   - **TriasDev.Templify.Benchmarks** - BenchmarkDotNet performance tests
 - `samples/`

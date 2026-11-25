@@ -7,6 +7,7 @@
       "include-component-in-tag": false,
       "exclude-paths": [
         "src/TriasDev.Templify.Builder",
+        "src/TriasDev.Templify.Builder.Testing",
         "tests/TriasDev.Templify.Builder.Tests"
       ],
       "changelog-sections": [
