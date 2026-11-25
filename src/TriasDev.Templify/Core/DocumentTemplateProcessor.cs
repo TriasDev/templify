@@ -642,8 +642,8 @@ public sealed class DocumentTemplateProcessor
         }
         else
         {
-            // Add new UpdateFieldsOnOpen element
-            settings.PrependChild(new UpdateFieldsOnOpen { Val = true });
+            // CT_Settings is a sequence: AddChild inserts w:updateFields at its schema position (#254)
+            settings.AddChild(new UpdateFieldsOnOpen { Val = true });
         }
 
         settingsPart.Settings.Save();
