@@ -108,6 +108,39 @@ public sealed class RowLoopTests
             Rows(format, filled));
     }
 
+    [Fact]
+    public void Odt_RowLoopUnderAHeader_DoesNotRepeatTheHeaderRule()
+    {
+        XNamespace style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+        XNamespace fo = "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0";
+        TableStyleKey grid = new TableStyleKey("Grid");
+        TestDefinition definition = new TestDefinition(t =>
+        {
+            t.Styles(StyleSheet.Create(s => s.Table(grid, g => g.HeaderRule(1.5.Pt(), Color.FromHex("1F4E79")).RowRule(0.5.Pt(), Color.FromHex("D4D4D4")))));
+            t.Content(c => c.Table(tb =>
+            {
+                tb.Style(grid);
+                tb.Columns(cols => cols.Relative(1));
+                tb.HeaderRow(r => r.Cell("Item"));
+                tb.ForEachRow(t.Data["lines"], "line", (line, rows) => rows.Row(r => r.Cell(line["name"])));
+            }));
+        });
+
+        (_, byte[] filled) = BuilderHarness.BuildAndFill(definition, TemplateFormat.Odt, """{ "lines": [ { "name": "a" }, { "name": "b" }, { "name": "c" } ] }""");
+
+        XDocument content = BuilderHarness.ReadXml(filled, "content.xml");
+        Dictionary<string, XElement> styles = content.Descendants(style + "style").ToDictionary(e => e.Attribute(style + "name")!.Value);
+        string? Border(XElement cell, string side) =>
+            styles[cell.Attribute(_table + "style-name")!.Value].Element(style + "table-cell-properties")?.Attribute(fo + "border-" + side)?.Value;
+
+        XElement header = content.Descendants(_table + "table-header-rows").Single().Descendants(_table + "table-cell").Single();
+        Assert.Equal("1.5pt solid #1f4e79", Border(header, "bottom"));
+        XElement[] body = content.Descendants(_table + "table").Single().Elements(_table + "table-row").Select(r => r.Elements(_table + "table-cell").Single()).ToArray();
+        Assert.Equal(3, body.Length);
+        // Every clone's top is the row rule; the header's wider bottom wins the first edge (collapsing model).
+        Assert.All(body, cell => Assert.Equal("0.5pt solid #d4d4d4", Border(cell, "top")));
+    }
+
     [Theory]
     [MemberData(nameof(Formats))]
     public void RowLoop_EmptyCollection_LeavesNoRows(TemplateFormat format)

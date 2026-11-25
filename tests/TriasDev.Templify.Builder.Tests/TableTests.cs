@@ -160,7 +160,9 @@ public sealed partial class TableTests
         Assert.Equal("1.5pt solid #1f4e79", headerProps.Attribute(_fo + "border-bottom")!.Value);
         Assert.Equal("0.75pt solid #404040", headerProps.Attribute(_fo + "border-top")!.Value);
         XElement firstBodyCell = bodyRows[0].Elements(_table + "table-cell").First();
-        Assert.Equal("1.5pt solid #1f4e79", styles[firstBodyCell.Attribute(_table + "style-name")!.Value].Element(_style + "table-cell-properties")!.Attribute(_fo + "border-top")!.Value);
+        // The header's bottom border draws the rule; the row below has the row rule on top (the wider one wins), so a
+        // row loop does not repeat the header rule between its items.
+        Assert.Equal("0.5pt solid #d4d4d4", styles[firstBodyCell.Attribute(_table + "style-name")!.Value].Element(_style + "table-cell-properties")!.Attribute(_fo + "border-top")!.Value);
     }
 
     [Theory]

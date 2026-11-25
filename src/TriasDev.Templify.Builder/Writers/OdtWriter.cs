@@ -313,11 +313,14 @@ internal static class OdtWriter
             int index = rows.IndexOf(row);
             bool first = index == 0;
             bool last = index == rows.Count - 1;
-            bool afterHeader = index > 0 && rows[index - 1].IsHeader && !row.IsHeader;
             int column = 0;
             foreach (TableCellModel cell in row.Cells)
             {
-                BorderLine? top = first ? style?.Outer : afterHeader && style?.HeaderRule is { } headerRule ? headerRule : style?.RowRule;
+                // Every body row's top is the row rule, also directly under the header: the collapsing model draws the
+                // wider of the header's bottom (the header rule) and this top. A row loop clones the row, so its top must
+                // be what goes between two items — the clones then keep their row rules even when the loop's row is the
+                // table's last row (whose bottom is the outer border).
+                BorderLine? top = first ? style?.Outer : style?.RowRule;
                 BorderLine? bottom = row.IsHeader && style?.HeaderRule is { } rule ? rule : last ? style?.Outer : style?.RowRule;
                 BorderLine? left = column == 0 ? style?.Outer : style?.ColumnRule;
                 BorderLine? right = column + cell.Span >= widths.Length ? style?.Outer : style?.ColumnRule;
