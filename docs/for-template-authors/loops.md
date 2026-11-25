@@ -30,7 +30,7 @@ A loop repeats **whole paragraphs** (or whole table rows):
 
 - Put `{{#foreach ...}}` and `{{/foreach}}` in **their own paragraphs**, above and below the content to repeat.
 - The marker paragraphs are removed from the output, including any other text in them: in `Items: {{#foreach Items}}`, the text `Items:` is lost. Template validation reports this as an error and processing as a warning (`BlockMarkerWithText`), naming the marker and the lost text. Images, text boxes (and, in LibreOffice, notes) anchored in a marker paragraph are removed with it too, but are not reported.
-- A loop whose start and end marker are in the **same paragraph** (`{{#foreach Tags}}{{.}}, {{/foreach}}`) is not supported: the whole paragraph is removed (also reported as `BlockMarkerWithText`). To show a list on a single line, provide the joined text in your data (for example `"TagList": "red, green, blue"`).
+- A loop whose start and end marker are in the **same paragraph** (`{{#foreach Tags}}{{.}}, {{/foreach}}`) is not supported: the whole paragraph is removed (also reported as `BlockMarkerWithText`). To show a list on a single line, use the [`:join` format](format-specifiers.md#join): `{{Tags:join}}` gives `red, green, blue`.
 - Marker keywords are case-insensitive (`{{#FOREACH Items}}` works); collection names are not.
 
 ## Simple Lists
@@ -911,19 +911,21 @@ Arrays may contain `null` entries, and item properties may be `null`:
 
 ### Comma-Separated List
 
-Loops repeat whole paragraphs, so a list on a single line (`Authors: Alice Johnson, Bob Smith, Charlie Brown`) cannot be built with `{{#foreach}}`. Provide the joined text in your data instead:
+Loops repeat whole paragraphs, so a list on a single line (`Authors: Alice Johnson, Bob Smith, Charlie Brown`) is built with the [`:join` format](format-specifiers.md#join) instead of `{{#foreach}}`:
 
 **JSON:**
 ```json
 {
-  "AuthorList": "Alice Johnson, Bob Smith, Charlie Brown"
+  "Authors": [{ "Name": "Alice Johnson" }, { "Name": "Bob Smith" }, { "Name": "Charlie Brown" }]
 }
 ```
 
 **Template:**
 ```
-Authors: {{AuthorList}}
+Authors: {{Authors:join:Name}}
 ```
+
+The separator is `, ` unless you give one in quotes: `{{Authors:join:Name:" / "}}`, or `""` for none.
 
 A one-item-per-paragraph list with separators is shown under [`{{@last}}`](#last-last-item).
 

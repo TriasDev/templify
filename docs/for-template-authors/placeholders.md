@@ -469,6 +469,7 @@ You can apply formatting to placeholders using format specifiers:
 **Template:**
 ```
 Name: {{Name:uppercase}}
+Tags: {{Tags:join}}
 Price: {{Price:currency}}
 Active: {{IsActive:yesno}}
 Date: {{OrderDate:date:MMMM d, yyyy}}

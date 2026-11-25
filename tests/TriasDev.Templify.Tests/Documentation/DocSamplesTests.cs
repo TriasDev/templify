@@ -123,7 +123,9 @@ public sealed class DocSamplesTests : IDisposable
             ["OrderDate"] = new DateTime(2024, 1, 15),
             ["IsActive"] = true,
             ["FileName"] = "my_report_final.docx",
-            ["NumberAsText"] = "1234.5"
+            ["NumberAsText"] = "1234.5",
+            ["Tags"] = new List<string> { "red", "green", "blue" },
+            ["Assets"] = new List<Dictionary<string, object>> { new() { ["Name"] = "Server" }, new() { ["Name"] = "Laptop" } },
         };
 
         using TemplateTestRun run = TemplateTestHarness.Process(
@@ -139,7 +141,9 @@ public sealed class DocSamplesTests : IDisposable
                 "{{IsActive:yesno}}",
                 "{{IsActive:check}}",
                 "{{FileName:raw}}",
-                "{{NumberAsText:currency}}"),
+                "{{NumberAsText:currency}}",
+                "{{Tags:join}}",
+                "{{Assets:join:Name:\"; \"}}"),
             data,
             new PlaceholderReplacementOptions { Culture = _enUs });
 
@@ -147,7 +151,7 @@ public sealed class DocSamplesTests : IDisposable
             new[]
             {
                 "ALICE JOHNSON", "abc-123", "$1,234.57", "1,234.57", "12.34%", "2024-01-15", "January 15, 2024",
-                "☑", "Yes", "✓", "my_report_final.docx", "1234.5"
+                "☑", "Yes", "✓", "my_report_final.docx", "1234.5", "red, green, blue", "Server; Laptop"
             },
             run.Verifier.GetAllParagraphTexts());
     }

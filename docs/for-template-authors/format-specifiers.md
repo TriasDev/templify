@@ -10,6 +10,7 @@ Each specifier applies to one kind of value: string specifiers to text, boolean 
 - [Available Format Specifiers](#available-format-specifiers)
   - [String Formatters](#string-formatters)
   - [Raw (No Markdown)](#raw)
+  - [Lists: join](#join)
   - [Boolean Formatters](#boolean-formatters)
   - [Number and Currency Formatters](#number-and-currency-formatters)
   - [Date Formatters](#date-formatters)
@@ -129,6 +130,40 @@ Without `:raw`, the output would be `myreportfinal.docx` (with "report" in itali
 - `:raw` cannot be combined with another format specifier. Use either `:raw` or, for example, `:uppercase`.
 - To disable markdown for all placeholders, developers can set `EnableMarkdown = false` in `PlaceholderReplacementOptions`.
 - Text templates (`TextTemplateProcessor`) never apply markdown, so `:raw` has no visible effect there.
+
+### List Formatter
+
+#### join
+
+Renders a list as one text. **Without a separator, the items are separated by a comma and a space (`, `)**; write `""` to put them directly next to each other.
+
+```
+Tags: {{Tags:join}}                   → Tags: red, green, blue
+Codes: {{Codes:join:""}}              → Codes: ABC
+Assets: {{Assets:join:Name}}          → Assets: Server, Laptop
+Assets: {{Assets:join:Name:"; "}}     → Assets: Server; Laptop
+Owners: {{Assets:join:Owner.Name}}    → Owners: Alice, Bob
+```
+
+**Data:**
+```json
+{
+  "Tags": ["red", "green", "blue"],
+  "Codes": ["A", "B", "C"],
+  "Assets": [
+    { "Name": "Server", "Owner": { "Name": "Alice" } },
+    { "Name": "Laptop", "Owner": { "Name": "Bob" } }
+  ]
+}
+```
+
+- After `join` you can give the **property** of each item to show (`Name`, `Owner.Name`) and/or the **separator in double quotes** (`" / "`, `" and "`, `""`). Word's typographic quotes (`“ ”`, `„ “`) work too.
+- Empty items (`null` or an empty text) are skipped, so there is no `A, , B`.
+- Inside a loop, join the current item's list: `{{#foreach x in Items}}` … `{{x.Assets:join:Name}}` … `{{/foreach}}`.
+- Numbers and dates in the list are formatted with the document culture (`1,5` with de-DE).
+- The whole list takes the formatting of the placeholder (a bold placeholder gives a bold list, including the commas). Markdown in the values still applies.
+- If no item has the given property (for example a typo like `{{Assets:join:Nmae}}`), the result is empty and processing reports a `MissingVariable` warning for `Assets.Nmae`.
+- A value that is not a list (a text, a number) ignores `:join` and is shown as usual.
 
 ### Boolean Formatters
 

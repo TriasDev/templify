@@ -410,6 +410,7 @@ Design: `docs/superpowers/specs/2026-09-26-odt-support-design.md`.
 - Currency format: `{{Amount:currency}}`
 - Number format: `{{Value:number:N2}}`, `{{Rate:number:F3}}`, `{{Pct:number:P}}`
 - String format: `{{Name:uppercase}}`, `{{Code:lowercase}}`
+- List format: `{{Tags:join}}` (`, `), `{{Assets:join:Name}}`, `{{Assets:join:Name:"; "}}`, `{{Codes:join:""}}` (`Placeholders/JoinFormat.cs`)
 - Date format: `{{OrderDate:date:yyyy-MM-dd}}`, `{{Date:date:MMMM d, yyyy}}`
 - No markdown for one value: `{{FileName:raw}}`
 
