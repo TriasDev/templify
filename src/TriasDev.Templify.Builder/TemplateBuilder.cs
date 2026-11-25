@@ -44,13 +44,14 @@ public static class TemplateBuilder
                 $"The margins leave no room for text: the page is {page.Size.Width} wide, the side margins take {page.Left + page.Right}.");
         }
 
-        if (BlockFlattener.HasMarkers(allBlocks) && styles.Find(BuilderStyles.TemplateMarker) == null)
+        if (BlockTree.HasMarkers(allBlocks) && styles.Find(BuilderStyles.TemplateMarker) == null)
         {
             styles = styles.WithParagraphStyle(BuilderStyles.DefaultMarkerDefinition());
         }
 
         context.AddRange(styles.Problems);
         CheckStylesAreDefined(allBlocks, styles, context);
+        TableLayout.Check(allBlocks, page.FrameWidth, styles, context);
 
         if (context.Errors.Count > 0)
         {
@@ -67,7 +68,7 @@ public static class TemplateBuilder
     private static void CheckStylesAreDefined(IReadOnlyList<Block> body, StyleSheet styles, BuildContext context)
     {
         HashSet<string> reported = new HashSet<string>(StringComparer.Ordinal);
-        foreach (ParagraphBlock paragraph in BlockFlattener.Paragraphs(body))
+        foreach (ParagraphBlock paragraph in BlockTree.Paragraphs(body))
         {
             if (paragraph.Style is { } style && styles.Find(style) == null && reported.Add("p:" + style.Id))
             {

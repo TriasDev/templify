@@ -79,4 +79,13 @@ internal static class DiagnosticCodes
 
     /// <summary>The margins leave no room for text.</summary>
     public const string NoTextFrame = "TB6002";
+
+    /// <summary>A table has no columns.</summary>
+    public const string TableWithoutColumns = "TB7001";
+
+    /// <summary>A table's fixed columns do not fit its container.</summary>
+    public const string TableTooWide = "TB7002";
+
+    /// <summary>A row's cells do not span the table's columns.</summary>
+    public const string RowCellCount = "TB7003";
 }

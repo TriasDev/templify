@@ -64,6 +64,141 @@ internal sealed record ConditionalBlock : Block
 /// <summary>A paragraph-level loop: <c>{{#foreach item in collection}}</c> … <c>{{/foreach}}</c>.</summary>
 internal sealed record LoopBlock(TemplatePath Collection, string ItemName, List<Block> Body) : Block;
 
+/// <summary>A line: width and colour.</summary>
+internal sealed record BorderLine(Length Width, Color Color);
+
+/// <summary>A column of a table: a fixed width, or a weight (when <see cref="Fixed"/> is null).</summary>
+internal sealed record ColumnSpec(Length? Fixed, double Weight);
+
+/// <summary>A table: columns, rows (header rows first) and options.</summary>
+internal sealed record TableBlock : Block
+{
+    public TableStyleKey? Style { get; set; }
+
+    public List<ColumnSpec> Columns { get; } = new List<ColumnSpec>();
+
+    public List<TableRowItem> Rows { get; } = new List<TableRowItem>();
+
+    public Length? SpaceAfter { get; set; }
+
+    /// <summary>Every row of the table, also inside row loops and row conditionals.</summary>
+    public IEnumerable<TableRowModel> AllRows() => TableRowItem.Rows(Rows);
+}
+
+/// <summary>An item of a table's row list: a row, or (later) a row loop or row conditional.</summary>
+internal abstract class TableRowItem
+{
+    public static IEnumerable<TableRowModel> Rows(IEnumerable<TableRowItem> items)
+    {
+        foreach (TableRowItem item in items)
+        {
+            foreach (TableRowModel row in item.ContainedRows())
+            {
+                yield return row;
+            }
+        }
+    }
+
+    protected abstract IEnumerable<TableRowModel> ContainedRows();
+}
+
+/// <summary>A table row.</summary>
+internal sealed class TableRowModel(bool isHeader) : TableRowItem
+{
+    public bool IsHeader { get; } = isHeader;
+
+    public bool AllowSplit { get; set; }
+
+    public List<TableCellModel> Cells { get; } = new List<TableCellModel>();
+
+    protected override IEnumerable<TableRowModel> ContainedRows() => [this];
+}
+
+/// <summary>A table cell.</summary>
+internal sealed class TableCellModel
+{
+    public List<Block> Content { get; } = new List<Block>();
+
+    public int Span { get; set; } = 1;
+
+    public Color? Background { get; set; }
+
+    public CellVerticalAlignment? VerticalAlignment { get; set; }
+}
+
+/// <summary>A table style as defined in a <see cref="StyleSheet"/>.</summary>
+internal sealed class TableStyleDefinition(TableStyleKey key)
+{
+    /// <summary>Word's default cell margin left and right (108 twips).</summary>
+    public static readonly Length DefaultPaddingHorizontal = 5.4.Pt();
+
+    public TableStyleKey Key { get; } = key;
+
+    public BorderLine? Outer { get; set; }
+
+    public BorderLine? RowRule { get; set; }
+
+    public BorderLine? ColumnRule { get; set; }
+
+    public BorderLine? HeaderRule { get; set; }
+
+    public Color? HeaderBackground { get; set; }
+
+    public Length PaddingVertical { get; set; } = Length.Zero;
+
+    public Length PaddingHorizontal { get; set; } = DefaultPaddingHorizontal;
+}
+
+/// <summary>Walks the block tree.</summary>
+internal static class BlockTree
+{
+    /// <summary>Every block, also inside conditionals, loops, components and table cells, in document order.</summary>
+    public static IEnumerable<Block> All(IEnumerable<Block> blocks)
+    {
+        foreach (Block block in blocks)
+        {
+            yield return block;
+            foreach (Block inner in All(Children(block, intoCells: true)))
+            {
+                yield return inner;
+            }
+        }
+    }
+
+    /// <summary>The tables of a container, through conditionals, loops and components but not into table cells.</summary>
+    public static IEnumerable<TableBlock> Tables(IEnumerable<Block> blocks)
+    {
+        foreach (Block block in blocks)
+        {
+            if (block is TableBlock table)
+            {
+                yield return table;
+                continue;
+            }
+
+            foreach (TableBlock inner in Tables(Children(block, intoCells: false)))
+            {
+                yield return inner;
+            }
+        }
+    }
+
+    /// <summary>Every paragraph at any depth.</summary>
+    public static IEnumerable<ParagraphBlock> Paragraphs(IEnumerable<Block> blocks) => All(blocks).OfType<ParagraphBlock>();
+
+    /// <summary>Whether conditionals or loops occur at any depth (they need the marker style).</summary>
+    public static bool HasMarkers(IEnumerable<Block> blocks) => All(blocks).Any(b => b is ConditionalBlock or LoopBlock);
+
+    private static IEnumerable<Block> Children(Block block, bool intoCells) => block switch
+    {
+        ConditionalBlock conditional => conditional.Branches.SelectMany(b => b.Body).Concat(conditional.Else ?? []),
+        LoopBlock loop => loop.Body,
+        ComponentBlock component => component.Body,
+        TableBlock table when intoCells => table.AllRows().SelectMany(r => r.Cells).SelectMany(c => c.Content),
+        _ => [],
+    };
+}
+
 /// <summary>The content of a component, kept as a unit together with the component that produced it.</summary>
 internal sealed record ComponentBlock(ITemplateComponent Component, List<Block> Body) : Block;
 
@@ -132,11 +267,6 @@ internal static class BlockFlattener
         }
     }
 
-    /// <summary>Every paragraph, also inside conditional blocks.</summary>
-    public static IEnumerable<ParagraphBlock> Paragraphs(IEnumerable<Block> blocks) => Flatten(blocks).OfType<ParagraphBlock>();
-
-    /// <summary>Whether the blocks contain a conditional block at any depth.</summary>
-    public static bool HasMarkers(IEnumerable<Block> blocks) => Flatten(blocks).OfType<MarkerBlock>().Any();
 }
 
 /// <summary>Content inside a paragraph.</summary>

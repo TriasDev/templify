@@ -20,13 +20,25 @@ public sealed class StyleSheet
     private StyleSheet(
         TextProperties defaults,
         IReadOnlyList<ParagraphStyleDefinition> paragraphStyles,
-        IReadOnlyList<CharacterStyleDefinition> characterStyles)
+        IReadOnlyList<CharacterStyleDefinition> characterStyles,
+        IReadOnlyList<TableStyleDefinition> tableStyles)
     {
         Defaults = defaults;
         ParagraphStyles = paragraphStyles;
         CharacterStyles = characterStyles;
+        TableStyles = tableStyles;
         Problems = Validate(paragraphStyles, characterStyles);
+        foreach (IGrouping<string, TableStyleDefinition> duplicate in tableStyles.GroupBy(t => t.Key.Id, StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1))
+        {
+            ((List<BuildDiagnostic>)Problems).Add(new BuildDiagnostic(DiagnosticCodes.DuplicateStyleId, $"The table style id '{duplicate.Key}' is defined more than once."));
+        }
     }
+
+    /// <summary>Gets the table styles in definition order.</summary>
+    internal IReadOnlyList<TableStyleDefinition> TableStyles { get; }
+
+    /// <summary>Finds the definition of a table style.</summary>
+    internal TableStyleDefinition? Find(TableStyleKey key) => TableStyles.FirstOrDefault(s => s.Key == key);
 
     /// <summary>Gets the default text formatting.</summary>
     internal TextProperties Defaults { get; }
@@ -41,7 +53,7 @@ public sealed class StyleSheet
     internal IReadOnlyList<BuildDiagnostic> Problems { get; }
 
     /// <summary>Gets an empty style sheet: default formatting of the application that opens the document.</summary>
-    internal static StyleSheet Empty { get; } = new StyleSheet(new TextProperties(), [], []);
+    internal static StyleSheet Empty { get; } = new StyleSheet(new TextProperties(), [], [], []);
 
     /// <summary>Creates a style sheet.</summary>
     /// <param name="styles">Defines the defaults and the styles.</param>
@@ -52,12 +64,12 @@ public sealed class StyleSheet
         StyleSheetComposer composer = new StyleSheetComposer();
         styles(composer);
         composer.Close();
-        return new StyleSheet(composer.DefaultText, composer.ParagraphStyles, composer.CharacterStyles);
+        return new StyleSheet(composer.DefaultText, composer.ParagraphStyles, composer.CharacterStyles, composer.TableStyles);
     }
 
     /// <summary>A copy of this style sheet with one more paragraph style (the builder's own default styles).</summary>
     internal StyleSheet WithParagraphStyle(ParagraphStyleDefinition definition) =>
-        new StyleSheet(Defaults, ParagraphStyles.Append(definition).ToList(), CharacterStyles);
+        new StyleSheet(Defaults, ParagraphStyles.Append(definition).ToList(), CharacterStyles, TableStyles);
 
     /// <summary>Finds the definition of a paragraph style.</summary>
     internal ParagraphStyleDefinition? Find(ParagraphStyleKey key) => ParagraphStyles.FirstOrDefault(s => s.Key == key);

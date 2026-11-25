@@ -24,6 +24,9 @@ override TriasDev.Templify.Builder.PageSize.ToString() -> string!
 override TriasDev.Templify.Builder.ParagraphStyleKey.Equals(object? obj) -> bool
 override TriasDev.Templify.Builder.ParagraphStyleKey.GetHashCode() -> int
 override TriasDev.Templify.Builder.ParagraphStyleKey.ToString() -> string!
+override TriasDev.Templify.Builder.TableStyleKey.Equals(object? obj) -> bool
+override TriasDev.Templify.Builder.TableStyleKey.GetHashCode() -> int
+override TriasDev.Templify.Builder.TableStyleKey.ToString() -> string!
 override TriasDev.Templify.Builder.TemplateBuildOptions.Equals(object? obj) -> bool
 override TriasDev.Templify.Builder.TemplateBuildOptions.GetHashCode() -> int
 override TriasDev.Templify.Builder.TemplateBuildOptions.ToString() -> string!
@@ -79,6 +82,8 @@ static TriasDev.Templify.Builder.PageSize.operator ==(TriasDev.Templify.Builder.
 static TriasDev.Templify.Builder.ParagraphStyleKey.operator !=(TriasDev.Templify.Builder.ParagraphStyleKey? left, TriasDev.Templify.Builder.ParagraphStyleKey? right) -> bool
 static TriasDev.Templify.Builder.ParagraphStyleKey.operator ==(TriasDev.Templify.Builder.ParagraphStyleKey? left, TriasDev.Templify.Builder.ParagraphStyleKey? right) -> bool
 static TriasDev.Templify.Builder.StyleSheet.Create(System.Action<TriasDev.Templify.Builder.StyleSheetComposer!>! styles) -> TriasDev.Templify.Builder.StyleSheet!
+static TriasDev.Templify.Builder.TableStyleKey.operator !=(TriasDev.Templify.Builder.TableStyleKey? left, TriasDev.Templify.Builder.TableStyleKey? right) -> bool
+static TriasDev.Templify.Builder.TableStyleKey.operator ==(TriasDev.Templify.Builder.TableStyleKey? left, TriasDev.Templify.Builder.TableStyleKey? right) -> bool
 static TriasDev.Templify.Builder.TemplateBuilder.Build(TriasDev.Templify.Builder.ITemplateDefinition! definition, TriasDev.Templify.Builder.TemplateBuildOptions! options) -> TriasDev.Templify.Builder.GeneratedTemplate!
 static TriasDev.Templify.Builder.TemplateBuildOptions.operator !=(TriasDev.Templify.Builder.TemplateBuildOptions? left, TriasDev.Templify.Builder.TemplateBuildOptions? right) -> bool
 static TriasDev.Templify.Builder.TemplateBuildOptions.operator ==(TriasDev.Templify.Builder.TemplateBuildOptions? left, TriasDev.Templify.Builder.TemplateBuildOptions? right) -> bool
@@ -133,6 +138,7 @@ TriasDev.Templify.Builder.BlockComposer.Paragraph(TriasDev.Templify.Builder.Para
 TriasDev.Templify.Builder.BlockComposer.Paragraph(TriasDev.Templify.Builder.ParagraphStyleKey! style, TriasDev.Templify.Builder.TemplatePath value) -> void
 TriasDev.Templify.Builder.BlockComposer.Paragraph(TriasDev.Templify.Builder.TemplatePath value) -> void
 TriasDev.Templify.Builder.BlockComposer.Switch(TriasDev.Templify.Builder.TemplatePath value, System.Action<TriasDev.Templify.Builder.SwitchComposer!>! cases) -> void
+TriasDev.Templify.Builder.BlockComposer.Table(System.Action<TriasDev.Templify.Builder.TableComposer!>! table) -> void
 TriasDev.Templify.Builder.BuildDiagnostic
 TriasDev.Templify.Builder.BuildDiagnostic.<Clone>$() -> TriasDev.Templify.Builder.BuildDiagnostic!
 TriasDev.Templify.Builder.BuildDiagnostic.BuildDiagnostic(string! Code, string! Message) -> void
@@ -143,6 +149,14 @@ TriasDev.Templify.Builder.BuildDiagnostic.Equals(TriasDev.Templify.Builder.Build
 TriasDev.Templify.Builder.BuildDiagnostic.Message.get -> string!
 TriasDev.Templify.Builder.BuildDiagnostic.Message.init -> void
 TriasDev.Templify.Builder.BuilderStyles
+TriasDev.Templify.Builder.CellComposer
+TriasDev.Templify.Builder.CellComposer.Background(TriasDev.Templify.Builder.Color color) -> TriasDev.Templify.Builder.CellComposer!
+TriasDev.Templify.Builder.CellComposer.ColumnSpan(int columns) -> TriasDev.Templify.Builder.CellComposer!
+TriasDev.Templify.Builder.CellComposer.VerticalAlignment(TriasDev.Templify.Builder.CellVerticalAlignment alignment) -> TriasDev.Templify.Builder.CellComposer!
+TriasDev.Templify.Builder.CellVerticalAlignment
+TriasDev.Templify.Builder.CellVerticalAlignment.Bottom = 2 -> TriasDev.Templify.Builder.CellVerticalAlignment
+TriasDev.Templify.Builder.CellVerticalAlignment.Center = 1 -> TriasDev.Templify.Builder.CellVerticalAlignment
+TriasDev.Templify.Builder.CellVerticalAlignment.Top = 0 -> TriasDev.Templify.Builder.CellVerticalAlignment
 TriasDev.Templify.Builder.CharacterStyleComposer
 TriasDev.Templify.Builder.CharacterStyleComposer.BasedOn(TriasDev.Templify.Builder.CharacterStyleKey! parent) -> TriasDev.Templify.Builder.CharacterStyleComposer!
 TriasDev.Templify.Builder.CharacterStyleComposer.Bold(bool value = true) -> TriasDev.Templify.Builder.CharacterStyleComposer!
@@ -162,6 +176,9 @@ TriasDev.Templify.Builder.Color.Color() -> void
 TriasDev.Templify.Builder.Color.Equals(TriasDev.Templify.Builder.Color other) -> bool
 TriasDev.Templify.Builder.Color.G.get -> byte
 TriasDev.Templify.Builder.Color.R.get -> byte
+TriasDev.Templify.Builder.ColumnsComposer
+TriasDev.Templify.Builder.ColumnsComposer.Fixed(TriasDev.Templify.Builder.Length width) -> void
+TriasDev.Templify.Builder.ColumnsComposer.Relative(double weight) -> void
 TriasDev.Templify.Builder.Condition
 TriasDev.Templify.Builder.ContractEntry
 TriasDev.Templify.Builder.ContractEntry.<Clone>$() -> TriasDev.Templify.Builder.ContractEntry!
@@ -287,15 +304,41 @@ TriasDev.Templify.Builder.ParagraphStyleKey.DisplayName.get -> string!
 TriasDev.Templify.Builder.ParagraphStyleKey.Equals(TriasDev.Templify.Builder.ParagraphStyleKey? other) -> bool
 TriasDev.Templify.Builder.ParagraphStyleKey.Id.get -> string!
 TriasDev.Templify.Builder.ParagraphStyleKey.ParagraphStyleKey(string! id, string! displayName) -> void
+TriasDev.Templify.Builder.RowComposer
+TriasDev.Templify.Builder.RowComposer.AllowSplit() -> void
+TriasDev.Templify.Builder.RowComposer.Cell(string! text) -> void
+TriasDev.Templify.Builder.RowComposer.Cell(System.Action<TriasDev.Templify.Builder.CellComposer!>! cell) -> void
+TriasDev.Templify.Builder.RowComposer.Cell(TriasDev.Templify.Builder.ParagraphStyleKey! style, string! text) -> void
+TriasDev.Templify.Builder.RowComposer.Cell(TriasDev.Templify.Builder.ParagraphStyleKey! style, TriasDev.Templify.Builder.TemplatePath value) -> void
+TriasDev.Templify.Builder.RowComposer.Cell(TriasDev.Templify.Builder.TemplatePath value) -> void
 TriasDev.Templify.Builder.StyleSheet
 TriasDev.Templify.Builder.StyleSheetComposer
 TriasDev.Templify.Builder.StyleSheetComposer.Character(TriasDev.Templify.Builder.CharacterStyleKey! key, System.Action<TriasDev.Templify.Builder.CharacterStyleComposer!>! style) -> void
 TriasDev.Templify.Builder.StyleSheetComposer.Defaults(System.Action<TriasDev.Templify.Builder.DefaultStyleComposer!>! defaults) -> void
 TriasDev.Templify.Builder.StyleSheetComposer.Paragraph(TriasDev.Templify.Builder.ParagraphStyleKey! key, System.Action<TriasDev.Templify.Builder.ParagraphStyleComposer!>! style) -> void
+TriasDev.Templify.Builder.StyleSheetComposer.Table(TriasDev.Templify.Builder.TableStyleKey! key, System.Action<TriasDev.Templify.Builder.TableStyleComposer!>! style) -> void
 TriasDev.Templify.Builder.SwitchComposer
 TriasDev.Templify.Builder.SwitchComposer.Case(string! value, System.Action<TriasDev.Templify.Builder.BlockComposer!>! then) -> void
 TriasDev.Templify.Builder.SwitchComposer.Case(System.Collections.Generic.IEnumerable<string!>! values, System.Action<TriasDev.Templify.Builder.BlockComposer!>! then) -> void
 TriasDev.Templify.Builder.SwitchComposer.Default(System.Action<TriasDev.Templify.Builder.BlockComposer!>! otherwise) -> void
+TriasDev.Templify.Builder.TableComposer
+TriasDev.Templify.Builder.TableComposer.Columns(System.Action<TriasDev.Templify.Builder.ColumnsComposer!>! columns) -> TriasDev.Templify.Builder.TableComposer!
+TriasDev.Templify.Builder.TableComposer.HeaderRow(System.Action<TriasDev.Templify.Builder.RowComposer!>! row) -> void
+TriasDev.Templify.Builder.TableComposer.Row(System.Action<TriasDev.Templify.Builder.RowComposer!>! row) -> void
+TriasDev.Templify.Builder.TableComposer.SpaceAfter(TriasDev.Templify.Builder.Length space) -> TriasDev.Templify.Builder.TableComposer!
+TriasDev.Templify.Builder.TableComposer.Style(TriasDev.Templify.Builder.TableStyleKey! style) -> TriasDev.Templify.Builder.TableComposer!
+TriasDev.Templify.Builder.TableStyleComposer
+TriasDev.Templify.Builder.TableStyleComposer.CellPadding(TriasDev.Templify.Builder.Length vertical, TriasDev.Templify.Builder.Length horizontal) -> TriasDev.Templify.Builder.TableStyleComposer!
+TriasDev.Templify.Builder.TableStyleComposer.ColumnRule(TriasDev.Templify.Builder.Length width, TriasDev.Templify.Builder.Color color) -> TriasDev.Templify.Builder.TableStyleComposer!
+TriasDev.Templify.Builder.TableStyleComposer.HeaderBackground(TriasDev.Templify.Builder.Color color) -> TriasDev.Templify.Builder.TableStyleComposer!
+TriasDev.Templify.Builder.TableStyleComposer.HeaderRule(TriasDev.Templify.Builder.Length width, TriasDev.Templify.Builder.Color color) -> TriasDev.Templify.Builder.TableStyleComposer!
+TriasDev.Templify.Builder.TableStyleComposer.OuterBorder(TriasDev.Templify.Builder.Length width, TriasDev.Templify.Builder.Color color) -> TriasDev.Templify.Builder.TableStyleComposer!
+TriasDev.Templify.Builder.TableStyleComposer.RowRule(TriasDev.Templify.Builder.Length width, TriasDev.Templify.Builder.Color color) -> TriasDev.Templify.Builder.TableStyleComposer!
+TriasDev.Templify.Builder.TableStyleKey
+TriasDev.Templify.Builder.TableStyleKey.<Clone>$() -> TriasDev.Templify.Builder.TableStyleKey!
+TriasDev.Templify.Builder.TableStyleKey.Equals(TriasDev.Templify.Builder.TableStyleKey? other) -> bool
+TriasDev.Templify.Builder.TableStyleKey.Id.get -> string!
+TriasDev.Templify.Builder.TableStyleKey.TableStyleKey(string! id) -> void
 TriasDev.Templify.Builder.TemplateBuilder
 TriasDev.Templify.Builder.TemplateBuildException
 TriasDev.Templify.Builder.TemplateBuildException.Errors.get -> System.Collections.Generic.IReadOnlyList<TriasDev.Templify.Builder.BuildDiagnostic!>!

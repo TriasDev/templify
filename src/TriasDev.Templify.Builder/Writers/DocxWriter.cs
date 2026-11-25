@@ -59,7 +59,7 @@ internal static class DocxWriter
         foreach (HeaderFooterPart part in parts)
         {
             OpenXmlCompositeElement root = part.IsHeader ? new Header() : new Footer();
-            root.Append(writer.WriteBlocks(part.Blocks));
+            root.Append(writer.WriteBlocks(part.Blocks, model.Page.FrameWidth));
             if (!root.HasChildren)
             {
                 root.Append(new Paragraph());
@@ -406,7 +406,7 @@ internal static class DocxWriter
     private static Document MainDocument(DocumentModel model, List<HeaderFooterPart> parts)
     {
         Body body = new Body();
-        body.Append(new BlockWriter(model).WriteBlocks(model.Body));
+        body.Append(new BlockWriter(model).WriteBlocks(model.Body, model.Page.FrameWidth));
         body.Append(SectionProperties(model.Page, parts));
         return new Document(body);
     }
@@ -444,22 +444,189 @@ internal static class DocxWriter
     /// <summary>Writes blocks of the body, a header or a footer.</summary>
     private sealed class BlockWriter(DocumentModel model)
     {
-        public IEnumerable<OpenXmlElement> WriteBlocks(IEnumerable<Block> blocks) =>
-            BlockFlattener.Flatten(blocks).Select(WriteBlock).ToList();
-
-        private OpenXmlElement WriteBlock(Block block) => block switch
+        /// <summary>Writes blocks in a container whose text frame is <paramref name="frame"/> wide.</summary>
+        public List<OpenXmlElement> WriteBlocks(IEnumerable<Block> blocks, Length frame)
         {
-            ParagraphBlock paragraph => WriteParagraph(paragraph),
+            List<OpenXmlElement> elements = new List<OpenXmlElement>();
+            foreach (Block block in BlockFlattener.Flatten(blocks))
+            {
+                // Word merges two tables that touch; a paragraph keeps them apart.
+                if (block is TableBlock && elements.Count > 0 && elements[^1] is Table)
+                {
+                    elements.Add(new Paragraph());
+                }
+
+                elements.AddRange(WriteBlock(block, frame));
+            }
+
+            return elements;
+        }
+
+        private IEnumerable<OpenXmlElement> WriteBlock(Block block, Length frame) => block switch
+        {
+            ParagraphBlock paragraph => [WriteParagraph(paragraph, frame)],
             // A paragraph of its own carries the break, so it survives when the engine removes the paragraphs around it.
-            PageBreakBlock => new Paragraph(new Run(new Break { Type = BreakValues.Page })),
+            PageBreakBlock => [new Paragraph(new Run(new Break { Type = BreakValues.Page }))],
             // A marker is a paragraph of its own with one run, which is what the engine's block detection reads.
-            MarkerBlock marker => new Paragraph(
-                new ParagraphProperties(new ParagraphStyleId { Val = BuilderStyles.TemplateMarker.Id }),
-                new Run(new Text(marker.Text) { Space = SpaceProcessingModeValues.Preserve })),
+            MarkerBlock marker => [MarkerParagraph(marker.Text)],
+            TableBlock table => WriteTable(table, frame),
             _ => throw new NotSupportedException($"Block {block.GetType().Name} is not supported by the DOCX writer."),
         };
 
-        private Paragraph WriteParagraph(ParagraphBlock block)
+        private static Paragraph MarkerParagraph(string text) => new Paragraph(
+            new ParagraphProperties(new ParagraphStyleId { Val = BuilderStyles.TemplateMarker.Id }),
+            new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve }));
+
+        // ── tables ───────────────────────────────────────────────────────────────
+
+        private IEnumerable<OpenXmlElement> WriteTable(TableBlock table, Length frame)
+        {
+            TableStyleDefinition? style = table.Style is { } key ? model.Styles.Find(key) : null;
+            Length[] widths = TableLayout.Resolve(table.Columns, frame);
+            Length paddingH = style?.PaddingHorizontal ?? TableStyleDefinition.DefaultPaddingHorizontal;
+            Length paddingV = style?.PaddingVertical ?? Length.Zero;
+
+            // CT_TblPr order: tblW, tblBorders, tblLayout, tblCellMar, tblLook.
+            TableProperties properties = new TableProperties(
+                new TableWidth { Width = widths.Sum(w => w.Twips).ToString(CultureInfo.InvariantCulture), Type = TableWidthUnitValues.Dxa });
+            if (style != null && (style.Outer != null || style.RowRule != null || style.ColumnRule != null))
+            {
+                properties.Append(new TableBorders(
+                    Border<TopBorder>(style.Outer),
+                    Border<LeftBorder>(style.Outer),
+                    Border<BottomBorder>(style.Outer),
+                    Border<RightBorder>(style.Outer),
+                    Border<InsideHorizontalBorder>(style.RowRule),
+                    Border<InsideVerticalBorder>(style.ColumnRule)));
+            }
+
+            properties.Append(new DocumentFormat.OpenXml.Wordprocessing.TableLayout { Type = TableLayoutValues.Fixed });
+            properties.Append(new TableCellMarginDefault(
+                new TopMargin { Width = paddingV.Twips.ToString(CultureInfo.InvariantCulture), Type = TableWidthUnitValues.Dxa },
+                new TableCellLeftMargin { Width = (short)paddingH.Twips, Type = TableWidthValues.Dxa },
+                new BottomMargin { Width = paddingV.Twips.ToString(CultureInfo.InvariantCulture), Type = TableWidthUnitValues.Dxa },
+                new TableCellRightMargin { Width = (short)paddingH.Twips, Type = TableWidthValues.Dxa }));
+
+            Table result = new Table(properties, new TableGrid(widths.Select(w => new GridColumn { Width = w.Twips.ToString(CultureInfo.InvariantCulture) })));
+            foreach (TableRowItem item in table.Rows)
+            {
+                result.Append(WriteRowItem(item, widths, style, paddingH));
+            }
+
+            List<OpenXmlElement> elements = [result];
+            if (table.SpaceAfter is { } space && space > Length.Zero)
+            {
+                // Word tables have no space after: a 1 pt paragraph with the space carries it.
+                elements.Add(new Paragraph(new ParagraphProperties(new SpacingBetweenLines
+                {
+                    Before = "0",
+                    After = space.Twips.ToString(CultureInfo.InvariantCulture),
+                    Line = "20",
+                    LineRule = LineSpacingRuleValues.Exact,
+                })));
+            }
+
+            return elements;
+        }
+
+        private IEnumerable<OpenXmlElement> WriteRowItem(TableRowItem item, Length[] widths, TableStyleDefinition? style, Length paddingH) => item switch
+        {
+            TableRowModel row => [WriteRow(row, widths, style, paddingH)],
+            _ => throw new NotSupportedException($"Row item {item.GetType().Name} is not supported by the DOCX writer."),
+        };
+
+        private TableRow WriteRow(TableRowModel row, Length[] widths, TableStyleDefinition? style, Length paddingH)
+        {
+            TableRow result = new TableRow();
+            TableRowProperties properties = new TableRowProperties();
+            if (!row.AllowSplit)
+            {
+                properties.Append(new CantSplit());
+            }
+
+            if (row.IsHeader)
+            {
+                properties.Append(new TableHeader());
+            }
+
+            if (properties.HasChildren)
+            {
+                result.Append(properties);
+            }
+
+            int column = 0;
+            foreach (TableCellModel cell in row.Cells)
+            {
+                // The cell width is the sum of its grid columns as written (each rounded once), so tcW and tblGrid agree.
+                int twips = widths.Skip(column).Take(cell.Span).Sum(w => w.Twips);
+                result.Append(WriteCell(cell, row.IsHeader, twips, TableLayout.CellFrame(widths, column, cell.Span, paddingH), style));
+                column += cell.Span;
+            }
+
+            return result;
+        }
+
+        private TableCell WriteCell(TableCellModel cell, bool isHeader, int widthTwips, Length contentFrame, TableStyleDefinition? style)
+        {
+            // CT_TcPr order: tcW, gridSpan, tcBorders, shd, vAlign.
+            TableCellProperties properties = new TableCellProperties(
+                new TableCellWidth { Width = widthTwips.ToString(CultureInfo.InvariantCulture), Type = TableWidthUnitValues.Dxa });
+            if (cell.Span > 1)
+            {
+                properties.Append(new GridSpan { Val = cell.Span });
+            }
+
+            if (isHeader && style?.HeaderRule is { } rule)
+            {
+                properties.Append(new TableCellBorders(Border<BottomBorder>(rule)));
+            }
+
+            Color? background = cell.Background ?? (isHeader ? style?.HeaderBackground : null);
+            if (background is { } fill)
+            {
+                properties.Append(new Shading { Val = ShadingPatternValues.Clear, Color = "auto", Fill = fill.Hex });
+            }
+
+            if (cell.VerticalAlignment is { } alignment)
+            {
+                properties.Append(new TableCellVerticalAlignment
+                {
+                    Val = alignment switch
+                    {
+                        CellVerticalAlignment.Center => TableVerticalAlignmentValues.Center,
+                        CellVerticalAlignment.Bottom => TableVerticalAlignmentValues.Bottom,
+                        _ => TableVerticalAlignmentValues.Top,
+                    },
+                });
+            }
+
+            TableCell result = new TableCell(properties);
+            result.Append(WriteBlocks(cell.Content, contentFrame));
+
+            // A cell ends with a paragraph (schema and Word); an empty cell has one.
+            if (result.LastChild is not Paragraph)
+            {
+                result.Append(new Paragraph());
+            }
+
+            return result;
+        }
+
+        private static T Border<T>(BorderLine? line)
+            where T : BorderType, new()
+        {
+            return line is null
+                ? new T { Val = BorderValues.Nil }
+                : new T
+                {
+                    Val = BorderValues.Single,
+                    Size = (uint)Math.Clamp((int)Math.Round(line.Width.Points * 8, MidpointRounding.AwayFromZero), 2, 96),
+                    Space = 0,
+                    Color = line.Color.Hex,
+                };
+        }
+
+        private Paragraph WriteParagraph(ParagraphBlock block, Length frame)
         {
             Paragraph paragraph = new Paragraph();
             bool rightTab = block.Inlines.OfType<RightTabInline>().Any();
@@ -475,7 +642,7 @@ internal static class DocxWriter
                 if (rightTab)
                 {
                     // Word measures tab stops from the text frame's start, whatever the indent.
-                    properties.Append(new Tabs(new TabStop { Val = TabStopValues.Right, Position = model.Page.FrameWidth.Twips }));
+                    properties.Append(new Tabs(new TabStop { Val = TabStopValues.Right, Position = frame.Twips }));
                 }
 
                 paragraph.Append(properties);

@@ -23,6 +23,21 @@ public sealed class StyleSheetComposer
 
     internal List<CharacterStyleDefinition> CharacterStyles { get; } = new List<CharacterStyleDefinition>();
 
+    internal List<TableStyleDefinition> TableStyles { get; } = new List<TableStyleDefinition>();
+
+    /// <summary>Defines a table style.</summary>
+    /// <param name="key">The style's key.</param>
+    /// <param name="style">Sets the borders, rules, padding and header shading.</param>
+    public void Table(TableStyleKey key, Action<TableStyleComposer> style)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        ArgumentNullException.ThrowIfNull(style);
+        EnsureOpen();
+        TableStyleDefinition definition = new TableStyleDefinition(key);
+        style(new TableStyleComposer(this, definition));
+        TableStyles.Add(definition);
+    }
+
     /// <summary>Sets the default text formatting every style starts from.</summary>
     /// <param name="defaults">Sets font, size and colour.</param>
     public void Defaults(Action<DefaultStyleComposer> defaults)

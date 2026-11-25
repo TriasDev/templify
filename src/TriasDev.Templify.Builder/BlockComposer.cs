@@ -9,7 +9,7 @@ namespace TriasDev.Templify.Builder;
 /// Describes block-level content: the document body and, in later versions, cells, boxes, headers and the bodies
 /// of conditionals and loops. Valid only inside the lambda it is passed to.
 /// </summary>
-public sealed class BlockComposer
+public class BlockComposer
 {
     private readonly BuildContext _context;
     private readonly List<Block> _blocks;
@@ -132,6 +132,19 @@ public sealed class BlockComposer
         body(new LoopItem(scope), composer);
         composer.Close();
         _blocks.Add(new LoopBlock(collection, itemName, blocks));
+    }
+
+    /// <summary>Adds a table.</summary>
+    /// <param name="table">Describes the columns, header rows and rows.</param>
+    public void Table(Action<TableComposer> table)
+    {
+        ArgumentNullException.ThrowIfNull(table);
+        EnsureOpen();
+        TableBlock block = new TableBlock();
+        TableComposer composer = new TableComposer(_context, _scope, block);
+        table(composer);
+        composer.Close();
+        _blocks.Add(block);
     }
 
     /// <summary>Adds a reusable component's content.</summary>

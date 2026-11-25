@@ -25,6 +25,7 @@ internal static class OdtWriter
     private static readonly XNamespace _style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
     private static readonly XNamespace _fo = "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0";
     private static readonly XNamespace _svg = "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0";
+    private static readonly XNamespace _table = "urn:oasis:names:tc:opendocument:xmlns:table:1.0";
     private static readonly XNamespace _meta = "urn:oasis:names:tc:opendocument:xmlns:meta:1.0";
     private static readonly XNamespace _dc = "http://purl.org/dc/elements/1.1/";
     private static readonly XNamespace _manifest = "urn:oasis:names:tc:opendocument:xmlns:manifest:1.0";
@@ -47,11 +48,11 @@ internal static class OdtWriter
     private static XElement Content(DocumentModel model)
     {
         BlockWriter writer = new BlockWriter(model, "Templify");
-        XElement text = new XElement(_office + "text", writer.WriteBlocks(model.Body));
+        XElement text = new XElement(_office + "text", writer.WriteBlocks(model.Body, model.Page.FrameWidth));
 
         return new XElement(
             _office + "document-content",
-            Namespaces(_office, _text, _style, _fo, _svg),
+            Namespaces(_office, _text, _style, _fo, _svg, _table),
             new XAttribute(_office + "version", OdfVersion),
             new XElement(_office + "automatic-styles", writer.AutomaticStyles),
             new XElement(_office + "body", text));
@@ -68,11 +69,21 @@ internal static class OdtWriter
 
         public List<XElement> AutomaticStyles { get; } = new List<XElement>();
 
-        public List<XElement> WriteBlocks(IEnumerable<Block> blocks) => BlockFlattener.Flatten(blocks).Select(WriteBlock).ToList();
+        private readonly Dictionary<string, string> _cellStyles = new Dictionary<string, string>(StringComparer.Ordinal);
+        private int _tables;
+        private bool _rowKeepStyle;
 
-        private XElement WriteBlock(Block block) => block switch
+        /// <summary>Gets the width of the page's text frame.</summary>
+        public Length PageFrame => model.Page.FrameWidth;
+
+        /// <summary>Writes blocks in a container whose text frame is <paramref name="frame"/> wide.</summary>
+        public List<XElement> WriteBlocks(IEnumerable<Block> blocks, Length frame) =>
+            BlockFlattener.Flatten(blocks).Select(b => WriteBlock(b, frame)).ToList();
+
+        private XElement WriteBlock(Block block, Length frame) => block switch
         {
-            ParagraphBlock paragraph => WriteParagraph(paragraph),
+            ParagraphBlock paragraph => WriteParagraph(paragraph, frame),
+            TableBlock table => WriteTable(table, frame),
             // An empty paragraph of its own carries the break (break-after: no empty line on the new page), so it
             // survives when the engine removes the paragraphs around it.
             PageBreakBlock => new XElement(_text + "p", new XAttribute(_text + "style-name", PageBreakStyle())),
@@ -101,10 +112,10 @@ internal static class OdtWriter
         /// An automatic paragraph style with a right tab stop at the end of the frame. ODF measures tab stops from
         /// the paragraph's indent, so the style's start indent is subtracted.
         /// </summary>
-        private string RightTabStyle(ParagraphStyleKey? parent)
+        private string RightTabStyle(ParagraphStyleKey? parent, Length frame)
         {
             string parentName = parent?.Id ?? StandardStyleName;
-            int position = (model.Page.FrameWidth - model.Styles.IndentStartOf(parent)).Millipoints;
+            int position = (frame - model.Styles.IndentStartOf(parent)).Millipoints;
             if (!_tabStyles.TryGetValue((parentName, position), out string? name))
             {
                 name = prefix + "Tab" + (_tabStyles.Count + 1).ToString(CultureInfo.InvariantCulture);
@@ -120,12 +131,189 @@ internal static class OdtWriter
                             _style + "tab-stops",
                             new XElement(
                                 _style + "tab-stop",
-                                new XAttribute(_style + "position", (model.Page.FrameWidth - model.Styles.IndentStartOf(parent)).ToString()),
+                                new XAttribute(_style + "position", (frame - model.Styles.IndentStartOf(parent)).ToString()),
                                 new XAttribute(_style + "type", "right"))))));
             }
 
             return name;
         }
+
+        // ── tables ───────────────────────────────────────────────────────────────
+
+        private XElement WriteTable(TableBlock table, Length frame)
+        {
+            TableStyleDefinition? style = table.Style is { } key ? model.Styles.Find(key) : null;
+            Length[] widths = TableLayout.Resolve(table.Columns, frame);
+            Length paddingH = style?.PaddingHorizontal ?? TableStyleDefinition.DefaultPaddingHorizontal;
+            string name = prefix + "Table" + (++_tables).ToString(CultureInfo.InvariantCulture);
+
+            XElement tableProperties = new XElement(
+                _style + "table-properties",
+                new XAttribute(_style + "width", widths.Aggregate(Length.Zero, (a, b) => a + b).ToString()),
+                new XAttribute(_table + "align", "left"),
+                new XAttribute(_table + "border-model", "collapsing"));
+            if (table.SpaceAfter is { } space)
+            {
+                tableProperties.Add(new XAttribute(_fo + "margin-bottom", space.ToString()));
+            }
+
+            AutomaticStyles.Add(new XElement(
+                _style + "style",
+                new XAttribute(_style + "name", name),
+                new XAttribute(_style + "family", "table"),
+                tableProperties));
+
+            XElement result = new XElement(_table + "table", new XAttribute(_table + "name", name), new XAttribute(_table + "style-name", name));
+            for (int i = 0; i < widths.Length; i++)
+            {
+                string columnStyle = $"{name}.C{(i + 1).ToString(CultureInfo.InvariantCulture)}";
+                AutomaticStyles.Add(new XElement(
+                    _style + "style",
+                    new XAttribute(_style + "name", columnStyle),
+                    new XAttribute(_style + "family", "table-column"),
+                    new XElement(_style + "table-column-properties", new XAttribute(_style + "column-width", widths[i].ToString()))));
+                result.Add(new XElement(_table + "table-column", new XAttribute(_table + "style-name", columnStyle)));
+            }
+
+            // Collapsed borders: every cell carries the lines of its edges.
+            List<TableRowModel> rows = table.AllRows().ToList();
+            XElement? headerRows = null;
+            foreach (TableRowItem item in table.Rows)
+            {
+                foreach (XElement row in WriteRowItem(item, rows, widths, style, paddingH))
+                {
+                    if (item is TableRowModel { IsHeader: true })
+                    {
+                        headerRows ??= new XElement(_table + "table-header-rows");
+                        headerRows.Add(row);
+                        if (headerRows.Parent is null)
+                        {
+                            result.Add(headerRows);
+                        }
+                    }
+                    else
+                    {
+                        result.Add(row);
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private IEnumerable<XElement> WriteRowItem(TableRowItem item, List<TableRowModel> rows, Length[] widths, TableStyleDefinition? style, Length paddingH) => item switch
+        {
+            TableRowModel row => [WriteRow(row, rows, widths, style, paddingH)],
+            _ => throw new NotSupportedException($"Row item {item.GetType().Name} is not supported by the ODT writer."),
+        };
+
+        private XElement WriteRow(TableRowModel row, List<TableRowModel> rows, Length[] widths, TableStyleDefinition? style, Length paddingH)
+        {
+            XElement result = new XElement(_table + "table-row");
+            if (!row.AllowSplit)
+            {
+                result.Add(new XAttribute(_table + "style-name", RowKeepStyle()));
+            }
+
+            int index = rows.IndexOf(row);
+            bool first = index == 0;
+            bool last = index == rows.Count - 1;
+            bool afterHeader = index > 0 && rows[index - 1].IsHeader && !row.IsHeader;
+            int column = 0;
+            foreach (TableCellModel cell in row.Cells)
+            {
+                BorderLine? top = first ? style?.Outer : afterHeader && style?.HeaderRule is { } headerRule ? headerRule : style?.RowRule;
+                BorderLine? bottom = row.IsHeader && style?.HeaderRule is { } rule ? rule : last ? style?.Outer : style?.RowRule;
+                BorderLine? left = column == 0 ? style?.Outer : style?.ColumnRule;
+                BorderLine? right = column + cell.Span >= widths.Length ? style?.Outer : style?.ColumnRule;
+                Color? background = cell.Background ?? (row.IsHeader ? style?.HeaderBackground : null);
+
+                XElement element = new XElement(
+                    _table + "table-cell",
+                    new XAttribute(_table + "style-name", CellStyle(top, bottom, left, right, background, cell.VerticalAlignment, style?.PaddingVertical ?? Length.Zero, paddingH)),
+                    new XAttribute(_office + "value-type", "string"));
+                if (cell.Span > 1)
+                {
+                    element.Add(new XAttribute(_table + "number-columns-spanned", cell.Span));
+                }
+
+                List<XElement> content = WriteBlocks(cell.Content, TableLayout.CellFrame(widths, column, cell.Span, paddingH));
+                element.Add(content.Count > 0 && content[^1].Name != _table + "table"
+                    ? content
+                    : content.Append(new XElement(_text + "p", new XAttribute(_text + "style-name", StandardStyleName))));
+                result.Add(element);
+                for (int i = 1; i < cell.Span; i++)
+                {
+                    result.Add(new XElement(_table + "covered-table-cell"));
+                }
+
+                column += cell.Span;
+            }
+
+            return result;
+        }
+
+        private string RowKeepStyle()
+        {
+            string name = prefix + "RowKeep";
+            if (!_rowKeepStyle)
+            {
+                _rowKeepStyle = true;
+                AutomaticStyles.Add(new XElement(
+                    _style + "style",
+                    new XAttribute(_style + "name", name),
+                    new XAttribute(_style + "family", "table-row"),
+                    new XElement(_style + "table-row-properties", new XAttribute(_fo + "keep-together", "always"))));
+            }
+
+            return name;
+        }
+
+        /// <summary>A cell style for a set of borders, background, alignment and padding; equal cells share one.</summary>
+        private string CellStyle(BorderLine? top, BorderLine? bottom, BorderLine? left, BorderLine? right, Color? background, CellVerticalAlignment? alignment, Length paddingV, Length paddingH)
+        {
+            XElement properties = new XElement(
+                _style + "table-cell-properties",
+                new XAttribute(_fo + "padding-top", paddingV.ToString()),
+                new XAttribute(_fo + "padding-bottom", paddingV.ToString()),
+                new XAttribute(_fo + "padding-left", paddingH.ToString()),
+                new XAttribute(_fo + "padding-right", paddingH.ToString()),
+                new XAttribute(_fo + "border-top", Border(top)),
+                new XAttribute(_fo + "border-bottom", Border(bottom)),
+                new XAttribute(_fo + "border-left", Border(left)),
+                new XAttribute(_fo + "border-right", Border(right)));
+            if (background is { } fill)
+            {
+                properties.Add(new XAttribute(_fo + "background-color", "#" + fill.Hex.ToLowerInvariant()));
+            }
+
+            if (alignment is { } vertical)
+            {
+                properties.Add(new XAttribute(_style + "vertical-align", vertical switch
+                {
+                    CellVerticalAlignment.Center => "middle",
+                    CellVerticalAlignment.Bottom => "bottom",
+                    _ => "top",
+                }));
+            }
+
+            string signature = properties.ToString(SaveOptions.DisableFormatting);
+            if (!_cellStyles.TryGetValue(signature, out string? name))
+            {
+                name = prefix + "Cell" + (_cellStyles.Count + 1).ToString(CultureInfo.InvariantCulture);
+                _cellStyles[signature] = name;
+                AutomaticStyles.Add(new XElement(
+                    _style + "style",
+                    new XAttribute(_style + "name", name),
+                    new XAttribute(_style + "family", "table-cell"),
+                    properties));
+            }
+
+            return name;
+        }
+
+        private static string Border(BorderLine? line) =>
+            line is null ? "none" : $"{line.Width} solid #{line.Color.Hex.ToLowerInvariant()}";
 
         private static XElement WriteMarker(MarkerBlock marker)
         {
@@ -136,10 +324,10 @@ internal static class OdtWriter
             return paragraph;
         }
 
-        private XElement WriteParagraph(ParagraphBlock block)
+        private XElement WriteParagraph(ParagraphBlock block, Length frame)
         {
             int? outlineLevel = block.Style is { } key ? model.Styles.OutlineLevelOf(key) : null;
-            string styleName = block.Inlines.OfType<RightTabInline>().Any() ? RightTabStyle(block.Style) : block.Style?.Id ?? StandardStyleName;
+            string styleName = block.Inlines.OfType<RightTabInline>().Any() ? RightTabStyle(block.Style, frame) : block.Style?.Id ?? StandardStyleName;
             XAttribute styleAttribute = new XAttribute(_text + "style-name", styleName);
             XElement paragraph = outlineLevel is int level
                 ? new XElement(_text + "h", styleAttribute, new XAttribute(_text + "outline-level", level))
@@ -275,7 +463,7 @@ internal static class OdtWriter
         XElement masterPage = MasterPage(model.Page, headerFooter);
         return new XElement(
             _office + "document-styles",
-            Namespaces(_office, _text, _style, _fo, _svg),
+            Namespaces(_office, _text, _style, _fo, _svg, _table),
             new XAttribute(_office + "version", OdfVersion),
             FontFaceDeclarations(sheet),
             styles,
@@ -359,7 +547,7 @@ internal static class OdtWriter
 
     private static XElement Region(string name, List<Block>? blocks, BlockWriter writer)
     {
-        List<XElement> content = blocks is null ? new List<XElement>() : writer.WriteBlocks(blocks);
+        List<XElement> content = blocks is null ? new List<XElement>() : writer.WriteBlocks(blocks, writer.PageFrame);
         return new XElement(_style + name, content.Count > 0 ? content : new XElement(_text + "p", new XAttribute(_text + "style-name", StandardStyleName)));
     }
 
@@ -550,6 +738,7 @@ internal static class OdtWriter
                 : ns == _style ? "style"
                 : ns == _fo ? "fo"
                 : ns == _svg ? "svg"
+                : ns == _table ? "table"
                 : ns == _meta ? "meta"
                 : ns == _dc ? "dc"
                 : throw new ArgumentOutOfRangeException(nameof(namespaces), ns.NamespaceName, "Unknown namespace.");

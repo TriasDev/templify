@@ -210,6 +210,14 @@ public sealed class DataContract
                 case ComponentBlock component:
                     Walk(component.Body, entries);
                     break;
+
+                case TableBlock table:
+                    foreach (TableCellModel cell in table.AllRows().SelectMany(r => r.Cells))
+                    {
+                        Walk(cell.Content, entries);
+                    }
+
+                    break;
             }
         }
     }
