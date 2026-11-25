@@ -239,10 +239,10 @@ public sealed class SwitchComposer
 
 public sealed class InlineComposer
 {
-    public void Text(string text, CharacterStyleKey? style = null);         // literal "{{" is a build error
+    public void Text(string text, CharacterStyleKey? style = null);         // literal "{{" is a build error (TB1002): Templify has no escape for it
     public void Value(TemplatePath path, ValueFormat? format = null, CharacterStyleKey? style = null);
     public void Tab();
-    public void TabRight();                                                 // right tab stop at the container's edge
+    public void TabRight();                                                 // right tab stop at the frame's edge — task 9 (needs page setup)
     public void LineBreak();
     // later tasks: If (inline, text only), Expression, Image, PageNumber, PageCount
 }
@@ -257,7 +257,9 @@ public sealed class ValueFormat      // closed set: the engine's format specifie
     public static ValueFormat Raw { get; }
     public static ValueFormat YesNo { get; }
     public static ValueFormat Checkbox { get; }
-    // further boolean formats as in core
+    // further boolean formats as in core: TrueFalse, OnOff, Enabled, Active, Checkmark
+    public static ValueFormat Join(string? itemPath = null, string? separator = null);   // :join, :join:Name:"; "
+    public static ValueFormat Custom(string specifier);   // escape hatch, e.g. a registered boolean formatter
 }
 ```
 
@@ -538,7 +540,9 @@ ITemplateDefinition.Compose ──▶ composers ──▶ semantic model (intern
 | Defaults | `w:docDefaults` (font, size, colour, `w:lang`), widow control on | `style:default-style` per family; `fo:language` and `fo:country` |
 | Spacing and keeping together | `w:spacing`, `w:keepNext`, `w:keepLines` | `fo:margin-top`/`fo:margin-bottom`, `fo:line-height` / `style:line-height-at-least`, `fo:keep-with-next`, `fo:keep-together` |
 | Tab, right tab | `w:tab`; `w:tabs` with a right stop at the frame width | `text:tab`; `style:tab-stops` |
-| Line and page break | `w:br`, `w:br w:type="page"` | `text:line-break`; `fo:break-before="page"` on an automatic paragraph style |
+| Line break | `w:br` | `text:line-break` |
+| Page break | a paragraph of its own: `w:p/w:r/w:br w:type="page"` | an empty paragraph of its own in the automatic style `TemplifyPageBreak` (`fo:break-after="page"`, so no empty line on the new page) |
+| Character style on text | `w:rPr/w:rStyle` on the run | `text:span text:style-name` |
 | Marker | one-run paragraph in `TemplateMarker` | `text:p` in `TemplateMarker` with the marker as its only text |
 | Language | `w:lang` in the defaults, `dc:language` | `fo:language` and `fo:country`, `dc:language` |
 | Properties | `docProps/core.xml` (title, creator, subject), `docProps/custom.xml` (stamp) | `meta.xml` (`dc:title`, `meta:initial-creator`, `dc:subject`, `meta:user-defined`) |
