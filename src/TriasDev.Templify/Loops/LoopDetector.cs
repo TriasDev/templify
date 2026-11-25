@@ -35,6 +35,10 @@ internal static partial class LoopDetector
     /// Pattern text of the optional named iteration variable prefix of a <c>{{#foreach}}</c> marker
     /// (<c>item in </c>; group: the variable name, which may start with <c>@</c> so it can be rejected).
     /// </summary>
+    /// <summary>Appended when a table row holds both loop markers (#255): the form is not supported.</summary>
+    internal const string SameRowLoopMarkersMessage =
+        " Loop markers in a table must be in rows of their own; a row with both '{{#foreach}}' and '{{/foreach}}' is not supported.";
+
     internal const string IterationVariablePrefixPattern = @"(?:(@?\w+)\s+in\s+)?";
 
     private static readonly Regex _foreachEndPattern = ForeachEndRegex();
@@ -58,8 +62,9 @@ internal static partial class LoopDetector
     /// </summary>
     /// <param name="variableName">The variable name to validate.</param>
     /// <param name="collectionName">The collection name for error messages.</param>
+    /// <param name="sourceElement">The loop start marker element, recorded on the exception for validation locations.</param>
     /// <exception cref="InvalidOperationException">Thrown when the variable name is invalid.</exception>
-    internal static void ValidateIterationVariableName(string variableName, string collectionName)
+    internal static void ValidateIterationVariableName(string variableName, string collectionName, object? sourceElement = null)
     {
         // Check for reserved names (like "in")
         if (_reservedVariableNames.Contains(variableName))
@@ -67,7 +72,7 @@ internal static partial class LoopDetector
             throw new TemplateSyntaxException(
                 ValidationErrorType.InvalidPlaceholderSyntax,
                 $"Invalid iteration variable name '{variableName}' in '{{{{#foreach {variableName} in {collectionName}}}}}'. " +
-                $"'{variableName}' is a reserved keyword.");
+                $"'{variableName}' is a reserved keyword.") { SourceElement = sourceElement };
         }
 
         // Check for metadata prefix (@)
@@ -76,7 +81,7 @@ internal static partial class LoopDetector
             throw new TemplateSyntaxException(
                 ValidationErrorType.InvalidPlaceholderSyntax,
                 $"Invalid iteration variable name '{variableName}' in '{{{{#foreach {variableName} in {collectionName}}}}}'. " +
-                $"Iteration variable names cannot start with '@' as this is reserved for loop metadata.");
+                $"Iteration variable names cannot start with '@' as this is reserved for loop metadata.") { SourceElement = sourceElement };
         }
     }
 
@@ -112,7 +117,7 @@ internal static partial class LoopDetector
                     // Validate iteration variable name if provided
                     if (iterationVariableName != null)
                     {
-                        ValidateIterationVariableName(iterationVariableName, collectionName);
+                        ValidateIterationVariableName(iterationVariableName, collectionName, element);
                     }
 
                     // Find the matching end marker
@@ -121,7 +126,7 @@ internal static partial class LoopDetector
                     {
                         throw new TemplateSyntaxException(
                             ValidationErrorType.UnmatchedLoopStart,
-                            $"Loop start marker '{{{{#foreach {collectionName}}}}}' has no matching '{{{{/foreach}}}}'.");
+                            $"Loop start marker '{{{{#foreach {collectionName}}}}}' has no matching '{{{{/foreach}}}}'.") { SourceElement = element };
                     }
 
                     // A content control that contains a complete loop is not a loop marker:
@@ -265,7 +270,7 @@ internal static partial class LoopDetector
                     // Validate iteration variable name if provided
                     if (iterationVariableName != null)
                     {
-                        ValidateIterationVariableName(iterationVariableName, collectionName);
+                        ValidateIterationVariableName(iterationVariableName, collectionName, row);
                     }
 
                     // Check if this specific loop is contained in a single cell
@@ -282,7 +287,8 @@ internal static partial class LoopDetector
                     {
                         throw new TemplateSyntaxException(
                             ValidationErrorType.UnmatchedLoopStart,
-                            $"Table row loop start marker '{{{{#foreach {collectionName}}}}}' has no matching '{{{{/foreach}}}}'.");
+                            $"Table row loop start marker '{{{{#foreach {collectionName}}}}}' has no matching '{{{{/foreach}}}}'." +
+                            (_foreachEndPattern.IsMatch(text) ? SameRowLoopMarkersMessage : string.Empty)) { SourceElement = row };
                     }
 
                     // Get content rows (between start and end markers)
