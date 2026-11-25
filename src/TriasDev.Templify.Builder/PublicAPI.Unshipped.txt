@@ -26,6 +26,7 @@ override TriasDev.Templify.Builder.TemplateIdentity.ToString() -> string!
 override TriasDev.Templify.Builder.TemplatePath.Equals(object? obj) -> bool
 override TriasDev.Templify.Builder.TemplatePath.GetHashCode() -> int
 override TriasDev.Templify.Builder.TemplatePath.ToString() -> string!
+override TriasDev.Templify.Builder.ValueFormat.ToString() -> string!
 static TriasDev.Templify.Builder.BuildDiagnostic.operator !=(TriasDev.Templify.Builder.BuildDiagnostic? left, TriasDev.Templify.Builder.BuildDiagnostic? right) -> bool
 static TriasDev.Templify.Builder.BuildDiagnostic.operator ==(TriasDev.Templify.Builder.BuildDiagnostic? left, TriasDev.Templify.Builder.BuildDiagnostic? right) -> bool
 static TriasDev.Templify.Builder.CharacterStyleKey.operator !=(TriasDev.Templify.Builder.CharacterStyleKey? left, TriasDev.Templify.Builder.CharacterStyleKey? right) -> bool
@@ -63,7 +64,23 @@ static TriasDev.Templify.Builder.Units.Mm(this double millimeters) -> TriasDev.T
 static TriasDev.Templify.Builder.Units.Mm(this int millimeters) -> TriasDev.Templify.Builder.Length
 static TriasDev.Templify.Builder.Units.Pt(this double points) -> TriasDev.Templify.Builder.Length
 static TriasDev.Templify.Builder.Units.Pt(this int points) -> TriasDev.Templify.Builder.Length
+static TriasDev.Templify.Builder.ValueFormat.Active.get -> TriasDev.Templify.Builder.ValueFormat!
+static TriasDev.Templify.Builder.ValueFormat.Checkbox.get -> TriasDev.Templify.Builder.ValueFormat!
+static TriasDev.Templify.Builder.ValueFormat.Checkmark.get -> TriasDev.Templify.Builder.ValueFormat!
+static TriasDev.Templify.Builder.ValueFormat.Currency.get -> TriasDev.Templify.Builder.ValueFormat!
+static TriasDev.Templify.Builder.ValueFormat.Custom(string! specifier) -> TriasDev.Templify.Builder.ValueFormat!
+static TriasDev.Templify.Builder.ValueFormat.Date(string! pattern) -> TriasDev.Templify.Builder.ValueFormat!
+static TriasDev.Templify.Builder.ValueFormat.Enabled.get -> TriasDev.Templify.Builder.ValueFormat!
+static TriasDev.Templify.Builder.ValueFormat.Join(string? itemPath = null, string? separator = null) -> TriasDev.Templify.Builder.ValueFormat!
+static TriasDev.Templify.Builder.ValueFormat.Lowercase.get -> TriasDev.Templify.Builder.ValueFormat!
+static TriasDev.Templify.Builder.ValueFormat.Number(string! pattern) -> TriasDev.Templify.Builder.ValueFormat!
+static TriasDev.Templify.Builder.ValueFormat.OnOff.get -> TriasDev.Templify.Builder.ValueFormat!
+static TriasDev.Templify.Builder.ValueFormat.Raw.get -> TriasDev.Templify.Builder.ValueFormat!
+static TriasDev.Templify.Builder.ValueFormat.TrueFalse.get -> TriasDev.Templify.Builder.ValueFormat!
+static TriasDev.Templify.Builder.ValueFormat.Uppercase.get -> TriasDev.Templify.Builder.ValueFormat!
+static TriasDev.Templify.Builder.ValueFormat.YesNo.get -> TriasDev.Templify.Builder.ValueFormat!
 TriasDev.Templify.Builder.BlockComposer
+TriasDev.Templify.Builder.BlockComposer.PageBreak() -> void
 TriasDev.Templify.Builder.BlockComposer.Paragraph(string! text) -> void
 TriasDev.Templify.Builder.BlockComposer.Paragraph(System.Action<TriasDev.Templify.Builder.InlineComposer!>! content) -> void
 TriasDev.Templify.Builder.BlockComposer.Paragraph(TriasDev.Templify.Builder.ParagraphStyleKey! style, string! text) -> void
@@ -120,7 +137,13 @@ TriasDev.Templify.Builder.GeneratedTemplate.MediaType.get -> string!
 TriasDev.Templify.Builder.GeneratedTemplate.OpenRead() -> System.IO.Stream!
 TriasDev.Templify.Builder.GeneratedTemplate.WriteTo(System.IO.Stream! destination) -> void
 TriasDev.Templify.Builder.InlineComposer
+TriasDev.Templify.Builder.InlineComposer.LineBreak() -> void
+TriasDev.Templify.Builder.InlineComposer.Tab() -> void
+TriasDev.Templify.Builder.InlineComposer.Text(string! text, TriasDev.Templify.Builder.CharacterStyleKey! style) -> void
 TriasDev.Templify.Builder.InlineComposer.Text(string! text) -> void
+TriasDev.Templify.Builder.InlineComposer.Value(TriasDev.Templify.Builder.TemplatePath path, TriasDev.Templify.Builder.CharacterStyleKey! style) -> void
+TriasDev.Templify.Builder.InlineComposer.Value(TriasDev.Templify.Builder.TemplatePath path, TriasDev.Templify.Builder.ValueFormat! format, TriasDev.Templify.Builder.CharacterStyleKey! style) -> void
+TriasDev.Templify.Builder.InlineComposer.Value(TriasDev.Templify.Builder.TemplatePath path, TriasDev.Templify.Builder.ValueFormat! format) -> void
 TriasDev.Templify.Builder.InlineComposer.Value(TriasDev.Templify.Builder.TemplatePath path) -> void
 TriasDev.Templify.Builder.ITemplateDefinition
 TriasDev.Templify.Builder.ITemplateDefinition.Compose(TriasDev.Templify.Builder.TemplateComposer! template) -> void
@@ -198,3 +221,5 @@ TriasDev.Templify.Builder.TextAlignment.End = 2 -> TriasDev.Templify.Builder.Tex
 TriasDev.Templify.Builder.TextAlignment.Justify = 3 -> TriasDev.Templify.Builder.TextAlignment
 TriasDev.Templify.Builder.TextAlignment.Start = 0 -> TriasDev.Templify.Builder.TextAlignment
 TriasDev.Templify.Builder.Units
+TriasDev.Templify.Builder.ValueFormat
+TriasDev.Templify.Builder.ValueFormat.Specifier.get -> string!

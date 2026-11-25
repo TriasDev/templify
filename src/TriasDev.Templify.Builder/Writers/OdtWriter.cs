@@ -20,6 +20,9 @@ internal static class OdtWriter
     /// <summary>LibreOffice's default paragraph style ("Default Paragraph Style"); the builder reserves the name.</summary>
     private const string StandardStyleName = "Standard";
 
+    /// <summary>The automatic paragraph style of a page break; the prefix is reserved for the builder.</summary>
+    private const string PageBreakStyleName = "TemplifyPageBreak";
+
     private static readonly XNamespace _office = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
     private static readonly XNamespace _text = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";
     private static readonly XNamespace _style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
@@ -52,17 +55,31 @@ internal static class OdtWriter
             text.Add(WriteBlock(block, model.Styles));
         }
 
+        XElement automaticStyles = new XElement(_office + "automatic-styles");
+        if (model.Body.OfType<PageBreakBlock>().Any())
+        {
+            automaticStyles.Add(new XElement(
+                _style + "style",
+                new XAttribute(_style + "name", PageBreakStyleName),
+                new XAttribute(_style + "family", "paragraph"),
+                new XAttribute(_style + "parent-style-name", StandardStyleName),
+                new XElement(_style + "paragraph-properties", new XAttribute(_fo + "break-after", "page"))));
+        }
+
         return new XElement(
             _office + "document-content",
             Namespaces(_office, _text, _style, _fo, _svg),
             new XAttribute(_office + "version", OdfVersion),
-            new XElement(_office + "automatic-styles"),
+            automaticStyles,
             new XElement(_office + "body", text));
     }
 
     private static XElement WriteBlock(Block block, StyleSheet styles) => block switch
     {
         ParagraphBlock paragraph => WriteParagraph(paragraph, styles),
+        // An empty paragraph of its own carries the break (break-after: no empty line on the new page), so it
+        // survives when the engine removes the paragraphs around it.
+        PageBreakBlock => new XElement(_text + "p", new XAttribute(_text + "style-name", PageBreakStyleName)),
         _ => throw new NotSupportedException($"Block {block.GetType().Name} is not supported by the ODT writer."),
     };
 
@@ -77,6 +94,11 @@ internal static class OdtWriter
         WhitespaceEncoder encoder = new WhitespaceEncoder(paragraph);
         foreach (Inline inline in block.Inlines)
         {
+            if (inline.Style is { } characterStyle)
+            {
+                encoder.BeginSpan(new XElement(_text + "span", new XAttribute(_text + "style-name", characterStyle.Id)));
+            }
+
             switch (inline)
             {
                 case TextInline text:
@@ -99,11 +121,16 @@ internal static class OdtWriter
                     break;
 
                 case ValueInline value:
-                    encoder.Text(TemplateSyntax.Placeholder(value.Path));
+                    encoder.Text(TemplateSyntax.Placeholder(value.Path, value.Format));
                     break;
 
                 default:
                     throw new NotSupportedException($"Inline {inline.GetType().Name} is not supported by the ODT writer.");
+            }
+
+            if (inline.Style is not null)
+            {
+                encoder.EndSpan();
             }
         }
 
@@ -405,10 +432,18 @@ internal static class OdtWriter
     /// The rule is conservative: after the paragraph start, a tab or a line break, and after a literal space, every
     /// space is written as <c>text:s</c>, which always renders. A trailing literal space becomes <c>text:s</c> too.
     /// </remarks>
-    private sealed class WhitespaceEncoder(XElement paragraph)
+    private sealed class WhitespaceEncoder
     {
+        private readonly XElement _paragraph;
         private readonly StringBuilder _pending = new StringBuilder();
+        private XElement _target;
         private bool _collapsible = true;
+
+        public WhitespaceEncoder(XElement paragraph)
+        {
+            _paragraph = paragraph;
+            _target = paragraph;
+        }
 
         public void Text(string text)
         {
@@ -439,7 +474,7 @@ internal static class OdtWriter
                 if (count > 0)
                 {
                     FlushText();
-                    paragraph.Add(Spaces(count));
+                    _target.Add(Spaces(count));
                 }
 
                 _collapsible = true;
@@ -449,28 +484,45 @@ internal static class OdtWriter
         public void Element(XElement element)
         {
             FlushText();
-            paragraph.Add(element);
+            _target.Add(element);
             _collapsible = true;
+        }
+
+        /// <summary>Continues inside a span; white-space state carries over, because spans do not reset it.</summary>
+        public void BeginSpan(XElement span)
+        {
+            FlushText();
+            _target.Add(span);
+            _target = span;
+        }
+
+        public void EndSpan()
+        {
+            FlushText();
+            _target = _paragraph;
         }
 
         public void Finish()
         {
-            if (_pending.Length > 0 && _pending[^1] == ' ')
-            {
-                _pending.Length--;
-                FlushText();
-                paragraph.Add(Spaces(1));
-                return;
-            }
-
             FlushText();
+
+            // A trailing literal space, possibly inside the last span, becomes text:s.
+            if (_paragraph.DescendantNodes().LastOrDefault() is XText last && last.Value.EndsWith(' '))
+            {
+                last.Value = last.Value[..^1];
+                last.AddAfterSelf(Spaces(1));
+                if (last.Value.Length == 0)
+                {
+                    last.Remove();
+                }
+            }
         }
 
         private void FlushText()
         {
             if (_pending.Length > 0)
             {
-                paragraph.Add(new XText(_pending.ToString()));
+                _target.Add(new XText(_pending.ToString()));
                 _pending.Clear();
             }
         }

@@ -20,13 +20,20 @@ internal abstract record Block;
 /// <param name="Style">The paragraph style; null for the format's default paragraph style.</param>
 internal sealed record ParagraphBlock(IReadOnlyList<Inline> Inlines, ParagraphStyleKey? Style = null) : Block;
 
+/// <summary>A page break: the content after it starts on a new page.</summary>
+internal sealed record PageBreakBlock : Block;
+
 /// <summary>Content inside a paragraph.</summary>
-internal abstract record Inline;
+/// <param name="Style">The character style; null for the paragraph's own formatting.</param>
+internal abstract record Inline(CharacterStyleKey? Style);
 
 /// <summary>Literal text. Tabs and line breaks in it are written as the format's tab and line break.</summary>
 /// <param name="Text">The text.</param>
-internal sealed record TextInline(string Text) : Inline;
+/// <param name="Style">The character style, or null.</param>
+internal sealed record TextInline(string Text, CharacterStyleKey? Style = null) : Inline(Style);
 
 /// <summary>A placeholder for a value from the data.</summary>
 /// <param name="Path">The data path; never empty.</param>
-internal sealed record ValueInline(TemplatePath Path) : Inline;
+/// <param name="Format">The format specifier, or null.</param>
+/// <param name="Style">The character style, or null.</param>
+internal sealed record ValueInline(TemplatePath Path, ValueFormat? Format = null, CharacterStyleKey? Style = null) : Inline(Style);

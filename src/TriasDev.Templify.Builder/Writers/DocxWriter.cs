@@ -316,6 +316,8 @@ internal static class DocxWriter
     private static OpenXmlElement WriteBlock(Block block) => block switch
     {
         ParagraphBlock paragraph => WriteParagraph(paragraph),
+        // A paragraph of its own carries the break, so it survives when the engine removes the paragraphs around it.
+        PageBreakBlock => new Paragraph(new Run(new Break { Type = BreakValues.Page })),
         _ => throw new NotSupportedException($"Block {block.GetType().Name} is not supported by the DOCX writer."),
     };
 
@@ -337,34 +339,36 @@ internal static class DocxWriter
 
     private static Run WriteInline(Inline inline)
     {
+        Run run = new Run();
+        if (inline.Style is { } style)
+        {
+            run.Append(new RunProperties(new RunStyle { Val = style.Id }));
+        }
+
         switch (inline)
         {
             case TextInline text:
-                return TextRun(text.Text);
+                foreach ((TextPieceKind kind, string piece) in TextPieces.Split(text.Text))
+                {
+                    run.Append(kind switch
+                    {
+                        TextPieceKind.Tab => new TabChar(),
+                        TextPieceKind.LineBreak => new Break(),
+                        _ => new Text(piece) { Space = SpaceProcessingModeValues.Preserve },
+                    });
+                }
+
+                return run;
 
             case ValueInline value:
-                // One run per placeholder: the engine then never has to join a placeholder across runs.
-                return new Run(new Text(TemplateSyntax.Placeholder(value.Path)) { Space = SpaceProcessingModeValues.Preserve });
+                // One run per placeholder: the engine then never has to join a placeholder across runs, and the
+                // value takes this run's formatting.
+                run.Append(new Text(TemplateSyntax.Placeholder(value.Path, value.Format)) { Space = SpaceProcessingModeValues.Preserve });
+                return run;
 
             default:
                 throw new NotSupportedException($"Inline {inline.GetType().Name} is not supported by the DOCX writer.");
         }
-    }
-
-    private static Run TextRun(string text)
-    {
-        Run run = new Run();
-        foreach ((TextPieceKind kind, string piece) in TextPieces.Split(text))
-        {
-            run.Append(kind switch
-            {
-                TextPieceKind.Tab => new TabChar(),
-                TextPieceKind.LineBreak => new Break(),
-                _ => new Text(piece) { Space = SpaceProcessingModeValues.Preserve },
-            });
-        }
-
-        return run;
     }
 
     private static byte[] Utf8(string xml) => new UTF8Encoding(encoderShouldEmitUTF8Identifier: false).GetBytes(xml);

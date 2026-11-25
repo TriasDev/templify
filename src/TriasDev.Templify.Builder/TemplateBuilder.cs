@@ -51,14 +51,24 @@ public static class TemplateBuilder
 
     private static void CheckStylesAreDefined(IReadOnlyList<Block> body, StyleSheet styles, BuildContext context)
     {
-        HashSet<ParagraphStyleKey> reported = new HashSet<ParagraphStyleKey>();
+        HashSet<string> reported = new HashSet<string>(StringComparer.Ordinal);
         foreach (ParagraphBlock paragraph in body.OfType<ParagraphBlock>())
         {
-            if (paragraph.Style is { } style && styles.Find(style) == null && reported.Add(style))
+            if (paragraph.Style is { } style && styles.Find(style) == null && reported.Add("p:" + style.Id))
             {
                 context.Error(
                     DiagnosticCodes.UndefinedStyle,
                     $"A paragraph uses the style '{style.Id}' (\"{style.DisplayName}\"), which the template's style sheet does not define.");
+            }
+
+            foreach (Inline inline in paragraph.Inlines)
+            {
+                if (inline.Style is { } characterStyle && styles.Find(characterStyle) == null && reported.Add("c:" + characterStyle.Id))
+                {
+                    context.Error(
+                        DiagnosticCodes.UndefinedStyle,
+                        $"Text uses the character style '{characterStyle.Id}' (\"{characterStyle.DisplayName}\"), which the template's style sheet does not define.");
+                }
             }
         }
     }

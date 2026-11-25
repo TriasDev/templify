@@ -32,6 +32,9 @@ internal static class DiagnosticCodes
     /// <summary>A placeholder was given the empty (root) path.</summary>
     public const string EmptyValuePath = "TB1001";
 
+    /// <summary>Literal text contains <c>{{</c>, which Templify would read as the start of a placeholder.</summary>
+    public const string LiteralOpenBraces = "TB1002";
+
     /// <summary><see cref="TemplateComposer.Styles"/> was called more than once.</summary>
     public const string StylesAlreadySet = "TB2000";
 

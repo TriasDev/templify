@@ -60,13 +60,22 @@ public sealed class BlockComposer
         AddComposed(style, content);
     }
 
+    /// <summary>Adds a page break: the content after it starts on a new page.</summary>
+    public void PageBreak()
+    {
+        EnsureOpen();
+        _blocks.Add(new PageBreakBlock());
+    }
+
     internal void Close() => _isOpen = false;
 
     private void AddText(ParagraphStyleKey? style, string text)
     {
         ArgumentNullException.ThrowIfNull(text);
         EnsureOpen();
-        _blocks.Add(new ParagraphBlock(text.Length == 0 ? Array.Empty<Inline>() : new Inline[] { new TextInline(text) }, style));
+        Inline[] inlines = text.Length == 0 ? Array.Empty<Inline>() : new Inline[] { new TextInline(text) };
+        InlineComposer.CheckLiteralText(_context, inlines);
+        _blocks.Add(new ParagraphBlock(inlines, style));
     }
 
     private void AddValue(ParagraphStyleKey? style, TemplatePath value)

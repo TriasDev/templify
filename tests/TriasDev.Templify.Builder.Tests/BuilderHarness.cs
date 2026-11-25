@@ -26,19 +26,32 @@ internal static class BuilderHarness
     /// Builds the definition, checks the invariants and fills it with <paramref name="json"/>.
     /// </summary>
     /// <returns>The built template and the filled document.</returns>
-    public static (GeneratedTemplate Template, byte[] Filled) BuildAndFill(ITemplateDefinition definition, TemplateFormat format, string json)
+    public static (GeneratedTemplate Template, byte[] Filled) BuildAndFill(ITemplateDefinition definition, TemplateFormat format, string json) =>
+        BuildAndFill(definition, format, (processor, input, output) => processor.ProcessTemplate(input, output, json));
+
+    /// <summary>As <see cref="BuildAndFill(ITemplateDefinition, TemplateFormat, string)"/>, with data as a dictionary.</summary>
+    public static (GeneratedTemplate Template, byte[] Filled) BuildAndFill(ITemplateDefinition definition, TemplateFormat format, Dictionary<string, object> data) =>
+        BuildAndFill(definition, format, (processor, input, output) => processor.ProcessTemplate(input, output, data));
+
+    /// <summary>The options every fill uses: missing variables throw, invariant culture.</summary>
+    public static PlaceholderReplacementOptions FillOptions => new PlaceholderReplacementOptions
+    {
+        MissingVariableBehavior = MissingVariableBehavior.ThrowException,
+        Culture = CultureInfo.InvariantCulture,
+    };
+
+    private static (GeneratedTemplate Template, byte[] Filled) BuildAndFill(
+        ITemplateDefinition definition,
+        TemplateFormat format,
+        Func<TemplateProcessor, Stream, Stream, ProcessingResult> fill)
     {
         GeneratedTemplate template = Build(definition, format);
         AssertInvariants(definition, template);
 
-        TemplateProcessor processor = new TemplateProcessor(new PlaceholderReplacementOptions
-        {
-            MissingVariableBehavior = MissingVariableBehavior.ThrowException,
-            Culture = CultureInfo.InvariantCulture,
-        });
+        TemplateProcessor processor = new TemplateProcessor(FillOptions);
         using Stream input = template.OpenRead();
         using MemoryStream output = new MemoryStream();
-        ProcessingResult result = processor.ProcessTemplate(input, output, json);
+        ProcessingResult result = fill(processor, input, output);
         Assert.True(result.IsSuccess, result.ErrorMessage);
         Assert.False(result.HasWarnings, string.Join("; ", result.Warnings.Select(w => w.Message)));
 
@@ -117,7 +130,8 @@ internal static class BuilderHarness
                 case DocumentFormat.OpenXml.Wordprocessing.TabChar:
                     text.Append('\t');
                     break;
-                case DocumentFormat.OpenXml.Wordprocessing.Break:
+                case DocumentFormat.OpenXml.Wordprocessing.Break br
+                    when br.Type is null || br.Type.Value == DocumentFormat.OpenXml.Wordprocessing.BreakValues.TextWrapping:
                     text.Append('\n');
                     break;
             }

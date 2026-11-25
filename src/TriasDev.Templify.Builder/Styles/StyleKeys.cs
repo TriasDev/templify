@@ -74,6 +74,9 @@ internal static partial class StyleKeyRules
     /// <summary>
     /// Ids the builder writes itself: the default paragraph style of each format and Word's default character style.
     /// </summary>
+    /// <summary>The prefix of the styles the builder owns (for example its page-break style).</summary>
+    public const string ReservedPrefix = "Templify";
+
     public static readonly IReadOnlySet<string> ReservedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         "Normal", "Standard", "DefaultParagraphFont",
@@ -89,9 +92,9 @@ internal static partial class StyleKeyRules
                 parameterName);
         }
 
-        if (ReservedIds.Contains(id))
+        if (ReservedIds.Contains(id) || id.StartsWith(ReservedPrefix, StringComparison.OrdinalIgnoreCase))
         {
-            throw new ArgumentException($"The style id '{id}' is reserved by the builder; choose another id.", parameterName);
+            throw new ArgumentException($"The style id '{id}' is reserved by the builder (as are ids starting with '{ReservedPrefix}'); choose another id.", parameterName);
         }
 
         return id;
