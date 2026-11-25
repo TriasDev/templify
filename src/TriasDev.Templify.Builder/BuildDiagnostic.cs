@@ -10,6 +10,9 @@ namespace TriasDev.Templify.Builder;
 /// <param name="Message">A message that names the problem and where it is.</param>
 public sealed record BuildDiagnostic(string Code, string Message)
 {
+    /// <summary>Gets where the problem is in a JSON definition (a JSON pointer such as <c>/content/3</c>); null for C# definitions.</summary>
+    public string? Location { get; init; }
+
     /// <inheritdoc />
     public override string ToString() => $"{Code}: {Message}";
 }

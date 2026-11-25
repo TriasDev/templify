@@ -176,11 +176,13 @@ public sealed class ImageFit
 {
     private readonly Length? _width;
     private readonly Length? _height;
+    private readonly bool _exact;
 
-    private ImageFit(Length? width, Length? height)
+    private ImageFit(Length? width, Length? height, bool exact = false)
     {
         _width = width;
         _height = height;
+        _exact = exact;
     }
 
     /// <summary>Gets the image's natural size (its pixels at its own resolution).</summary>
@@ -203,9 +205,21 @@ public sealed class ImageFit
     public static ImageFit Within(Length width, Length height) =>
         new ImageFit(StyleRanges.Positive(width, nameof(width)), StyleRanges.Positive(height, nameof(height)));
 
+    /// <summary>The image at exactly this size, stretched if the proportions differ.</summary>
+    /// <param name="width">The width.</param>
+    /// <param name="height">The height.</param>
+    /// <returns>The fit.</returns>
+    public static ImageFit Exact(Length width, Length height) =>
+        new ImageFit(StyleRanges.Positive(width, nameof(width)), StyleRanges.Positive(height, nameof(height)), exact: true);
+
     /// <summary>The size of an image under this fit.</summary>
     internal (Length Width, Length Height) Resolve(ImageSource image)
     {
+        if (_exact)
+        {
+            return (_width!.Value, _height!.Value);
+        }
+
         double ratio = image.NaturalHeight.Points / image.NaturalWidth.Points;
         return (_width, _height) switch
         {

@@ -23,6 +23,9 @@ internal sealed class BuildContext
     /// <summary>Records an error; the build fails after composing, with every error found.</summary>
     public void Error(string code, string message) => _errors.Add(new BuildDiagnostic(code, message));
 
+    /// <summary>Records an error at a location in a JSON definition.</summary>
+    public void Error(string code, string message, string? location) => _errors.Add(new BuildDiagnostic(code, message) { Location = location });
+
     /// <summary>Records problems found elsewhere, for example in a style sheet.</summary>
     public void AddRange(IEnumerable<BuildDiagnostic> problems) => _errors.AddRange(problems);
 }

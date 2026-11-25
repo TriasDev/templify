@@ -53,6 +53,12 @@ internal sealed record ParagraphBlock(IReadOnlyList<Inline> Inlines, ParagraphSt
 /// <summary>A paragraph's place in a bullet list.</summary>
 internal sealed record ListItemInfo(ListStyleKey Style, int Level);
 
+/// <summary>
+/// A bullet list as one unit: its items (paragraphs with <see cref="ListItemInfo"/>) and the loops and conditionals
+/// over them. Writers see the items only: <see cref="BlockFlattener"/> and <see cref="BlockTree"/> expand it.
+/// </summary>
+internal sealed record ListBlock(ListStyleKey Style, List<Block> Items) : Block;
+
 /// <summary>One level of a list style.</summary>
 internal sealed record ListLevel(string Bullet, Length Indent, Length Hanging);
 
@@ -277,6 +283,7 @@ internal static class BlockTree
         ConditionalBlock conditional => conditional.Branches.SelectMany(b => b.Body).Concat(conditional.Else ?? []),
         LoopBlock loop => loop.Body,
         ComponentBlock component => component.Body,
+        ListBlock list => list.Items,
         TableBlock table when intoCells => table.AllRows().SelectMany(r => r.Cells).SelectMany(c => c.Content),
         _ => [],
     };
@@ -308,6 +315,16 @@ internal static class BlockFlattener
                 }
 
                 yield return new MarkerBlock(TemplateSyntax.EndForEach);
+                continue;
+            }
+
+            if (block is ListBlock list)
+            {
+                foreach (Block inner in Flatten(list.Items))
+                {
+                    yield return inner;
+                }
+
                 continue;
             }
 

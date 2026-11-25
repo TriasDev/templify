@@ -200,4 +200,23 @@ public sealed partial class ListTests
 
     [GeneratedRegex("xMin=\"([0-9.]+)\"[^>]*>([^<]+)</word>")]
     private static partial Regex WordBox();
+
+    [Fact]
+    public void List_IsOneBlockInTheModel()
+    {
+        List<Model.Block> body = new List<Model.Block>();
+        BlockComposer composer = new BlockComposer(new BuildContext(), body, null);
+
+        composer.List(_bullets, l =>
+        {
+            l.Item("a");
+            l.ForEach(TemplatePath.Root("items"), "x", (x, items) => items.Item(x.Self));
+        });
+
+        Model.ListBlock list = Assert.IsType<Model.ListBlock>(Assert.Single(body));
+        Assert.Equal(_bullets, list.Style);
+        Assert.Equal(2, list.Items.Count);
+        Assert.IsType<Model.ParagraphBlock>(list.Items[0]);
+        Assert.IsType<Model.LoopBlock>(list.Items[1]);
+    }
 }

@@ -74,6 +74,7 @@ static TriasDev.Templify.Builder.FontFace.Embedded(byte[]! fontFile) -> TriasDev
 static TriasDev.Templify.Builder.FontFace.Embedded(string! family, byte[]! fontFile) -> TriasDev.Templify.Builder.FontFace!
 static TriasDev.Templify.Builder.FontFace.operator !=(TriasDev.Templify.Builder.FontFace? left, TriasDev.Templify.Builder.FontFace? right) -> bool
 static TriasDev.Templify.Builder.FontFace.operator ==(TriasDev.Templify.Builder.FontFace? left, TriasDev.Templify.Builder.FontFace? right) -> bool
+static TriasDev.Templify.Builder.ImageFit.Exact(TriasDev.Templify.Builder.Length width, TriasDev.Templify.Builder.Length height) -> TriasDev.Templify.Builder.ImageFit!
 static TriasDev.Templify.Builder.ImageFit.Height(TriasDev.Templify.Builder.Length height) -> TriasDev.Templify.Builder.ImageFit!
 static TriasDev.Templify.Builder.ImageFit.Natural.get -> TriasDev.Templify.Builder.ImageFit!
 static TriasDev.Templify.Builder.ImageFit.Width(TriasDev.Templify.Builder.Length width) -> TriasDev.Templify.Builder.ImageFit!
@@ -191,6 +192,8 @@ TriasDev.Templify.Builder.BuildDiagnostic.Code.get -> string!
 TriasDev.Templify.Builder.BuildDiagnostic.Code.init -> void
 TriasDev.Templify.Builder.BuildDiagnostic.Deconstruct(out string! Code, out string! Message) -> void
 TriasDev.Templify.Builder.BuildDiagnostic.Equals(TriasDev.Templify.Builder.BuildDiagnostic? other) -> bool
+TriasDev.Templify.Builder.BuildDiagnostic.Location.get -> string?
+TriasDev.Templify.Builder.BuildDiagnostic.Location.init -> void
 TriasDev.Templify.Builder.BuildDiagnostic.Message.get -> string!
 TriasDev.Templify.Builder.BuildDiagnostic.Message.init -> void
 TriasDev.Templify.Builder.BuilderStyles

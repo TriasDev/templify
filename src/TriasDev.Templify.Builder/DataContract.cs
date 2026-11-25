@@ -230,6 +230,10 @@ public sealed class DataContract
                     Walk(component.Body, entries);
                     break;
 
+                case ListBlock list:
+                    Walk(list.Items, entries);
+                    break;
+
                 case RawXmlBlock raw:
                     foreach (TemplatePath path in raw.Raw.Uses)
                     {

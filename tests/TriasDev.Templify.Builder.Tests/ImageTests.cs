@@ -207,4 +207,29 @@ public sealed class ImageTests
         using StreamReader reader = new StreamReader(archive.GetEntry(name)!.Open());
         return reader.ReadToEnd();
     }
+
+    [Theory]
+    [MemberData(nameof(Formats))]
+    public void Exact_DrawsAtThatSize(TemplateFormat format)
+    {
+        TestDefinition definition = new TestDefinition(t => t.Content(c => c.Image(ImageSource.Png(Png), "a", ImageFit.Exact(30.Pt(), 10.Pt()))));
+
+        GeneratedTemplate template = BuilderHarness.Build(definition, format);
+
+        string xml = BuilderHarness.ReadXml(template.Content.ToArray(), BuilderHarness.MainPart(format)).ToString(System.Xml.Linq.SaveOptions.DisableFormatting);
+        if (format == TemplateFormat.Docx)
+        {
+            Assert.Contains("cx=\"381000\" cy=\"127000\"", xml, StringComparison.Ordinal);
+        }
+        else
+        {
+            Assert.Contains("svg:width=\"30pt\"", xml.Replace("xmlns:svg", "x", StringComparison.Ordinal), StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void Exact_RequiresPositiveSizes()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => ImageFit.Exact(0.Pt(), 1.Pt()));
+    }
 }

@@ -233,9 +233,11 @@ public class BlockComposer
         ArgumentNullException.ThrowIfNull(style);
         ArgumentNullException.ThrowIfNull(items);
         EnsureOpen();
-        ListComposer composer = new ListComposer(_context, _scope, style, _blocks);
+        ListBlock list = new ListBlock(style, new List<Block>());
+        ListComposer composer = new ListComposer(_context, _scope, style, list.Items);
         items(composer);
         composer.Close();
+        _blocks.Add(list);
     }
 
     /// <summary>Adds a block written as format XML, for a construct the vocabulary does not have; both formats are required.</summary>

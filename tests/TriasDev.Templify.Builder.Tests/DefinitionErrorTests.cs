@@ -125,4 +125,14 @@ public sealed class DefinitionErrorTests
         {
         }
     }
+
+    [Fact]
+    public void Diagnostic_LocationIsNullForCSharp()
+    {
+        TestDefinition definition = new TestDefinition(t => t.Content(c => c.Paragraph(new ParagraphStyleKey("Missing", "Missing"), "x")));
+
+        TemplateBuildException exception = Assert.Throws<TemplateBuildException>(() => TemplateBuilder.Build(definition, BuilderHarness.Options(TemplateFormat.Docx)));
+
+        Assert.All(exception.Errors, e => Assert.Null(e.Location));
+    }
 }
