@@ -720,7 +720,10 @@ Known differences become build warnings when the construct is used. The first en
   - **As built (#289):** package `src/TriasDev.Templify.Builder`, component `builder` (so the tags read
     `builder-v0.x.y`), `release-type: simple` with `version.txt` as the single version source of the builder and the
     test kit (both csproj files read it), `additional-paths` for the test kit, the builder tests and the sample,
-    `bump-minor-pre-major`, the first release pinned with `release-as: 0.1.0` (manifest `0.0.0` = never released).
+    `bump-minor-pre-major`, the first release pinned with `release-as: 0.1.0` (manifest `0.0.0` = never released),
+    and `separate-pull-requests`, so core and builder get their own release PRs. A release-please dry run against
+    `feature/builder` showed core 1.11.0 (#253, #254, #255, #272 only) and builder 0.1.0 (the builder's features)
+    as separate release notes; without `separate-pull-requests` they were merged into one PR.
     The release workflow has a separate `publish-builder` job on the per-path outputs
     (`src/TriasDev.Templify.Builder--release_created`); the core `publish` job still keys on the root outputs. It runs
     the builder tests, packs both packages and pushes them with Trusted Publishing (`nuget` environment).

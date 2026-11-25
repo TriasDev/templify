@@ -575,6 +575,7 @@ mkdocs build --strict
 release-please package (`src/TriasDev.Templify.Builder`, component `builder`, tags `builder-v0.x.y`, changelog
 `src/TriasDev.Templify.Builder/CHANGELOG.md`):
 
+- Core and builder get separate release PRs (`separate-pull-requests`), each with its own changelog.
 - Commits under `src/TriasDev.Templify.Builder*`, `tests/TriasDev.Templify.Builder.Tests` and
   `samples/TriasDev.Templify.Builder.Sample` count for the builder and not for core (`exclude-paths` /
   `additional-paths`). Commits that touch shared files (solution, docs, CI) count for core.
