@@ -326,8 +326,17 @@ public sealed class LoopItem        // only exists inside a ForEach lambda
   the engine normalises to `"`) are rejected where they are written.
 - **`ForEach` always emits a named iteration variable.** The names make the contract exact and the markers readable for
   a customer editing the file.
-- **Scope rules.** An item name may not be `in`, may not start with `@`, and must be unique within the nesting. An outer
-  `LoopItem` stays usable in inner loops. A scope stack turns a `LoopItem` used outside its loop into a build error.
+- **Scope rules** (#266). A path remembers the loop whose variable it starts from.
+  - **Item names.** Letters, digits and `_`, starting with a letter or `_`. Not a Templify keyword (`in`, `this`,
+    `and`, `empty`, …), not the name of an enclosing loop's variable. Checked where written (`ArgumentException`).
+  - **TB4001.** A loop variable's path used outside its loop, for example a captured `LoopItem` after the loop.
+  - **TB4002.** `@index`/`@number`/`@count`/`@first`/`@last` of an outer loop used inside a nested loop: the
+    engine's metadata always refers to the innermost loop. An outer `LoopItem`'s *paths* stay usable in inner loops.
+  - **TB4003.** A path from the data's root whose first segment is the name of an enclosing loop variable: the engine
+    would resolve it to the item.
+  - **Known limit.** Inside a loop the engine also resolves names implicitly on the current item. A root path such as
+    `order.number` resolves to the item's `order` property if the item has one. The builder cannot see the data, so
+    the data contract (#267) and the item names chosen by the definition are the guard.
 - **Product helpers.** For dictionary-keyed payloads, products write plain C# helpers over `TemplatePath`. The builder
   needs no feature for that:
 
@@ -355,6 +364,8 @@ public interface ITemplateComponent { void Compose(BlockComposer content); }
 ```
 
 - **Simple blocks need no interface.** An extension method on `BlockComposer` is enough.
+- **The model keeps a component as a unit** (`ComponentBlock`: the component and its content). This is the hook for
+  exporting definitions with component references (#274). A component composes in its caller's loop scope.
 - **Implement `ITemplateComponent`** for a block with state, or one that is built through dependency injection.
 - **Sharing sections between documents** means using the same component or method in several definitions.
 
