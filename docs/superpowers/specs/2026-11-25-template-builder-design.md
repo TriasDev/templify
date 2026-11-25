@@ -380,8 +380,11 @@ public static class TextCatalog
     public static ITextCatalog FromDictionary(IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> texts);
     public static ITextCatalog Combine(params ITextCatalog[] catalogs);          // later catalogs override earlier ones
 }
-// in Compose: string title = template.Texts["invoiceTitle"];
-// every missing (key, language) pair is collected and reported in the single TemplateBuildException
+// in Compose: string title = template.Texts["invoiceTitle"];   (TemplateTexts, also .Language)
+// every missing (key, language) pair is collected and reported in the single TemplateBuildException (TB5001)
+// Lookup (#269): specific → neutral culture (de-AT → de), never the invariant culture — a missing German text fails
+// the build instead of printing the default language. FromResourceManager(rm, neutralLanguage): the neutral .resx
+// answers only for the declared neutral language (and its specific cultures).
 
 public sealed class DataContract
 {
