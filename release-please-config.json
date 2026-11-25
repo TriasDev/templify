@@ -28,6 +28,28 @@
           "xpath": "//Project/PropertyGroup/Version"
         }
       ]
+    },
+    "src/TriasDev.Templify.Builder": {
+      "release-type": "simple",
+      "component": "builder",
+      "include-component-in-tag": true,
+      "bump-minor-pre-major": true,
+      "release-as": "0.1.0",
+      "additional-paths": [
+        "src/TriasDev.Templify.Builder.Testing",
+        "tests/TriasDev.Templify.Builder.Tests",
+        "samples/TriasDev.Templify.Builder.Sample"
+      ],
+      "changelog-sections": [
+        { "type": "feat", "section": "Features" },
+        { "type": "fix", "section": "Bug Fixes" },
+        { "type": "perf", "section": "Performance Improvements" },
+        { "type": "docs", "section": "Documentation", "hidden": true },
+        { "type": "chore", "section": "Miscellaneous", "hidden": true },
+        { "type": "ci", "section": "CI", "hidden": true },
+        { "type": "test", "section": "Tests", "hidden": true },
+        { "type": "refactor", "section": "Code Refactoring", "hidden": true }
+      ]
     }
   }
 }

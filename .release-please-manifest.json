@@ -1,3 +1,4 @@
 {
-  ".": "1.10.0"
+  ".": "1.10.0",
+  "src/TriasDev.Templify.Builder": "0.0.0"
 }
