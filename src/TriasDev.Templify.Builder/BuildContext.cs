@@ -88,4 +88,7 @@ internal static class DiagnosticCodes
 
     /// <summary>A row's cells do not span the table's columns.</summary>
     public const string RowCellCount = "TB7003";
+
+    /// <summary>A list item uses a level its list style does not define.</summary>
+    public const string UndefinedListLevel = "TB8001";
 }

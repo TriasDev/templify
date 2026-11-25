@@ -23,6 +23,12 @@ public class BlockComposer
         _scope = scope;
     }
 
+    /// <summary>Gets the loop scope this composer writes in.</summary>
+    internal LoopScope? Scope => _scope;
+
+    /// <summary>Gets the blocks this composer writes to.</summary>
+    internal List<Block> Blocks => _blocks;
+
     /// <summary>Adds a paragraph with literal text, in the default paragraph style.</summary>
     /// <param name="text">The text. Tabs and line breaks become the format's tab and line break.</param>
     public void Paragraph(string text) => AddText(null, text);
@@ -217,6 +223,19 @@ public class BlockComposer
         }
 
         _blocks.Add(new RuleBlock(new BorderLine(thickness, color), StyleRanges.NotNegative(spaceAbove, nameof(spaceAbove)), StyleRanges.NotNegative(spaceBelow, nameof(spaceBelow))));
+    }
+
+    /// <summary>Adds a bullet list: items at levels, loops and conditionals over items.</summary>
+    /// <param name="style">The list style; the style sheet must define it and every level used.</param>
+    /// <param name="items">Describes the items.</param>
+    public void List(ListStyleKey style, Action<ListComposer> items)
+    {
+        ArgumentNullException.ThrowIfNull(style);
+        ArgumentNullException.ThrowIfNull(items);
+        EnsureOpen();
+        ListComposer composer = new ListComposer(_context, _scope, style, _blocks);
+        items(composer);
+        composer.Close();
     }
 
     /// <summary>Adds a reusable component's content.</summary>

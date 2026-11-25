@@ -70,6 +70,23 @@ public static class TemplateBuilder
         HashSet<string> reported = new HashSet<string>(StringComparer.Ordinal);
         foreach (ParagraphBlock paragraph in BlockTree.Paragraphs(body))
         {
+            if (paragraph.List is { } item)
+            {
+                ListStyleDefinition? list = styles.Find(item.Style);
+                if (list == null && reported.Add("l:" + item.Style.Id))
+                {
+                    context.Error(DiagnosticCodes.UndefinedStyle, $"A list uses the list style '{item.Style.Id}', which the template's style sheet does not define.");
+                }
+                else if (list != null && !list.Levels.ContainsKey(item.Level) && reported.Add($"lv:{item.Style.Id}:{item.Level}"))
+                {
+                    context.Error(DiagnosticCodes.UndefinedListLevel, $"A list item uses level {item.Level}, which the list style '{item.Style.Id}' does not define.");
+                }
+                else if (list?.ItemStyle is { } itemStyle && styles.Find(itemStyle) == null && reported.Add("p:" + itemStyle.Id))
+                {
+                    context.Error(DiagnosticCodes.UndefinedStyle, $"The list style '{item.Style.Id}' uses the item style '{itemStyle.Id}', which the template's style sheet does not define.");
+                }
+            }
+
             if (paragraph.Style is { } style && styles.Find(style) == null && reported.Add("p:" + style.Id))
             {
                 context.Error(

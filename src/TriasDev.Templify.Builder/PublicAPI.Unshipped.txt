@@ -21,6 +21,9 @@ override TriasDev.Templify.Builder.FontFace.ToString() -> string!
 override TriasDev.Templify.Builder.Length.Equals(object? obj) -> bool
 override TriasDev.Templify.Builder.Length.GetHashCode() -> int
 override TriasDev.Templify.Builder.Length.ToString() -> string!
+override TriasDev.Templify.Builder.ListStyleKey.Equals(object? obj) -> bool
+override TriasDev.Templify.Builder.ListStyleKey.GetHashCode() -> int
+override TriasDev.Templify.Builder.ListStyleKey.ToString() -> string!
 override TriasDev.Templify.Builder.PageSize.Equals(object? obj) -> bool
 override TriasDev.Templify.Builder.PageSize.GetHashCode() -> int
 override TriasDev.Templify.Builder.PageSize.ToString() -> string!
@@ -85,6 +88,8 @@ static TriasDev.Templify.Builder.Length.operator ==(TriasDev.Templify.Builder.Le
 static TriasDev.Templify.Builder.Length.operator >(TriasDev.Templify.Builder.Length left, TriasDev.Templify.Builder.Length right) -> bool
 static TriasDev.Templify.Builder.Length.operator >=(TriasDev.Templify.Builder.Length left, TriasDev.Templify.Builder.Length right) -> bool
 static TriasDev.Templify.Builder.Length.Zero.get -> TriasDev.Templify.Builder.Length
+static TriasDev.Templify.Builder.ListStyleKey.operator !=(TriasDev.Templify.Builder.ListStyleKey? left, TriasDev.Templify.Builder.ListStyleKey? right) -> bool
+static TriasDev.Templify.Builder.ListStyleKey.operator ==(TriasDev.Templify.Builder.ListStyleKey? left, TriasDev.Templify.Builder.ListStyleKey? right) -> bool
 static TriasDev.Templify.Builder.PageSize.A4.get -> TriasDev.Templify.Builder.PageSize!
 static TriasDev.Templify.Builder.PageSize.A5.get -> TriasDev.Templify.Builder.PageSize!
 static TriasDev.Templify.Builder.PageSize.Legal.get -> TriasDev.Templify.Builder.PageSize!
@@ -146,6 +151,7 @@ TriasDev.Templify.Builder.BlockComposer.If(TriasDev.Templify.Builder.Condition! 
 TriasDev.Templify.Builder.BlockComposer.Image(TriasDev.Templify.Builder.ImageSource! image, string! altText, TriasDev.Templify.Builder.ImageFit! fit) -> void
 TriasDev.Templify.Builder.BlockComposer.Image(TriasDev.Templify.Builder.ImageSource! image, string! altText) -> void
 TriasDev.Templify.Builder.BlockComposer.Image(TriasDev.Templify.Builder.ParagraphStyleKey! style, TriasDev.Templify.Builder.ImageSource! image, string! altText, TriasDev.Templify.Builder.ImageFit! fit) -> void
+TriasDev.Templify.Builder.BlockComposer.List(TriasDev.Templify.Builder.ListStyleKey! style, System.Action<TriasDev.Templify.Builder.ListComposer!>! items) -> void
 TriasDev.Templify.Builder.BlockComposer.PageBreak() -> void
 TriasDev.Templify.Builder.BlockComposer.Paragraph(string! text) -> void
 TriasDev.Templify.Builder.BlockComposer.Paragraph(System.Action<TriasDev.Templify.Builder.InlineComposer!>! content) -> void
@@ -298,6 +304,26 @@ TriasDev.Templify.Builder.Length.Equals(TriasDev.Templify.Builder.Length other) 
 TriasDev.Templify.Builder.Length.Length() -> void
 TriasDev.Templify.Builder.Length.Millimeters.get -> double
 TriasDev.Templify.Builder.Length.Points.get -> double
+TriasDev.Templify.Builder.ListComposer
+TriasDev.Templify.Builder.ListComposer.ForEach(TriasDev.Templify.Builder.TemplatePath collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem!, TriasDev.Templify.Builder.ListComposer!>! items) -> void
+TriasDev.Templify.Builder.ListComposer.If(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.ListComposer!>! items) -> TriasDev.Templify.Builder.ListIfChain!
+TriasDev.Templify.Builder.ListComposer.Item(int level, string! text) -> void
+TriasDev.Templify.Builder.ListComposer.Item(int level, System.Action<TriasDev.Templify.Builder.InlineComposer!>! content) -> void
+TriasDev.Templify.Builder.ListComposer.Item(int level, TriasDev.Templify.Builder.TemplatePath value) -> void
+TriasDev.Templify.Builder.ListComposer.Item(string! text) -> void
+TriasDev.Templify.Builder.ListComposer.Item(System.Action<TriasDev.Templify.Builder.InlineComposer!>! content) -> void
+TriasDev.Templify.Builder.ListComposer.Item(TriasDev.Templify.Builder.TemplatePath value) -> void
+TriasDev.Templify.Builder.ListIfChain
+TriasDev.Templify.Builder.ListIfChain.Else(System.Action<TriasDev.Templify.Builder.ListComposer!>! items) -> void
+TriasDev.Templify.Builder.ListIfChain.ElseIf(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.ListComposer!>! items) -> TriasDev.Templify.Builder.ListIfChain!
+TriasDev.Templify.Builder.ListStyleComposer
+TriasDev.Templify.Builder.ListStyleComposer.ItemStyle(TriasDev.Templify.Builder.ParagraphStyleKey! style) -> TriasDev.Templify.Builder.ListStyleComposer!
+TriasDev.Templify.Builder.ListStyleComposer.Level(int level, string! bullet, TriasDev.Templify.Builder.Length indent, TriasDev.Templify.Builder.Length hanging) -> TriasDev.Templify.Builder.ListStyleComposer!
+TriasDev.Templify.Builder.ListStyleKey
+TriasDev.Templify.Builder.ListStyleKey.<Clone>$() -> TriasDev.Templify.Builder.ListStyleKey!
+TriasDev.Templify.Builder.ListStyleKey.Equals(TriasDev.Templify.Builder.ListStyleKey? other) -> bool
+TriasDev.Templify.Builder.ListStyleKey.Id.get -> string!
+TriasDev.Templify.Builder.ListStyleKey.ListStyleKey(string! id) -> void
 TriasDev.Templify.Builder.LoopItem
 TriasDev.Templify.Builder.LoopItem.Count.get -> TriasDev.Templify.Builder.TemplatePath
 TriasDev.Templify.Builder.LoopItem.Index.get -> TriasDev.Templify.Builder.TemplatePath
@@ -365,6 +391,7 @@ TriasDev.Templify.Builder.StyleSheetComposer
 TriasDev.Templify.Builder.StyleSheetComposer.Box(TriasDev.Templify.Builder.BoxStyleKey! key, System.Action<TriasDev.Templify.Builder.BoxStyleComposer!>! style) -> void
 TriasDev.Templify.Builder.StyleSheetComposer.Character(TriasDev.Templify.Builder.CharacterStyleKey! key, System.Action<TriasDev.Templify.Builder.CharacterStyleComposer!>! style) -> void
 TriasDev.Templify.Builder.StyleSheetComposer.Defaults(System.Action<TriasDev.Templify.Builder.DefaultStyleComposer!>! defaults) -> void
+TriasDev.Templify.Builder.StyleSheetComposer.List(TriasDev.Templify.Builder.ListStyleKey! key, System.Action<TriasDev.Templify.Builder.ListStyleComposer!>! style) -> void
 TriasDev.Templify.Builder.StyleSheetComposer.Paragraph(TriasDev.Templify.Builder.ParagraphStyleKey! key, System.Action<TriasDev.Templify.Builder.ParagraphStyleComposer!>! style) -> void
 TriasDev.Templify.Builder.StyleSheetComposer.Table(TriasDev.Templify.Builder.TableStyleKey! key, System.Action<TriasDev.Templify.Builder.TableStyleComposer!>! style) -> void
 TriasDev.Templify.Builder.SwitchComposer

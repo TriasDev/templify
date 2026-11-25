@@ -27,6 +27,21 @@ public sealed class StyleSheetComposer
 
     internal List<BoxStyleDefinition> BoxStyles { get; } = new List<BoxStyleDefinition>();
 
+    internal List<ListStyleDefinition> ListStyles { get; } = new List<ListStyleDefinition>();
+
+    /// <summary>Defines a bullet list style.</summary>
+    /// <param name="key">The style's key.</param>
+    /// <param name="style">Sets the levels and the item paragraph style.</param>
+    public void List(ListStyleKey key, Action<ListStyleComposer> style)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        ArgumentNullException.ThrowIfNull(style);
+        EnsureOpen();
+        ListStyleDefinition definition = new ListStyleDefinition(key);
+        style(new ListStyleComposer(this, definition));
+        ListStyles.Add(definition);
+    }
+
     /// <summary>Defines a box style.</summary>
     /// <param name="key">The style's key.</param>
     /// <param name="style">Sets the border, background and padding.</param>

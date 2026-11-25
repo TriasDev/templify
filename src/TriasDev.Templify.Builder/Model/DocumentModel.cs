@@ -46,8 +46,25 @@ internal abstract record Block;
 
 /// <summary>A paragraph.</summary>
 /// <param name="Inlines">The paragraph content, in order.</param>
-/// <param name="Style">The paragraph style; null for the format's default paragraph style.</param>
-internal sealed record ParagraphBlock(IReadOnlyList<Inline> Inlines, ParagraphStyleKey? Style = null) : Block;
+/// <param name="Style">The paragraph style; null for the format's default paragraph style (or the list's item style).</param>
+/// <param name="List">For a list item: its list style and level.</param>
+internal sealed record ParagraphBlock(IReadOnlyList<Inline> Inlines, ParagraphStyleKey? Style = null, ListItemInfo? List = null) : Block;
+
+/// <summary>A paragraph's place in a bullet list.</summary>
+internal sealed record ListItemInfo(ListStyleKey Style, int Level);
+
+/// <summary>One level of a list style.</summary>
+internal sealed record ListLevel(string Bullet, Length Indent, Length Hanging);
+
+/// <summary>A list style as defined in a <see cref="StyleSheet"/>.</summary>
+internal sealed class ListStyleDefinition(ListStyleKey key)
+{
+    public ListStyleKey Key { get; } = key;
+
+    public SortedDictionary<int, ListLevel> Levels { get; } = new SortedDictionary<int, ListLevel>();
+
+    public ParagraphStyleKey? ItemStyle { get; set; }
+}
 
 /// <summary>A page break: the content after it starts on a new page.</summary>
 internal sealed record PageBreakBlock : Block;

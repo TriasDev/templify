@@ -49,14 +49,20 @@ internal static class DocxWriter
         List<HeaderFooterPart> parts = HeaderFooterParts(model.Page);
         MediaStore media = new MediaStore();
 
-        // The body's image relationships follow styles (rId1) and the header/footer parts.
-        BlockWriter bodyWriter = new BlockWriter(model, media, firstRelationship: parts.Count + 2);
+        // Lists: one numbering instance per list style used, in order of first use.
+        Dictionary<ListStyleKey, int> numbering = BlockTree.Paragraphs(model.Body.Concat(model.Page.AllBlocks))
+            .Select(p => p.List?.Style).OfType<ListStyleKey>().Distinct()
+            .Select((style, index) => (style, index)).ToDictionary(e => e.style, e => e.index + 1);
+        string numberingRelationship = "rId" + (parts.Count + 2).ToString(CultureInfo.InvariantCulture);
+
+        // The body's image relationships follow styles (rId1), the header/footer parts and the numbering part.
+        BlockWriter bodyWriter = new BlockWriter(model, media, parts.Count + 2 + (numbering.Count > 0 ? 1 : 0), numbering);
         string document = XmlDeclaration + MainDocument(model, parts, bodyWriter).OuterXml;
 
         List<PackagePart> partFiles = new List<PackagePart>();
         foreach (HeaderFooterPart part in parts)
         {
-            BlockWriter writer = new BlockWriter(model, media, firstRelationship: 1);
+            BlockWriter writer = new BlockWriter(model, media, 1, numbering);
             OpenXmlCompositeElement root = part.IsHeader ? new Header() : new Footer();
             root.Append(EndWithParagraph(writer.WriteBlocks(part.Blocks, model.Page.FrameWidth)));
             partFiles.Add(new PackagePart("word/" + part.FileName, Utf8(XmlDeclaration + root.OuterXml)));
@@ -68,14 +74,19 @@ internal static class DocxWriter
 
         List<PackagePart> package = new List<PackagePart>
         {
-            new PackagePart("[Content_Types].xml", Utf8(ContentTypes(parts, media))),
+            new PackagePart("[Content_Types].xml", Utf8(ContentTypes(parts, media, numbering.Count > 0))),
             new PackagePart("_rels/.rels", Utf8(PackageRelationships())),
             new PackagePart("docProps/core.xml", Utf8(CoreProperties(model))),
             new PackagePart("docProps/custom.xml", Utf8(CustomProperties(model))),
             new PackagePart("word/document.xml", Utf8(document)),
-            new PackagePart("word/_rels/document.xml.rels", Utf8(DocumentRelationships(parts, bodyWriter.Images))),
+            new PackagePart("word/_rels/document.xml.rels", Utf8(DocumentRelationships(parts, bodyWriter.Images, numbering.Count > 0 ? numberingRelationship : null))),
             new PackagePart("word/styles.xml", Utf8(XmlDeclaration + StylesPart(model).OuterXml)),
         };
+        if (numbering.Count > 0)
+        {
+            package.Add(new PackagePart("word/numbering.xml", Utf8(XmlDeclaration + NumberingPart(model, numbering).OuterXml)));
+        }
+
         package.AddRange(partFiles);
         package.AddRange(media.Files.Select(f => new PackagePart("word/" + f.Target, f.Data)));
         return DeterministicZip.Create(package);
@@ -159,7 +170,7 @@ internal static class DocxWriter
         return parts;
     }
 
-    private static string ContentTypes(List<HeaderFooterPart> parts, MediaStore media)
+    private static string ContentTypes(List<HeaderFooterPart> parts, MediaStore media, bool hasNumbering)
     {
         StringBuilder xml = new StringBuilder(XmlDeclaration)
             .Append("<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">")
@@ -172,6 +183,11 @@ internal static class DocxWriter
 
         xml.Append($"<Override PartName=\"/word/document.xml\" ContentType=\"{MainContentType}\"/>")
             .Append($"<Override PartName=\"/word/styles.xml\" ContentType=\"{StylesContentType}\"/>");
+        if (hasNumbering)
+        {
+            xml.Append("<Override PartName=\"/word/numbering.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml\"/>");
+        }
+
         foreach (HeaderFooterPart part in parts)
         {
             string type = part.IsHeader ? "header" : "footer";
@@ -193,11 +209,42 @@ internal static class DocxWriter
         + $"<Relationship Id=\"rId3\" Type=\"{CustomPropertiesRelationship}\" Target=\"docProps/custom.xml\"/>"
         + "</Relationships>";
 
-    private static string DocumentRelationships(List<HeaderFooterPart> parts, IReadOnlyList<(string Id, string Target)> images) =>
+    private static string DocumentRelationships(List<HeaderFooterPart> parts, IReadOnlyList<(string Id, string Target)> images, string? numberingRelationship) =>
         Relationships(
             new[] { ("rId1", StylesRelationship, "styles.xml") }
                 .Concat(parts.Select(p => (p.RelationshipId, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/" + (p.IsHeader ? "header" : "footer"), p.FileName)))
+                .Concat(numberingRelationship is null ? [] : new[] { (numberingRelationship, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering", "numbering.xml") })
                 .Concat(images.Select(i => (i.Id, ImageRelationship, i.Target))));
+
+    /// <summary>numbering.xml: an abstract numbering (bullet levels) and an instance per list style used.</summary>
+    private static Numbering NumberingPart(DocumentModel model, Dictionary<ListStyleKey, int> numbering)
+    {
+        Numbering result = new Numbering();
+        foreach ((ListStyleKey key, int id) in numbering)
+        {
+            AbstractNum abstractNum = new AbstractNum(new MultiLevelType { Val = MultiLevelValues.HybridMultilevel }) { AbstractNumberId = id - 1 };
+            foreach ((int level, ListLevel definition) in model.Styles.Find(key)?.Levels ?? new SortedDictionary<int, ListLevel>())
+            {
+                // CT_Lvl order: start, numFmt, lvlText, lvlJc, pPr.
+                abstractNum.Append(new Level(
+                    new StartNumberingValue { Val = 1 },
+                    new NumberingFormat { Val = NumberFormatValues.Bullet },
+                    new LevelText { Val = definition.Bullet },
+                    new LevelJustification { Val = LevelJustificationValues.Left },
+                    new PreviousParagraphProperties(new Indentation { Left = Twips(definition.Indent), Hanging = Twips(definition.Hanging) }))
+                { LevelIndex = level });
+            }
+
+            result.Append(abstractNum);
+        }
+
+        foreach (int id in numbering.Values)
+        {
+            result.Append(new NumberingInstance(new AbstractNumId { Val = id - 1 }) { NumberID = id });
+        }
+
+        return result;
+    }
 
     private static string CoreProperties(DocumentModel model)
     {
@@ -499,7 +546,7 @@ internal static class DocxWriter
     }
 
     /// <summary>Writes blocks of the body, a header or a footer.</summary>
-    private sealed class BlockWriter(DocumentModel model, MediaStore media, int firstRelationship)
+    private sealed class BlockWriter(DocumentModel model, MediaStore media, int firstRelationship, Dictionary<ListStyleKey, int> numbering)
     {
         private readonly Dictionary<string, string> _imageIds = new Dictionary<string, string>(StringComparer.Ordinal);
 
@@ -757,13 +804,19 @@ internal static class DocxWriter
         {
             Paragraph paragraph = new Paragraph();
             bool rightTab = block.Inlines.OfType<RightTabInline>().Any();
-            if (block.Style != null || rightTab)
+            ParagraphStyleKey? paragraphStyle = block.Style ?? (block.List is { } listItem ? model.Styles.Find(listItem.Style)?.ItemStyle : null);
+            if (paragraphStyle != null || rightTab || block.List != null)
             {
-                // CT_PPrBase order: pStyle, …, tabs.
+                // CT_PPrBase order: pStyle, …, numPr, …, tabs.
                 ParagraphProperties properties = new ParagraphProperties();
-                if (block.Style is { } style)
+                if (paragraphStyle is { } style)
                 {
                     properties.Append(new ParagraphStyleId { Val = style.Id });
+                }
+
+                if (block.List is { } item && numbering.TryGetValue(item.Style, out int numId))
+                {
+                    properties.Append(new NumberingProperties(new NumberingLevelReference { Val = item.Level }, new NumberingId { Val = numId }));
                 }
 
                 if (rightTab)

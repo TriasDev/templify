@@ -111,6 +111,7 @@ internal static class OdtWriter
 
         private XElement WriteBlock(Block block, Length frame) => block switch
         {
+            ParagraphBlock { List: { } item } paragraph => WrapInList(WriteParagraph(paragraph, frame), item),
             ParagraphBlock paragraph => WriteParagraph(paragraph, frame),
             TableBlock table => WriteTable(table, frame),
             RuleBlock rule => new XElement(_text + "p", new XAttribute(_text + "style-name", RuleStyle(rule))),
@@ -536,6 +537,24 @@ internal static class OdtWriter
             }
         }
 
+        /// <summary>
+        /// A list item as a list of its own, nested to its level. Consecutive lists of one style read as one list, and
+        /// loop and conditional markers stay plain paragraphs between them.
+        /// </summary>
+        private static XElement WrapInList(XElement paragraph, ListItemInfo item)
+        {
+            XElement content = paragraph;
+            for (int level = item.Level; level >= 0; level--)
+            {
+                content = new XElement(
+                    _text + "list",
+                    level == 0 ? new XAttribute(_text + "style-name", item.Style.Id) : null,
+                    new XElement(_text + "list-item", content));
+            }
+
+            return content;
+        }
+
         private static XElement WriteMarker(MarkerBlock marker)
         {
             XElement paragraph = new XElement(_text + "p", new XAttribute(_text + "style-name", BuilderStyles.TemplateMarker.Id));
@@ -547,8 +566,9 @@ internal static class OdtWriter
 
         private XElement WriteParagraph(ParagraphBlock block, Length frame)
         {
-            int? outlineLevel = block.Style is { } key ? model.Styles.OutlineLevelOf(key) : null;
-            string styleName = block.Inlines.OfType<RightTabInline>().Any() ? RightTabStyle(block.Style, frame) : block.Style?.Id ?? StandardStyleName;
+            ParagraphStyleKey? paragraphStyle = block.Style ?? (block.List is { } listItem ? model.Styles.Find(listItem.Style)?.ItemStyle : null);
+            int? outlineLevel = paragraphStyle is { } key ? model.Styles.OutlineLevelOf(key) : null;
+            string styleName = block.Inlines.OfType<RightTabInline>().Any() ? RightTabStyle(paragraphStyle, frame) : paragraphStyle?.Id ?? StandardStyleName;
             XAttribute styleAttribute = new XAttribute(_text + "style-name", styleName);
             XElement paragraph = outlineLevel is int level
                 ? new XElement(_text + "h", styleAttribute, new XAttribute(_text + "outline-level", level))
@@ -611,6 +631,29 @@ internal static class OdtWriter
             AddIfNotEmpty(style, ParagraphProperties(definition.Paragraph));
             AddIfNotEmpty(style, TextProperties(definition.Text));
             styles.Add(style);
+        }
+
+        foreach (ListStyleDefinition definition in sheet.ListStyles)
+        {
+            XElement listStyle = new XElement(_text + "list-style", new XAttribute(_style + "name", definition.Key.Id));
+            foreach ((int level, ListLevel bullet) in definition.Levels)
+            {
+                listStyle.Add(new XElement(
+                    _text + "list-level-style-bullet",
+                    new XAttribute(_text + "level", level + 1),
+                    new XAttribute(_text + "bullet-char", bullet.Bullet),
+                    new XElement(
+                        _style + "list-level-properties",
+                        new XAttribute(_text + "list-level-position-and-space-mode", "label-alignment"),
+                        new XElement(
+                            _style + "list-level-label-alignment",
+                            new XAttribute(_text + "label-followed-by", "listtab"),
+                            new XAttribute(_text + "list-tab-stop-position", bullet.Indent.ToString()),
+                            new XAttribute(_fo + "text-indent", (-bullet.Hanging).ToString()),
+                            new XAttribute(_fo + "margin-left", bullet.Indent.ToString())))));
+            }
+
+            styles.Add(listStyle);
         }
 
         foreach (CharacterStyleDefinition definition in sheet.CharacterStyles)
