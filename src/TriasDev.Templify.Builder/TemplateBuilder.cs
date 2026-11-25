@@ -34,24 +34,32 @@ public static class TemplateBuilder
 
         TemplateComposer composer = new TemplateComposer(context, new TemplateTexts(context, options.Texts ?? TextCatalog.Empty, options.Language));
         definition.Compose(composer);
-        (IReadOnlyList<Block> body, StyleSheet styles, DocumentInfo info) = composer.Close();
+        (IReadOnlyList<Block> body, StyleSheet styles, DocumentInfo info, PageSetup page) = composer.Close();
+        List<Block> allBlocks = body.Concat(page.AllBlocks).ToList();
 
-        if (BlockFlattener.HasMarkers(body) && styles.Find(BuilderStyles.TemplateMarker) == null)
+        if (page.FrameWidth <= Length.Zero)
+        {
+            context.Error(
+                DiagnosticCodes.NoTextFrame,
+                $"The margins leave no room for text: the page is {page.Size.Width} wide, the side margins take {page.Left + page.Right}.");
+        }
+
+        if (BlockFlattener.HasMarkers(allBlocks) && styles.Find(BuilderStyles.TemplateMarker) == null)
         {
             styles = styles.WithParagraphStyle(BuilderStyles.DefaultMarkerDefinition());
         }
 
         context.AddRange(styles.Problems);
-        CheckStylesAreDefined(body, styles, context);
+        CheckStylesAreDefined(allBlocks, styles, context);
 
         if (context.Errors.Count > 0)
         {
             throw new TemplateBuildException(context.Errors);
         }
 
-        DataContract contract = DataContract.Collect(body);
+        DataContract contract = DataContract.Collect(allBlocks);
         TemplateStamp stamp = TemplateStamp.For(definition.Identity!, contract, options.Language);
-        DocumentModel model = new DocumentModel(body, options.Language, styles, info, stamp);
+        DocumentModel model = new DocumentModel(body, options.Language, styles, info, stamp, page);
         byte[] content = options.Format == TemplateFormat.Docx ? DocxWriter.Write(model) : OdtWriter.Write(model);
         return new GeneratedTemplate(options.Format, content, contract, stamp);
     }

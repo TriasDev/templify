@@ -111,6 +111,9 @@ public readonly struct Length : IEquatable<Length>, IComparable<Length>
     /// <returns>The length in points, invariant culture.</returns>
     public override string ToString() => FormatPoints() + "pt";
 
+    /// <summary>The shorter of two lengths.</summary>
+    internal static Length Min(Length a, Length b) => a <= b ? a : b;
+
     /// <summary>The length in points with up to three decimals, invariant culture, without a unit.</summary>
     internal string FormatPoints() => (Millipoints / 1000m).ToString("0.###", CultureInfo.InvariantCulture);
 

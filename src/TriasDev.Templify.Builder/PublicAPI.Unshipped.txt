@@ -18,6 +18,9 @@ override TriasDev.Templify.Builder.FontFace.ToString() -> string!
 override TriasDev.Templify.Builder.Length.Equals(object? obj) -> bool
 override TriasDev.Templify.Builder.Length.GetHashCode() -> int
 override TriasDev.Templify.Builder.Length.ToString() -> string!
+override TriasDev.Templify.Builder.PageSize.Equals(object? obj) -> bool
+override TriasDev.Templify.Builder.PageSize.GetHashCode() -> int
+override TriasDev.Templify.Builder.PageSize.ToString() -> string!
 override TriasDev.Templify.Builder.ParagraphStyleKey.Equals(object? obj) -> bool
 override TriasDev.Templify.Builder.ParagraphStyleKey.GetHashCode() -> int
 override TriasDev.Templify.Builder.ParagraphStyleKey.ToString() -> string!
@@ -67,6 +70,12 @@ static TriasDev.Templify.Builder.Length.operator ==(TriasDev.Templify.Builder.Le
 static TriasDev.Templify.Builder.Length.operator >(TriasDev.Templify.Builder.Length left, TriasDev.Templify.Builder.Length right) -> bool
 static TriasDev.Templify.Builder.Length.operator >=(TriasDev.Templify.Builder.Length left, TriasDev.Templify.Builder.Length right) -> bool
 static TriasDev.Templify.Builder.Length.Zero.get -> TriasDev.Templify.Builder.Length
+static TriasDev.Templify.Builder.PageSize.A4.get -> TriasDev.Templify.Builder.PageSize!
+static TriasDev.Templify.Builder.PageSize.A5.get -> TriasDev.Templify.Builder.PageSize!
+static TriasDev.Templify.Builder.PageSize.Legal.get -> TriasDev.Templify.Builder.PageSize!
+static TriasDev.Templify.Builder.PageSize.Letter.get -> TriasDev.Templify.Builder.PageSize!
+static TriasDev.Templify.Builder.PageSize.operator !=(TriasDev.Templify.Builder.PageSize? left, TriasDev.Templify.Builder.PageSize? right) -> bool
+static TriasDev.Templify.Builder.PageSize.operator ==(TriasDev.Templify.Builder.PageSize? left, TriasDev.Templify.Builder.PageSize? right) -> bool
 static TriasDev.Templify.Builder.ParagraphStyleKey.operator !=(TriasDev.Templify.Builder.ParagraphStyleKey? left, TriasDev.Templify.Builder.ParagraphStyleKey? right) -> bool
 static TriasDev.Templify.Builder.ParagraphStyleKey.operator ==(TriasDev.Templify.Builder.ParagraphStyleKey? left, TriasDev.Templify.Builder.ParagraphStyleKey? right) -> bool
 static TriasDev.Templify.Builder.StyleSheet.Create(System.Action<TriasDev.Templify.Builder.StyleSheetComposer!>! styles) -> TriasDev.Templify.Builder.StyleSheet!
@@ -180,6 +189,11 @@ TriasDev.Templify.Builder.DocumentPropertiesComposer
 TriasDev.Templify.Builder.DocumentPropertiesComposer.Author(string! author) -> TriasDev.Templify.Builder.DocumentPropertiesComposer!
 TriasDev.Templify.Builder.DocumentPropertiesComposer.Subject(string! subject) -> TriasDev.Templify.Builder.DocumentPropertiesComposer!
 TriasDev.Templify.Builder.DocumentPropertiesComposer.Title(string! title) -> TriasDev.Templify.Builder.DocumentPropertiesComposer!
+TriasDev.Templify.Builder.FirstPageComposer
+TriasDev.Templify.Builder.FirstPageComposer.Footer(System.Action<TriasDev.Templify.Builder.BlockComposer!>! footer) -> void
+TriasDev.Templify.Builder.FirstPageComposer.Header(System.Action<TriasDev.Templify.Builder.BlockComposer!>! header) -> void
+TriasDev.Templify.Builder.FirstPageComposer.NoFooter() -> void
+TriasDev.Templify.Builder.FirstPageComposer.NoHeader() -> void
 TriasDev.Templify.Builder.FontFace
 TriasDev.Templify.Builder.FontFace.<Clone>$() -> TriasDev.Templify.Builder.FontFace!
 TriasDev.Templify.Builder.FontFace.Equals(TriasDev.Templify.Builder.FontFace? other) -> bool
@@ -200,7 +214,12 @@ TriasDev.Templify.Builder.IfChain.Else(System.Action<TriasDev.Templify.Builder.B
 TriasDev.Templify.Builder.IfChain.ElseIf(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.BlockComposer!>! then) -> TriasDev.Templify.Builder.IfChain!
 TriasDev.Templify.Builder.InlineComposer
 TriasDev.Templify.Builder.InlineComposer.LineBreak() -> void
+TriasDev.Templify.Builder.InlineComposer.PageCount() -> void
+TriasDev.Templify.Builder.InlineComposer.PageCount(TriasDev.Templify.Builder.CharacterStyleKey! style) -> void
+TriasDev.Templify.Builder.InlineComposer.PageNumber() -> void
+TriasDev.Templify.Builder.InlineComposer.PageNumber(TriasDev.Templify.Builder.CharacterStyleKey! style) -> void
 TriasDev.Templify.Builder.InlineComposer.Tab() -> void
+TriasDev.Templify.Builder.InlineComposer.TabRight() -> void
 TriasDev.Templify.Builder.InlineComposer.Text(string! text, TriasDev.Templify.Builder.CharacterStyleKey! style) -> void
 TriasDev.Templify.Builder.InlineComposer.Text(string! text) -> void
 TriasDev.Templify.Builder.InlineComposer.Value(TriasDev.Templify.Builder.TemplatePath path, TriasDev.Templify.Builder.CharacterStyleKey! style) -> void
@@ -228,6 +247,20 @@ TriasDev.Templify.Builder.LoopItem.IsLast.get -> TriasDev.Templify.Builder.Condi
 TriasDev.Templify.Builder.LoopItem.Number.get -> TriasDev.Templify.Builder.TemplatePath
 TriasDev.Templify.Builder.LoopItem.Self.get -> TriasDev.Templify.Builder.TemplatePath
 TriasDev.Templify.Builder.LoopItem.this[string! relative].get -> TriasDev.Templify.Builder.TemplatePath
+TriasDev.Templify.Builder.PageComposer
+TriasDev.Templify.Builder.PageComposer.FirstPage(System.Action<TriasDev.Templify.Builder.FirstPageComposer!>! firstPage) -> TriasDev.Templify.Builder.PageComposer!
+TriasDev.Templify.Builder.PageComposer.Footer(System.Action<TriasDev.Templify.Builder.BlockComposer!>! footer) -> TriasDev.Templify.Builder.PageComposer!
+TriasDev.Templify.Builder.PageComposer.Header(System.Action<TriasDev.Templify.Builder.BlockComposer!>! header) -> TriasDev.Templify.Builder.PageComposer!
+TriasDev.Templify.Builder.PageComposer.HeaderFooterDistance(TriasDev.Templify.Builder.Length header, TriasDev.Templify.Builder.Length footer) -> TriasDev.Templify.Builder.PageComposer!
+TriasDev.Templify.Builder.PageComposer.Margins(TriasDev.Templify.Builder.Length all) -> TriasDev.Templify.Builder.PageComposer!
+TriasDev.Templify.Builder.PageComposer.Margins(TriasDev.Templify.Builder.Length top, TriasDev.Templify.Builder.Length right, TriasDev.Templify.Builder.Length bottom, TriasDev.Templify.Builder.Length left) -> TriasDev.Templify.Builder.PageComposer!
+TriasDev.Templify.Builder.PageComposer.Size(TriasDev.Templify.Builder.PageSize! size) -> TriasDev.Templify.Builder.PageComposer!
+TriasDev.Templify.Builder.PageSize
+TriasDev.Templify.Builder.PageSize.<Clone>$() -> TriasDev.Templify.Builder.PageSize!
+TriasDev.Templify.Builder.PageSize.Equals(TriasDev.Templify.Builder.PageSize? other) -> bool
+TriasDev.Templify.Builder.PageSize.Height.get -> TriasDev.Templify.Builder.Length
+TriasDev.Templify.Builder.PageSize.PageSize(TriasDev.Templify.Builder.Length width, TriasDev.Templify.Builder.Length height) -> void
+TriasDev.Templify.Builder.PageSize.Width.get -> TriasDev.Templify.Builder.Length
 TriasDev.Templify.Builder.ParagraphStyleComposer
 TriasDev.Templify.Builder.ParagraphStyleComposer.Alignment(TriasDev.Templify.Builder.TextAlignment alignment) -> TriasDev.Templify.Builder.ParagraphStyleComposer!
 TriasDev.Templify.Builder.ParagraphStyleComposer.BasedOn(TriasDev.Templify.Builder.ParagraphStyleKey! parent) -> TriasDev.Templify.Builder.ParagraphStyleComposer!
@@ -280,6 +313,7 @@ TriasDev.Templify.Builder.TemplateBuildOptions.Texts.init -> void
 TriasDev.Templify.Builder.TemplateComposer
 TriasDev.Templify.Builder.TemplateComposer.Content(System.Action<TriasDev.Templify.Builder.BlockComposer!>! content) -> void
 TriasDev.Templify.Builder.TemplateComposer.Data.get -> TriasDev.Templify.Builder.TemplatePath
+TriasDev.Templify.Builder.TemplateComposer.Page(System.Action<TriasDev.Templify.Builder.PageComposer!>! page) -> void
 TriasDev.Templify.Builder.TemplateComposer.Properties(System.Action<TriasDev.Templify.Builder.DocumentPropertiesComposer!>! properties) -> void
 TriasDev.Templify.Builder.TemplateComposer.Styles(TriasDev.Templify.Builder.StyleSheet! styles) -> void
 TriasDev.Templify.Builder.TemplateComposer.Texts.get -> TriasDev.Templify.Builder.TemplateTexts!

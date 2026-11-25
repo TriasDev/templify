@@ -74,6 +74,38 @@ public sealed class InlineComposer
     /// <summary>Adds a line break inside the paragraph.</summary>
     public void LineBreak() => AddText("\n", null);
 
+    /// <summary>
+    /// Adds a tab to a right-aligned tab stop at the end of the text frame, for example to push an amount or a page
+    /// number to the right margin.
+    /// </summary>
+    public void TabRight()
+    {
+        EnsureOpen();
+        _inlines.Add(new RightTabInline());
+    }
+
+    /// <summary>Adds the current page number (a field Word and LibreOffice update).</summary>
+    public void PageNumber() => AddField(PageField.Number, null);
+
+    /// <summary>Adds the current page number in a character style.</summary>
+    /// <param name="style">The character style; the style sheet must define it.</param>
+    public void PageNumber(CharacterStyleKey style)
+    {
+        ArgumentNullException.ThrowIfNull(style);
+        AddField(PageField.Number, style);
+    }
+
+    /// <summary>Adds the number of pages (a field Word and LibreOffice update).</summary>
+    public void PageCount() => AddField(PageField.Count, null);
+
+    /// <summary>Adds the number of pages in a character style.</summary>
+    /// <param name="style">The character style; the style sheet must define it.</param>
+    public void PageCount(CharacterStyleKey style)
+    {
+        ArgumentNullException.ThrowIfNull(style);
+        AddField(PageField.Count, style);
+    }
+
     internal static ValueInline CreateValue(BuildContext context, LoopScope? scope, TemplatePath path, ValueFormat? format = null, CharacterStyleKey? style = null)
     {
         LoopScope.CheckUse(context, scope, path);
@@ -135,6 +167,12 @@ public sealed class InlineComposer
         {
             _inlines.Add(new TextInline(text, style));
         }
+    }
+
+    private void AddField(PageField field, CharacterStyleKey? style)
+    {
+        EnsureOpen();
+        _inlines.Add(new PageFieldInline(field, style));
     }
 
     private void AddValue(TemplatePath path, ValueFormat? format, CharacterStyleKey? style)

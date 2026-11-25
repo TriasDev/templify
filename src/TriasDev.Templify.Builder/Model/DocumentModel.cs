@@ -11,7 +11,35 @@ namespace TriasDev.Templify.Builder.Model;
 /// <param name="Styles">The named styles; <see cref="StyleSheet.Empty"/> when the definition sets none.</param>
 /// <param name="Info">The standard document properties.</param>
 /// <param name="Stamp">The builder's stamp, written as custom document properties.</param>
-internal sealed record DocumentModel(IReadOnlyList<Block> Body, CultureInfo Language, StyleSheet Styles, DocumentInfo Info, TemplateStamp Stamp);
+/// <param name="Page">The page setup, header and footer.</param>
+internal sealed record DocumentModel(IReadOnlyList<Block> Body, CultureInfo Language, StyleSheet Styles, DocumentInfo Info, TemplateStamp Stamp, PageSetup Page);
+
+/// <summary>
+/// Page size, margins (page edge to body text), header/footer distances (page edge to header/footer), and the
+/// header and footer parts. With <c>DistinctFirstPage</c>, <c>FirstHeader</c>/<c>FirstFooter</c> are the first
+/// page's (empty for none).
+/// </summary>
+internal sealed record PageSetup(
+    PageSize Size,
+    Length Top,
+    Length Right,
+    Length Bottom,
+    Length Left,
+    Length HeaderDistance,
+    Length FooterDistance,
+    List<Block>? Header,
+    List<Block>? Footer,
+    bool DistinctFirstPage,
+    List<Block>? FirstHeader,
+    List<Block>? FirstFooter)
+{
+    /// <summary>Gets the width of the text frame: the page width minus the side margins.</summary>
+    public Length FrameWidth => Size.Width - Left - Right;
+
+    /// <summary>Gets every block of the header and footer parts.</summary>
+    public IEnumerable<Block> AllBlocks =>
+        (Header ?? []).Concat(Footer ?? []).Concat(FirstHeader ?? []).Concat(FirstFooter ?? []);
+}
 
 /// <summary>A block-level element of the document.</summary>
 internal abstract record Block;
@@ -119,6 +147,19 @@ internal abstract record Inline(CharacterStyleKey? Style);
 /// <param name="Text">The text.</param>
 /// <param name="Style">The character style, or null.</param>
 internal sealed record TextInline(string Text, CharacterStyleKey? Style = null) : Inline(Style);
+
+/// <summary>The kinds of page field.</summary>
+internal enum PageField
+{
+    Number,
+    Count,
+}
+
+/// <summary>A page number or page count field.</summary>
+internal sealed record PageFieldInline(PageField Field, CharacterStyleKey? Style = null) : Inline(Style);
+
+/// <summary>A tab to a right-aligned tab stop at the end of the text frame.</summary>
+internal sealed record RightTabInline() : Inline((CharacterStyleKey?)null);
 
 /// <summary>A placeholder for a value from the data.</summary>
 /// <param name="Path">The data path; never empty.</param>

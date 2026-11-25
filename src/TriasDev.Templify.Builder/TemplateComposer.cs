@@ -14,6 +14,7 @@ public sealed class TemplateComposer
     private readonly List<Block> _body = new List<Block>();
     private readonly DocumentPropertiesComposer _properties = new DocumentPropertiesComposer();
     private StyleSheet? _styles;
+    private PageSetupBuilder? _page;
     private bool _isOpen = true;
 
     internal TemplateComposer(BuildContext context, TemplateTexts texts)
@@ -46,6 +47,27 @@ public sealed class TemplateComposer
         _styles = styles;
     }
 
+    /// <summary>
+    /// Describes the page: size, margins, header and footer. Call it once; without it a template is A4 with 25 mm
+    /// margins and no header or footer.
+    /// </summary>
+    /// <param name="page">Describes the page.</param>
+    public void Page(Action<PageComposer> page)
+    {
+        ArgumentNullException.ThrowIfNull(page);
+        EnsureOpen();
+        if (_page != null)
+        {
+            _context.Error(DiagnosticCodes.PageAlreadySet, "TemplateComposer.Page was called more than once; a template has one page setup.");
+            return;
+        }
+
+        _page = new PageSetupBuilder();
+        PageComposer composer = new PageComposer(_context, _page);
+        page(composer);
+        composer.Close();
+    }
+
     /// <summary>Sets the standard document properties: title, author, subject.</summary>
     /// <param name="properties">Sets the properties. Several calls combine; a later value replaces an earlier one.</param>
     public void Properties(Action<DocumentPropertiesComposer> properties)
@@ -67,11 +89,11 @@ public sealed class TemplateComposer
     }
 
     /// <summary>Ends composing and returns what was composed.</summary>
-    internal (IReadOnlyList<Block> Body, StyleSheet Styles, DocumentInfo Info) Close()
+    internal (IReadOnlyList<Block> Body, StyleSheet Styles, DocumentInfo Info, PageSetup Page) Close()
     {
         _isOpen = false;
         _properties.Close();
-        return (_body, _styles ?? StyleSheet.Empty, _properties.ToInfo());
+        return (_body, _styles ?? StyleSheet.Empty, _properties.ToInfo(), (_page ?? new PageSetupBuilder()).ToSetup());
     }
 
     private void EnsureOpen()

@@ -65,6 +65,21 @@ public sealed class StyleSheet
     /// <summary>Finds the definition of a character style.</summary>
     internal CharacterStyleDefinition? Find(CharacterStyleKey key) => CharacterStyles.FirstOrDefault(s => s.Key == key);
 
+    /// <summary>The start indent of a paragraph style, through its <c>BasedOn</c> chain; zero when none is set.</summary>
+    internal Length IndentStartOf(ParagraphStyleKey? key)
+    {
+        HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
+        for (ParagraphStyleDefinition? style = key is null ? null : Find(key); style != null && seen.Add(style.Key.Id); style = style.BasedOn is { } b ? Find(b) : null)
+        {
+            if (style.Paragraph.IndentStart is { } indent)
+            {
+                return indent;
+            }
+        }
+
+        return Length.Zero;
+    }
+
     /// <summary>
     /// The outline level of a paragraph style, through its <c>BasedOn</c> chain; null when it is not a heading.
     /// </summary>

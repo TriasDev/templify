@@ -43,28 +43,97 @@ internal static class DocxWriter
 
     public static byte[] Write(DocumentModel model)
     {
-        return DeterministicZip.Create(new[]
+        List<HeaderFooterPart> parts = HeaderFooterParts(model.Page);
+        List<PackagePart> package = new List<PackagePart>
         {
-            new PackagePart("[Content_Types].xml", Utf8(ContentTypes())),
+            new PackagePart("[Content_Types].xml", Utf8(ContentTypes(parts))),
             new PackagePart("_rels/.rels", Utf8(PackageRelationships())),
             new PackagePart("docProps/core.xml", Utf8(CoreProperties(model))),
             new PackagePart("docProps/custom.xml", Utf8(CustomProperties(model))),
-            new PackagePart("word/document.xml", Utf8(XmlDeclaration + MainDocument(model).OuterXml)),
-            new PackagePart("word/_rels/document.xml.rels", Utf8(DocumentRelationships())),
+            new PackagePart("word/document.xml", Utf8(XmlDeclaration + MainDocument(model, parts).OuterXml)),
+            new PackagePart("word/_rels/document.xml.rels", Utf8(DocumentRelationships(parts))),
             new PackagePart("word/styles.xml", Utf8(XmlDeclaration + StylesPart(model).OuterXml)),
-        });
+        };
+
+        BlockWriter writer = new BlockWriter(model);
+        foreach (HeaderFooterPart part in parts)
+        {
+            OpenXmlCompositeElement root = part.IsHeader ? new Header() : new Footer();
+            root.Append(writer.WriteBlocks(part.Blocks));
+            if (!root.HasChildren)
+            {
+                root.Append(new Paragraph());
+            }
+
+            package.Add(new PackagePart("word/" + part.FileName, Utf8(XmlDeclaration + root.OuterXml)));
+        }
+
+        return DeterministicZip.Create(package);
     }
 
-    private static string ContentTypes() =>
-        XmlDeclaration
-        + "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">"
-        + "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>"
-        + "<Default Extension=\"xml\" ContentType=\"application/xml\"/>"
-        + $"<Override PartName=\"/word/document.xml\" ContentType=\"{MainContentType}\"/>"
-        + $"<Override PartName=\"/word/styles.xml\" ContentType=\"{StylesContentType}\"/>"
-        + $"<Override PartName=\"/docProps/core.xml\" ContentType=\"{CorePropertiesContentType}\"/>"
-        + $"<Override PartName=\"/docProps/custom.xml\" ContentType=\"{CustomPropertiesContentType}\"/>"
-        + "</Types>";
+    /// <summary>A header or footer part: what it holds and how the section refers to it.</summary>
+    private sealed record HeaderFooterPart(bool IsHeader, HeaderFooterValues Type, string FileName, string RelationshipId, List<Block> Blocks);
+
+    /// <summary>
+    /// The header and footer parts of the page setup. With a distinct first page, the first page always gets its own
+    /// parts (empty ones for "none"), so no application falls back to the default header there.
+    /// </summary>
+    private static List<HeaderFooterPart> HeaderFooterParts(PageSetup page)
+    {
+        List<(bool IsHeader, HeaderFooterValues Type, List<Block> Blocks)> wanted = new List<(bool, HeaderFooterValues, List<Block>)>();
+        if (page.Header is { } header)
+        {
+            wanted.Add((true, HeaderFooterValues.Default, header));
+        }
+
+        if (page.DistinctFirstPage)
+        {
+            wanted.Add((true, HeaderFooterValues.First, page.FirstHeader ?? new List<Block>()));
+        }
+
+        if (page.Footer is { } footer)
+        {
+            wanted.Add((false, HeaderFooterValues.Default, footer));
+        }
+
+        if (page.DistinctFirstPage)
+        {
+            wanted.Add((false, HeaderFooterValues.First, page.FirstFooter ?? new List<Block>()));
+        }
+
+        List<HeaderFooterPart> parts = new List<HeaderFooterPart>();
+        int headers = 0;
+        int footers = 0;
+        for (int i = 0; i < wanted.Count; i++)
+        {
+            (bool isHeader, HeaderFooterValues type, List<Block> blocks) = wanted[i];
+            string fileName = isHeader ? $"header{++headers}.xml" : $"footer{++footers}.xml";
+            parts.Add(new HeaderFooterPart(isHeader, type, fileName, "rId" + (i + 2).ToString(CultureInfo.InvariantCulture), blocks));
+        }
+
+        return parts;
+    }
+
+    private static string ContentTypes(List<HeaderFooterPart> parts)
+    {
+        StringBuilder xml = new StringBuilder(XmlDeclaration)
+            .Append("<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">")
+            .Append("<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>")
+            .Append("<Default Extension=\"xml\" ContentType=\"application/xml\"/>")
+            .Append($"<Override PartName=\"/word/document.xml\" ContentType=\"{MainContentType}\"/>")
+            .Append($"<Override PartName=\"/word/styles.xml\" ContentType=\"{StylesContentType}\"/>");
+        foreach (HeaderFooterPart part in parts)
+        {
+            string type = part.IsHeader ? "header" : "footer";
+            xml.Append($"<Override PartName=\"/word/{part.FileName}\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.{type}+xml\"/>");
+        }
+
+        return xml
+            .Append($"<Override PartName=\"/docProps/core.xml\" ContentType=\"{CorePropertiesContentType}\"/>")
+            .Append($"<Override PartName=\"/docProps/custom.xml\" ContentType=\"{CustomPropertiesContentType}\"/>")
+            .Append("</Types>")
+            .ToString();
+    }
 
     private static string PackageRelationships() =>
         XmlDeclaration
@@ -74,11 +143,19 @@ internal static class DocxWriter
         + $"<Relationship Id=\"rId3\" Type=\"{CustomPropertiesRelationship}\" Target=\"docProps/custom.xml\"/>"
         + "</Relationships>";
 
-    private static string DocumentRelationships() =>
-        XmlDeclaration
-        + "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
-        + $"<Relationship Id=\"rId1\" Type=\"{StylesRelationship}\" Target=\"styles.xml\"/>"
-        + "</Relationships>";
+    private static string DocumentRelationships(List<HeaderFooterPart> parts)
+    {
+        StringBuilder xml = new StringBuilder(XmlDeclaration)
+            .Append("<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">")
+            .Append($"<Relationship Id=\"rId1\" Type=\"{StylesRelationship}\" Target=\"styles.xml\"/>");
+        foreach (HeaderFooterPart part in parts)
+        {
+            string type = part.IsHeader ? "header" : "footer";
+            xml.Append($"<Relationship Id=\"{part.RelationshipId}\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/{type}\" Target=\"{part.FileName}\"/>");
+        }
+
+        return xml.Append("</Relationships>").ToString();
+    }
 
     private static string CoreProperties(DocumentModel model)
     {
@@ -326,76 +403,155 @@ internal static class DocxWriter
 
     // ── document.xml ─────────────────────────────────────────────────────────────
 
-    private static Document MainDocument(DocumentModel model)
+    private static Document MainDocument(DocumentModel model, List<HeaderFooterPart> parts)
     {
         Body body = new Body();
-        foreach (Block block in BlockFlattener.Flatten(model.Body))
-        {
-            body.Append(WriteBlock(block));
-        }
-
+        body.Append(new BlockWriter(model).WriteBlocks(model.Body));
+        body.Append(SectionProperties(model.Page, parts));
         return new Document(body);
     }
 
-    private static OpenXmlElement WriteBlock(Block block) => block switch
+    /// <summary>The section properties in the order of CT_SectPr: references, pgSz, pgMar, titlePg.</summary>
+    private static SectionProperties SectionProperties(PageSetup page, List<HeaderFooterPart> parts)
     {
-        ParagraphBlock paragraph => WriteParagraph(paragraph),
-        // A paragraph of its own carries the break, so it survives when the engine removes the paragraphs around it.
-        PageBreakBlock => new Paragraph(new Run(new Break { Type = BreakValues.Page })),
-        // A marker is a paragraph of its own with one run, which is what the engine's block detection reads.
-        MarkerBlock marker => new Paragraph(
-            new ParagraphProperties(new ParagraphStyleId { Val = BuilderStyles.TemplateMarker.Id }),
-            new Run(new Text(marker.Text) { Space = SpaceProcessingModeValues.Preserve })),
-        _ => throw new NotSupportedException($"Block {block.GetType().Name} is not supported by the DOCX writer."),
-    };
-
-    private static Paragraph WriteParagraph(ParagraphBlock block)
-    {
-        Paragraph paragraph = new Paragraph();
-        if (block.Style is { } style)
+        SectionProperties section = new SectionProperties();
+        foreach (HeaderFooterPart part in parts)
         {
-            paragraph.Append(new ParagraphProperties(new ParagraphStyleId { Val = style.Id }));
+            section.Append(part.IsHeader
+                ? new HeaderReference { Type = part.Type, Id = part.RelationshipId }
+                : new FooterReference { Type = part.Type, Id = part.RelationshipId });
         }
 
-        foreach (Inline inline in block.Inlines)
+        section.Append(new DocumentFormat.OpenXml.Wordprocessing.PageSize { Width = (uint)page.Size.Width.Twips, Height = (uint)page.Size.Height.Twips });
+        section.Append(new PageMargin
         {
-            paragraph.Append(WriteInline(inline));
+            Top = page.Top.Twips,
+            Right = (uint)page.Right.Twips,
+            Bottom = page.Bottom.Twips,
+            Left = (uint)page.Left.Twips,
+            Header = (uint)page.HeaderDistance.Twips,
+            Footer = (uint)page.FooterDistance.Twips,
+            Gutter = 0,
+        });
+        if (page.DistinctFirstPage)
+        {
+            section.Append(new TitlePage());
         }
 
-        return paragraph;
+        return section;
     }
 
-    private static Run WriteInline(Inline inline)
+    /// <summary>Writes blocks of the body, a header or a footer.</summary>
+    private sealed class BlockWriter(DocumentModel model)
     {
-        Run run = new Run();
-        if (inline.Style is { } style)
-        {
-            run.Append(new RunProperties(new RunStyle { Val = style.Id }));
-        }
+        public IEnumerable<OpenXmlElement> WriteBlocks(IEnumerable<Block> blocks) =>
+            BlockFlattener.Flatten(blocks).Select(WriteBlock).ToList();
 
-        switch (inline)
+        private OpenXmlElement WriteBlock(Block block) => block switch
         {
-            case TextInline text:
-                foreach ((TextPieceKind kind, string piece) in TextPieces.Split(text.Text))
+            ParagraphBlock paragraph => WriteParagraph(paragraph),
+            // A paragraph of its own carries the break, so it survives when the engine removes the paragraphs around it.
+            PageBreakBlock => new Paragraph(new Run(new Break { Type = BreakValues.Page })),
+            // A marker is a paragraph of its own with one run, which is what the engine's block detection reads.
+            MarkerBlock marker => new Paragraph(
+                new ParagraphProperties(new ParagraphStyleId { Val = BuilderStyles.TemplateMarker.Id }),
+                new Run(new Text(marker.Text) { Space = SpaceProcessingModeValues.Preserve })),
+            _ => throw new NotSupportedException($"Block {block.GetType().Name} is not supported by the DOCX writer."),
+        };
+
+        private Paragraph WriteParagraph(ParagraphBlock block)
+        {
+            Paragraph paragraph = new Paragraph();
+            bool rightTab = block.Inlines.OfType<RightTabInline>().Any();
+            if (block.Style != null || rightTab)
+            {
+                // CT_PPrBase order: pStyle, …, tabs.
+                ParagraphProperties properties = new ParagraphProperties();
+                if (block.Style is { } style)
                 {
-                    run.Append(kind switch
-                    {
-                        TextPieceKind.Tab => new TabChar(),
-                        TextPieceKind.LineBreak => new Break(),
-                        _ => new Text(piece) { Space = SpaceProcessingModeValues.Preserve },
-                    });
+                    properties.Append(new ParagraphStyleId { Val = style.Id });
                 }
 
-                return run;
+                if (rightTab)
+                {
+                    // Word measures tab stops from the text frame's start, whatever the indent.
+                    properties.Append(new Tabs(new TabStop { Val = TabStopValues.Right, Position = model.Page.FrameWidth.Twips }));
+                }
 
-            case ValueInline value:
-                // One run per placeholder: the engine then never has to join a placeholder across runs, and the
-                // value takes this run's formatting.
-                run.Append(new Text(TemplateSyntax.Placeholder(value.Path, value.Format)) { Space = SpaceProcessingModeValues.Preserve });
-                return run;
+                paragraph.Append(properties);
+            }
 
-            default:
-                throw new NotSupportedException($"Inline {inline.GetType().Name} is not supported by the DOCX writer.");
+            foreach (Inline inline in block.Inlines)
+            {
+                paragraph.Append(WriteInline(inline));
+            }
+
+            return paragraph;
+        }
+
+        private static IEnumerable<Run> WriteInline(Inline inline)
+        {
+            switch (inline)
+            {
+                case TextInline text:
+                    Run textRun = NewRun(inline.Style);
+                    foreach ((TextPieceKind kind, string piece) in TextPieces.Split(text.Text))
+                    {
+                        textRun.Append(kind switch
+                        {
+                            TextPieceKind.Tab => new TabChar(),
+                            TextPieceKind.LineBreak => new Break(),
+                            _ => new Text(piece) { Space = SpaceProcessingModeValues.Preserve },
+                        });
+                    }
+
+                    return [textRun];
+
+                case ValueInline value:
+                    // One run per placeholder: the engine then never has to join a placeholder across runs, and the
+                    // value takes this run's formatting.
+                    Run valueRun = NewRun(inline.Style);
+                    valueRun.Append(new Text(TemplateSyntax.Placeholder(value.Path, value.Format)) { Space = SpaceProcessingModeValues.Preserve });
+                    return [valueRun];
+
+                case RightTabInline:
+                    Run tabRun = NewRun(null);
+                    tabRun.Append(new TabChar());
+                    return [tabRun];
+
+                case PageFieldInline field:
+                    // A complex field with a cached result; Word and LibreOffice compute the value when they lay out.
+                    string instruction = field.Field == PageField.Number ? " PAGE " : " NUMPAGES ";
+                    return
+                    [
+                        FieldRun(field.Style, new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                        FieldRun(field.Style, new FieldCode(instruction) { Space = SpaceProcessingModeValues.Preserve }),
+                        FieldRun(field.Style, new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                        FieldRun(field.Style, new Text("1")),
+                        FieldRun(field.Style, new FieldChar { FieldCharType = FieldCharValues.End }),
+                    ];
+
+                default:
+                    throw new NotSupportedException($"Inline {inline.GetType().Name} is not supported by the DOCX writer.");
+            }
+        }
+
+        private static Run FieldRun(CharacterStyleKey? style, OpenXmlElement content)
+        {
+            Run run = NewRun(style);
+            run.Append(content);
+            return run;
+        }
+
+        private static Run NewRun(CharacterStyleKey? style)
+        {
+            Run run = new Run();
+            if (style != null)
+            {
+                run.Append(new RunProperties(new RunStyle { Val = style.Id }));
+            }
+
+            return run;
         }
     }
 

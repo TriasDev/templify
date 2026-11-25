@@ -20,9 +20,6 @@ internal static class OdtWriter
     /// <summary>LibreOffice's default paragraph style ("Default Paragraph Style"); the builder reserves the name.</summary>
     private const string StandardStyleName = "Standard";
 
-    /// <summary>The automatic paragraph style of a page break; the prefix is reserved for the builder.</summary>
-    private const string PageBreakStyleName = "TemplifyPageBreak";
-
     private static readonly XNamespace _office = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
     private static readonly XNamespace _text = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";
     private static readonly XNamespace _style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
@@ -49,104 +46,161 @@ internal static class OdtWriter
 
     private static XElement Content(DocumentModel model)
     {
-        List<Block> blocks = BlockFlattener.Flatten(model.Body).ToList();
-        XElement text = new XElement(_office + "text");
-        foreach (Block block in blocks)
-        {
-            text.Add(WriteBlock(block, model.Styles));
-        }
-
-        XElement automaticStyles = new XElement(_office + "automatic-styles");
-        if (blocks.OfType<PageBreakBlock>().Any())
-        {
-            automaticStyles.Add(new XElement(
-                _style + "style",
-                new XAttribute(_style + "name", PageBreakStyleName),
-                new XAttribute(_style + "family", "paragraph"),
-                new XAttribute(_style + "parent-style-name", StandardStyleName),
-                new XElement(_style + "paragraph-properties", new XAttribute(_fo + "break-after", "page"))));
-        }
+        BlockWriter writer = new BlockWriter(model, "Templify");
+        XElement text = new XElement(_office + "text", writer.WriteBlocks(model.Body));
 
         return new XElement(
             _office + "document-content",
             Namespaces(_office, _text, _style, _fo, _svg),
             new XAttribute(_office + "version", OdfVersion),
-            automaticStyles,
+            new XElement(_office + "automatic-styles", writer.AutomaticStyles),
             new XElement(_office + "body", text));
     }
 
-    private static XElement WriteBlock(Block block, StyleSheet styles) => block switch
+    /// <summary>
+    /// Writes blocks of the body (content.xml) or of headers and footers (styles.xml) and collects the automatic
+    /// styles they need; each part gets its own name prefix.
+    /// </summary>
+    private sealed class BlockWriter(DocumentModel model, string prefix)
     {
-        ParagraphBlock paragraph => WriteParagraph(paragraph, styles),
-        // An empty paragraph of its own carries the break (break-after: no empty line on the new page), so it
-        // survives when the engine removes the paragraphs around it.
-        PageBreakBlock => new XElement(_text + "p", new XAttribute(_text + "style-name", PageBreakStyleName)),
-        MarkerBlock marker => WriteMarker(marker),
-        _ => throw new NotSupportedException($"Block {block.GetType().Name} is not supported by the ODT writer."),
-    };
+        private readonly Dictionary<(string Parent, int Position), string> _tabStyles = new Dictionary<(string, int), string>();
+        private bool _pageBreakStyle;
 
-    private static XElement WriteMarker(MarkerBlock marker)
-    {
-        XElement paragraph = new XElement(_text + "p", new XAttribute(_text + "style-name", BuilderStyles.TemplateMarker.Id));
-        WhitespaceEncoder encoder = new WhitespaceEncoder(paragraph);
-        encoder.Text(marker.Text);
-        encoder.Finish();
-        return paragraph;
-    }
+        public List<XElement> AutomaticStyles { get; } = new List<XElement>();
 
-    private static XElement WriteParagraph(ParagraphBlock block, StyleSheet styles)
-    {
-        int? outlineLevel = block.Style is { } key ? styles.OutlineLevelOf(key) : null;
-        XAttribute styleName = new XAttribute(_text + "style-name", block.Style?.Id ?? StandardStyleName);
-        XElement paragraph = outlineLevel is int level
-            ? new XElement(_text + "h", styleName, new XAttribute(_text + "outline-level", level))
-            : new XElement(_text + "p", styleName);
+        public List<XElement> WriteBlocks(IEnumerable<Block> blocks) => BlockFlattener.Flatten(blocks).Select(WriteBlock).ToList();
 
-        WhitespaceEncoder encoder = new WhitespaceEncoder(paragraph);
-        foreach (Inline inline in block.Inlines)
+        private XElement WriteBlock(Block block) => block switch
         {
-            if (inline.Style is { } characterStyle)
+            ParagraphBlock paragraph => WriteParagraph(paragraph),
+            // An empty paragraph of its own carries the break (break-after: no empty line on the new page), so it
+            // survives when the engine removes the paragraphs around it.
+            PageBreakBlock => new XElement(_text + "p", new XAttribute(_text + "style-name", PageBreakStyle())),
+            MarkerBlock marker => WriteMarker(marker),
+            _ => throw new NotSupportedException($"Block {block.GetType().Name} is not supported by the ODT writer."),
+        };
+
+        private string PageBreakStyle()
+        {
+            string name = prefix + "PageBreak";
+            if (!_pageBreakStyle)
             {
-                encoder.BeginSpan(new XElement(_text + "span", new XAttribute(_text + "style-name", characterStyle.Id)));
+                _pageBreakStyle = true;
+                AutomaticStyles.Add(new XElement(
+                    _style + "style",
+                    new XAttribute(_style + "name", name),
+                    new XAttribute(_style + "family", "paragraph"),
+                    new XAttribute(_style + "parent-style-name", StandardStyleName),
+                    new XElement(_style + "paragraph-properties", new XAttribute(_fo + "break-after", "page"))));
             }
 
-            switch (inline)
-            {
-                case TextInline text:
-                    foreach ((TextPieceKind kind, string piece) in TextPieces.Split(text.Text))
-                    {
-                        switch (kind)
-                        {
-                            case TextPieceKind.Tab:
-                                encoder.Element(new XElement(_text + "tab"));
-                                break;
-                            case TextPieceKind.LineBreak:
-                                encoder.Element(new XElement(_text + "line-break"));
-                                break;
-                            default:
-                                encoder.Text(piece);
-                                break;
-                        }
-                    }
-
-                    break;
-
-                case ValueInline value:
-                    encoder.Text(TemplateSyntax.Placeholder(value.Path, value.Format));
-                    break;
-
-                default:
-                    throw new NotSupportedException($"Inline {inline.GetType().Name} is not supported by the ODT writer.");
-            }
-
-            if (inline.Style is not null)
-            {
-                encoder.EndSpan();
-            }
+            return name;
         }
 
-        encoder.Finish();
-        return paragraph;
+        /// <summary>
+        /// An automatic paragraph style with a right tab stop at the end of the frame. ODF measures tab stops from
+        /// the paragraph's indent, so the style's start indent is subtracted.
+        /// </summary>
+        private string RightTabStyle(ParagraphStyleKey? parent)
+        {
+            string parentName = parent?.Id ?? StandardStyleName;
+            int position = (model.Page.FrameWidth - model.Styles.IndentStartOf(parent)).Millipoints;
+            if (!_tabStyles.TryGetValue((parentName, position), out string? name))
+            {
+                name = prefix + "Tab" + (_tabStyles.Count + 1).ToString(CultureInfo.InvariantCulture);
+                _tabStyles[(parentName, position)] = name;
+                AutomaticStyles.Add(new XElement(
+                    _style + "style",
+                    new XAttribute(_style + "name", name),
+                    new XAttribute(_style + "family", "paragraph"),
+                    new XAttribute(_style + "parent-style-name", parentName),
+                    new XElement(
+                        _style + "paragraph-properties",
+                        new XElement(
+                            _style + "tab-stops",
+                            new XElement(
+                                _style + "tab-stop",
+                                new XAttribute(_style + "position", (model.Page.FrameWidth - model.Styles.IndentStartOf(parent)).ToString()),
+                                new XAttribute(_style + "type", "right"))))));
+            }
+
+            return name;
+        }
+
+        private static XElement WriteMarker(MarkerBlock marker)
+        {
+            XElement paragraph = new XElement(_text + "p", new XAttribute(_text + "style-name", BuilderStyles.TemplateMarker.Id));
+            WhitespaceEncoder encoder = new WhitespaceEncoder(paragraph);
+            encoder.Text(marker.Text);
+            encoder.Finish();
+            return paragraph;
+        }
+
+        private XElement WriteParagraph(ParagraphBlock block)
+        {
+            int? outlineLevel = block.Style is { } key ? model.Styles.OutlineLevelOf(key) : null;
+            string styleName = block.Inlines.OfType<RightTabInline>().Any() ? RightTabStyle(block.Style) : block.Style?.Id ?? StandardStyleName;
+            XAttribute styleAttribute = new XAttribute(_text + "style-name", styleName);
+            XElement paragraph = outlineLevel is int level
+                ? new XElement(_text + "h", styleAttribute, new XAttribute(_text + "outline-level", level))
+                : new XElement(_text + "p", styleAttribute);
+
+            WhitespaceEncoder encoder = new WhitespaceEncoder(paragraph);
+            foreach (Inline inline in block.Inlines)
+            {
+                if (inline.Style is { } characterStyle)
+                {
+                    encoder.BeginSpan(new XElement(_text + "span", new XAttribute(_text + "style-name", characterStyle.Id)));
+                }
+
+                switch (inline)
+                {
+                    case TextInline text:
+                        foreach ((TextPieceKind kind, string piece) in TextPieces.Split(text.Text))
+                        {
+                            switch (kind)
+                            {
+                                case TextPieceKind.Tab:
+                                    encoder.Element(new XElement(_text + "tab"));
+                                    break;
+                                case TextPieceKind.LineBreak:
+                                    encoder.Element(new XElement(_text + "line-break"));
+                                    break;
+                                default:
+                                    encoder.Text(piece);
+                                    break;
+                            }
+                        }
+
+                        break;
+
+                    case ValueInline value:
+                        encoder.Text(TemplateSyntax.Placeholder(value.Path, value.Format));
+                        break;
+
+                    case RightTabInline:
+                        encoder.Element(new XElement(_text + "tab"));
+                        break;
+
+                    case PageFieldInline field:
+                        encoder.Element(field.Field == PageField.Number
+                            ? new XElement(_text + "page-number", new XAttribute(_text + "select-page", "current"), "1")
+                            : new XElement(_text + "page-count", "1"));
+                        break;
+
+                    default:
+                        throw new NotSupportedException($"Inline {inline.GetType().Name} is not supported by the ODT writer.");
+                }
+
+                if (inline.Style is not null)
+                {
+                    encoder.EndSpan();
+                }
+            }
+
+            encoder.Finish();
+            return paragraph;
+        }
     }
 
     // ── styles.xml ───────────────────────────────────────────────────────────────
@@ -217,14 +271,96 @@ internal static class OdtWriter
             styles.Add(style);
         }
 
+        BlockWriter headerFooter = new BlockWriter(model, "TemplifyHf");
+        XElement masterPage = MasterPage(model.Page, headerFooter);
         return new XElement(
             _office + "document-styles",
             Namespaces(_office, _text, _style, _fo, _svg),
             new XAttribute(_office + "version", OdfVersion),
             FontFaceDeclarations(sheet),
             styles,
-            new XElement(_office + "automatic-styles"),
-            new XElement(_office + "master-styles"));
+            new XElement(_office + "automatic-styles", PageLayout(model.Page), headerFooter.AutomaticStyles),
+            new XElement(_office + "master-styles", masterPage));
+    }
+
+    private const string PageLayoutName = "TemplifyPageLayout";
+
+    private static bool HasHeader(PageSetup page) => page.Header != null || (page.DistinctFirstPage && page.FirstHeader is { Count: > 0 });
+
+    private static bool HasFooter(PageSetup page) => page.Footer != null || (page.DistinctFirstPage && page.FirstFooter is { Count: > 0 });
+
+    /// <summary>
+    /// The page layout. ODF measures the top margin to the header, Word to the body text: with a header, the page
+    /// margin is the header distance and the header is at least (top margin − header distance) high, so the body starts
+    /// where Word starts it. The footer mirrors this.
+    /// </summary>
+    private static XElement PageLayout(PageSetup page)
+    {
+        bool header = HasHeader(page);
+        bool footer = HasFooter(page);
+        XElement layout = new XElement(
+            _style + "page-layout",
+            new XAttribute(_style + "name", PageLayoutName),
+            new XElement(
+                _style + "page-layout-properties",
+                new XAttribute(_fo + "page-width", page.Size.Width.ToString()),
+                new XAttribute(_fo + "page-height", page.Size.Height.ToString()),
+                new XAttribute(_style + "print-orientation", "portrait"),
+                new XAttribute(_fo + "margin-top", (header ? page.HeaderDistance : page.Top).ToString()),
+                new XAttribute(_fo + "margin-bottom", (footer ? page.FooterDistance : page.Bottom).ToString()),
+                new XAttribute(_fo + "margin-left", page.Left.ToString()),
+                new XAttribute(_fo + "margin-right", page.Right.ToString())));
+
+        layout.Add(new XElement(
+            _style + "header-style",
+            header ? HeaderFooterProperties(page.Top - page.HeaderDistance, "margin-bottom") : null));
+        layout.Add(new XElement(
+            _style + "footer-style",
+            footer ? HeaderFooterProperties(page.Bottom - page.FooterDistance, "margin-top") : null));
+        return layout;
+    }
+
+    private static XElement HeaderFooterProperties(Length minHeight, string spacing) =>
+        new XElement(
+            _style + "header-footer-properties",
+            new XAttribute(_fo + "min-height", minHeight.ToString()),
+            new XAttribute(_fo + "margin-left", "0pt"),
+            new XAttribute(_fo + "margin-right", "0pt"),
+            new XAttribute(_fo + spacing, "0pt"));
+
+    /// <summary>The master page "Standard" with the headers and footers (ODF 1.3 header-first / footer-first for the first page).</summary>
+    private static XElement MasterPage(PageSetup page, BlockWriter writer)
+    {
+        XElement master = new XElement(
+            _style + "master-page",
+            new XAttribute(_style + "name", StandardStyleName),
+            new XAttribute(_style + "page-layout-name", PageLayoutName));
+
+        if (HasHeader(page))
+        {
+            master.Add(Region("header", page.Header, writer));
+            if (page.DistinctFirstPage)
+            {
+                master.Add(Region("header-first", page.FirstHeader, writer));
+            }
+        }
+
+        if (HasFooter(page))
+        {
+            master.Add(Region("footer", page.Footer, writer));
+            if (page.DistinctFirstPage)
+            {
+                master.Add(Region("footer-first", page.FirstFooter, writer));
+            }
+        }
+
+        return master;
+    }
+
+    private static XElement Region(string name, List<Block>? blocks, BlockWriter writer)
+    {
+        List<XElement> content = blocks is null ? new List<XElement>() : writer.WriteBlocks(blocks);
+        return new XElement(_style + name, content.Count > 0 ? content : new XElement(_text + "p", new XAttribute(_text + "style-name", StandardStyleName)));
     }
 
     /// <summary>One <c>style:font-face</c> per family the styles use, in first-use order.</summary>

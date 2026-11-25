@@ -73,4 +73,10 @@ internal static class DiagnosticCodes
 
     /// <summary>A text key has no translation for the build's language.</summary>
     public const string MissingText = "TB5001";
+
+    /// <summary><see cref="TemplateComposer.Page"/> was called more than once.</summary>
+    public const string PageAlreadySet = "TB6001";
+
+    /// <summary>The margins leave no room for text.</summary>
+    public const string NoTextFrame = "TB6002";
 }
