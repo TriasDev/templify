@@ -217,7 +217,12 @@ expression string
   and per loop row list, cells, nested tables, text boxes, content controls) and resolves names inside a loop against
   the items of that loop and its enclosing loops (implicit properties, named iteration variables, metadata).
   Block markers that share their paragraph or row with other text (and inline loops) are `BlockMarkerWithText`
-  errors, found by `Core/BlockMarkerValidator.cs`: it runs the processing detectors over the walker's containers and
+  errors, found by the structural lint walk `Core/TemplateLintWalker.cs` (#255): it runs the processing detectors over
+  the walker's containers and also reports detector syntax errors in every container, unterminated tags
+  (`UnterminatedTag`), more than one block marker in a marker element (`MultipleBlockMarkers`) and orphan
+  `{{/if}}`/`{{#else}}`/`{{/foreach}}` markers. Every structural error is located by `Core/WordTemplateLocator.cs`
+  (`OpenDocument/OdtTemplateLocator.cs`; format in `Core/TemplateLocation.cs`); detector exceptions carry their
+  element (`TemplateSyntaxException.SourceElement`). For text next to markers it
   words the error like the processing warning (`Utilities/BlockMarkerLoss.cs`, `Utilities/BlockMarkerText.cs`;
   `OpenDocument/OdtBlockMarkerLoss.cs` for ODT).
   Inline `{{(...)}}` expressions are validated by `Core/InlineExpressionValidation.cs` with the processing parser

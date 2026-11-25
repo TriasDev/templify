@@ -205,7 +205,7 @@ One of the most powerful features is repeating table rows:
 | {{Name}} | ${{Price}} | {{Stock}} |
 | {{/foreach}} | | |
 
-Put `{{#foreach}}` and `{{/foreach}}` in **their own rows**. The rows between them are repeated for each item and the marker rows are removed. Putting `{{#foreach}}` in the first cell and `{{/foreach}}` in the last cell of the **same row** is not supported (processing fails). A loop whose start and end markers are both inside one cell (in separate paragraphs) repeats paragraphs inside that cell instead.
+Put `{{#foreach}}` and `{{/foreach}}` in **their own rows**. The rows between them are repeated for each item and the marker rows are removed. Putting `{{#foreach}}` in the first cell and `{{/foreach}}` in the last cell of the **same row** is not supported: processing fails, and template validation reports it with the hint that loop markers belong in rows of their own. A loop whose start and end markers are both inside one cell (in separate paragraphs) repeats paragraphs inside that cell instead.
 
 If a table loses all its rows (for example, an empty collection and no header row), the whole table is removed. Conditional rows (`{{#if}}` marker rows, see [Conditional Table Rows](conditionals.md#conditional-table-rows)) also work inside a row loop and are evaluated per item.
 
