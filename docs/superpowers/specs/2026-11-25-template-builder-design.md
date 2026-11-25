@@ -717,8 +717,20 @@ Known differences become build warnings when the construct is used. The first en
   - **Before the first preview release:** a second release-please package, component `templify-builder`, with tags
     `builder-v0.x.y` and `bump-minor-pre-major`. The publish job packs and pushes the builder too. Until then nothing
     publishes the builder, so it cannot reach NuGet by accident.
+  - **As built (#289):** package `src/TriasDev.Templify.Builder`, component `builder` (so the tags read
+    `builder-v0.x.y`), `release-type: simple` with `version.txt` as the single version source of the builder and the
+    test kit (both csproj files read it), `additional-paths` for the test kit, the builder tests and the sample,
+    `bump-minor-pre-major`, the first release pinned with `release-as: 0.1.0` (manifest `0.0.0` = never released).
+    The release workflow has a separate `publish-builder` job on the per-path outputs
+    (`src/TriasDev.Templify.Builder--release_created`); the core `publish` job still keys on the root outputs. It runs
+    the builder tests, packs both packages and pushes them with Trusted Publishing (`nuget` environment).
+  - **Core first.** The builder package depends on the core version in `TriasDev.Templify.csproj`, and the builder
+    already needs core changes released after 1.10.0 (`:join` #273, `updateFields` position #256, …).
+    `publish-builder` refuses to publish unless that core version is on nuget.org and the core source is unchanged
+    since its tag. So the first preview follows the next core release (1.11.0).
 - **Package validation.** Off until the first release. During `0.x` the baseline points at the previous `0.x` release.
-  Breaking changes are allowed there but must be deliberate: entries move in `PublicAPI.Shipped.txt`.
+  Breaking changes are allowed there but must be deliberate: entries move in `PublicAPI.Shipped.txt`, and the package
+  validation difference is recorded in a compatibility suppression file.
 - **The LibreOffice helper.** Core's test helper for finding and running `soffice` is shared with the builder tests by
   linking its source file. There is no shared test project.
 

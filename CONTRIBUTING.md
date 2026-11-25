@@ -569,6 +569,28 @@ mkdocs build --strict
 - Write PR titles for users: they become changelog lines. Put behavior changes and migration notes in the PR description
   so maintainers can carry them into the release notes.
 
+### Builder releases (preview, 0.x)
+
+`TriasDev.Templify.Builder` and `TriasDev.Templify.Builder.Testing` have their own version line and their own
+release-please package (`src/TriasDev.Templify.Builder`, component `builder`, tags `builder-v0.x.y`, changelog
+`src/TriasDev.Templify.Builder/CHANGELOG.md`):
+
+- Commits under `src/TriasDev.Templify.Builder*`, `tests/TriasDev.Templify.Builder.Tests` and
+  `samples/TriasDev.Templify.Builder.Sample` count for the builder and not for core (`exclude-paths` /
+  `additional-paths`). Commits that touch shared files (solution, docs, CI) count for core.
+- `src/TriasDev.Templify.Builder/version.txt` is the single version source of both packages; release-please updates
+  it in the builder's release PR. During `0.x`, a breaking change bumps the minor version (`bump-minor-pre-major`).
+- The builder package depends on the core version in `TriasDev.Templify.csproj`. **Release core first** when the
+  builder needs unreleased core changes: the `publish-builder` job refuses to publish when that core version is not
+  on nuget.org or when the core source changed since its tag.
+- Merging the builder's release PR runs `publish-builder` (builder tests, pack, Trusted Publishing with the `nuget`
+  environment, as for core). The core release job is not involved.
+- After a builder release: move `PublicAPI.Unshipped.txt` entries to `PublicAPI.Shipped.txt` in both projects and set
+  `PackageValidationBaselineVersion` to the released version (from the second release on). A deliberate breaking
+  change in `0.x` is recorded with a compatibility suppression file
+  (`dotnet pack -p:GenerateCompatibilitySuppressionFile=true`).
+- The first release is pinned with `"release-as": "0.1.0"` in `release-please-config.json`; remove that line after it.
+
 ---
 
 ## Additional Resources
