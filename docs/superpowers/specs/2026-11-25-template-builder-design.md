@@ -473,6 +473,18 @@ public sealed record RawBlock
 It takes `XElement`, not OpenXML SDK types. SDK types never appear in the builder's public API, so the two packages
 cannot become version-coupled through it.
 
+As built (#285):
+
+- `c.Raw(RawBlock)` is on every `BlockComposer` (body, cells, boxes, headers, footers, loop and branch bodies).
+  `RawContext` gives the container's `Frame` width and `Placeholder(path, format?)`, which returns the placeholder
+  text only for a path declared in `Uses` (otherwise TB9102), so the contract cannot miss what the XML reads. `Uses`
+  paths are scope-checked like any other path (TB4001–4003) and recorded as values.
+- Allowed roots: DOCX `w:p`, `w:tbl`; ODT `text:p`, `text:h`, `text:list`, `table:table`. Anything else, including
+  an element of the other format, is TB9101. The DOCX element becomes a typed `Paragraph`/`Table`, so the writer's
+  own rules apply to it (a paragraph between touching tables, the closing paragraph).
+- The XML is written as given. It cannot add styles, numbering, relationships or ODT automatic styles; it may refer
+  to styles of the sheet. A construct that needs those belongs in the vocabulary, not in `Raw`.
+
 ### 3.10 Example
 
 ```csharp
@@ -599,6 +611,7 @@ ITemplateDefinition.Compose ──▶ composers ──▶ semantic model (intern
 | Marker | one-run paragraph in `TemplateMarker` | `text:p` in `TemplateMarker` with the marker as its only text |
 | Language | `w:lang` in the defaults, `dc:language` | `fo:language` and `fo:country`, `dc:language` |
 | Properties | `docProps/core.xml` (title, creator, subject), `docProps/custom.xml` (stamp) | `meta.xml` (`dc:title`, `meta:initial-creator`, `dc:subject`, `meta:user-defined`) |
+| Raw block (#285) | the given `w:p` / `w:tbl`, as typed elements | the given `text:p` / `text:h` / `text:list` / `table:table` |
 
 Tables, boxes, lists, page setup, headers, footers, fields, images and the table of contents are mapped in the design
 section of their tasks. The review's first draft is in #261.
