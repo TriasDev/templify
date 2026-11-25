@@ -583,6 +583,10 @@ ITemplateDefinition.Compose ──▶ composers ──▶ semantic model (intern
 | Line break | `w:br` | `text:line-break` |
 | Page break | a paragraph of its own: `w:p/w:r/w:br w:type="page"` | an empty paragraph of its own in the automatic style `TemplifyPageBreak` (`fo:break-after="page"`, so no empty line on the new page) |
 | Character style on text | `w:rPr/w:rStyle` on the run | `text:span text:style-name` |
+| Page (#277) | `w:sectPr`: `pgSz`, `pgMar` (top/right/bottom/left/header/footer), `titlePg`; always written (default A4, 25 mm margins, 12.5 mm header/footer distance) | `style:page-layout` "TemplifyPageLayout" + master page "Standard" |
+| Header / footer | `header1.xml`, `footer1.xml` (+ `header2.xml`/`footer2.xml` for a distinct first page, empty for "none"), `headerReference`/`footerReference` | `style:header`/`style:footer` (+ ODF 1.3 `style:header-first`/`style:footer-first`); ODF measures the top margin to the header, so page `fo:margin-top` = header distance and the header's `fo:min-height` = top margin − header distance: the body starts where Word starts it |
+| Page number / count | complex fields `PAGE` / `NUMPAGES` with a cached `1` | `text:page-number text:select-page="current"` / `text:page-count` |
+| Right tab (`TabRight`) | `w:tabs/w:tab w:val="right"` at the frame width, measured from the frame's start | an automatic paragraph style with `style:tab-stop style:type="right"`, positioned at frame width − the style's start indent (ODF measures from the indent) |
 | Marker | one-run paragraph in `TemplateMarker` | `text:p` in `TemplateMarker` with the marker as its only text |
 | Language | `w:lang` in the defaults, `dc:language` | `fo:language` and `fo:country`, `dc:language` |
 | Properties | `docProps/core.xml` (title, creator, subject), `docProps/custom.xml` (stamp) | `meta.xml` (`dc:title`, `meta:initial-creator`, `dc:subject`, `meta:user-defined`) |
