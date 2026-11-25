@@ -148,6 +148,13 @@
           "TriasDev.Templify": "[1.10.0, )"
         }
       },
+      "triasdev.templify.builder.testing": {
+        "type": "Project",
+        "dependencies": {
+          "DocumentFormat.OpenXml": "[3.5.1, )",
+          "TriasDev.Templify.Builder": "[0.1.0, )"
+        }
+      },
       "DocumentFormat.OpenXml": {
         "type": "CentralTransitive",
         "requested": "[3.5.1, )",

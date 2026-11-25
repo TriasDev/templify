@@ -6,6 +6,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\TriasDev.Templify.Builder\TriasDev.Templify.Builder.csproj" />
+    <!-- Dogfooding: the invariants below are the test kit's checks (#286). -->
+    <ProjectReference Include="..\..\src\TriasDev.Templify.Builder.Testing\TriasDev.Templify.Builder.Testing.csproj" />
   </ItemGroup>
 
   <ItemGroup>

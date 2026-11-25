@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Same TFMs as the core library and the builder. -->
+    <TargetFrameworks>net11.0;net10.0</TargetFrameworks>
+
+    <!-- Released together with the builder, on the builder's 0.x version line (design spec, section 7). -->
+    <PackageId>TriasDev.Templify.Builder.Testing</PackageId>
+    <Version>0.1.0</Version>
+    <Description>Test kit for TriasDev.Templify.Builder: verify template definitions in your CI (build, validate, fill with sample data and the contract's witness, DOCX schema and ODT package checks, byte determinism, contract parity across languages and formats), snapshot dumps for golden tests and a LibreOffice conversion helper. Test-framework neutral.</Description>
+    <PackageTags>word;docx;odt;opendocument;libreoffice;template;templify;builder;testing;snapshot</PackageTags>
+    <!-- No PackageValidationBaselineVersion until the first release (design spec, section 7). -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- OpenXmlValidator for the DOCX schema check. -->
+    <PackageReference Include="DocumentFormat.OpenXml"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TriasDev.Templify.Builder\TriasDev.Templify.Builder.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\"/>
+  </ItemGroup>
+
+</Project>

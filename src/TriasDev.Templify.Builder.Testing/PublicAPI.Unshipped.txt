@@ -1,0 +1,84 @@
+#nullable enable
+override TriasDev.Templify.Builder.Testing.TemplateVerificationFailure.Equals(object? obj) -> bool
+override TriasDev.Templify.Builder.Testing.TemplateVerificationFailure.GetHashCode() -> int
+override TriasDev.Templify.Builder.Testing.TemplateVerificationFailure.ToString() -> string!
+override TriasDev.Templify.Builder.Testing.TemplateVerificationReport.ToString() -> string!
+override TriasDev.Templify.Builder.Testing.VerifiedTemplate.Equals(object? obj) -> bool
+override TriasDev.Templify.Builder.Testing.VerifiedTemplate.GetHashCode() -> int
+override TriasDev.Templify.Builder.Testing.VerifiedTemplate.ToString() -> string!
+static TriasDev.Templify.Builder.Testing.LibreOfficeConverter.Convert(System.ReadOnlyMemory<byte> document, string! inputExtension, string! filter, string! outputExtension, System.TimeSpan? timeout = null) -> byte[]!
+static TriasDev.Templify.Builder.Testing.LibreOfficeConverter.Executable.get -> string?
+static TriasDev.Templify.Builder.Testing.LibreOfficeConverter.IsAvailable.get -> bool
+static TriasDev.Templify.Builder.Testing.LibreOfficeConverter.ToPdf(System.ReadOnlyMemory<byte> document, string! extension) -> byte[]!
+static TriasDev.Templify.Builder.Testing.LibreOfficeConverter.ToPdf(TriasDev.Templify.Builder.GeneratedTemplate! template) -> byte[]!
+static TriasDev.Templify.Builder.Testing.LibreOfficeConverter.ToText(System.ReadOnlyMemory<byte> document, string! extension) -> string!
+static TriasDev.Templify.Builder.Testing.TemplateSnapshot.Create(TriasDev.Templify.Builder.GeneratedTemplate! template) -> string!
+static TriasDev.Templify.Builder.Testing.TemplateSnapshot.Create(TriasDev.Templify.Core.TemplateFormat format, System.ReadOnlyMemory<byte> package) -> string!
+static TriasDev.Templify.Builder.Testing.TemplateVerificationFailure.operator !=(TriasDev.Templify.Builder.Testing.TemplateVerificationFailure? left, TriasDev.Templify.Builder.Testing.TemplateVerificationFailure? right) -> bool
+static TriasDev.Templify.Builder.Testing.TemplateVerificationFailure.operator ==(TriasDev.Templify.Builder.Testing.TemplateVerificationFailure? left, TriasDev.Templify.Builder.Testing.TemplateVerificationFailure? right) -> bool
+static TriasDev.Templify.Builder.Testing.TemplateVerifier.CheckFill(TriasDev.Templify.Builder.GeneratedTemplate! template, string! json, System.Globalization.CultureInfo? culture = null) -> System.Collections.Generic.IReadOnlyList<string!>!
+static TriasDev.Templify.Builder.Testing.TemplateVerifier.CheckPackage(TriasDev.Templify.Core.TemplateFormat format, System.ReadOnlyMemory<byte> package) -> System.Collections.Generic.IReadOnlyList<string!>!
+static TriasDev.Templify.Builder.Testing.TemplateVerifier.CheckTemplate(TriasDev.Templify.Builder.GeneratedTemplate! template) -> System.Collections.Generic.IReadOnlyList<string!>!
+static TriasDev.Templify.Builder.Testing.TemplateVerifier.Verify(System.Func<TriasDev.Templify.Builder.ITemplateDefinition!>! definitionFactory, TriasDev.Templify.Builder.Testing.TemplateVerificationOptions? options = null) -> TriasDev.Templify.Builder.Testing.TemplateVerificationReport!
+static TriasDev.Templify.Builder.Testing.TemplateVerifier.VerifyAll(System.Func<TriasDev.Templify.Builder.ITemplateDefinition!>! definitionFactory, TriasDev.Templify.Builder.Testing.TemplateVerificationOptions? options = null) -> TriasDev.Templify.Builder.Testing.TemplateVerificationReport!
+static TriasDev.Templify.Builder.Testing.VerifiedTemplate.operator !=(TriasDev.Templify.Builder.Testing.VerifiedTemplate? left, TriasDev.Templify.Builder.Testing.VerifiedTemplate? right) -> bool
+static TriasDev.Templify.Builder.Testing.VerifiedTemplate.operator ==(TriasDev.Templify.Builder.Testing.VerifiedTemplate? left, TriasDev.Templify.Builder.Testing.VerifiedTemplate? right) -> bool
+TriasDev.Templify.Builder.Testing.LibreOfficeConverter
+TriasDev.Templify.Builder.Testing.TemplateSnapshot
+TriasDev.Templify.Builder.Testing.TemplateVerificationException
+TriasDev.Templify.Builder.Testing.TemplateVerificationException.Report.get -> TriasDev.Templify.Builder.Testing.TemplateVerificationReport!
+TriasDev.Templify.Builder.Testing.TemplateVerificationException.TemplateVerificationException(TriasDev.Templify.Builder.Testing.TemplateVerificationReport! report) -> void
+TriasDev.Templify.Builder.Testing.TemplateVerificationFailure
+TriasDev.Templify.Builder.Testing.TemplateVerificationFailure.<Clone>$() -> TriasDev.Templify.Builder.Testing.TemplateVerificationFailure!
+TriasDev.Templify.Builder.Testing.TemplateVerificationFailure.Check.get -> TriasDev.Templify.Builder.Testing.VerificationCheck
+TriasDev.Templify.Builder.Testing.TemplateVerificationFailure.Check.init -> void
+TriasDev.Templify.Builder.Testing.TemplateVerificationFailure.Deconstruct(out System.Globalization.CultureInfo? Language, out TriasDev.Templify.Core.TemplateFormat? Format, out TriasDev.Templify.Builder.Testing.VerificationCheck Check, out string! Message) -> void
+TriasDev.Templify.Builder.Testing.TemplateVerificationFailure.Equals(TriasDev.Templify.Builder.Testing.TemplateVerificationFailure? other) -> bool
+TriasDev.Templify.Builder.Testing.TemplateVerificationFailure.Format.get -> TriasDev.Templify.Core.TemplateFormat?
+TriasDev.Templify.Builder.Testing.TemplateVerificationFailure.Format.init -> void
+TriasDev.Templify.Builder.Testing.TemplateVerificationFailure.Language.get -> System.Globalization.CultureInfo?
+TriasDev.Templify.Builder.Testing.TemplateVerificationFailure.Language.init -> void
+TriasDev.Templify.Builder.Testing.TemplateVerificationFailure.Message.get -> string!
+TriasDev.Templify.Builder.Testing.TemplateVerificationFailure.Message.init -> void
+TriasDev.Templify.Builder.Testing.TemplateVerificationFailure.TemplateVerificationFailure(System.Globalization.CultureInfo? Language, TriasDev.Templify.Core.TemplateFormat? Format, TriasDev.Templify.Builder.Testing.VerificationCheck Check, string! Message) -> void
+TriasDev.Templify.Builder.Testing.TemplateVerificationOptions
+TriasDev.Templify.Builder.Testing.TemplateVerificationOptions.DeterminismCultures.get -> System.Collections.Generic.IReadOnlyList<System.Globalization.CultureInfo!>!
+TriasDev.Templify.Builder.Testing.TemplateVerificationOptions.DeterminismCultures.init -> void
+TriasDev.Templify.Builder.Testing.TemplateVerificationOptions.FailOnBuildWarnings.get -> bool
+TriasDev.Templify.Builder.Testing.TemplateVerificationOptions.FailOnBuildWarnings.init -> void
+TriasDev.Templify.Builder.Testing.TemplateVerificationOptions.Formats.get -> System.Collections.Generic.IReadOnlyList<TriasDev.Templify.Core.TemplateFormat>!
+TriasDev.Templify.Builder.Testing.TemplateVerificationOptions.Formats.init -> void
+TriasDev.Templify.Builder.Testing.TemplateVerificationOptions.Languages.get -> System.Collections.Generic.IReadOnlyList<System.Globalization.CultureInfo!>!
+TriasDev.Templify.Builder.Testing.TemplateVerificationOptions.Languages.init -> void
+TriasDev.Templify.Builder.Testing.TemplateVerificationOptions.RequireEqualContracts.get -> bool
+TriasDev.Templify.Builder.Testing.TemplateVerificationOptions.RequireEqualContracts.init -> void
+TriasDev.Templify.Builder.Testing.TemplateVerificationOptions.SampleData.get -> System.Collections.Generic.IReadOnlyList<string!>!
+TriasDev.Templify.Builder.Testing.TemplateVerificationOptions.SampleData.init -> void
+TriasDev.Templify.Builder.Testing.TemplateVerificationOptions.TemplateVerificationOptions() -> void
+TriasDev.Templify.Builder.Testing.TemplateVerificationOptions.Texts.get -> System.Func<System.Globalization.CultureInfo!, TriasDev.Templify.Builder.ITextCatalog!>?
+TriasDev.Templify.Builder.Testing.TemplateVerificationOptions.Texts.init -> void
+TriasDev.Templify.Builder.Testing.TemplateVerificationReport
+TriasDev.Templify.Builder.Testing.TemplateVerificationReport.Failures.get -> System.Collections.Generic.IReadOnlyList<TriasDev.Templify.Builder.Testing.TemplateVerificationFailure!>!
+TriasDev.Templify.Builder.Testing.TemplateVerificationReport.IsSuccess.get -> bool
+TriasDev.Templify.Builder.Testing.TemplateVerificationReport.Templates.get -> System.Collections.Generic.IReadOnlyList<TriasDev.Templify.Builder.Testing.VerifiedTemplate!>!
+TriasDev.Templify.Builder.Testing.TemplateVerifier
+TriasDev.Templify.Builder.Testing.VerificationCheck
+TriasDev.Templify.Builder.Testing.VerificationCheck.Build = 0 -> TriasDev.Templify.Builder.Testing.VerificationCheck
+TriasDev.Templify.Builder.Testing.VerificationCheck.BuildWarning = 7 -> TriasDev.Templify.Builder.Testing.VerificationCheck
+TriasDev.Templify.Builder.Testing.VerificationCheck.Contract = 2 -> TriasDev.Templify.Builder.Testing.VerificationCheck
+TriasDev.Templify.Builder.Testing.VerificationCheck.ContractParity = 6 -> TriasDev.Templify.Builder.Testing.VerificationCheck
+TriasDev.Templify.Builder.Testing.VerificationCheck.Determinism = 5 -> TriasDev.Templify.Builder.Testing.VerificationCheck
+TriasDev.Templify.Builder.Testing.VerificationCheck.Fill = 3 -> TriasDev.Templify.Builder.Testing.VerificationCheck
+TriasDev.Templify.Builder.Testing.VerificationCheck.Package = 4 -> TriasDev.Templify.Builder.Testing.VerificationCheck
+TriasDev.Templify.Builder.Testing.VerificationCheck.Structure = 1 -> TriasDev.Templify.Builder.Testing.VerificationCheck
+TriasDev.Templify.Builder.Testing.VerifiedTemplate
+TriasDev.Templify.Builder.Testing.VerifiedTemplate.<Clone>$() -> TriasDev.Templify.Builder.Testing.VerifiedTemplate!
+TriasDev.Templify.Builder.Testing.VerifiedTemplate.Deconstruct(out System.Globalization.CultureInfo! Language, out TriasDev.Templify.Core.TemplateFormat Format, out TriasDev.Templify.Builder.GeneratedTemplate! Template) -> void
+TriasDev.Templify.Builder.Testing.VerifiedTemplate.Equals(TriasDev.Templify.Builder.Testing.VerifiedTemplate? other) -> bool
+TriasDev.Templify.Builder.Testing.VerifiedTemplate.Format.get -> TriasDev.Templify.Core.TemplateFormat
+TriasDev.Templify.Builder.Testing.VerifiedTemplate.Format.init -> void
+TriasDev.Templify.Builder.Testing.VerifiedTemplate.Language.get -> System.Globalization.CultureInfo!
+TriasDev.Templify.Builder.Testing.VerifiedTemplate.Language.init -> void
+TriasDev.Templify.Builder.Testing.VerifiedTemplate.Template.get -> TriasDev.Templify.Builder.GeneratedTemplate!
+TriasDev.Templify.Builder.Testing.VerifiedTemplate.Template.init -> void
+TriasDev.Templify.Builder.Testing.VerifiedTemplate.VerifiedTemplate(System.Globalization.CultureInfo! Language, TriasDev.Templify.Core.TemplateFormat Format, TriasDev.Templify.Builder.GeneratedTemplate! Template) -> void

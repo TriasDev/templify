@@ -69,16 +69,15 @@ internal static class BuilderHarness
         return (template, filled);
     }
 
-    /// <summary>The invariants of a built template: syntax, package and determinism.</summary>
+    /// <summary>
+    /// The invariants of a built template, checked by the test kit (<see cref="Testing.TemplateVerifier.CheckTemplate"/>):
+    /// syntax, a complete contract (the witness fills it without missing variables or warnings), the package; plus
+    /// byte determinism.
+    /// </summary>
     public static void AssertInvariants(ITemplateDefinition definition, GeneratedTemplate template, TemplateBuildOptions? options = null)
     {
-        using (Stream stream = template.OpenRead())
-        {
-            ValidationResult validation = new TemplateProcessor().ValidateTemplate(stream);
-            Assert.True(validation.IsValid, string.Join("; ", validation.Errors.Select(e => $"{e.Type}: {e.Message}")));
-        }
-
-        AssertPackage(template.Format, template.Content.ToArray());
+        IReadOnlyList<string> problems = Testing.TemplateVerifier.CheckTemplate(template);
+        Assert.True(problems.Count == 0, string.Join(Environment.NewLine, problems));
 
         GeneratedTemplate again = TemplateBuilder.Build(definition, options ?? Options(template.Format));
         Assert.Equal(template.ContentHash, again.ContentHash);
@@ -87,16 +86,8 @@ internal static class BuilderHarness
     /// <summary>DOCX: OOXML schema validation. ODT: package structure (mimetype first, stored, no extra field; manifest).</summary>
     public static void AssertPackage(TemplateFormat format, byte[] package)
     {
-        if (format == TemplateFormat.Docx)
-        {
-            using MemoryStream stream = new MemoryStream(package);
-            using WordprocessingDocument document = WordprocessingDocument.Open(stream, false);
-            List<ValidationErrorInfo> errors = new OpenXmlValidator().Validate(document).ToList();
-            Assert.True(errors.Count == 0, string.Join(Environment.NewLine, errors.Select(e => $"{e.Path?.XPath}: {e.Description}")));
-            return;
-        }
-
-        new OdtDocumentVerifier(package).AssertValidOdtPackage();
+        IReadOnlyList<string> problems = Testing.TemplateVerifier.CheckPackage(format, package);
+        Assert.True(problems.Count == 0, string.Join(Environment.NewLine, problems));
     }
 
     /// <summary>
