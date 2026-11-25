@@ -330,3 +330,60 @@ string version.
 Exact JSON key names and shorthands within section 4.1's rules; the condition parser's implementation; how component
 parameters are read; the public type names; the data catalogue's recursion limit; whether `switch` survives as its
 own kind.
+
+## 9. Phase 3 evaluation (2026-11-25)
+
+Measured on the sample (`samples/TriasDev.Templify.Builder.Sample`, `dotnet run -- phase3 <dir>`), every builder
+test and the new JSON/typed tests (491 builder tests, all green; every test that checks the invariants also
+round-trips through JSON).
+
+### What works
+
+- **Exact round trip.** C# → JSON → import → build gives the same bytes for DOCX and ODT in both languages, for
+  the sample and for every definition in the builder's test suite. Re-exporting an import gives the same JSON text.
+- **One validation path.** The importer only replays the JSON through the composers; all builder rules apply
+  unchanged, and diagnostics carry JSON pointers (`/content/2/body/0/paragraph/content/0/value`). Structural
+  problems come at `Import`, composer problems at `Build`, each time all of them at once.
+- **Hybrid components.** A registered component is three lines (`{ "component": "address", "params": { "address":
+  "order.customer.address" } }`) and picks up changes to the component code on import; unregistered ones are
+  expanded as a `group`.
+- **Typed paths** build byte-identical templates (`TypedOrderConfirmation` vs `OrderConfirmation`), and the data
+  catalogue of `OrderData` contains the sample's whole data contract; an import checks every path against it.
+
+### Numbers
+
+| | de-DE | en-GB |
+|---|---|---|
+| JSON (indented, as written) | 18,461 characters, 717 lines | 18,347 characters, 717 lines |
+| approximate tokens (characters / 4) | ~4,600 | ~4,600 |
+| same JSON without indentation | 7,620 characters | 7,506 characters |
+| share: content / styles / page / properties | 71% / 13% / 7% / 1% | same |
+
+| definition | non-blank code lines | characters |
+|---|---|---|
+| `OrderConfirmation` (string paths) | 159 | 4,854 |
+| `TypedOrderConfirmation` (typed paths) | 163 | 5,370 (+11%) |
+
+### What is awkward
+
+1. **Depth and verbosity of tables.** A table cell holding one value is about 12 indented lines
+   (`row → cells → content → paragraph → content → { "value" }`); content is 71% of the file. Indentation alone
+   accounts for more than half of the characters.
+2. **One file per language.** The two files differ only in texts; every text change has to be made twice. This is
+   the known limit of section 4.6 (text keys come later).
+3. **Raw XML is opaque in JSON**: escaped XML strings, readable only by copying them out. Acceptable for an escape
+   hatch, and refused by default on import.
+4. **Typed paths cost characters, not lines**: `order.Path(o => o.Number)` instead of `order["number"]`. The gain is
+   the compiler (renames, typos), the catalogue check and typed components; the lambdas are noise in long value
+   lists.
+
+### Proposals for the next step
+
+1. **Shorter forms for the common cases**, accepted by the reader and preferred by the writer:
+   a paragraph or cell with one value (`{ "value": "line.quantity", "style": "TableText" }` as a cell), and a
+   compact writer layout that puts objects with only scalar members on one line (roughly halves the lines without
+   changing the format).
+2. **Text keys** in the model (`{ "text": { "key": "title" } }`), so one JSON serves every language.
+3. **JSON Schema** generated from the vocabulary, for editor completion and as the agent-facing contract (#274).
+4. **Typed paths, approach B** (source generator) if the lambda noise matters in real definitions: same foundation
+   (`TemplatePath<T>`, `DataCatalog`), shorter than the string version.
