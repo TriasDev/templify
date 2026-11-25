@@ -22,6 +22,10 @@ jobs:
       release_created: ${{ steps.release.outputs.release_created }}
       version: ${{ steps.release.outputs.version }}
       tag_name: ${{ steps.release.outputs.tag_name }}
+      # The builder is a second release-please package (component "builder", tags builder-v0.x.y).
+      builder_release_created: ${{ steps.release.outputs['src/TriasDev.Templify.Builder--release_created'] }}
+      builder_version: ${{ steps.release.outputs['src/TriasDev.Templify.Builder--version'] }}
+      builder_tag_name: ${{ steps.release.outputs['src/TriasDev.Templify.Builder--tag_name'] }}
 
     steps:
       - id: release
@@ -132,3 +136,111 @@ jobs:
           echo "| **Package** | \`TriasDev.Templify\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Version** | \`${{ env.VERSION }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Tag** | \`${{ needs.release-please.outputs.tag_name }}\` |" >> $GITHUB_STEP_SUMMARY
+
+  # TriasDev.Templify.Builder and TriasDev.Templify.Builder.Testing: own version line (0.x), released by their own
+  # release-please PR. Core and builder releases never share a job, so one cannot publish the other by accident.
+  publish-builder:
+    if: needs.release-please.outputs.builder_release_created == 'true'
+    needs: release-please
+    runs-on: ubuntu-latest
+    environment: nuget
+    permissions:
+      contents: read
+      id-token: write
+
+    env:
+      VERSION: ${{ needs.release-please.outputs.builder_version }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The core guard below compares the core source with its release tag.
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            10.0.x
+          global-json-file: global.json
+
+      # The builder package depends on the core version in TriasDev.Templify.csproj. That version must be on
+      # nuget.org, and the core source must not have changed since its tag: otherwise the builder would rely on core
+      # features no published core has (release core first).
+      - name: Check that the core it depends on is released
+        run: |
+          core=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' src/TriasDev.Templify/TriasDev.Templify.csproj | head -1)
+          echo "Core version: $core"
+          if ! curl -fsS https://api.nuget.org/v3-flatcontainer/triasdev.templify/index.json | grep -q "\"$core\""; then
+            echo "::error::TriasDev.Templify $core is not on nuget.org. Release core first."
+            exit 1
+          fi
+          if ! git diff --quiet "v$core" HEAD -- 'src/TriasDev.Templify/*.cs'; then
+            echo "::error::The core source changed since v$core. Release core first, then the builder."
+            git diff --stat "v$core" HEAD -- 'src/TriasDev.Templify/*.cs'
+            exit 1
+          fi
+
+      - name: Build
+        run: |
+          for project in src/TriasDev.Templify.Builder src/TriasDev.Templify.Builder.Testing tests/TriasDev.Templify.Builder.Tests; do
+            dotnet build "$project" --configuration Release -p:RestoreLockedMode=true -p:Version=${{ env.VERSION }}
+          done
+
+      - name: Run tests
+        run: |
+          dotnet test tests/TriasDev.Templify.Builder.Tests/TriasDev.Templify.Builder.Tests.csproj \
+            --configuration Release \
+            --no-build \
+            --verbosity normal \
+            --logger trx \
+            --results-directory ./test-results
+
+      - name: Verify tests ran
+        run: |
+          shopt -s nullglob
+          files=(./test-results/*.trx)
+          if [ "${#files[@]}" -lt 1 ]; then
+            echo "::error::No test result file"
+            exit 1
+          fi
+          for f in "${files[@]}"; do ./.github/scripts/verify-test-results.sh "$f"; done
+
+      - name: Pack
+        run: |
+          for project in src/TriasDev.Templify.Builder src/TriasDev.Templify.Builder.Testing; do
+            dotnet pack "$project" --configuration Release --no-build -p:Version=${{ env.VERSION }} --output ./artifacts
+          done
+
+      - name: NuGet login (Trusted Publishing)
+        id: login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: Push to NuGet
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push ./artifacts/*.nupkg \
+            --source https://api.nuget.org/v3/index.json \
+            --api-key "$NUGET_API_KEY" \
+            --skip-duplicate
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: nuget-packages-builder
+          path: |
+            ./artifacts/*.nupkg
+            ./artifacts/*.snupkg
+
+      - name: Summary
+        run: |
+          echo "## NuGet Release (builder)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Key | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Packages** | \`TriasDev.Templify.Builder\`, \`TriasDev.Templify.Builder.Testing\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Version** | \`${{ env.VERSION }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Tag** | \`${{ needs.release-please.outputs.builder_tag_name }}\` |" >> $GITHUB_STEP_SUMMARY
