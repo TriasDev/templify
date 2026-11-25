@@ -311,6 +311,13 @@ TriasDev.Templify.Builder.RowComposer.Cell(System.Action<TriasDev.Templify.Build
 TriasDev.Templify.Builder.RowComposer.Cell(TriasDev.Templify.Builder.ParagraphStyleKey! style, string! text) -> void
 TriasDev.Templify.Builder.RowComposer.Cell(TriasDev.Templify.Builder.ParagraphStyleKey! style, TriasDev.Templify.Builder.TemplatePath value) -> void
 TriasDev.Templify.Builder.RowComposer.Cell(TriasDev.Templify.Builder.TemplatePath value) -> void
+TriasDev.Templify.Builder.RowsComposer
+TriasDev.Templify.Builder.RowsComposer.ForEachRow(TriasDev.Templify.Builder.TemplatePath collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem!, TriasDev.Templify.Builder.RowsComposer!>! rows) -> void
+TriasDev.Templify.Builder.RowsComposer.Row(System.Action<TriasDev.Templify.Builder.RowComposer!>! row) -> void
+TriasDev.Templify.Builder.RowsComposer.RowsIf(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.RowsComposer!>! rows) -> TriasDev.Templify.Builder.RowsIfChain!
+TriasDev.Templify.Builder.RowsIfChain
+TriasDev.Templify.Builder.RowsIfChain.Else(System.Action<TriasDev.Templify.Builder.RowsComposer!>! rows) -> void
+TriasDev.Templify.Builder.RowsIfChain.ElseIf(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.RowsComposer!>! rows) -> TriasDev.Templify.Builder.RowsIfChain!
 TriasDev.Templify.Builder.StyleSheet
 TriasDev.Templify.Builder.StyleSheetComposer
 TriasDev.Templify.Builder.StyleSheetComposer.Character(TriasDev.Templify.Builder.CharacterStyleKey! key, System.Action<TriasDev.Templify.Builder.CharacterStyleComposer!>! style) -> void
@@ -323,8 +330,10 @@ TriasDev.Templify.Builder.SwitchComposer.Case(System.Collections.Generic.IEnumer
 TriasDev.Templify.Builder.SwitchComposer.Default(System.Action<TriasDev.Templify.Builder.BlockComposer!>! otherwise) -> void
 TriasDev.Templify.Builder.TableComposer
 TriasDev.Templify.Builder.TableComposer.Columns(System.Action<TriasDev.Templify.Builder.ColumnsComposer!>! columns) -> TriasDev.Templify.Builder.TableComposer!
+TriasDev.Templify.Builder.TableComposer.ForEachRow(TriasDev.Templify.Builder.TemplatePath collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem!, TriasDev.Templify.Builder.RowsComposer!>! rows) -> void
 TriasDev.Templify.Builder.TableComposer.HeaderRow(System.Action<TriasDev.Templify.Builder.RowComposer!>! row) -> void
 TriasDev.Templify.Builder.TableComposer.Row(System.Action<TriasDev.Templify.Builder.RowComposer!>! row) -> void
+TriasDev.Templify.Builder.TableComposer.RowsIf(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.RowsComposer!>! rows) -> TriasDev.Templify.Builder.RowsIfChain!
 TriasDev.Templify.Builder.TableComposer.SpaceAfter(TriasDev.Templify.Builder.Length space) -> TriasDev.Templify.Builder.TableComposer!
 TriasDev.Templify.Builder.TableComposer.Style(TriasDev.Templify.Builder.TableStyleKey! style) -> TriasDev.Templify.Builder.TableComposer!
 TriasDev.Templify.Builder.TableStyleComposer

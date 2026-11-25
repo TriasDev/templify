@@ -82,13 +82,13 @@ internal sealed record TableBlock : Block
     public Length? SpaceAfter { get; set; }
 
     /// <summary>Every row of the table, also inside row loops and row conditionals.</summary>
-    public IEnumerable<TableRowModel> AllRows() => TableRowItem.Rows(Rows);
+    public IEnumerable<TableRowModel> AllRows() => TableRowItem.Flatten(Rows);
 }
 
 /// <summary>An item of a table's row list: a row, or (later) a row loop or row conditional.</summary>
 internal abstract class TableRowItem
 {
-    public static IEnumerable<TableRowModel> Rows(IEnumerable<TableRowItem> items)
+    public static IEnumerable<TableRowModel> Flatten(IEnumerable<TableRowItem> items)
     {
         foreach (TableRowItem item in items)
         {
@@ -112,6 +112,29 @@ internal sealed class TableRowModel(bool isHeader) : TableRowItem
     public List<TableCellModel> Cells { get; } = new List<TableCellModel>();
 
     protected override IEnumerable<TableRowModel> ContainedRows() => [this];
+}
+
+/// <summary>A loop over table rows: <c>{{#foreach item in collection}}</c> and <c>{{/foreach}}</c> in marker rows.</summary>
+internal sealed class TableRowLoop(TemplatePath collection, string itemName) : TableRowItem
+{
+    public TemplatePath Collection { get; } = collection;
+
+    public string ItemName { get; } = itemName;
+
+    public List<TableRowItem> Rows { get; } = new List<TableRowItem>();
+
+    protected override IEnumerable<TableRowModel> ContainedRows() => Flatten(Rows);
+}
+
+/// <summary>Conditional table rows: if / elseif / else in marker rows.</summary>
+internal sealed class TableRowConditional : TableRowItem
+{
+    public List<(Condition Condition, List<TableRowItem> Rows)> Branches { get; } = new List<(Condition, List<TableRowItem>)>();
+
+    public List<TableRowItem>? Else { get; set; }
+
+    protected override IEnumerable<TableRowModel> ContainedRows() =>
+        Flatten(Branches.SelectMany(b => b.Rows).Concat(Else ?? []));
 }
 
 /// <summary>A table cell.</summary>
@@ -186,8 +209,11 @@ internal static class BlockTree
     /// <summary>Every paragraph at any depth.</summary>
     public static IEnumerable<ParagraphBlock> Paragraphs(IEnumerable<Block> blocks) => All(blocks).OfType<ParagraphBlock>();
 
-    /// <summary>Whether conditionals or loops occur at any depth (they need the marker style).</summary>
-    public static bool HasMarkers(IEnumerable<Block> blocks) => All(blocks).Any(b => b is ConditionalBlock or LoopBlock);
+    /// <summary>Whether conditionals or loops occur at any depth, also as table rows (they need the marker style).</summary>
+    public static bool HasMarkers(IEnumerable<Block> blocks) =>
+        All(blocks).Any(b => b is ConditionalBlock or LoopBlock || (b is TableBlock table && HasRowMarkers(table.Rows)));
+
+    private static bool HasRowMarkers(IEnumerable<TableRowItem> items) => items.Any(i => i is TableRowLoop or TableRowConditional);
 
     private static IEnumerable<Block> Children(Block block, bool intoCells) => block switch
     {

@@ -224,22 +224,195 @@ public sealed class TableComposer
         _table.Rows.Add(ComposeRow(row, isHeader: false));
     }
 
+    /// <summary>
+    /// Repeats rows for every item of a collection: <c>{{#foreach item in collection}}</c> and <c>{{/foreach}}</c> in marker
+    /// rows of their own, which Templify removes when it fills the table.
+    /// </summary>
+    /// <param name="collection">The data path of the collection.</param>
+    /// <param name="itemName">The iteration variable (rules as for <see cref="BlockComposer.ForEach"/>).</param>
+    /// <param name="rows">Describes the rows repeated for each item; it receives the item.</param>
+    public void ForEachRow(TemplatePath collection, string itemName, Action<LoopItem, RowsComposer> rows)
+    {
+        EnsureOpen();
+        _table.Rows.Add(RowsComposer.ComposeLoop(_context, _scope, collection, itemName, rows));
+    }
+
+    /// <summary>Adds rows shown only when a condition holds: <c>{{#if …}}</c> … <c>{{/if}}</c> in marker rows.</summary>
+    /// <param name="condition">The condition.</param>
+    /// <param name="rows">Describes the rows.</param>
+    /// <returns>The chain, to add elseif and else rows.</returns>
+    public RowsIfChain RowsIf(Condition condition, Action<RowsComposer> rows)
+    {
+        EnsureOpen();
+        return RowsComposer.ComposeConditional(_context, _scope, _table.Rows, condition, rows, () => _isOpen);
+    }
+
     internal void Close() => _isOpen = false;
 
-    private TableRowModel ComposeRow(Action<RowComposer> row, bool isHeader)
-    {
-        TableRowModel model = new TableRowModel(isHeader);
-        RowComposer composer = new RowComposer(_context, _scope, model);
-        row(composer);
-        composer.Close();
-        return model;
-    }
+    private TableRowModel ComposeRow(Action<RowComposer> row, bool isHeader) => RowsComposer.ComposeRow(_context, _scope, row, isHeader);
 
     private void EnsureOpen()
     {
         if (!_isOpen)
         {
             throw new InvalidOperationException("A table composer was used outside the lambda it was passed to.");
+        }
+    }
+}
+
+/// <summary>
+/// Describes body rows inside a row loop or a row conditional: rows, nested row conditionals and loops. Valid only
+/// inside the lambda it is passed to.
+/// </summary>
+public sealed class RowsComposer
+{
+    private readonly BuildContext _context;
+    private readonly LoopScope? _scope;
+    private readonly List<TableRowItem> _rows;
+    private bool _isOpen = true;
+
+    internal RowsComposer(BuildContext context, LoopScope? scope, List<TableRowItem> rows)
+    {
+        _context = context;
+        _scope = scope;
+        _rows = rows;
+    }
+
+    /// <summary>Adds a row.</summary>
+    /// <param name="row">Describes the row's cells.</param>
+    public void Row(Action<RowComposer> row)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+        EnsureOpen();
+        _rows.Add(ComposeRow(_context, _scope, row, isHeader: false));
+    }
+
+    /// <summary>Repeats rows for every item of a collection, in marker rows of their own.</summary>
+    /// <param name="collection">The data path of the collection.</param>
+    /// <param name="itemName">The iteration variable.</param>
+    /// <param name="rows">Describes the rows repeated for each item.</param>
+    public void ForEachRow(TemplatePath collection, string itemName, Action<LoopItem, RowsComposer> rows)
+    {
+        EnsureOpen();
+        _rows.Add(ComposeLoop(_context, _scope, collection, itemName, rows));
+    }
+
+    /// <summary>Adds rows shown only when a condition holds, in marker rows of their own.</summary>
+    /// <param name="condition">The condition.</param>
+    /// <param name="rows">Describes the rows.</param>
+    /// <returns>The chain, to add elseif and else rows.</returns>
+    public RowsIfChain RowsIf(Condition condition, Action<RowsComposer> rows)
+    {
+        EnsureOpen();
+        return ComposeConditional(_context, _scope, _rows, condition, rows, () => _isOpen);
+    }
+
+    internal void Close() => _isOpen = false;
+
+    internal static TableRowModel ComposeRow(BuildContext context, LoopScope? scope, Action<RowComposer> row, bool isHeader)
+    {
+        TableRowModel model = new TableRowModel(isHeader);
+        RowComposer composer = new RowComposer(context, scope, model);
+        row(composer);
+        composer.Close();
+        return model;
+    }
+
+    internal static List<TableRowItem> Compose(BuildContext context, LoopScope? scope, Action<RowsComposer> rows)
+    {
+        List<TableRowItem> items = new List<TableRowItem>();
+        RowsComposer composer = new RowsComposer(context, scope, items);
+        rows(composer);
+        composer.Close();
+        return items;
+    }
+
+    internal static TableRowLoop ComposeLoop(BuildContext context, LoopScope? scope, TemplatePath collection, string itemName, Action<LoopItem, RowsComposer> rows)
+    {
+        ArgumentNullException.ThrowIfNull(rows);
+        if (collection.IsRoot || collection.IsMetadata)
+        {
+            throw new ArgumentException("A row loop needs a collection path from the data or from a loop item.", nameof(collection));
+        }
+
+        LoopScope.CheckUse(context, scope, collection);
+        LoopScope loopScope = new LoopScope(LoopScope.ValidateItemName(itemName, scope), collection, scope);
+        TableRowLoop loop = new TableRowLoop(collection, itemName);
+        RowsComposer composer = new RowsComposer(context, loopScope, loop.Rows);
+        rows(new LoopItem(loopScope), composer);
+        composer.Close();
+        return loop;
+    }
+
+    internal static RowsIfChain ComposeConditional(BuildContext context, LoopScope? scope, List<TableRowItem> target, Condition condition, Action<RowsComposer> rows, Func<bool> isOpen)
+    {
+        ArgumentNullException.ThrowIfNull(condition);
+        ArgumentNullException.ThrowIfNull(rows);
+        BlockComposer.CheckCondition(context, scope, condition);
+        TableRowConditional conditional = new TableRowConditional();
+        conditional.Branches.Add((condition, Compose(context, scope, rows)));
+        target.Add(conditional);
+        return new RowsIfChain(context, scope, conditional, isOpen);
+    }
+
+    private void EnsureOpen()
+    {
+        if (!_isOpen)
+        {
+            throw new InvalidOperationException("A rows composer was used outside the lambda it was passed to.");
+        }
+    }
+}
+
+/// <summary>Continues conditional rows: <see cref="ElseIf"/> and a last <see cref="Else"/>.</summary>
+public sealed class RowsIfChain
+{
+    private readonly BuildContext _context;
+    private readonly LoopScope? _scope;
+    private readonly TableRowConditional _conditional;
+    private readonly Func<bool> _isOpen;
+
+    internal RowsIfChain(BuildContext context, LoopScope? scope, TableRowConditional conditional, Func<bool> isOpen)
+    {
+        _context = context;
+        _scope = scope;
+        _conditional = conditional;
+        _isOpen = isOpen;
+    }
+
+    /// <summary>Adds rows for a further condition: <c>{{#elseif …}}</c>.</summary>
+    /// <param name="condition">The condition.</param>
+    /// <param name="rows">Describes the rows.</param>
+    /// <returns>This chain.</returns>
+    public RowsIfChain ElseIf(Condition condition, Action<RowsComposer> rows)
+    {
+        ArgumentNullException.ThrowIfNull(condition);
+        ArgumentNullException.ThrowIfNull(rows);
+        EnsureOpen();
+        BlockComposer.CheckCondition(_context, _scope, condition);
+        _conditional.Branches.Add((condition, RowsComposer.Compose(_context, _scope, rows)));
+        return this;
+    }
+
+    /// <summary>Adds the rows shown when no condition holds: <c>{{#else}}</c>. It ends the chain.</summary>
+    /// <param name="rows">Describes the rows.</param>
+    public void Else(Action<RowsComposer> rows)
+    {
+        ArgumentNullException.ThrowIfNull(rows);
+        EnsureOpen();
+        _conditional.Else = RowsComposer.Compose(_context, _scope, rows);
+    }
+
+    private void EnsureOpen()
+    {
+        if (_conditional.Else != null)
+        {
+            throw new InvalidOperationException("The conditional rows already have an else part; nothing can follow it.");
+        }
+
+        if (!_isOpen())
+        {
+            throw new InvalidOperationException("Conditional rows were continued outside the lambda they were started in.");
         }
     }
 }

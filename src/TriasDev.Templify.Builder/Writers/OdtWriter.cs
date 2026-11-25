@@ -201,11 +201,73 @@ internal static class OdtWriter
             return result;
         }
 
-        private IEnumerable<XElement> WriteRowItem(TableRowItem item, List<TableRowModel> rows, Length[] widths, TableStyleDefinition? style, Length paddingH) => item switch
+        private IEnumerable<XElement> WriteRowItem(TableRowItem item, List<TableRowModel> rows, Length[] widths, TableStyleDefinition? style, Length paddingH)
         {
-            TableRowModel row => [WriteRow(row, rows, widths, style, paddingH)],
-            _ => throw new NotSupportedException($"Row item {item.GetType().Name} is not supported by the ODT writer."),
-        };
+            switch (item)
+            {
+                case TableRowModel row:
+                    yield return WriteRow(row, rows, widths, style, paddingH);
+                    break;
+
+                case TableRowLoop loop:
+                    yield return MarkerRow(TemplateSyntax.ForEach(loop.ItemName, loop.Collection), widths.Length);
+                    foreach (XElement row in loop.Rows.SelectMany(r => WriteRowItem(r, rows, widths, style, paddingH)))
+                    {
+                        yield return row;
+                    }
+
+                    yield return MarkerRow(TemplateSyntax.EndForEach, widths.Length);
+                    break;
+
+                case TableRowConditional conditional:
+                    for (int i = 0; i < conditional.Branches.Count; i++)
+                    {
+                        (Condition condition, List<TableRowItem> branchRows) = conditional.Branches[i];
+                        yield return MarkerRow(i == 0 ? TemplateSyntax.If(condition) : TemplateSyntax.ElseIf(condition), widths.Length);
+                        foreach (XElement row in branchRows.SelectMany(r => WriteRowItem(r, rows, widths, style, paddingH)))
+                        {
+                            yield return row;
+                        }
+                    }
+
+                    if (conditional.Else is { } otherwise)
+                    {
+                        yield return MarkerRow(TemplateSyntax.Else, widths.Length);
+                        foreach (XElement row in otherwise.SelectMany(r => WriteRowItem(r, rows, widths, style, paddingH)))
+                        {
+                            yield return row;
+                        }
+                    }
+
+                    yield return MarkerRow(TemplateSyntax.EndIf, widths.Length);
+                    break;
+
+                default:
+                    throw new NotSupportedException($"Row item {item.GetType().Name} is not supported by the ODT writer.");
+            }
+        }
+
+        /// <summary>A marker row: one cell spanning every column with the marker paragraph; Templify removes it when filling.</summary>
+        private XElement MarkerRow(string marker, int columns)
+        {
+            XElement cell = new XElement(
+                _table + "table-cell",
+                new XAttribute(_table + "style-name", CellStyle(null, null, null, null, null, null, Length.Zero, Length.Zero)),
+                new XAttribute(_office + "value-type", "string"),
+                WriteMarker(new MarkerBlock(marker)));
+            if (columns > 1)
+            {
+                cell.Add(new XAttribute(_table + "number-columns-spanned", columns));
+            }
+
+            XElement row = new XElement(_table + "table-row", cell);
+            for (int i = 1; i < columns; i++)
+            {
+                row.Add(new XElement(_table + "covered-table-cell"));
+            }
+
+            return row;
+        }
 
         private XElement WriteRow(TableRowModel row, List<TableRowModel> rows, Length[] widths, TableStyleDefinition? style, Length paddingH)
         {

@@ -210,7 +210,7 @@ public sealed partial class TableTests
             XElement body = BuilderHarness.ReadXml(package, "word/document.xml").Root!.Element(_w + "body")!;
             XElement inner = body.Descendants(_w + "tbl").Skip(1).First();
             Assert.Equal(new[] { "2727", "2727" }, inner.Element(_w + "tblGrid")!.Elements(_w + "gridCol").Select(g => g.Attribute(_w + "w")!.Value));
-            Assert.Equal(new[] { "tbl", "p", "tbl", "sectPr" }, body.Elements().Select(e => e.Name.LocalName));
+            Assert.Equal(new[] { "tbl", "p", "tbl", "p", "sectPr" }, body.Elements().Select(e => e.Name.LocalName));
         }
         else
         {
@@ -222,6 +222,47 @@ public sealed partial class TableTests
                 new[] { "136.333pt", "136.332pt" },
                 inner.Elements(_table + "table-column").Select(c => styles[c.Attribute(_table + "style-name")!.Value].Descendants().Single().Attribute(_style + "column-width")!.Value));
         }
+    }
+
+    [Fact]
+    public void Docx_BodyAndHeaderEndWithAParagraph_AfterATable()
+    {
+        TestDefinition definition = new TestDefinition(t =>
+        {
+            t.Page(p => p.Header(h => h.Table(tb =>
+            {
+                tb.Columns(cols => cols.Relative(1));
+                tb.Row(r => r.Cell("header table"));
+            })));
+            t.Content(c => c.Table(tb =>
+            {
+                tb.Columns(cols => cols.Relative(1));
+                tb.Row(r => r.Cell("body table"));
+            }));
+        });
+
+        byte[] package = BuilderHarness.Build(definition, TemplateFormat.Docx).Content.ToArray();
+
+        Assert.Equal(new[] { "tbl", "p", "sectPr" }, BuilderHarness.ReadXml(package, "word/document.xml").Root!.Element(_w + "body")!.Elements().Select(e => e.Name.LocalName));
+        Assert.Equal(new[] { "tbl", "p" }, BuilderHarness.ReadXml(package, "word/header1.xml").Root!.Elements().Select(e => e.Name.LocalName));
+    }
+
+    [Theory]
+    [MemberData(nameof(Formats))]
+    [Trait("Category", "LibreOffice")]
+    public void LibreOffice_ExportsATableAtTheEndAsText(TemplateFormat format)
+    {
+        LibreOfficeRunner.RequireExecutable();
+        TestDefinition definition = new TestDefinition(t => t.Content(c => c.Table(tb =>
+        {
+            tb.Columns(cols => cols.Relative(1));
+            tb.Row(r => r.Cell("last block is a table"));
+        })));
+        GeneratedTemplate template = BuilderHarness.Build(definition, format);
+
+        // Before #279 a DOCX ending with a table made LibreOffice's text export loop forever.
+        string text = System.Text.Encoding.UTF8.GetString(LibreOfficeRunner.Convert(template.Content.ToArray(), template.FileExtension.TrimStart('.'), "txt:Text (encoded):UTF8", "txt"));
+        Assert.Contains("last block is a table", text, StringComparison.Ordinal);
     }
 
     [Theory]

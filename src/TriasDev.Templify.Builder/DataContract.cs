@@ -212,11 +212,43 @@ public sealed class DataContract
                     break;
 
                 case TableBlock table:
-                    foreach (TableCellModel cell in table.AllRows().SelectMany(r => r.Cells))
+                    WalkRows(table.Rows, entries);
+                    break;
+            }
+        }
+    }
+
+    private static void WalkRows(IEnumerable<TableRowItem> items, List<ContractEntry> entries)
+    {
+        foreach (TableRowItem item in items)
+        {
+            switch (item)
+            {
+                case TableRowModel row:
+                    foreach (TableCellModel cell in row.Cells)
                     {
                         Walk(cell.Content, entries);
                     }
 
+                    break;
+
+                case TableRowLoop loop:
+                    Add(entries, loop.Collection, ContractUsage.Collection);
+                    WalkRows(loop.Rows, entries);
+                    break;
+
+                case TableRowConditional conditional:
+                    foreach ((Condition condition, List<TableRowItem> rows) in conditional.Branches)
+                    {
+                        foreach (TemplatePath path in condition.Paths)
+                        {
+                            Add(entries, path, ContractUsage.Condition);
+                        }
+
+                        WalkRows(rows, entries);
+                    }
+
+                    WalkRows(conditional.Else ?? [], entries);
                     break;
             }
         }

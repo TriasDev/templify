@@ -59,11 +59,7 @@ internal static class DocxWriter
         foreach (HeaderFooterPart part in parts)
         {
             OpenXmlCompositeElement root = part.IsHeader ? new Header() : new Footer();
-            root.Append(writer.WriteBlocks(part.Blocks, model.Page.FrameWidth));
-            if (!root.HasChildren)
-            {
-                root.Append(new Paragraph());
-            }
+            root.Append(EndWithParagraph(writer.WriteBlocks(part.Blocks, model.Page.FrameWidth)));
 
             package.Add(new PackagePart("word/" + part.FileName, Utf8(XmlDeclaration + root.OuterXml)));
         }
@@ -406,9 +402,24 @@ internal static class DocxWriter
     private static Document MainDocument(DocumentModel model, List<HeaderFooterPart> parts)
     {
         Body body = new Body();
-        body.Append(new BlockWriter(model).WriteBlocks(model.Body, model.Page.FrameWidth));
+        body.Append(EndWithParagraph(new BlockWriter(model).WriteBlocks(model.Body, model.Page.FrameWidth)));
         body.Append(SectionProperties(model.Page, parts));
         return new Document(body);
+    }
+
+    /// <summary>
+    /// The body, a header and a footer end with a paragraph, as Word keeps them: a part that ends with a table makes
+    /// LibreOffice's text export loop forever (measured with LibreOffice 26.8 in #279), and Word adds the paragraph on
+    /// open anyway. An empty part gets one empty paragraph.
+    /// </summary>
+    private static List<OpenXmlElement> EndWithParagraph(List<OpenXmlElement> elements)
+    {
+        if (elements.Count == 0 || elements[^1] is not Paragraph)
+        {
+            elements.Add(new Paragraph());
+        }
+
+        return elements;
     }
 
     /// <summary>The section properties in the order of CT_SectPr: references, pgSz, pgMar, titlePg.</summary>
@@ -529,11 +540,64 @@ internal static class DocxWriter
             return elements;
         }
 
-        private IEnumerable<OpenXmlElement> WriteRowItem(TableRowItem item, Length[] widths, TableStyleDefinition? style, Length paddingH) => item switch
+        private IEnumerable<OpenXmlElement> WriteRowItem(TableRowItem item, Length[] widths, TableStyleDefinition? style, Length paddingH)
         {
-            TableRowModel row => [WriteRow(row, widths, style, paddingH)],
-            _ => throw new NotSupportedException($"Row item {item.GetType().Name} is not supported by the DOCX writer."),
-        };
+            switch (item)
+            {
+                case TableRowModel row:
+                    yield return WriteRow(row, widths, style, paddingH);
+                    break;
+
+                case TableRowLoop loop:
+                    yield return MarkerRow(TemplateSyntax.ForEach(loop.ItemName, loop.Collection), widths);
+                    foreach (OpenXmlElement row in loop.Rows.SelectMany(r => WriteRowItem(r, widths, style, paddingH)))
+                    {
+                        yield return row;
+                    }
+
+                    yield return MarkerRow(TemplateSyntax.EndForEach, widths);
+                    break;
+
+                case TableRowConditional conditional:
+                    for (int i = 0; i < conditional.Branches.Count; i++)
+                    {
+                        (Condition condition, List<TableRowItem> rows) = conditional.Branches[i];
+                        yield return MarkerRow(i == 0 ? TemplateSyntax.If(condition) : TemplateSyntax.ElseIf(condition), widths);
+                        foreach (OpenXmlElement row in rows.SelectMany(r => WriteRowItem(r, widths, style, paddingH)))
+                        {
+                            yield return row;
+                        }
+                    }
+
+                    if (conditional.Else is { } otherwise)
+                    {
+                        yield return MarkerRow(TemplateSyntax.Else, widths);
+                        foreach (OpenXmlElement row in otherwise.SelectMany(r => WriteRowItem(r, widths, style, paddingH)))
+                        {
+                            yield return row;
+                        }
+                    }
+
+                    yield return MarkerRow(TemplateSyntax.EndIf, widths);
+                    break;
+
+                default:
+                    throw new NotSupportedException($"Row item {item.GetType().Name} is not supported by the DOCX writer.");
+            }
+        }
+
+        /// <summary>A marker row: one cell over the whole grid holding the marker paragraph; Templify removes it when filling.</summary>
+        private static TableRow MarkerRow(string marker, Length[] widths)
+        {
+            TableCellProperties properties = new TableCellProperties(
+                new TableCellWidth { Width = widths.Sum(w => w.Twips).ToString(CultureInfo.InvariantCulture), Type = TableWidthUnitValues.Dxa });
+            if (widths.Length > 1)
+            {
+                properties.Append(new GridSpan { Val = widths.Length });
+            }
+
+            return new TableRow(new TableCell(properties, MarkerParagraph(marker)));
+        }
 
         private TableRow WriteRow(TableRowModel row, Length[] widths, TableStyleDefinition? style, Length paddingH)
         {
