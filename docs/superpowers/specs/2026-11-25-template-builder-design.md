@@ -669,6 +669,10 @@ Known behaviour of the converters, documented rather than worked around:
   width; the two formats differ by under 2 pt for a 1 pt border (DOCX measures padding from the border's inner
   edge, ODT centres collapsed borders on the edge). Measured in #282; accepted.
 
+The user-facing version of this matrix, the concepts and the known limits are on the documentation page
+`docs/for-developers/template-builder.md` (#287). The sample `samples/TriasDev.Templify.Builder.Sample` uses every
+construct, verifies itself with the test kit and runs as a builder test (`SampleTests`), so CI keeps it working.
+
 Known differences become build warnings when the construct is used. The first entries arrive with their tasks:
 
 - **table of contents (#284, measured):** a DOCX TOC field (dirty, `\o "1-N" \h \z \u`, no `\t`) is built by

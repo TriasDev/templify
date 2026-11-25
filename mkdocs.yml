@@ -101,6 +101,7 @@ nav:
   - For Developers:
     - Quick Start: for-developers/quick-start.md
     - OpenDocument (.odt): for-developers/opendocument.md
+    - Template Builder (preview): for-developers/template-builder.md
     - Text Template Processing: for-developers/text-templates.md
     - Condition Evaluation: for-developers/condition-evaluation.md
     - Processing Warnings: for-developers/processing-warnings.md
