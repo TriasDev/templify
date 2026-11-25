@@ -178,7 +178,20 @@ public enum ValidationErrorType
     /// <c>{{/foreach}}</c>) shares its paragraph or table row with other text, which processing removes together
     /// with the marker. Also reported for a loop that opens and closes in one paragraph, which is not supported.
     /// </summary>
-    BlockMarkerWithText = 8
+    BlockMarkerWithText = 8,
+
+    /// <summary>
+    /// A placeholder or block marker opens (<c>{{</c> followed by a name, <c>#</c>, <c>/</c>, <c>@</c>, <c>.</c> or
+    /// <c>(</c>) but does not close in the same paragraph, e.g. split across paragraphs. Processing leaves the pieces
+    /// as text.
+    /// </summary>
+    UnterminatedTag = 9,
+
+    /// <summary>
+    /// A marker paragraph or table row holds more than one block marker (outside inline conditionals), e.g.
+    /// <c>{{#if Flag}}{{#foreach Items}}</c>. Processing removes the element once and loses the other block.
+    /// </summary>
+    MultipleBlockMarkers = 10
 }
 
 /// <summary>

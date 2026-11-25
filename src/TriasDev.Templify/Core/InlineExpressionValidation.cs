@@ -52,7 +52,10 @@ internal static class InlineExpressionValidation
     /// Adds an <see cref="ValidationErrorType.InvalidConditionalExpression"/> error for each expression placeholder in
     /// <paramref name="text"/> that cannot be parsed; an error that is already present is not added again.
     /// </summary>
-    public static void CheckSyntax(string text, List<ValidationError> errors)
+    /// <param name="text">The paragraph text.</param>
+    /// <param name="errors">The errors to add to.</param>
+    /// <param name="describeLocation">Describes where the paragraph is (#255).</param>
+    public static void CheckSyntax(string text, List<ValidationError> errors, Func<string?> describeLocation)
     {
         if (text.IndexOf("{{(", StringComparison.Ordinal) < 0)
         {
@@ -69,7 +72,7 @@ internal static class InlineExpressionValidation
             string message = $"Invalid expression '{placeholder.VariableName}': {error}";
             if (!errors.Any(e => e.Type == ValidationErrorType.InvalidConditionalExpression && e.Message == message))
             {
-                errors.Add(ValidationError.Create(ValidationErrorType.InvalidConditionalExpression, message, placeholder.FullMatch));
+                errors.Add(ValidationError.Create(ValidationErrorType.InvalidConditionalExpression, message, describeLocation()));
             }
         }
     }

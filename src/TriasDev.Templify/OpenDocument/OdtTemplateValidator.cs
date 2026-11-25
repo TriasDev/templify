@@ -137,7 +137,7 @@ internal sealed class OdtTemplateValidator
     {
         foreach (XElement paragraph in GetParagraphs(container))
         {
-            InlineExpressionValidation.CheckSyntax(OdtParagraphTextModel.GetText(paragraph), errors);
+            InlineExpressionValidation.CheckSyntax(OdtParagraphTextModel.GetText(paragraph), errors, () => null);
         }
     }
 
