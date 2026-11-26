@@ -219,6 +219,77 @@ public sealed class JsonTextKeyTests
         Assert.Equal(location, error.Location);
     }
 
+    // ── final review fixes ───────────────────────────────────────────────────
+
+    private static ITextCatalog Tricky { get; } = TextCatalog.FromDictionary(new Dictionary<string, IReadOnlyDictionary<string, string>>
+    {
+        ["a"] = new Dictionary<string, string> { ["de"] = "A", ["en"] = "A" },
+        ["amp"] = new Dictionary<string, string> { ["de"] = "Lieferung & Montage <x> &lt;", ["en"] = "Delivery & assembly" },
+        ["quote"] = new Dictionary<string, string> { ["de"] = "say \"hi\"", ["en"] = "say \"hi\"" },
+        ["pages"] = new Dictionary<string, string> { ["de"] = "Seite {0}", ["en"] = "Page {0}" },
+    });
+
+    [Fact]
+    public void Export_BracketBeforeAKey_IsTB9204()
+    {
+        TestDefinition definition = new TestDefinition(t => t.Content(c => c.Paragraph("[" + t.Texts["a"] + "]")));
+
+        BuildDiagnostic error = Assert.Single(Assert.Throws<TemplateBuildException>(() => TemplateJson.Export(definition, Options(TemplateFormat.Docx, "de-DE", Tricky))).Errors);
+        Assert.Equal("TB9204", error.Code);
+    }
+
+    [Theory]
+    [MemberData(nameof(FormatsAndLanguages))]
+    public void RawXml_TranslationWithXmlCharacters_RoundTrips(TemplateFormat format, string language)
+    {
+        TestDefinition definition = new TestDefinition(t => t.Content(c => c.Raw(new RawBlock
+        {
+            Docx = _ => new XElement(_w + "p", new XElement(_w + "r", new XElement(_w + "t", t.Texts["amp"]))),
+            Odt = _ => new XElement(_text + "p", new XAttribute(_text + "style-name", t.Texts["amp"]), t.Texts["amp"]),
+        })));
+        TemplateJsonDocument exported = TemplateJson.Export(definition, Options(format, language, Tricky));
+        ITemplateDefinition imported = TemplateJson.Import(exported.Json, new TemplateJsonImportOptions { AllowRawXml = true });
+
+        Assert.Equal(TemplateBuilder.Build(definition, Options(format, language, Tricky)).ContentHash, TemplateBuilder.Build(imported, Options(format, language, Tricky)).ContentHash);
+    }
+
+    [Fact]
+    public void Export_TextChangedByCode_IsTB9204()
+    {
+        TestDefinition definition = new TestDefinition(t => t.Content(c => c.Paragraph(string.Format(CultureInfo.InvariantCulture, t.Texts["pages"], 5))));
+
+        BuildDiagnostic error = Assert.Single(Assert.Throws<TemplateBuildException>(() => TemplateJson.Export(definition, Options(TemplateFormat.Docx, "de-DE", Tricky))).Errors);
+        Assert.Equal("TB9204", error.Code);
+        Assert.Contains("de-DE", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Export_TranslationThatChangesAQuotedValue_IsTB9204()
+    {
+        TestDefinition definition = new TestDefinition(t => t.Content(c => c.Paragraph(x => x.Value(t.Data["tags"], ValueFormat.Join(separator: t.Texts["quote"])))));
+
+        BuildDiagnostic error = Assert.Single(Assert.Throws<TemplateBuildException>(() => TemplateJson.Export(definition, Options(TemplateFormat.Docx, "de-DE", Tricky))).Errors);
+        Assert.Equal("TB9204", error.Code);
+    }
+
+    [Fact]
+    public void ReExport_WithoutTextLanguages_KeepsTheSectionAsImported()
+    {
+        const string json = """
+            {
+              "templifyDefinition": 1,
+              "identity": { "id": "keys", "version": 1 },
+              "texts": { "de": { "hello": "Servus", "unused": "U" }, "de-CH": { "hello": "Grüezi" } },
+              "content": [ "[[hello]] [[title]]" ]
+            }
+            """;
+        ITemplateDefinition imported = TemplateJson.Import(json);
+
+        JsonElement texts = Root(TemplateJson.Export(imported, Options(TemplateFormat.Docx, "de-DE")).Json).GetProperty("texts");
+
+        Assert.Equal("""{"de":{"hello":"Servus","unused":"U"},"de-CH":{"hello":"Grüezi"}}""", JsonSerializer.Serialize(texts, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }));
+    }
+
     private static string Definition(string content) => $$"""
         {
           "templifyDefinition": 1,

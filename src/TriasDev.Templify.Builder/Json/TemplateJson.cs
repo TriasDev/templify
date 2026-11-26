@@ -1,6 +1,8 @@
 // Copyright (c) 2026 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Globalization;
+
 namespace TriasDev.Templify.Builder.Json;
 
 /// <summary>
@@ -51,16 +53,69 @@ public static class TemplateJson
         ComposedTemplate composed = TemplateBuilder.Compose(definition, options, keyMarkers: true);
         EmbeddedTexts own = (definition as JsonDefinition)?.Texts ?? EmbeddedTexts.None;
         ITextCatalog catalog = options.Texts ?? TextCatalog.Empty;
-        IEnumerable<string> names = export.TextLanguages is { Count: > 0 } languages ? languages.Select(l => l.Name) : own.Languages;
-        List<TextLanguage> texts = names.Select(name =>
-        {
-            System.Globalization.CultureInfo culture = System.Globalization.CultureInfo.GetCultureInfo(name);
-            return new TextLanguage(name, key =>
-                own.Catalog.TryGet(key, culture, out string text) || catalog.TryGet(key, culture, out text) ? text : null);
-        }).ToList();
+        IReadOnlyList<CultureInfo> languages = export.TextLanguages ?? [];
+        Func<IReadOnlyList<string>, IReadOnlyList<TextSection>> texts = keys => languages.Count == 0
+            ? own.Sections
+            : languages.Select(language => new TextSection(
+                language.Name,
+                keys.Select(key => own.Catalog.TryGet(key, language, out string text) || catalog.TryGet(key, language, out text) ? new KeyValuePair<string, string>(key, text) : (KeyValuePair<string, string>?)null)
+                    .OfType<KeyValuePair<string, string>>()
+                    .ToList())).ToList();
         (string json, IReadOnlyDictionary<string, byte[]> assets) = ModelJsonWriter.Write(composed, definition.Identity!, export.Components, texts);
+        CheckBuildsTheSame(definition, options, export, json, assets);
         return new TemplateJsonDocument(json, assets);
     }
+
+    /// <summary>
+    /// The export checks itself: the JSON, imported and built, must give the bytes the definition gives, for the
+    /// options' language and every language of the <c>texts</c> section the definition builds in. A text the code
+    /// changed (<c>string.Format</c>, <c>ToUpper</c>) or one used where JSON cannot hold it would otherwise give a
+    /// different template without a word: TB9204.
+    /// </summary>
+    private static void CheckBuildsTheSame(ITemplateDefinition definition, TemplateBuildOptions options, TemplateJsonExportOptions export, string json, IReadOnlyDictionary<string, byte[]> assets)
+    {
+        ITemplateDefinition imported;
+        try
+        {
+            imported = Import(json, new TemplateJsonImportOptions { Assets = assets, Components = export.Components, AllowRawXml = true });
+        }
+        catch (TemplateBuildException exception)
+        {
+            throw NotTheSame(options.Language, string.Join(" ", exception.Errors.Select(e => e.Code + ": " + e.Message)));
+        }
+
+        foreach (CultureInfo language in new[] { options.Language }.Concat(export.TextLanguages ?? []).DistinctBy(l => l.Name))
+        {
+            TemplateBuildOptions languageOptions = options with { Language = language };
+            GeneratedTemplate expected;
+            try
+            {
+                expected = TemplateBuilder.Build(definition, languageOptions);
+            }
+            catch (TemplateBuildException) when (language != options.Language)
+            {
+                continue; // A language the definition does not build in (missing texts) is reported when it is built.
+            }
+
+            string actual;
+            try
+            {
+                actual = TemplateBuilder.Build(imported, languageOptions).ContentHash;
+            }
+            catch (TemplateBuildException exception)
+            {
+                throw NotTheSame(language, string.Join(" ", exception.Errors.Select(e => e.Code + ": " + e.Message)));
+            }
+
+            if (actual != expected.ContentHash)
+            {
+                throw NotTheSame(language, "a text is changed by code (string.Format, ToUpper, concatenated into a quoted value) or used where the JSON cannot hold it.");
+            }
+        }
+    }
+
+    private static TemplateBuildException NotTheSame(CultureInfo language, string reason) =>
+        new TemplateBuildException([new BuildDiagnostic(DiagnosticCodes.TextNotExportable, $"The JSON would not build the same template for {language.Name}: {reason}")]);
 
     /// <summary>
     /// Imports a JSON definition. The result builds with <see cref="TemplateBuilder.Build"/> like a C# definition;

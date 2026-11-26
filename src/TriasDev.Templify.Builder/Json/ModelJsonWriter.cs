@@ -36,7 +36,7 @@ internal sealed class ModelJsonWriter
     }
 
     /// <summary>Writes the definition.</summary>
-    public static (string Json, IReadOnlyDictionary<string, byte[]> Assets) Write(ComposedTemplate composed, TemplateIdentity identity, ComponentCatalog? components, IReadOnlyList<TextLanguage>? texts = null)
+    public static (string Json, IReadOnlyDictionary<string, byte[]> Assets) Write(ComposedTemplate composed, TemplateIdentity identity, ComponentCatalog? components, Func<IReadOnlyList<string>, IReadOnlyList<TextSection>>? texts = null)
     {
         using MemoryStream stream = new MemoryStream();
         ModelJsonWriter writer;
@@ -49,18 +49,19 @@ internal sealed class ModelJsonWriter
             writer.Document(composed, identity);
         }
 
-        return (JsonLayout.Format(WithTextKeys(Encoding.UTF8.GetString(stream.ToArray()), texts ?? [])), writer._assets);
+        return (JsonLayout.Format(WithTextKeys(Encoding.UTF8.GetString(stream.ToArray()), texts)), writer._assets);
     }
 
     /// <summary>
     /// Turns the key markers of the composed texts into <c>[[key]]</c> in every string. A literal <c>[[</c> (the import
     /// would read a key) or a key outside the key syntax cannot be written: TB9204 at the string's pointer.
     /// </summary>
-    private static string WithTextKeys(string json, IReadOnlyList<TextLanguage> languages)
+    private static string WithTextKeys(string json, Func<IReadOnlyList<string>, IReadOnlyList<TextSection>>? texts)
     {
         using JsonDocument document = JsonDocument.Parse(json);
         List<BuildDiagnostic> problems = new List<BuildDiagnostic>();
         List<string> keys = UsedKeys(document.RootElement).Distinct(StringComparer.Ordinal).Where(TextKeys.IsKey).ToList();
+        IReadOnlyList<TextSection> sections = texts?.Invoke(keys) ?? [];
         using MemoryStream stream = new MemoryStream();
         using (Utf8JsonWriter output = new Utf8JsonWriter(stream, new JsonWriterOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }))
         {
@@ -69,9 +70,9 @@ internal sealed class ModelJsonWriter
             {
                 output.WritePropertyName(property.Name);
                 Copy(property.Value, "/" + JsonComposition.Escape(property.Name), output, problems);
-                if (property.Name == "identity" && languages.Count > 0)
+                if (property.Name == "identity" && sections.Count > 0)
                 {
-                    Texts(output, languages, keys);
+                    Texts(output, sections);
                 }
             }
 
@@ -86,25 +87,34 @@ internal sealed class ModelJsonWriter
         return Encoding.UTF8.GetString(stream.ToArray());
     }
 
-    /// <summary>The translations of the used keys, per language; a key a language lacks is left out (the build reports it).</summary>
-    private static void Texts(Utf8JsonWriter output, IReadOnlyList<TextLanguage> languages, List<string> keys)
+    private static void Texts(Utf8JsonWriter output, IReadOnlyList<TextSection> sections)
     {
         output.WriteStartObject("texts");
-        foreach (TextLanguage language in languages)
+        foreach (TextSection section in sections)
         {
-            output.WriteStartObject(language.Name);
-            foreach (string key in keys)
+            output.WriteStartObject(section.Language);
+            foreach ((string key, string text) in section.Texts)
             {
-                if (language.Lookup(key) is { } text)
-                {
-                    output.WriteString(key, text);
-                }
+                output.WriteString(key, text);
             }
 
             output.WriteEndObject();
         }
 
         output.WriteEndObject();
+    }
+
+    /// <summary>Whether the import reads <paramref name="written"/> back into exactly <paramref name="text"/> (literal "[[" or "[" before a key would not).</summary>
+    private static bool ReadsBack(string written, string text)
+    {
+        try
+        {
+            return TextKeys.Resolve(written, TextKeys.Marker) == text;
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
     }
 
     /// <summary>The keys of the text markers, in document order.</summary>
@@ -142,17 +152,19 @@ internal sealed class ModelJsonWriter
                 break;
             case JsonValueKind.String:
                 string text = element.GetString()!;
-                if (text.Contains("[[", StringComparison.Ordinal))
-                {
-                    problems.Add(new BuildDiagnostic(DiagnosticCodes.TextNotExportable, $"The text \"{text}\" contains '[[', which a JSON definition reads as a text key [[key]]; change the text.") { Location = at });
-                }
-
-                foreach (string key in TextKeys.MarkedKeys(text).Where(k => !TextKeys.IsKey(k)).Distinct(StringComparer.Ordinal))
+                string written = TextKeys.MarkersToKeys(text);
+                List<string> invalid = TextKeys.MarkedKeys(text).Where(k => !TextKeys.IsKey(k)).Distinct(StringComparer.Ordinal).ToList();
+                foreach (string key in invalid)
                 {
                     problems.Add(new BuildDiagnostic(DiagnosticCodes.TextNotExportable, $"The text key '{key}' cannot be written as [[key]]: use letters, digits, '_', '.' or '-'.") { Location = at });
                 }
 
-                output.WriteStringValue(TextKeys.MarkersToKeys(text));
+                if (invalid.Count == 0 && written.Contains("[[", StringComparison.Ordinal) && !ReadsBack(written, text))
+                {
+                    problems.Add(new BuildDiagnostic(DiagnosticCodes.TextNotExportable, $"The text \"{written}\" contains '[[' that a JSON definition would not read back as written (a text key is [[key]]); change the text.") { Location = at });
+                }
+
+                output.WriteStringValue(written);
                 break;
             default:
                 element.WriteTo(output);
@@ -1054,5 +1066,5 @@ internal sealed class ModelJsonWriter
     }
 }
 
-/// <summary>A language of the <c>texts</c> section: its name as written and how its texts are found.</summary>
-internal sealed record TextLanguage(string Name, Func<string, string?> Lookup);
+/// <summary>A language of the <c>texts</c> section: its name as written and its texts in order.</summary>
+internal sealed record TextSection(string Language, IReadOnlyList<KeyValuePair<string, string>> Texts);

@@ -1096,7 +1096,9 @@ internal sealed class JsonComposition
                 string text = element.GetString()!;
                 try
                 {
-                    text = TextKeys.Resolve(text, key => Text(key, at));
+                    // Raw XML is markup: a translation goes in as XML text (C# put it into an XElement).
+                    bool markup = at.EndsWith("/raw/docx", StringComparison.Ordinal) || at.EndsWith("/raw/odt", StringComparison.Ordinal);
+                    text = TextKeys.Resolve(text, key => markup ? System.Security.SecurityElement.Escape(Text(key, at)) : Text(key, at));
                 }
                 catch (FormatException exception)
                 {

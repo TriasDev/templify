@@ -11,17 +11,17 @@ namespace TriasDev.Templify.Builder.Json;
 /// </summary>
 internal sealed class EmbeddedTexts
 {
-    private EmbeddedTexts(IReadOnlyList<string> languages, ITextCatalog catalog)
+    private EmbeddedTexts(IReadOnlyList<TextSection> sections, ITextCatalog catalog)
     {
-        Languages = languages;
+        Sections = sections;
         Catalog = catalog;
     }
 
     /// <summary>Gets an empty section.</summary>
     public static EmbeddedTexts None { get; } = new EmbeddedTexts([], TextCatalog.Empty);
 
-    /// <summary>Gets the language names in file order.</summary>
-    public IReadOnlyList<string> Languages { get; }
+    /// <summary>Gets the languages and their texts exactly as in the file (re-exported unchanged).</summary>
+    public IReadOnlyList<TextSection> Sections { get; }
 
     /// <summary>Gets the texts as a catalog.</summary>
     public ITextCatalog Catalog { get; }
@@ -40,7 +40,7 @@ internal sealed class EmbeddedTexts
             return None;
         }
 
-        List<string> languages = new List<string>();
+        List<TextSection> sections = new List<TextSection>();
         Dictionary<string, Dictionary<string, string>> byKey = new Dictionary<string, Dictionary<string, string>>(StringComparer.Ordinal);
         foreach (JsonProperty language in texts.EnumerateObject())
         {
@@ -51,7 +51,8 @@ internal sealed class EmbeddedTexts
                 continue;
             }
 
-            languages.Add(language.Name);
+            List<KeyValuePair<string, string>> entries = new List<KeyValuePair<string, string>>();
+            sections.Add(new TextSection(language.Name, entries));
             foreach (JsonProperty text in language.Value.EnumerateObject())
             {
                 if (text.Value.ValueKind != JsonValueKind.String)
@@ -66,11 +67,12 @@ internal sealed class EmbeddedTexts
                 }
 
                 translations[language.Name] = text.Value.GetString()!;
+                entries.Add(new KeyValuePair<string, string>(text.Name, text.Value.GetString()!));
             }
         }
 
         return new EmbeddedTexts(
-            languages,
+            sections,
             TextCatalog.FromDictionary(byKey.ToDictionary(e => e.Key, e => (IReadOnlyDictionary<string, string>)e.Value, StringComparer.Ordinal)));
     }
 }
