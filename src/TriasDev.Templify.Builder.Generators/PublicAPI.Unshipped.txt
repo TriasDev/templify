@@ -1,0 +1,4 @@
+#nullable enable
+TriasDev.Templify.Builder.Generators.TypedPathGenerator
+TriasDev.Templify.Builder.Generators.TypedPathGenerator.Initialize(Microsoft.CodeAnalysis.IncrementalGeneratorInitializationContext context) -> void
+TriasDev.Templify.Builder.Generators.TypedPathGenerator.TypedPathGenerator() -> void

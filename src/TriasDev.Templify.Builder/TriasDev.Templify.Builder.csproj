@@ -31,6 +31,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The typed path source generator ships inside this package (analyzers/dotnet/cs), so a definition gets
+         order.Number instead of order.Path(o => o.Number) without installing anything. -->
+    <ProjectReference Include="..\TriasDev.Templify.Builder.Generators\TriasDev.Templify.Builder.Generators.csproj" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+    <None Include="..\TriasDev.Templify.Builder.Generators\bin\$(Configuration)\netstandard2.0\TriasDev.Templify.Builder.Generators.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\"/>
   </ItemGroup>
 
