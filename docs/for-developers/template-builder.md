@@ -379,8 +379,8 @@ is no `{{#if}}` inside strings. An expression whose condition is raw has no text
 - **Colours** are `"#1F4E79"` or a theme token `"$accent"`. A **line** is a thickness and a colour: `"0.5pt $line"`.
 - **Padding** (`padding`, `cellPadding`) is one value for all sides or two (vertical, horizontal): `"6pt 8pt"`.
 - **Value formats** are Templify's: `date:…`, `number:…`, `currency`, `uppercase`, `lowercase`, `raw`, `join`, and the
-  boolean formats (`yesno`, `checkmark`, …). A format the host registered with Templify is listed in
-  `TemplateJsonImportOptions.ValueFormats`; any other name is an error.
+  boolean formats (`yesno`, `checkmark`, …). A format the host registered with Templify (`ValueFormat.Custom("janein")`)
+  is exported as written and listed in `TemplateJsonImportOptions.ValueFormats` on import; any other name is an error.
 
 ### Strictness
 
@@ -396,7 +396,8 @@ allowed), TB9203 (a data path outside `Data`).
 **One JSON for every language.** Texts from `template.Texts["key"]` are exported as `[[key]]` references, wherever the
 code put them (in text, in a date format such as `{{order.date:date:[[dateFormat]]}}`, in raw XML, in document
 properties), so the exported JSON does not depend on the language. With `TextLanguages` the translations are written
-into the `texts` section and the file is self-contained, including the texts a registered component reads.
+into the `texts` section and the file is self-contained, including the texts a registered component reads. Every text
+must then have every requested language; a missing one is TB9204 at `/texts/<key>`.
 
 At build time a key is translated from the JSON's `texts` for the build language (`de-DE` finds `de`), else from
 `TemplateBuildOptions.Texts`; a key neither has is TB5001. Components of an imported definition look their texts up the
@@ -416,7 +417,7 @@ component the export's catalog does not know is written as a section named after
 **Components** see the build's texts (`c.Texts["title"]`) and objects the definition shares (`template.Share(theme)`,
 `c.Shared<BrandTheme>()`; for JSON imports `TemplateJsonImportOptions.Shared`). A component then needs only data paths
 as parameters, so it can be registered in a `ComponentCatalog` and written as a reference; the import builds it from the
-current component code.
+current component code. A colour parameter that is a theme token is written as `"$accent"` and follows the host's theme.
 
 Images and embedded fonts are **named assets**. In C# an image gets its name with `ImageSource.Png(bytes).WithName("logo")`;
 unnamed images are exported as `image-1`, `image-2`, fonts as `font-<family>`.
@@ -431,7 +432,8 @@ colour or font goes, with the values in the `theme` section:
 ```
 
 A host replaces values on import (`TemplateJsonImportOptions.Theme`, for example a customer's accent colour), so a
-customer's JSON keeps working when the brand changes.
+customer's JSON keeps working when the brand changes. A colour token takes a colour (anything else is TB9200); a token the
+definition does not have is not used, and the build warns (TB9205), so one palette can serve many definitions.
 
 ## Testing your definitions
 
