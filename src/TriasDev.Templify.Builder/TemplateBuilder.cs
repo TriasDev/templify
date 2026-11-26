@@ -95,8 +95,8 @@ public static class TemplateBuilder
             context.Warn(
                 DiagnosticCodes.TableOfContentsNotBuilt,
                 options.Format == TemplateFormat.Docx
-                    ? "The table of contents is a field without a result: Word builds it when it opens the document (fill with UpdateFieldsOnOpen = Auto). LibreOffice — also when it converts to PDF — does not; there it stays empty until a user updates it."
-                    : "The table of contents is an index without entries: LibreOffice does not build it when it opens or converts the document; it stays empty until a user updates it (Tools > Update > Update All).");
+                    ? "The table of contents is a field without a result: Word builds it when it opens the document (fill with UpdateFieldsOnOpen = Auto), and so do converters that refresh indexes on load (for example Stirling-PDF); a plain LibreOffice conversion (soffice --convert-to pdf) does not."
+                    : "The table of contents is an index without entries: converters that refresh indexes on load (for example Stirling-PDF) build it; LibreOffice opening the document and a plain conversion (soffice --convert-to pdf) do not, until a user updates it (Tools > Update > Update All).");
         }
 
         DataContract contract = DataContract.Collect(allBlocks);

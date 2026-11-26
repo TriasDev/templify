@@ -382,8 +382,9 @@ templates and filled documents with a local LibreOffice.
 Known behaviour of the applications:
 
 - **Table of contents.** Word builds a DOCX table of contents when it opens the document (fill with
-  `UpdateFieldsOnOpen = UpdateFieldsOnOpenMode.Auto`). LibreOffice builds it neither from DOCX nor from ODT, also not
-  when converting to PDF. The build reports warning TB9001.
+  `UpdateFieldsOnOpen = UpdateFieldsOnOpenMode.Auto`). Converters that refresh indexes on load (for example
+  Stirling-PDF) build it from DOCX and ODT; a plain `soffice --convert-to pdf` does not. The build reports warning
+  TB9001.
 - **Word's built-in style names.** LibreOffice maps a DOCX style named like a Word built-in (`Body Text`,
   `Heading 1`) to its own style when it opens the file. Choose your own display names ("Body Copy").
 - **Embedded fonts.** LibreOffice uses embedded fonts from DOCX and ODT, also when converting to PDF. Word uses

@@ -44,8 +44,12 @@ public sealed class TocTests
         GeneratedTemplate template = BuilderHarness.Build(Report(), TemplateFormat.Docx);
         XElement body = BuilderHarness.ReadXml(template.Content.ToArray(), "word/document.xml").Root!.Element(_w + "body")!;
 
+        // The field's end sits in a paragraph of its own: LibreOffice imports a field whose result is empty and in one
+        // paragraph as text, so a converter that refreshes indexes (Stirling-PDF) would leave the contents empty (#295).
         XElement toc = body.Elements(_w + "p").ElementAt(1);
-        Assert.Equal(new[] { "begin", "separate", "end" }, toc.Descendants(_w + "fldChar").Select(f => f.Attribute(_w + "fldCharType")!.Value));
+        XElement end = body.Elements(_w + "p").ElementAt(2);
+        Assert.Equal(new[] { "begin", "separate" }, toc.Descendants(_w + "fldChar").Select(f => f.Attribute(_w + "fldCharType")!.Value));
+        Assert.Equal(new[] { "end" }, end.Descendants(_w + "fldChar").Select(f => f.Attribute(_w + "fldCharType")!.Value));
         Assert.Equal("true", toc.Descendants(_w + "fldChar").First().Attribute(_w + "dirty")!.Value);
         string instruction = toc.Descendants(_w + "instrText").Single().Value;
         Assert.Equal(" TOC \\o \"1-2\" \\h \\z \\u ", instruction);

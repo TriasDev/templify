@@ -668,7 +668,7 @@ internal static class DocxWriter
             MarkerBlock marker => [MarkerParagraph(marker.Text)],
             TableBlock table => WriteTable(table, frame),
             RuleBlock rule => [RuleParagraph(rule)],
-            TocBlock toc => [TocParagraph(toc)],
+            TocBlock toc => TocParagraphs(toc),
             RawXmlBlock raw => [RawElement(RawXml(raw, frame))],
             _ => throw new NotSupportedException($"Block {block.GetType().Name} is not supported by the DOCX writer."),
         };
@@ -709,11 +709,19 @@ internal static class DocxWriter
         /// A table of contents as a TOC field marked dirty, without a cached result: Word and LibreOffice build it. The
         /// switches use outline levels (\u) and never name the styles (\t): with \t LibreOffice lists every heading twice.
         /// </summary>
-        private static Paragraph TocParagraph(TocBlock toc) => new Paragraph(
-            new Run(new FieldChar { FieldCharType = FieldCharValues.Begin, Dirty = true }),
-            new Run(new FieldCode($" TOC \\o \"1-{toc.MaxLevel.ToString(CultureInfo.InvariantCulture)}\" \\h \\z \\u ") { Space = SpaceProcessingModeValues.Preserve }),
-            new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
-            new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+        /// <remarks>
+        /// The field ends in a paragraph of its own, as Word writes a built contents: LibreOffice imports a TOC field whose
+        /// empty result sits in one paragraph as plain text, so converters that refresh indexes on load (Stirling-PDF)
+        /// would have no index to build (#295).
+        /// </remarks>
+        private static Paragraph[] TocParagraphs(TocBlock toc) =>
+        [
+            new Paragraph(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin, Dirty = true }),
+                new Run(new FieldCode($" TOC \\o \"1-{toc.MaxLevel.ToString(CultureInfo.InvariantCulture)}\" \\h \\z \\u ") { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate })),
+            new Paragraph(new Run(new FieldChar { FieldCharType = FieldCharValues.End })),
+        ];
 
         private static Paragraph MarkerParagraph(string text) => new Paragraph(
             new ParagraphProperties(new ParagraphStyleId { Val = BuilderStyles.TemplateMarker.Id }),
