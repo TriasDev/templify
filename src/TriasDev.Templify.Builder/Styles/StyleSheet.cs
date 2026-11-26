@@ -58,12 +58,12 @@ public sealed class StyleSheet
 
         foreach (TableStyleDefinition table in TableStyles)
         {
-            if (table.TextStyle is { } text)
+            if (table.ParagraphStyle is { } text)
             {
                 yield return (text, $"The text style of the table style '{table.Key.Id}'");
             }
 
-            if (table.HeaderTextStyle is { } header)
+            if (table.HeaderParagraphStyle is { } header)
             {
                 yield return (header, $"The header text style of the table style '{table.Key.Id}'");
             }

@@ -50,20 +50,20 @@ public sealed class TableStyleComposer
     /// <summary>Sets the paragraph style of body-row paragraphs that have no style of their own.</summary>
     /// <param name="style">The paragraph style; the style sheet must define it.</param>
     /// <returns>This composer.</returns>
-    public TableStyleComposer TextStyle(ParagraphStyleKey style)
+    public TableStyleComposer ParagraphStyle(ParagraphStyleKey style)
     {
         _owner.EnsureOpen();
-        _style.TextStyle = style ?? throw new ArgumentNullException(nameof(style));
+        _style.ParagraphStyle = style ?? throw new ArgumentNullException(nameof(style));
         return this;
     }
 
     /// <summary>Sets the paragraph style of header-row paragraphs that have no style of their own.</summary>
     /// <param name="style">The paragraph style; the style sheet must define it.</param>
     /// <returns>This composer.</returns>
-    public TableStyleComposer HeaderTextStyle(ParagraphStyleKey style)
+    public TableStyleComposer HeaderParagraphStyle(ParagraphStyleKey style)
     {
         _owner.EnsureOpen();
-        _style.HeaderTextStyle = style ?? throw new ArgumentNullException(nameof(style));
+        _style.HeaderParagraphStyle = style ?? throw new ArgumentNullException(nameof(style));
         return this;
     }
 
@@ -510,11 +510,11 @@ public sealed class RowComposer
     /// style's text style (for example a totals row).
     /// </summary>
     /// <param name="style">The paragraph style.</param>
-    public void TextStyle(ParagraphStyleKey style)
+    public void ParagraphStyle(ParagraphStyleKey style)
     {
         ArgumentNullException.ThrowIfNull(style);
         EnsureOpen();
-        _row.TextStyle = style;
+        _row.ParagraphStyle = style;
     }
 
     /// <summary>Lets the row break across pages; by default a row is kept on one page.</summary>

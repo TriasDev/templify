@@ -136,7 +136,7 @@ internal sealed class TableRowModel(bool isHeader) : TableRowItem
     public bool AllowSplit { get; set; }
 
     /// <summary>Gets or sets the paragraph style of this row's paragraphs without their own (overrides the table style).</summary>
-    public ParagraphStyleKey? TextStyle { get; set; }
+    public ParagraphStyleKey? ParagraphStyle { get; set; }
 
     public List<TableCellModel> Cells { get; } = new List<TableCellModel>();
 
@@ -238,10 +238,10 @@ internal sealed class TableStyleDefinition(TableStyleKey key)
     public Length PaddingHorizontal { get; set; } = DefaultPaddingHorizontal;
 
     /// <summary>Gets or sets the paragraph style of body-row paragraphs without their own.</summary>
-    public ParagraphStyleKey? TextStyle { get; set; }
+    public ParagraphStyleKey? ParagraphStyle { get; set; }
 
     /// <summary>Gets or sets the paragraph style of header-row paragraphs without their own.</summary>
-    public ParagraphStyleKey? HeaderTextStyle { get; set; }
+    public ParagraphStyleKey? HeaderParagraphStyle { get; set; }
 }
 
 /// <summary>Walks the block tree.</summary>

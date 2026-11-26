@@ -166,7 +166,7 @@ public sealed class DefaultStyleComposer
     /// </summary>
     /// <param name="style">The paragraph style; the style sheet must define it.</param>
     /// <returns>This composer.</returns>
-    public DefaultStyleComposer Paragraph(ParagraphStyleKey style)
+    public DefaultStyleComposer ParagraphStyle(ParagraphStyleKey style)
     {
         _owner.EnsureOpen();
         _owner.DefaultParagraphStyle = style ?? throw new ArgumentNullException(nameof(style));

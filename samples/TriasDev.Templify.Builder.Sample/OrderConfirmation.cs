@@ -47,7 +47,7 @@ public static class Styles
     public static StyleSheet Create(BrandTheme t) => StyleSheet.Create(s =>
     {
         // Paragraphs without a style are body copy; table cells get the table style's text styles.
-        s.Defaults(d => d.Font(t.Body).Size(10.Pt()).Color(t.Ink).Paragraph(Body));
+        s.Defaults(d => d.Font(t.Body).Size(10.Pt()).Color(t.Ink).ParagraphStyle(Body));
         s.Paragraph(Body, p => p.SpaceAfter(6.Pt()).LineSpacing(1.15));
         s.Paragraph(Title, p => p.BasedOn(Body).Next(Subtitle).Font(t.Heading).Size(22.Pt()).Bold().Color(t.Accent).SpaceAfter(2.Pt()));
         s.Paragraph(Subtitle, p => p.BasedOn(Body).Next(Body).Size(11.Pt()).Color(t.Muted).SpaceAfter(14.Pt()));
@@ -65,8 +65,8 @@ public static class Styles
             .HeaderRule(1.Pt(), t.Accent)
             .RowRule(0.5.Pt(), t.Line)
             .CellPadding(3.Pt(), 5.Pt())
-            .TextStyle(TableText)
-            .HeaderTextStyle(TableHeader));
+            .ParagraphStyle(TableText)
+            .HeaderParagraphStyle(TableHeader));
         s.Box(Success, b => b.Border(0.75.Pt(), Color.FromHex("96C6A8")).Background(t.SuccessBackground).Padding(6.Pt(), 8.Pt()).SpaceAfter(8.Pt()));
         s.Box(Warning, b => b.Border(0.75.Pt(), Color.FromHex("E3B27A")).Background(t.WarningBackground).Padding(6.Pt(), 8.Pt()).SpaceAfter(8.Pt()));
         s.List(Bullets, l => l.ItemStyle(ListItem).Level(0, "•", 6.Mm(), 4.Mm()).Level(1, "–", 12.Mm(), 4.Mm()));
@@ -220,7 +220,7 @@ public sealed class OrderConfirmation(BrandTheme theme) : ITemplateDefinition
             }));
             table.Row(r =>
             {
-                r.TextStyle(Styles.TableHeader);
+                r.ParagraphStyle(Styles.TableHeader);
                 r.Cell(cell => cell.ColumnSpan(3).Paragraph(t["total"]));
                 r.Cell(cell => cell.Paragraph(x => x.Value(order["total"], ValueFormat.Currency)));
             });

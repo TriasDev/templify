@@ -73,12 +73,12 @@ record, so one theme restyles every template of a product:
 ```csharp
 public static StyleSheet Create(BrandTheme t) => StyleSheet.Create(s =>
 {
-    s.Defaults(d => d.Font(t.Body).Size(10.Pt()).Color(t.Ink).Paragraph(Body));
+    s.Defaults(d => d.Font(t.Body).Size(10.Pt()).Color(t.Ink).ParagraphStyle(Body));
     s.Paragraph(Body, p => p.SpaceAfter(6.Pt()).LineSpacing(1.15));
     s.Paragraph(Heading, p => p.BasedOn(Body).Size(13.Pt()).Bold().Color(t.Accent).KeepWithNext().OutlineLevel(1));
     s.Character(Strong, c => c.Bold());
     s.Table(Grid, g => g.HeaderRule(1.Pt(), t.Accent).RowRule(0.5.Pt(), t.Line).CellPadding(3.Pt(), 5.Pt())
-        .TextStyle(TableText).HeaderTextStyle(TableHeader));
+        .ParagraphStyle(TableText).HeaderParagraphStyle(TableHeader));
     s.Box(Success, b => b.Border(0.75.Pt(), t.SuccessBorder).Background(t.SuccessBackground).Padding(6.Pt(), 8.Pt()));
     s.List(Bullets, l => l.ItemStyle(ListItem).Level(0, "•", 6.Mm(), 4.Mm()));
 });
@@ -86,9 +86,9 @@ public static StyleSheet Create(BrandTheme t) => StyleSheet.Create(s =>
 
 A paragraph without a style of its own inherits one, so most paragraphs need none:
 
-1. in a table cell, the row's `TextStyle` (for example a totals row: `r.TextStyle(TableHeader)`), then the table
-   style's `HeaderTextStyle` (header rows) or `TextStyle` (other rows);
-2. the style sheet's default paragraph style, `Defaults(d => d.Paragraph(Body))`;
+1. in a table cell, the row's `ParagraphStyle` (for example a totals row: `r.ParagraphStyle(TableHeader)`), then the table
+   style's `HeaderParagraphStyle` (header rows) or `ParagraphStyle` (other rows);
+2. the style sheet's default paragraph style, `Defaults(d => d.ParagraphStyle(Body))`;
 3. otherwise none (the application's "Normal" / "Standard").
 
 List items take their list style's `ItemStyle`; a list style without one lets its items inherit like any paragraph. The inherited style is written into the document explicitly, so Word
@@ -303,7 +303,7 @@ placeholders:
   {"forEachRow": "order.lines", "as": "line", "rows": [
     {"row": ["{{@number}}", "{{line.description}}", "{{line.quantity}}", "{{line.amount:currency}}"]}
   ]},
-  {"textStyle": "TableHeader", "row": [{"span": 3, "content": "Gesamtbetrag"}, "{{order.total:currency}}"]}
+  {"paragraphStyle": "TableHeader", "row": [{"span": 3, "content": "Gesamtbetrag"}, "{{order.total:currency}}"]}
 ]}
 ```
 
@@ -313,8 +313,8 @@ placeholders:
 |---|---|
 | Text | a string with `{{path}}`, `{{path:format}}`, `{{(condition):format}}`; styled: `{"text": "{{order.number}}", "style": "StrongText"}`; a list mixes strings, styled text, `{"if": …}`, `{"tab": true}`, `{"tabRight": true}`, `{"lineBreak": true}`, `{"pageNumber": true}`, `{"pageCount": true}`, `{"image": …}` |
 | Block | a string (a paragraph in the inherited style), `{"style", "paragraph"}`, `{"style", "box": [blocks]}`, `{"style", "list": [items]}`, `{"style", "columns", "spaceAfter", "table": [rows]}`, `if`, `forEach`, `component`, `group`, `pageBreak`, `rule`, `toc`, `raw` |
-| Row | `{"header", "allowSplit", "textStyle", "row": [cells]}`, `forEachRow`, `rowsIf` |
-| Cell | a string (one paragraph), a list of blocks, or `{"span", "background", "align", "content"}` |
+| Row | `{"header", "allowSplit", "paragraphStyle", "row": [cells]}`, `forEachRow`, `rowsIf` |
+| Cell | a string (one paragraph), a list of blocks, or `{"span", "background", "verticalAlign", "content"}` |
 | List item | a string, `{"level", "item"}`, `forEach`, `if` |
 
 **One JSON for every language.** Texts from `template.Texts["key"]` are exported as `[[key]]` references, wherever the

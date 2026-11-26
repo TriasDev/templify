@@ -83,6 +83,6 @@ internal static class StyleInheritance
     public static ParagraphStyleKey? ForCell(StyleSheet styles, TableBlock table, TableRowModel row)
     {
         TableStyleDefinition? style = styles.Resolve(table);
-        return row.TextStyle ?? (row.IsHeader ? style?.HeaderTextStyle : style?.TextStyle) ?? styles.DefaultParagraphStyle;
+        return row.ParagraphStyle ?? (row.IsHeader ? style?.HeaderParagraphStyle : style?.ParagraphStyle) ?? styles.DefaultParagraphStyle;
     }
 }

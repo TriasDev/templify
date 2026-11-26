@@ -29,7 +29,7 @@ public sealed class StyleInheritanceTests
     {
         if (withDefault)
         {
-            s.Defaults(d => d.Paragraph(_body));
+            s.Defaults(d => d.ParagraphStyle(_body));
         }
 
         foreach (ParagraphStyleKey key in new[] { _body, _heading, _cell, _head, _total, _other, _inner, _item })
@@ -42,10 +42,10 @@ public sealed class StyleInheritanceTests
             t.RowRule(0.5.Pt(), Color.FromHex("D4D4D4"));
             if (withTableText)
             {
-                t.TextStyle(_cell).HeaderTextStyle(_head);
+                t.ParagraphStyle(_cell).HeaderParagraphStyle(_head);
             }
         });
-        s.Table(_innerGrid, t => t.TextStyle(_inner));
+        s.Table(_innerGrid, t => t.ParagraphStyle(_inner));
         s.Box(_note, b => b.Background(Color.FromHex("EEEEEE")));
         s.List(_bullets, l => l.Level(0, "•", 6.Mm(), 4.Mm()).ItemStyle(_item));
     });
@@ -125,7 +125,7 @@ public sealed class StyleInheritanceTests
                 });
                 tb.Row(r =>
                 {
-                    r.TextStyle(_total);
+                    r.ParagraphStyle(_total);
                     r.Cell("t1");
                     r.Cell("t2");
                 });
@@ -226,10 +226,10 @@ public sealed class StyleInheritanceTests
         {
             t.Styles(StyleSheet.Create(s =>
             {
-                s.Defaults(d => d.Paragraph(_body));
+                s.Defaults(d => d.ParagraphStyle(_body));
                 s.Paragraph(_body, p => p.SpaceAfter(1.Pt()));
                 s.Paragraph(_cell, p => p.SpaceAfter(1.Pt()));
-                s.Table(_grid, g => g.TextStyle(_cell));
+                s.Table(_grid, g => g.ParagraphStyle(_cell));
                 s.List(plain, l => l.Level(0, "•", 6.Mm(), 4.Mm()));
             }));
             t.Content(c =>
@@ -274,7 +274,7 @@ public sealed class StyleInheritanceTests
         {
             t.Styles(StyleSheet.Create(s =>
             {
-                s.Defaults(d => d.Paragraph(missing));
+                s.Defaults(d => d.ParagraphStyle(missing));
                 s.Paragraph(_heading, p => p.Bold());
             }));
             t.Content(c => c.Paragraph(_heading, "styled only"));
@@ -292,7 +292,7 @@ public sealed class StyleInheritanceTests
         ParagraphStyleKey missing = new ParagraphStyleKey("Missing", "Missing Style");
         TestDefinition definition = new TestDefinition(t =>
         {
-            t.Styles(StyleSheet.Create(s => s.Defaults(d => d.Paragraph(missing))));
+            t.Styles(StyleSheet.Create(s => s.Defaults(d => d.ParagraphStyle(missing))));
             t.Content(c =>
             {
                 c.Paragraph("a");
@@ -310,7 +310,7 @@ public sealed class StyleInheritanceTests
         ParagraphStyleKey missing = new ParagraphStyleKey("Missing", "Missing Style");
         TestDefinition definition = new TestDefinition(t =>
         {
-            t.Styles(StyleSheet.Create(s => s.Table(_grid, tb => tb.HeaderTextStyle(missing))));
+            t.Styles(StyleSheet.Create(s => s.Table(_grid, tb => tb.HeaderParagraphStyle(missing))));
             t.Content(c => c.Paragraph("no table at all"));
         });
 
@@ -331,7 +331,7 @@ public sealed class StyleInheritanceTests
                 tb.Style(_grid).Columns(cols => cols.Relative(1));
                 tb.Row(r =>
                 {
-                    r.TextStyle(_total);
+                    r.ParagraphStyle(_total);
                     r.Cell("t");
                 });
             }));
@@ -339,10 +339,10 @@ public sealed class StyleInheritanceTests
         TemplateBuildOptions options = BuilderHarness.Options(TemplateFormat.Docx);
 
         string json = TemplateJson.Export(definition, options).Json;
-        Assert.Contains("\"paragraph\": \"Body\"", json, StringComparison.Ordinal);
-        Assert.Contains("\"textStyle\": \"CellText\"", json, StringComparison.Ordinal);
-        Assert.Contains("\"headerTextStyle\": \"HeadText\"", json, StringComparison.Ordinal);
-        Assert.Contains("\"textStyle\": \"TotalText\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"paragraphStyle\": \"Body\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"paragraphStyle\": \"CellText\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"headerParagraphStyle\": \"HeadText\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"paragraphStyle\": \"TotalText\"", json, StringComparison.Ordinal);
         BuilderHarness.AssertJsonRoundTrip(definition, TemplateBuilder.Build(definition, options), options);
     }
 
@@ -353,7 +353,7 @@ public sealed class StyleInheritanceTests
             {
               "templifyDefinition": 1,
               "identity": { "id": "t", "version": 1 },
-              "styles": { "defaults": { "paragraph": "Nope" } },
+              "styles": { "defaults": { "paragraphStyle": "Nope" } },
               "content": [ "x" ]
             }
             """;

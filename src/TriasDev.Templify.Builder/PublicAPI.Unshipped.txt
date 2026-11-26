@@ -663,10 +663,10 @@ TriasDev.Templify.Builder.UploadCheckResult.Syntax.get -> TriasDev.Templify.Core
 TriasDev.Templify.Builder.UploadCheckResult.UnknownPaths.get -> System.Collections.Generic.IReadOnlyList<string!>!
 TriasDev.Templify.Builder.ValueFormat
 TriasDev.Templify.Builder.ValueFormat.Specifier.get -> string!
-TriasDev.Templify.Builder.DefaultStyleComposer.Paragraph(TriasDev.Templify.Builder.ParagraphStyleKey! style) -> TriasDev.Templify.Builder.DefaultStyleComposer!
-TriasDev.Templify.Builder.RowComposer.TextStyle(TriasDev.Templify.Builder.ParagraphStyleKey! style) -> void
-TriasDev.Templify.Builder.TableStyleComposer.HeaderTextStyle(TriasDev.Templify.Builder.ParagraphStyleKey! style) -> TriasDev.Templify.Builder.TableStyleComposer!
-TriasDev.Templify.Builder.TableStyleComposer.TextStyle(TriasDev.Templify.Builder.ParagraphStyleKey! style) -> TriasDev.Templify.Builder.TableStyleComposer!
+TriasDev.Templify.Builder.DefaultStyleComposer.ParagraphStyle(TriasDev.Templify.Builder.ParagraphStyleKey! style) -> TriasDev.Templify.Builder.DefaultStyleComposer!
+TriasDev.Templify.Builder.RowComposer.ParagraphStyle(TriasDev.Templify.Builder.ParagraphStyleKey! style) -> void
+TriasDev.Templify.Builder.TableStyleComposer.HeaderParagraphStyle(TriasDev.Templify.Builder.ParagraphStyleKey! style) -> TriasDev.Templify.Builder.TableStyleComposer!
+TriasDev.Templify.Builder.TableStyleComposer.ParagraphStyle(TriasDev.Templify.Builder.ParagraphStyleKey! style) -> TriasDev.Templify.Builder.TableStyleComposer!
 static TriasDev.Templify.Builder.Json.TemplateJson.Export(TriasDev.Templify.Builder.ITemplateDefinition! definition, TriasDev.Templify.Builder.TemplateBuildOptions! options, TriasDev.Templify.Builder.Json.TemplateJsonExportOptions! export) -> TriasDev.Templify.Builder.Json.TemplateJsonDocument!
 TriasDev.Templify.Builder.Json.TemplateJsonExportOptions
 TriasDev.Templify.Builder.Json.TemplateJsonExportOptions.Components.get -> TriasDev.Templify.Builder.ComponentCatalog?

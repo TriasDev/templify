@@ -125,13 +125,13 @@ internal sealed class JsonComposition
             const string at = "/styles/defaults";
             Guard(at, () =>
             {
-                Keys(defaults, at, "font", "size", "color", "paragraph");
+                Keys(defaults, at, "font", "size", "color", "paragraphStyle");
                 s.Defaults(d =>
                 {
                     Apply(Font(defaults, at), v => d.Font(v));
                     Apply(Length(defaults, "size", at), v => d.Size(v));
                     Apply(Color(defaults, "color", at), v => d.Color(v));
-                    Apply(String(defaults, "paragraph", at), v => d.Paragraph(ParagraphStyle(v)));
+                    Apply(String(defaults, "paragraphStyle", at), v => d.ParagraphStyle(ParagraphStyle(v)));
                 });
             });
         }
@@ -194,7 +194,7 @@ internal sealed class JsonComposition
             string at = "/styles/table/" + Escape(style.Name);
             Guard(at, () =>
             {
-                Keys(e, at, "outerBorder", "rowRule", "columnRule", "headerRule", "headerBackground", "cellPadding", "textStyle", "headerTextStyle");
+                Keys(e, at, "outerBorder", "rowRule", "columnRule", "headerRule", "headerBackground", "cellPadding", "paragraphStyle", "headerParagraphStyle");
                 s.Table(new TableStyleKey(style.Name), t =>
                 {
                     Apply(Border(e, "outerBorder", at), v => t.OuterBorder(v.Width, v.Color));
@@ -207,8 +207,8 @@ internal sealed class JsonComposition
                         t.CellPadding(padding.Top, padding.Right);
                     }
 
-                    Apply(String(e, "textStyle", at), v => t.TextStyle(ParagraphStyle(v)));
-                    Apply(String(e, "headerTextStyle", at), v => t.HeaderTextStyle(ParagraphStyle(v)));
+                    Apply(String(e, "paragraphStyle", at), v => t.ParagraphStyle(ParagraphStyle(v)));
+                    Apply(String(e, "headerParagraphStyle", at), v => t.HeaderParagraphStyle(ParagraphStyle(v)));
                 });
             });
         }
@@ -398,8 +398,8 @@ internal sealed class JsonComposition
             foreach (JsonElement branch in Array(block, "elseIf", at))
             {
                 string branchAt = at + "/elseIf/" + i++;
-                Keys(branch, branchAt, "when", "then");
-                chain = chain.ElseIf(Condition(Required(branch, "when", branchAt), branchAt + "/when"), b => Blocks(b, Required(branch, "then", branchAt), branchAt + "/then"));
+                Keys(branch, branchAt, "if", "then");
+                chain = chain.ElseIf(Condition(Required(branch, "if", branchAt), branchAt + "/if"), b => Blocks(b, Required(branch, "then", branchAt), branchAt + "/then"));
             }
 
             if (block.TryGetProperty("else", out JsonElement otherwise))
@@ -568,14 +568,14 @@ internal sealed class JsonComposition
         }
         else if (item.TryGetProperty("if", out JsonElement condition))
         {
-            Keys(item, at, "if", "items", "elseIf", "else");
-            ListIfChain chain = l.If(Condition(condition, at + "/if"), li => ListItems(li, Required(item, "items", at), at + "/items"));
+            Keys(item, at, "if", "then", "elseIf", "else");
+            ListIfChain chain = l.If(Condition(condition, at + "/if"), li => ListItems(li, Required(item, "then", at), at + "/then"));
             int b = 0;
             foreach (JsonElement branch in Array(item, "elseIf", at))
             {
                 string branchAt = at + "/elseIf/" + b++;
-                Keys(branch, branchAt, "when", "items");
-                chain = chain.ElseIf(Condition(Required(branch, "when", branchAt), branchAt + "/when"), li => ListItems(li, Required(branch, "items", branchAt), branchAt + "/items"));
+                Keys(branch, branchAt, "if", "then");
+                chain = chain.ElseIf(Condition(Required(branch, "if", branchAt), branchAt + "/if"), li => ListItems(li, Required(branch, "then", branchAt), branchAt + "/then"));
             }
 
             if (item.TryGetProperty("else", out JsonElement otherwise))
@@ -688,7 +688,7 @@ internal sealed class JsonComposition
 
         if (item.TryGetProperty("row", out _))
         {
-            Keys(item, at, "header", "allowSplit", "textStyle", "row");
+            Keys(item, at, "header", "allowSplit", "paragraphStyle", "row");
             Action<RowComposer> cells = r => Row(r, item, at);
             if (Bool(item, "header", at) == true)
             {
@@ -719,8 +719,8 @@ internal sealed class JsonComposition
             foreach (JsonElement branch in Array(item, "elseIf", at))
             {
                 string branchAt = at + "/elseIf/" + b++;
-                Keys(branch, branchAt, "when", "then");
-                chain = chain.ElseIf(Condition(Required(branch, "when", branchAt), branchAt + "/when"), inner => Rows(Target(inner), Required(branch, "then", branchAt), branchAt + "/then"));
+                Keys(branch, branchAt, "if", "then");
+                chain = chain.ElseIf(Condition(Required(branch, "if", branchAt), branchAt + "/if"), inner => Rows(Target(inner), Required(branch, "then", branchAt), branchAt + "/then"));
             }
 
             if (item.TryGetProperty("else", out JsonElement otherwise))
@@ -741,9 +741,9 @@ internal sealed class JsonComposition
             r.AllowSplit();
         }
 
-        if (String(row, "textStyle", at) is { } textStyle)
+        if (String(row, "paragraphStyle", at) is { } paragraphStyle)
         {
-            r.TextStyle(ParagraphStyle(textStyle));
+            r.ParagraphStyle(ParagraphStyle(paragraphStyle));
         }
 
         int i = 0;
@@ -763,13 +763,13 @@ internal sealed class JsonComposition
                     throw new JsonImportException(cellAt, "A cell is a string, a list of blocks, or { \"span\": …, \"content\": … }.");
                 }
 
-                Keys(cell, cellAt, "span", "background", "align", "content");
+                Keys(cell, cellAt, "span", "background", "verticalAlign", "content");
                 JsonElement content = Required(cell, "content", cellAt);
                 r.Cell(c =>
                 {
                     Apply(Int(cell, "span", cellAt), v => c.ColumnSpan(v));
                     Apply(Color(cell, "background", cellAt), v => c.Background(v));
-                    Apply(String(cell, "align", cellAt), v => c.VerticalAlignment(Enum<CellVerticalAlignment>(v, cellAt + "/align")));
+                    Apply(String(cell, "verticalAlign", cellAt), v => c.VerticalAlignment(Enum<CellVerticalAlignment>(v, cellAt + "/verticalAlign")));
                     CellBlocks(c, content, cellAt + "/content");
                 });
             });
@@ -886,8 +886,8 @@ internal sealed class JsonComposition
             foreach (JsonElement branch in Array(inline, "elseIf", at))
             {
                 string branchAt = at + "/elseIf/" + i++;
-                Keys(branch, branchAt, "when", "then");
-                chain = chain.ElseIf(Condition(Required(branch, "when", branchAt), branchAt + "/when"), t => TextInlines(t, Required(branch, "then", branchAt), branchAt + "/then"));
+                Keys(branch, branchAt, "if", "then");
+                chain = chain.ElseIf(Condition(Required(branch, "if", branchAt), branchAt + "/if"), t => TextInlines(t, Required(branch, "then", branchAt), branchAt + "/then"));
             }
 
             if (inline.TryGetProperty("else", out JsonElement otherwise))
@@ -984,8 +984,8 @@ internal sealed class JsonComposition
             foreach (JsonElement branch in Array(inline, "elseIf", at))
             {
                 string branchAt = at + "/elseIf/" + b++;
-                Keys(branch, branchAt, "when", "then");
-                chain = chain.ElseIf(Condition(Required(branch, "when", branchAt), branchAt + "/when"), inner => TextInlines(inner, Required(branch, "then", branchAt), branchAt + "/then"));
+                Keys(branch, branchAt, "if", "then");
+                chain = chain.ElseIf(Condition(Required(branch, "if", branchAt), branchAt + "/if"), inner => TextInlines(inner, Required(branch, "then", branchAt), branchAt + "/then"));
             }
 
             if (inline.TryGetProperty("else", out JsonElement otherwise))

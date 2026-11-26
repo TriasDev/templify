@@ -190,12 +190,12 @@ public sealed class JsonShortFormTests
 
     private const string ShortStyles = """
         {
-          "defaults": { "paragraph": "Body" },
+          "defaults": { "paragraphStyle": "Body" },
           "paragraph": {
             "Body": { "name": "Body Text Style" }, "Heading": { "name": "Heading Style" }, "CellText": { "name": "Cell Text" },
             "HeadText": { "name": "Head Text" }, "TotalText": { "name": "Total Text" }, "ItemText": { "name": "Item Text" }
           },
-          "table": { "Grid": { "rowRule": "0.5pt #D4D4D4", "textStyle": "CellText", "headerTextStyle": "HeadText" } },
+          "table": { "Grid": { "rowRule": "0.5pt #D4D4D4", "paragraphStyle": "CellText", "headerParagraphStyle": "HeadText" } },
           "box": { "SuccessBox": { "background": "#EFF6F1" } },
           "list": { "Bullets": { "itemStyle": "ItemText", "levels": [ { "level": 0, "bullet": "•", "indent": "6mm", "hanging": "4mm" }, { "level": 1, "bullet": "–", "indent": "12mm", "hanging": "4mm" } ] } }
         }
@@ -210,7 +210,7 @@ public sealed class JsonShortFormTests
           { "style": "Grid", "columns": [ "20mm", 1 ], "table": [
             { "header": true, "row": [ "#", "Item" ] },
             { "row": [ "1", [ "a", { "style": "Heading", "paragraph": "b" } ] ] },
-            { "textStyle": "TotalText", "row": [ { "span": 2, "content": "Total {{total}}" } ] }
+            { "paragraphStyle": "TotalText", "row": [ { "span": 2, "content": "Total {{total}}" } ] }
           ] }
         ]
         """;
@@ -219,14 +219,14 @@ public sealed class JsonShortFormTests
     {
         t.Styles(StyleSheet.Create(s =>
         {
-            s.Defaults(d => d.Paragraph(_body));
+            s.Defaults(d => d.ParagraphStyle(_body));
             s.Paragraph(_body, p => { });
             s.Paragraph(_heading, p => { });
             s.Paragraph(_cell, p => { });
             s.Paragraph(_head, p => { });
             s.Paragraph(_total, p => { });
             s.Paragraph(_item, p => { });
-            s.Table(_grid, g => g.RowRule(0.5.Pt(), Color.FromHex("D4D4D4")).TextStyle(_cell).HeaderTextStyle(_head));
+            s.Table(_grid, g => g.RowRule(0.5.Pt(), Color.FromHex("D4D4D4")).ParagraphStyle(_cell).HeaderParagraphStyle(_head));
             s.Box(_success, b => b.Background(Color.FromHex("EFF6F1")));
             s.List(_bullets, l => l.ItemStyle(_item).Level(0, "•", 6.Mm(), 4.Mm()).Level(1, "–", 12.Mm(), 4.Mm()));
         }));
@@ -271,7 +271,7 @@ public sealed class JsonShortFormTests
                 });
                 tb.Row(r =>
                 {
-                    r.TextStyle(_total);
+                    r.ParagraphStyle(_total);
                     r.Cell(cell => cell.ColumnSpan(2).Paragraph(x =>
                     {
                         x.Text("Total ");
@@ -309,7 +309,7 @@ public sealed class JsonShortFormTests
         {
             t.Styles(StyleSheet.Create(s =>
             {
-                s.Defaults(d => d.Paragraph(_body));
+                s.Defaults(d => d.ParagraphStyle(_body));
                 s.Paragraph(_body, p => { });
                 s.Paragraph(_heading, p => { });
             }));
@@ -334,10 +334,10 @@ public sealed class JsonShortFormTests
         {
             t.Styles(StyleSheet.Create(s =>
             {
-                s.Defaults(d => d.Paragraph(_body));
+                s.Defaults(d => d.ParagraphStyle(_body));
                 s.Paragraph(_body, p => { });
                 s.Paragraph(_cell, p => { });
-                s.Table(_grid, g => g.TextStyle(_cell));
+                s.Table(_grid, g => g.ParagraphStyle(_cell));
                 s.Box(_success, b => b.Background(Color.FromHex("EFF6F1")));
             }));
             t.Content(c => c.Table(tb =>
@@ -380,6 +380,24 @@ public sealed class JsonShortFormTests
 
         Assert.Equal("TB9200", error.Code);
         Assert.Equal("/content/0/table/0/row/0", error.Location);
+    }
+
+    [Theory]
+    [MemberData(nameof(Formats))]
+    public void Conditionals_AlwaysUseThen_AndElseIfUsesIf(TemplateFormat format)
+    {
+        ITemplateDefinition imported = TemplateJson.Import(Definition("""
+            [
+              { "style": "Bullets", "list": [ { "if": "a", "then": [ "list a" ], "elseIf": [ { "if": "b", "then": [ "list b" ] } ] } ] },
+              { "if": "a", "then": [ "block a" ], "elseIf": [ { "if": "b", "then": [ "block b" ] } ], "else": [ "block c" ] }
+            ]
+            """, ShortStyles));
+
+        (_, byte[] filled) = BuilderHarness.BuildAndFill(imported, format, """{ "a": false, "b": true }""");
+
+        Assert.Equal(new[] { "list b", "block b" }, BuilderHarness.ParagraphTexts(format, filled));
+        string json = TemplateJson.Export(imported, BuilderHarness.Options(format)).Json;
+        Assert.DoesNotContain("\"when\"", json, StringComparison.Ordinal);
     }
 
     private static JsonElement ContentOf(ITemplateDefinition definition)

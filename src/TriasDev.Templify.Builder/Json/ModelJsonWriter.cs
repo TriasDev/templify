@@ -216,7 +216,7 @@ internal sealed class ModelJsonWriter
         {
             _json.WriteStartObject("defaults");
             Text(sheet.Defaults);
-            StringIf("paragraph", sheet.DefaultParagraphStyle?.Id);
+            StringIf("paragraphStyle", sheet.DefaultParagraphStyle?.Id);
             _json.WriteEndObject();
         }
 
@@ -286,8 +286,8 @@ internal sealed class ModelJsonWriter
                 _json.WriteString("cellPadding", JsonValues.Length(style.PaddingVertical) + " " + JsonValues.Length(style.PaddingHorizontal));
             }
 
-            StringIf("textStyle", style.TextStyle?.Id);
-            StringIf("headerTextStyle", style.HeaderTextStyle?.Id);
+            StringIf("paragraphStyle", style.ParagraphStyle?.Id);
+            StringIf("headerParagraphStyle", style.HeaderParagraphStyle?.Id);
             _json.WriteEndObject();
         });
 
@@ -593,12 +593,12 @@ internal sealed class ModelJsonWriter
         }
     }
 
-    private void Conditional(List<(Condition Condition, Action Write)> branches, Action? otherwise, string thenName = "then")
+    private void Conditional(List<(Condition Condition, Action Write)> branches, Action? otherwise)
     {
         _json.WriteStartObject();
         _json.WritePropertyName("if");
         Condition(branches[0].Condition);
-        _json.WritePropertyName(thenName);
+        _json.WritePropertyName("then");
         branches[0].Write();
         if (branches.Count > 1)
         {
@@ -606,9 +606,9 @@ internal sealed class ModelJsonWriter
             foreach ((Condition condition, Action write) in branches.Skip(1))
             {
                 _json.WriteStartObject();
-                _json.WritePropertyName("when");
+                _json.WritePropertyName("if");
                 Condition(condition);
-                _json.WritePropertyName(thenName);
+                _json.WritePropertyName("then");
                 write();
                 _json.WriteEndObject();
             }
@@ -660,8 +660,7 @@ internal sealed class ModelJsonWriter
                 case ConditionalBlock conditional:
                     Conditional(
                         conditional.Branches.Select(b => (b.Condition, (Action)(() => ListItems(b.Body)))).ToList(),
-                        conditional.Else is { } e ? () => ListItems(e) : null,
-                        "items");
+                        conditional.Else is { } e ? () => ListItems(e) : null);
                     break;
 
                 default:
@@ -721,7 +720,7 @@ internal sealed class ModelJsonWriter
                         _json.WriteBoolean("allowSplit", true);
                     }
 
-                    StringIf("textStyle", row.TextStyle?.Id);
+                    StringIf("paragraphStyle", row.ParagraphStyle?.Id);
                     _json.WriteStartArray("row");
                     Inheriting(StyleInheritance.ForCell(_styles, table, row), () =>
                     {
@@ -755,7 +754,7 @@ internal sealed class ModelJsonWriter
                         foreach ((Condition condition, List<TableRowItem> branchRows) in conditional.Branches.Skip(1))
                         {
                             _json.WriteStartObject();
-                            _json.WritePropertyName("when");
+                            _json.WritePropertyName("if");
                             Condition(condition);
                             _json.WritePropertyName("then");
                             Rows(table, branchRows);
@@ -794,7 +793,7 @@ internal sealed class ModelJsonWriter
             ColorIf("background", cell.Background);
             if (cell.VerticalAlignment is { } alignment)
             {
-                _json.WriteString("align", Enum(alignment));
+                _json.WriteString("verticalAlign", Enum(alignment));
             }
 
             _json.WritePropertyName("content");
@@ -953,7 +952,7 @@ internal sealed class ModelJsonWriter
                     foreach ((Condition condition, IReadOnlyList<Inline> branch) in conditional.Branches.Skip(1))
                     {
                         _json.WriteStartObject();
-                        _json.WritePropertyName("when");
+                        _json.WritePropertyName("if");
                         Condition(condition);
                         _json.WritePropertyName("then");
                         InlineContent(branch);

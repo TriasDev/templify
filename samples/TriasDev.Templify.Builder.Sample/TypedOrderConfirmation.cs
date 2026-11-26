@@ -150,7 +150,7 @@ public sealed class TypedOrderConfirmation(BrandTheme theme) : ITemplateDefiniti
             }));
             table.Row(r =>
             {
-                r.TextStyle(Styles.TableHeader);
+                r.ParagraphStyle(Styles.TableHeader);
                 r.Cell(cell => cell.ColumnSpan(3).Paragraph(t["total"]));
                 r.Cell(cell => cell.Paragraph(x => x.Value(order.Total, ValueFormat.Currency)));
             });
