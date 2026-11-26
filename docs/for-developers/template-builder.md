@@ -91,7 +91,7 @@ A paragraph without a style of its own inherits one, so most paragraphs need non
 2. the style sheet's default paragraph style, `Defaults(d => d.Paragraph(Body))`;
 3. otherwise none (the application's "Normal" / "Standard").
 
-List items take their list style's `ItemStyle`. The inherited style is written into the document explicitly, so Word
+List items take their list style's `ItemStyle`; a list style without one lets its items inherit like any paragraph. The inherited style is written into the document explicitly, so Word
 and LibreOffice show it by name. Without a default and without table text styles nothing is inherited.
 
 The marker paragraphs (`{{#if …}}`, `{{#foreach …}}`) use the style "Template Marker": small and grey, visible but

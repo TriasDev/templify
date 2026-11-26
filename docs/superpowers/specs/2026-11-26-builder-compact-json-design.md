@@ -115,7 +115,7 @@ A paragraph without its own style gets the first of:
 2. the style sheet's default paragraph style;
 3. none (Normal), as today.
 
-List items keep their list style's `itemStyle`. The style is resolved at composition and stored in the model, so the
+List items keep their list style's `itemStyle`; without one they inherit like any other paragraph (decided in the final review). The style is resolved at composition and stored in the model, so the
 writers do not change and the document carries an explicit `pStyle` / `text:style-name`. Export omits a paragraph's
 style when it equals the inherited one. Without `Paragraph(...)` in the defaults and without table text styles,
 definitions build exactly as today.
