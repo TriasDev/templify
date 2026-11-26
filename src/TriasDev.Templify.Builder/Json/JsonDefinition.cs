@@ -355,15 +355,21 @@ internal sealed class JsonComposition
 
     private void Block(BlockComposer c, JsonElement block, string at)
     {
+        if (block.ValueKind == JsonValueKind.String)
+        {
+            Paragraph(c, null, block, at);
+            return;
+        }
+
         if (block.ValueKind != JsonValueKind.Object)
         {
-            throw new JsonImportException(at, "A block is an object such as { \"paragraph\": … }.");
+            throw new JsonImportException(at, "A block is a string (a paragraph) or an object such as { \"paragraph\": … }.");
         }
 
         if (block.TryGetProperty("paragraph", out JsonElement paragraph))
         {
-            Keys(block, at, "paragraph");
-            Paragraph(c, paragraph, at + "/paragraph");
+            Keys(block, at, "style", "paragraph");
+            Paragraph(c, String(block, "style", at), paragraph, at + "/paragraph");
         }
         else if (block.TryGetProperty("pageBreak", out _))
         {
@@ -410,26 +416,20 @@ internal sealed class JsonComposition
         }
         else if (block.TryGetProperty("list", out JsonElement list))
         {
-            Keys(block, at, "list");
-            at += "/list";
-            Keys(list, at, "style", "items");
-            string style = String(list, "style", at) ?? throw Missing(at, "style");
-            JsonElement items = Required(list, "items", at);
-            c.List(new ListStyleKey(style), l => ListItems(l, items, at + "/items"));
+            Keys(block, at, "style", "list");
+            string style = String(block, "style", at) ?? throw Missing(at, "style");
+            c.List(new ListStyleKey(style), l => ListItems(l, list, at + "/list"));
         }
         else if (block.TryGetProperty("box", out JsonElement box))
         {
-            Keys(block, at, "box");
-            at += "/box";
-            Keys(box, at, "style", "content");
-            string style = String(box, "style", at) ?? throw Missing(at, "style");
-            JsonElement content = Required(box, "content", at);
-            c.Box(new BoxStyleKey(style), b => Blocks(b, content, at + "/content"));
+            Keys(block, at, "style", "box");
+            string style = String(block, "style", at) ?? throw Missing(at, "style");
+            c.Box(new BoxStyleKey(style), b => Blocks(b, box, at + "/box"));
         }
-        else if (block.TryGetProperty("table", out JsonElement table))
+        else if (block.TryGetProperty("table", out _))
         {
-            Keys(block, at, "table");
-            c.Table(t => Table(t, table, at + "/table"));
+            Keys(block, at, "style", "columns", "spaceAfter", "table");
+            c.Table(t => Table(t, block, at));
         }
         else if (block.TryGetProperty("rule", out JsonElement rule))
         {
@@ -456,23 +456,15 @@ internal sealed class JsonComposition
         }
     }
 
-    private void Paragraph(BlockComposer c, JsonElement paragraph, string at)
+    /// <summary>A paragraph: its content is a string (text with placeholders) or a list of inlines.</summary>
+    private void Paragraph(BlockComposer c, string? styleId, JsonElement content, string at)
     {
-        if (IsPlainText(paragraph))
+        if (content.ValueKind is not (JsonValueKind.String or JsonValueKind.Array))
         {
-            c.Paragraph(paragraph.GetString()!);
-            return;
+            throw new JsonImportException(at, "A paragraph holds a string or a list of inlines, for example { \"style\": \"Heading\", \"paragraph\": \"Title\" }.");
         }
 
-        if (paragraph.ValueKind == JsonValueKind.String)
-        {
-            c.Paragraph(x => Inlines(x, paragraph, at));
-            return;
-        }
-
-        Keys(paragraph, at, "style", "content");
-        ParagraphStyleKey? style = String(paragraph, "style", at) is { } id ? ParagraphStyle(id) : null;
-        JsonElement content = Required(paragraph, "content", at);
+        ParagraphStyleKey? style = styleId is { } id ? ParagraphStyle(id) : null;
         if (IsPlainText(content))
         {
             if (style is null)
@@ -483,18 +475,50 @@ internal sealed class JsonComposition
             {
                 c.Paragraph(style, content.GetString()!);
             }
+        }
+        else if (style is null)
+        {
+            c.Paragraph(x => Inlines(x, content, at));
+        }
+        else
+        {
+            c.Paragraph(style, x => Inlines(x, content, at));
+        }
+    }
+
+    private void ItemContent(ListComposer l, int level, JsonElement content, string at)
+    {
+        if (content.ValueKind is not (JsonValueKind.String or JsonValueKind.Array))
+        {
+            throw new JsonImportException(at, "A list item holds a string or a list of inlines.");
+        }
+
+        if (IsPlainText(content))
+        {
+            l.Item(level, content.GetString()!);
+        }
+        else
+        {
+            l.Item(level, x => Inlines(x, content, at));
+        }
+    }
+
+    /// <summary>The content of a cell: a string (one paragraph) or a list of blocks.</summary>
+    private void CellBlocks(BlockComposer c, JsonElement content, string at)
+    {
+        if (content.ValueKind == JsonValueKind.String)
+        {
+            int before = c.Blocks.Count;
+            Guard(at, () => Paragraph(c, null, content, at));
+            for (int added = before; added < c.Blocks.Count; added++)
+            {
+                _context.Locations.AddOrUpdate(c.Blocks[added], at);
+            }
 
             return;
         }
 
-        if (style is null)
-        {
-            c.Paragraph(x => Inlines(x, content, at + "/content"));
-        }
-        else
-        {
-            c.Paragraph(style, x => Inlines(x, content, at + "/content"));
-        }
+        Blocks(c, content, at);
     }
 
     private void ListItems(ListComposer l, JsonElement items, string at)
@@ -509,32 +533,18 @@ internal sealed class JsonComposition
 
     private void ListItem(ListComposer l, JsonElement item, string at)
     {
-        if (item.TryGetProperty("item", out JsonElement content))
+        if (item.ValueKind == JsonValueKind.String)
         {
-            Keys(item, at, "item");
-            if (IsPlainText(content))
-            {
-                l.Item(content.GetString()!);
-                return;
-            }
-
-            if (content.ValueKind == JsonValueKind.String)
-            {
-                l.Item(0, x => Inlines(x, content, at + "/item"));
-                return;
-            }
-
-            Keys(content, at + "/item", "level", "content");
-            int level = Int(content, "level", at + "/item") ?? 0;
-            JsonElement inlines = Required(content, "content", at + "/item");
-            if (IsPlainText(inlines))
-            {
-                l.Item(level, inlines.GetString()!);
-            }
-            else
-            {
-                l.Item(level, x => Inlines(x, inlines, at + "/item/content"));
-            }
+            ItemContent(l, 0, item, at);
+        }
+        else if (item.ValueKind != JsonValueKind.Object)
+        {
+            throw new JsonImportException(at, "A list item is a string, { \"level\": …, \"item\": … }, forEach or if.");
+        }
+        else if (item.TryGetProperty("item", out JsonElement content))
+        {
+            Keys(item, at, "level", "item");
+            ItemContent(l, Int(item, "level", at) ?? 0, content, at + "/item");
         }
         else if (item.TryGetProperty("forEach", out JsonElement collection))
         {
@@ -603,9 +613,9 @@ internal sealed class JsonComposition
 
     // ── tables ───────────────────────────────────────────────────────────────
 
+    /// <summary>A table block: its options beside the <c>table</c> key, which holds the rows.</summary>
     private void Table(TableComposer t, JsonElement table, string at)
     {
-        Keys(table, at, "style", "columns", "spaceAfter", "rows");
         Apply(String(table, "style", at), v => t.Style(new TableStyleKey(v)));
         if (table.TryGetProperty("columns", out JsonElement columns))
         {
@@ -635,7 +645,7 @@ internal sealed class JsonComposition
         }
 
         Apply(Length(table, "spaceAfter", at), v => t.SpaceAfter(v));
-        Rows(new RowTarget(t.Row, t.ForEachRow, t.RowsIf, t.HeaderRow), Required(table, "rows", at), at + "/rows");
+        Rows(new RowTarget(t.Row, t.ForEachRow, t.RowsIf, t.HeaderRow), Required(table, "table", at), at + "/table");
     }
 
     private sealed record RowTarget(
@@ -658,12 +668,16 @@ internal sealed class JsonComposition
 
     private void RowItem(RowTarget target, JsonElement item, string at)
     {
-        if (item.TryGetProperty("row", out JsonElement row))
+        if (item.ValueKind != JsonValueKind.Object)
         {
-            Keys(item, at, "row");
-            Keys(row, at + "/row", "header", "allowSplit", "textStyle", "cells");
-            Action<RowComposer> cells = r => Row(r, row, at + "/row");
-            if (Bool(row, "header", at + "/row") == true)
+            throw new JsonImportException(at, "A row item is an object: row, forEachRow or rowsIf.");
+        }
+
+        if (item.TryGetProperty("row", out _))
+        {
+            Keys(item, at, "header", "allowSplit", "textStyle", "row");
+            Action<RowComposer> cells = r => Row(r, item, at);
+            if (Bool(item, "header", at) == true)
             {
                 if (target.HeaderRow is null)
                 {
@@ -720,11 +734,22 @@ internal sealed class JsonComposition
         }
 
         int i = 0;
-        foreach (JsonElement cell in Array(row, "cells", at))
+        foreach (JsonElement cell in Items(Required(row, "row", at), at + "/row", "a list of cells"))
         {
-            string cellAt = at + "/cells/" + i++;
+            string cellAt = at + "/row/" + i++;
             Guard(cellAt, () =>
             {
+                if (cell.ValueKind is JsonValueKind.String or JsonValueKind.Array)
+                {
+                    r.Cell(c => CellBlocks(c, cell, cellAt));
+                    return;
+                }
+
+                if (cell.ValueKind != JsonValueKind.Object)
+                {
+                    throw new JsonImportException(cellAt, "A cell is a string, a list of blocks, or { \"span\": …, \"content\": … }.");
+                }
+
                 Keys(cell, cellAt, "span", "background", "align", "content");
                 JsonElement content = Required(cell, "content", cellAt);
                 r.Cell(c =>
@@ -732,7 +757,7 @@ internal sealed class JsonComposition
                     Apply(Int(cell, "span", cellAt), v => c.ColumnSpan(v));
                     Apply(Color(cell, "background", cellAt), v => c.Background(v));
                     Apply(String(cell, "align", cellAt), v => c.VerticalAlignment(Enum<CellVerticalAlignment>(v, cellAt + "/align")));
-                    Blocks(c, content, cellAt + "/content");
+                    CellBlocks(c, content, cellAt + "/content");
                 });
             });
         }

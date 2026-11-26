@@ -91,13 +91,13 @@ public sealed class Phase3ReviewTests
     public void I1_HeaderRowAfterBodyRow_IsTB9201()
     {
         string json = Definition("""
-            [ { "table": { "columns": [ 1 ], "rows": [ { "row": { "cells": [ { "content": [ { "paragraph": "a" } ] } ] } }, { "row": { "header": true, "cells": [ { "content": [ { "paragraph": "h" } ] } ] } } ] } } ]
+            [ { "columns": [ 1 ], "table": [ { "row": [ [ "a" ] ] }, { "header": true, "row": [ "h" ] } ] } ]
             """);
 
         BuildDiagnostic error = Assert.Single(Assert.Throws<TemplateBuildException>(() => BuilderHarness.Build(TemplateJson.Import(json), TemplateFormat.Docx)).Errors);
 
         Assert.Equal("TB9201", error.Code);
-        Assert.Equal("/content/0/table/rows/1", error.Location);
+        Assert.Equal("/content/0/table/1", error.Location);
     }
 
     [Theory]
@@ -240,9 +240,9 @@ public sealed class Phase3ReviewTests
         string json = Definition("""
             [
               { "forEach": "title", "as": "t", "body": [ { "paragraph": "x" } ] },
-              { "paragraph": { "content": "{{address}}" } },
+              { "paragraph": "{{address}}" },
               { "component": "where", "params": { "where": "title" } },
-              { "forEach": "tags", "as": "tag", "body": [ { "paragraph": { "content": "{{tag}}" } } ] },
+              { "forEach": "tags", "as": "tag", "body": [ { "paragraph": "{{tag}}" } ] },
               { "component": "where", "params": { "where": "address" } }
             ]
             """);
@@ -251,14 +251,14 @@ public sealed class Phase3ReviewTests
             TemplateJson.Import(json, new TemplateJsonImportOptions { Components = catalog, Data = DataCatalog.From<KindData>() }));
 
         Assert.All(exception.Errors, e => Assert.Equal("TB9203", e.Code));
-        Assert.Equal(new[] { "/content/0/forEach", "/content/1/paragraph/content", "/content/2/params" }, exception.Errors.Select(e => e.Location));
+        Assert.Equal(new[] { "/content/0/forEach", "/content/1/paragraph", "/content/2/params" }, exception.Errors.Select(e => e.Location));
     }
 
     // ── Re-graded minor: flags must be true ───────────────────────────────────
 
     [Theory]
     [InlineData("""{ "pageBreak": false }""", "/content/0/pageBreak")]
-    [InlineData("""{ "paragraph": { "content": [ { "tab": false } ] } }""", "/content/0/paragraph/content/0/tab")]
+    [InlineData("""{ "paragraph": [ { "tab": false } ] }""", "/content/0/paragraph/0/tab")]
     public void Flags_MustBeTrue(string block, string location)
     {
         BuildDiagnostic error = Assert.Single(Assert.Throws<TemplateBuildException>(() => TemplateJson.Import(Definition("[" + block + "]"))).Errors);

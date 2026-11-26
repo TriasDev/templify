@@ -44,8 +44,8 @@ public sealed class JsonImportTests
               "styles": { "paragraph": { "Body": { "name": "Body Copy", "spaceAfter": "70.866pt", "color": "#1f4e79", "indentStart": "25mm" } } },
               "content": [
                 { "paragraph": "Hi" },
-                { "paragraph": { "content": "Hi" } },
-                { "paragraph": { "style": "Body", "content": [ "a", { "tab": true }, "{{name}}" ] } }
+                "Hi",
+                { "style": "Body", "paragraph": [ "a", { "tab": true }, "{{name}}" ] }
               ]
             }
             """;
@@ -55,7 +55,11 @@ public sealed class JsonImportTests
 
         Assert.Equal(new[] { "Hi", "Hi", "a\tAda" }, BuilderHarness.ParagraphTexts(format, filled));
         string normalised = TemplateJson.Export(imported, BuilderHarness.Options(format)).Json;
-        Assert.Contains("\"paragraph\": \"Hi\"", normalised, StringComparison.Ordinal);
+        using (System.Text.Json.JsonDocument document = System.Text.Json.JsonDocument.Parse(normalised))
+        {
+            Assert.Equal("Hi", document.RootElement.GetProperty("content")[0].GetString());
+        }
+
         Assert.Contains("\"spaceAfter\": \"25mm\"", normalised, StringComparison.Ordinal);
         Assert.Contains("\"color\": \"#1F4E79\"", normalised, StringComparison.Ordinal);
         Assert.DoesNotContain("70.866pt", normalised, StringComparison.Ordinal);
@@ -74,8 +78,8 @@ public sealed class JsonImportTests
               "language": "en-US",
               "content": [
                 { "forEach": "order.lines", "as": "line", "body": [
-                  { "paragraph": { "content": "{{@number}} {{line.description}}" } } ] },
-                { "paragraph": { "content": "{{line.description}}" } }
+                  "{{@number}} {{line.description}}" ] },
+                "{{line.description}}"
               ]
             }
             """;

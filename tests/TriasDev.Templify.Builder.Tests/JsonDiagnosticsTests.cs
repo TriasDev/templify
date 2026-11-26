@@ -32,9 +32,9 @@ public sealed class JsonDiagnosticsTests
             [
               { "paragraph": "ok" },
               { "paragrahp": "typo" },
-              { "paragraph": { "style": 5, "content": "x" } },
-              { "paragraph": { "content": "x", "colour": "red" } },
-              { "paragraph": { "content": [ { "image": "sha256:missing", "alt": "a", "width": "10pt", "height": "10pt" } ] } }
+              { "style": 5, "paragraph": "x" },
+              { "paragraph": "x", "colour": "red" },
+              { "paragraph": [ { "image": "sha256:missing", "alt": "a", "width": "10pt", "height": "10pt" } ] }
             ]
             """);
 
@@ -42,7 +42,7 @@ public sealed class JsonDiagnosticsTests
 
         Assert.All(errors, e => Assert.Equal("TB9200", e.Code));
         Assert.Equal(
-            new[] { "/content/1", "/content/2/paragraph/style", "/content/3/paragraph/colour", "/content/4/paragraph/content/0/image" },
+            new[] { "/content/1", "/content/2/style", "/content/3/colour", "/content/4/paragraph/0/image" },
             errors.Select(e => e.Location));
     }
 
@@ -52,16 +52,16 @@ public sealed class JsonDiagnosticsTests
         string json = Definition(
             """
             [
-              { "list": { "style": "Bullets", "items": [ { "item": { "level": 12, "content": "deep" } } ] } },
+              { "style": "Bullets", "list": [ { "level": 12, "item": "deep" } ] },
               { "rule": { "line": "0pt #000000" } },
-              { "paragraph": { "style": "Missing", "content": "x" } }
+              { "style": "Missing", "paragraph": "x" }
             ]
             """,
             """{ "list": { "Bullets": { "levels": [ { "level": 0, "bullet": "•", "indent": "6mm", "hanging": "4mm" } ] } } }""");
 
         IReadOnlyList<BuildDiagnostic> errors = BuildErrors(json);
 
-        Assert.Contains(errors, e => e.Code == "TB9201" && e.Location == "/content/0/list/items/0");
+        Assert.Contains(errors, e => e.Code == "TB9201" && e.Location == "/content/0/list/0");
         Assert.Contains(errors, e => e.Code == "TB9201" && e.Location == "/content/1");
         Assert.Contains(errors, e => e.Code == "TB2010" && e.Location == "/content/2");
     }
@@ -71,14 +71,14 @@ public sealed class JsonDiagnosticsTests
     {
         string json = Definition("""
             [
-              { "paragraph": { "content": [ "{{@index}}" ] } }
+              { "paragraph": [ "{{@index}}" ] }
             ]
             """);
 
         BuildDiagnostic error = Assert.Single(BuildErrors(json));
 
         Assert.Equal("TB9201", error.Code);
-        Assert.Equal("/content/0/paragraph/content/0", error.Location);
+        Assert.Equal("/content/0/paragraph/0", error.Location);
         Assert.Contains("@index", error.Message, StringComparison.Ordinal);
     }
 

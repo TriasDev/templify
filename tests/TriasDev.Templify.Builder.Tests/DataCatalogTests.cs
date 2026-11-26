@@ -85,9 +85,9 @@ public sealed class DataCatalogTests
               "identity": { "id": "c", "version": 1 },
               "language": "en-US",
               "content": [
-                { "paragraph": { "content": "{{order.nummer}}" } },
+                { "paragraph": "{{order.nummer}}" },
                 { "if": "order.totl > 1", "then": [ { "paragraph": "x" } ] },
-                { "forEach": "order.lines", "as": "line", "body": [ { "paragraph": { "content": "{{line.descr}}{{@number}}" } } ] }
+                { "forEach": "order.lines", "as": "line", "body": [ "{{line.descr}}{{@number}}" ] }
               ]
             }
             """;
@@ -97,7 +97,7 @@ public sealed class DataCatalogTests
 
         Assert.All(exception.Errors, e => Assert.Equal("TB9203", e.Code));
         Assert.Equal(
-            new[] { "/content/0/paragraph/content", "/content/1/if", "/content/2/body/0/paragraph/content" },
+            new[] { "/content/0/paragraph", "/content/1/if", "/content/2/body/0" },
             exception.Errors.Select(e => e.Location));
         Assert.Contains("order.lines[].descr", exception.Errors[2].Message, StringComparison.Ordinal);
 

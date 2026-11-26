@@ -19,6 +19,11 @@ internal sealed class ModelJsonWriter
     public const int FormatVersion = 1;
 
     private readonly Utf8JsonWriter _json;
+    private StyleSheet _styles = StyleSheet.Empty;
+
+    /// <summary>The paragraph style the blocks being written inherit; a paragraph with this style is written without one.</summary>
+    private ParagraphStyleKey? _inherited;
+
     private readonly SortedDictionary<string, byte[]> _assets = new SortedDictionary<string, byte[]>(StringComparer.Ordinal);
     private readonly PageSetup _page;
     private readonly ComponentCatalog? _components;
@@ -69,6 +74,8 @@ internal sealed class ModelJsonWriter
             _json.WriteEndObject();
         }
 
+        _styles = composed.UserStyles;
+        _inherited = _styles.DefaultParagraphStyle;
         Styles(composed.UserStyles);
         Page(model.Page);
         _json.WritePropertyName("content");
@@ -342,18 +349,15 @@ internal sealed class ModelJsonWriter
     {
         switch (block)
         {
-            case ParagraphBlock paragraph when paragraph.Style is null && paragraph.List is null && IsSingleString(paragraph.Inlines, out string? text):
-                _json.WriteStartObject();
-                _json.WriteString("paragraph", text);
-                _json.WriteEndObject();
+            case ParagraphBlock paragraph when IsPlainParagraph(paragraph, out string? text):
+                _json.WriteStringValue(text);
                 break;
 
             case ParagraphBlock paragraph:
                 _json.WriteStartObject();
-                _json.WriteStartObject("paragraph");
-                StringIf("style", paragraph.Style?.Id);
-                Content(paragraph.Inlines);
-                _json.WriteEndObject();
+                StringIf("style", Equals(paragraph.Style, _inherited) ? null : paragraph.Style?.Id);
+                _json.WritePropertyName("paragraph");
+                InlineContent(paragraph.Inlines);
                 _json.WriteEndObject();
                 break;
 
@@ -394,21 +398,18 @@ internal sealed class ModelJsonWriter
 
             case ListBlock list:
                 _json.WriteStartObject();
-                _json.WriteStartObject("list");
                 _json.WriteString("style", list.Style.Id);
-                _json.WritePropertyName("items");
+                _json.WritePropertyName("list");
                 ListItems(list.Items);
-                _json.WriteEndObject();
                 _json.WriteEndObject();
                 break;
 
             case TableBlock { BoxStyle: { } boxStyle } box:
                 _json.WriteStartObject();
-                _json.WriteStartObject("box");
                 _json.WriteString("style", boxStyle.Id);
-                _json.WritePropertyName("content");
-                Blocks(box.AllRows().Single().Cells.Single().Content);
-                _json.WriteEndObject();
+                _json.WritePropertyName("box");
+                TableRowModel boxRow = box.AllRows().Single();
+                Inheriting(StyleInheritance.ForCell(_styles, box, boxRow), () => Blocks(boxRow.Cells.Single().Content));
                 _json.WriteEndObject();
                 break;
 
@@ -454,6 +455,27 @@ internal sealed class ModelJsonWriter
         }
     }
 
+    /// <summary>A paragraph written as a bare string: inherited style, not a list item, one unstyled run.</summary>
+    private bool IsPlainParagraph(ParagraphBlock paragraph, out string? text)
+    {
+        text = null;
+        return paragraph.List is null && Equals(paragraph.Style, _inherited) && IsSingleString(paragraph.Inlines, out text);
+    }
+
+    private void Inheriting(ParagraphStyleKey? inherited, Action write)
+    {
+        ParagraphStyleKey? outer = _inherited;
+        _inherited = inherited;
+        try
+        {
+            write();
+        }
+        finally
+        {
+            _inherited = outer;
+        }
+    }
+
     private void Conditional(List<(Condition Condition, Action Write)> branches, Action? otherwise, string thenName = "then")
     {
         _json.WriteStartObject();
@@ -493,24 +515,19 @@ internal sealed class ModelJsonWriter
         {
             switch (item)
             {
+                case ParagraphBlock { List: { } info } paragraph when info.Level == 0 && IsSingleString(paragraph.Inlines, out string? text):
+                    _json.WriteStringValue(text);
+                    break;
+
                 case ParagraphBlock { List: { } info } paragraph:
                     _json.WriteStartObject();
-                    if (info.Level == 0 && IsSingleString(paragraph.Inlines, out string? text))
+                    if (info.Level != 0)
                     {
-                        _json.WriteString("item", text);
-                    }
-                    else
-                    {
-                        _json.WriteStartObject("item");
-                        if (info.Level != 0)
-                        {
-                            _json.WriteNumber("level", info.Level);
-                        }
-
-                        Content(paragraph.Inlines);
-                        _json.WriteEndObject();
+                        _json.WriteNumber("level", info.Level);
                     }
 
+                    _json.WritePropertyName("item");
+                    InlineContent(paragraph.Inlines);
                     _json.WriteEndObject();
                     break;
 
@@ -543,7 +560,6 @@ internal sealed class ModelJsonWriter
     private void Table(TableBlock table)
     {
         _json.WriteStartObject();
-        _json.WriteStartObject("table");
         StringIf("style", table.Style?.Id);
         if (table.Columns.Count > 0)
         {
@@ -564,13 +580,12 @@ internal sealed class ModelJsonWriter
         }
 
         LengthIf("spaceAfter", table.SpaceAfter);
-        _json.WritePropertyName("rows");
-        Rows(table.Rows);
-        _json.WriteEndObject();
+        _json.WritePropertyName("table");
+        Rows(table, table.Rows);
         _json.WriteEndObject();
     }
 
-    private void Rows(IEnumerable<TableRowItem> rows)
+    private void Rows(TableBlock table, IEnumerable<TableRowItem> rows)
     {
         _json.WriteStartArray();
         foreach (TableRowItem item in rows)
@@ -579,7 +594,6 @@ internal sealed class ModelJsonWriter
             {
                 case TableRowModel row:
                     _json.WriteStartObject();
-                    _json.WriteStartObject("row");
                     if (row.IsHeader)
                     {
                         _json.WriteBoolean("header", true);
@@ -591,29 +605,15 @@ internal sealed class ModelJsonWriter
                     }
 
                     StringIf("textStyle", row.TextStyle?.Id);
-
-                    _json.WriteStartArray("cells");
-                    foreach (TableCellModel cell in row.Cells)
+                    _json.WriteStartArray("row");
+                    Inheriting(StyleInheritance.ForCell(_styles, table, row), () =>
                     {
-                        _json.WriteStartObject();
-                        if (cell.Span != 1)
+                        foreach (TableCellModel cell in row.Cells)
                         {
-                            _json.WriteNumber("span", cell.Span);
+                            Cell(cell);
                         }
-
-                        ColorIf("background", cell.Background);
-                        if (cell.VerticalAlignment is { } alignment)
-                        {
-                            _json.WriteString("align", Enum(alignment));
-                        }
-
-                        _json.WritePropertyName("content");
-                        Blocks(cell.Content);
-                        _json.WriteEndObject();
-                    }
-
+                    });
                     _json.WriteEndArray();
-                    _json.WriteEndObject();
                     _json.WriteEndObject();
                     break;
 
@@ -622,7 +622,7 @@ internal sealed class ModelJsonWriter
                     _json.WriteString("forEachRow", loop.Collection.ToString());
                     _json.WriteString("as", loop.ItemName);
                     _json.WritePropertyName("rows");
-                    Rows(loop.Rows);
+                    Rows(table, loop.Rows);
                     _json.WriteEndObject();
                     break;
 
@@ -631,7 +631,7 @@ internal sealed class ModelJsonWriter
                     _json.WritePropertyName("rowsIf");
                     Condition(conditional.Branches[0].Condition);
                     _json.WritePropertyName("then");
-                    Rows(conditional.Branches[0].Rows);
+                    Rows(table, conditional.Branches[0].Rows);
                     if (conditional.Branches.Count > 1)
                     {
                         _json.WriteStartArray("elseIf");
@@ -641,7 +641,7 @@ internal sealed class ModelJsonWriter
                             _json.WritePropertyName("when");
                             Condition(condition);
                             _json.WritePropertyName("then");
-                            Rows(branchRows);
+                            Rows(table, branchRows);
                             _json.WriteEndObject();
                         }
 
@@ -651,7 +651,7 @@ internal sealed class ModelJsonWriter
                     if (conditional.Else is { } otherwise)
                     {
                         _json.WritePropertyName("else");
-                        Rows(otherwise);
+                        Rows(table, otherwise);
                     }
 
                     _json.WriteEndObject();
@@ -662,13 +662,43 @@ internal sealed class ModelJsonWriter
         _json.WriteEndArray();
     }
 
-    // ── inlines ──────────────────────────────────────────────────────────────
-
-    private void Content(IReadOnlyList<Inline> inlines)
+    /// <summary>A cell: a string (one plain paragraph), a list of blocks, or an object when it has options.</summary>
+    private void Cell(TableCellModel cell)
     {
-        _json.WritePropertyName("content");
-        InlineContent(inlines);
+        bool hasOptions = cell.Span != 1 || cell.Background != null || cell.VerticalAlignment != null;
+        if (hasOptions)
+        {
+            _json.WriteStartObject();
+            if (cell.Span != 1)
+            {
+                _json.WriteNumber("span", cell.Span);
+            }
+
+            ColorIf("background", cell.Background);
+            if (cell.VerticalAlignment is { } alignment)
+            {
+                _json.WriteString("align", Enum(alignment));
+            }
+
+            _json.WritePropertyName("content");
+        }
+
+        if (cell.Content is [ParagraphBlock only] && IsPlainParagraph(only, out string? text))
+        {
+            _json.WriteStringValue(text);
+        }
+        else
+        {
+            Blocks(cell.Content);
+        }
+
+        if (hasOptions)
+        {
+            _json.WriteEndObject();
+        }
     }
+
+    // ── inlines ──────────────────────────────────────────────────────────────
 
     /// <summary>
     /// Inline content: one string when it is a single unstyled run of text and placeholders, else a list of runs

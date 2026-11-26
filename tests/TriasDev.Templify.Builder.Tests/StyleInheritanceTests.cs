@@ -325,7 +325,7 @@ public sealed class StyleInheritanceTests
               "identity": { "id": "t", "version": 1 },
               "language": "en-US",
               "styles": { "defaults": { "paragraph": "Nope" } },
-              "content": [ { "paragraph": { "content": "x" } } ]
+              "content": [ "x" ]
             }
             """;
 

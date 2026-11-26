@@ -40,9 +40,7 @@ public sealed class JsonExportTests
               },
               "language": "en-US",
               "content": [
-                {
-                  "paragraph": "Hello {{name}}"
-                }
+                "Hello {{name}}"
               ]
             }
             """.Replace("\r\n", "\n", StringComparison.Ordinal),

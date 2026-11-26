@@ -34,7 +34,7 @@ public sealed class JsonShortFormTests
     [MemberData(nameof(Formats))]
     public void Import_StringWithPlaceholders(TemplateFormat format)
     {
-        ITemplateDefinition imported = TemplateJson.Import(Definition("""[ { "paragraph": { "content": "Order {{order.number}} of {{order.date:date:yyyy}}" } } ]"""));
+        ITemplateDefinition imported = TemplateJson.Import(Definition("""[ { "paragraph": "Order {{order.number}} of {{order.date:date:yyyy}}" } ]"""));
 
         (_, byte[] filled) = BuilderHarness.BuildAndFill(imported, format, """{ "order": { "number": "42", "date": "2026-11-26" } }""");
 
@@ -45,7 +45,7 @@ public sealed class JsonShortFormTests
     [MemberData(nameof(Formats))]
     public void Import_StyledTextWithValue(TemplateFormat format)
     {
-        ITemplateDefinition imported = TemplateJson.Import(Definition("""[ { "paragraph": { "content": [ "No. ", { "text": "{{order.number}}", "style": "Strong" } ] } } ]"""));
+        ITemplateDefinition imported = TemplateJson.Import(Definition("""[ { "paragraph": [ "No. ", { "text": "{{order.number}}", "style": "Strong" } ] } ]"""));
         TestDefinition expected = new TestDefinition(t =>
         {
             t.Styles(StyleSheet.Create(s => s.Character(_strong, c => c.Bold())));
@@ -63,7 +63,7 @@ public sealed class JsonShortFormTests
     [MemberData(nameof(Formats))]
     public void Import_Expression(TemplateFormat format)
     {
-        ITemplateDefinition imported = TemplateJson.Import(Definition("""[ { "paragraph": { "content": "Free: {{(a and b):yesno}}" } } ]"""));
+        ITemplateDefinition imported = TemplateJson.Import(Definition("""[ { "paragraph": "Free: {{(a and b):yesno}}" } ]"""));
 
         (_, byte[] filled) = BuilderHarness.BuildAndFill(imported, format, """{ "a": true, "b": false }""");
 
@@ -71,14 +71,14 @@ public sealed class JsonShortFormTests
     }
 
     [Theory]
-    [InlineData("""[ { "paragraph": { "content": "x {{order.number" } } ]""", "/content/0/paragraph/content")]
-    [InlineData("""[ { "paragraph": { "content": [ "ok", "x {{}}" ] } } ]""", "/content/0/paragraph/content/1")]
-    [InlineData("""[ { "paragraph": { "content": "{{(a and b)}}" } } ]""", "/content/0/paragraph/content")]
-    [InlineData("""[ { "paragraph": { "content": [ { "text": "{{(a):yesno}}", "style": "Strong" } ] } } ]""", "/content/0/paragraph/content/0")]
-    [InlineData("""[ { "paragraph": { "content": [ { "if": "a", "then": "{{(b):yesno}}" } ] } } ]""", "/content/0/paragraph/content/0/then")]
-    [InlineData("""[ { "paragraph": { "content": [ { "if": "a", "then": [ { "text": "{{v:number:F2}}", "style": "Strong" } ] } ] } } ]""", "/content/0/paragraph/content/0/then/0")]
-    [InlineData("""[ { "paragraph": { "content": [ { "value": "a" } ] } } ]""", "/content/0/paragraph/content/0")]
-    [InlineData("""[ { "paragraph": { "content": [ { "expression": "a", "format": "yesno" } ] } } ]""", "/content/0/paragraph/content/0/expression")]
+    [InlineData("""[ { "paragraph": "x {{order.number" } ]""", "/content/0/paragraph")]
+    [InlineData("""[ { "paragraph": [ "ok", "x {{}}" ] } ]""", "/content/0/paragraph/1")]
+    [InlineData("""[ { "paragraph": "{{(a and b)}}" } ]""", "/content/0/paragraph")]
+    [InlineData("""[ { "paragraph": [ { "text": "{{(a):yesno}}", "style": "Strong" } ] } ]""", "/content/0/paragraph/0")]
+    [InlineData("""[ { "paragraph": [ { "if": "a", "then": "{{(b):yesno}}" } ] } ]""", "/content/0/paragraph/0/then")]
+    [InlineData("""[ { "paragraph": [ { "if": "a", "then": [ { "text": "{{v:number:F2}}", "style": "Strong" } ] } ] } ]""", "/content/0/paragraph/0/then/0")]
+    [InlineData("""[ { "paragraph": [ { "value": "a" } ] } ]""", "/content/0/paragraph/0")]
+    [InlineData("""[ { "paragraph": [ { "expression": "a", "format": "yesno" } ] } ]""", "/content/0/paragraph/0/expression")]
     public void Import_Errors(string content, string location)
     {
         IReadOnlyList<BuildDiagnostic> errors = Assert.Throws<TemplateBuildException>(() => TemplateJson.Import(Definition(content))).Errors;
@@ -94,11 +94,11 @@ public sealed class JsonShortFormTests
         TemplateJsonImportOptions options = new TemplateJsonImportOptions { Data = DataCatalog.From<Data>() };
 
         IReadOnlyList<BuildDiagnostic> errors = Assert.Throws<TemplateBuildException>(() =>
-            TemplateJson.Import(Definition("""[ { "paragraph": { "content": "{{order.number}} {{order.nmber}}" } } ]"""), options)).Errors;
+            TemplateJson.Import(Definition("""[ { "paragraph": "{{order.number}} {{order.nmber}}" } ]"""), options)).Errors;
 
         BuildDiagnostic error = Assert.Single(errors);
         Assert.Equal("TB9203", error.Code);
-        Assert.Equal("/content/0/paragraph/content", error.Location);
+        Assert.Equal("/content/0/paragraph", error.Location);
         Assert.Contains("order.nmber", error.Message, StringComparison.Ordinal);
     }
 
@@ -177,12 +177,218 @@ public sealed class JsonShortFormTests
         AssertRoundTrip(definition);
     }
 
+    // ── block short forms ────────────────────────────────────────────────────
+
+    private static readonly ParagraphStyleKey _body = new ParagraphStyleKey("Body", "Body Text Style");
+    private static readonly ParagraphStyleKey _heading = new ParagraphStyleKey("Heading", "Heading Style");
+    private static readonly ParagraphStyleKey _cell = new ParagraphStyleKey("CellText", "Cell Text");
+    private static readonly ParagraphStyleKey _head = new ParagraphStyleKey("HeadText", "Head Text");
+    private static readonly ParagraphStyleKey _total = new ParagraphStyleKey("TotalText", "Total Text");
+    private static readonly ParagraphStyleKey _item = new ParagraphStyleKey("ItemText", "Item Text");
+    private static readonly TableStyleKey _grid = new TableStyleKey("Grid");
+    private static readonly BoxStyleKey _success = new BoxStyleKey("SuccessBox");
+    private static readonly ListStyleKey _bullets = new ListStyleKey("Bullets");
+
+    private const string ShortStyles = """
+        {
+          "defaults": { "paragraph": "Body" },
+          "paragraph": {
+            "Body": { "name": "Body Text Style" }, "Heading": { "name": "Heading Style" }, "CellText": { "name": "Cell Text" },
+            "HeadText": { "name": "Head Text" }, "TotalText": { "name": "Total Text" }, "ItemText": { "name": "Item Text" }
+          },
+          "table": { "Grid": { "rowRule": "0.5pt #D4D4D4", "textStyle": "CellText", "headerTextStyle": "HeadText" } },
+          "box": { "SuccessBox": { "background": "#EFF6F1" } },
+          "list": { "Bullets": { "itemStyle": "ItemText", "levels": [ { "level": 0, "bullet": "•", "indent": "6mm", "hanging": "4mm" }, { "level": 1, "bullet": "–", "indent": "12mm", "hanging": "4mm" } ] } }
+        }
+        """;
+
+    private const string ShortContent = """
+        [
+          "Plain block {{name}}",
+          { "style": "Heading", "paragraph": "Title" },
+          { "style": "SuccessBox", "box": [ "Paid" ] },
+          { "style": "Bullets", "list": [ "first", { "level": 1, "item": "second {{name}}" } ] },
+          { "style": "Grid", "columns": [ "20mm", 1 ], "table": [
+            { "header": true, "row": [ "#", "Item" ] },
+            { "row": [ "1", [ "a", { "style": "Heading", "paragraph": "b" } ] ] },
+            { "textStyle": "TotalText", "row": [ { "span": 2, "content": "Total {{total}}" } ] }
+          ] }
+        ]
+        """;
+
+    private static TestDefinition ShortFormsInCSharp() => new TestDefinition(t =>
+    {
+        t.Styles(StyleSheet.Create(s =>
+        {
+            s.Defaults(d => d.Paragraph(_body));
+            s.Paragraph(_body, p => { });
+            s.Paragraph(_heading, p => { });
+            s.Paragraph(_cell, p => { });
+            s.Paragraph(_head, p => { });
+            s.Paragraph(_total, p => { });
+            s.Paragraph(_item, p => { });
+            s.Table(_grid, g => g.RowRule(0.5.Pt(), Color.FromHex("D4D4D4")).TextStyle(_cell).HeaderTextStyle(_head));
+            s.Box(_success, b => b.Background(Color.FromHex("EFF6F1")));
+            s.List(_bullets, l => l.ItemStyle(_item).Level(0, "•", 6.Mm(), 4.Mm()).Level(1, "–", 12.Mm(), 4.Mm()));
+        }));
+        t.Content(c =>
+        {
+            c.Paragraph(x =>
+            {
+                x.Text("Plain block ");
+                x.Value(t.Data["name"]);
+            });
+            c.Paragraph(_heading, "Title");
+            c.Box(_success, b => b.Paragraph("Paid"));
+            c.List(_bullets, l =>
+            {
+                l.Item("first");
+                l.Item(1, x =>
+                {
+                    x.Text("second ");
+                    x.Value(t.Data["name"]);
+                });
+            });
+            c.Table(tb =>
+            {
+                tb.Style(_grid).Columns(cols =>
+                {
+                    cols.Fixed(20.Mm());
+                    cols.Relative(1);
+                });
+                tb.HeaderRow(r =>
+                {
+                    r.Cell("#");
+                    r.Cell("Item");
+                });
+                tb.Row(r =>
+                {
+                    r.Cell("1");
+                    r.Cell(cell =>
+                    {
+                        cell.Paragraph("a");
+                        cell.Paragraph(_heading, "b");
+                    });
+                });
+                tb.Row(r =>
+                {
+                    r.TextStyle(_total);
+                    r.Cell(cell => cell.ColumnSpan(2).Paragraph(x =>
+                    {
+                        x.Text("Total ");
+                        x.Value(t.Data["total"]);
+                    }));
+                });
+            });
+        });
+    }, new TemplateIdentity("short", 1));
+
+    [Theory]
+    [MemberData(nameof(Formats))]
+    public void Import_ShortForms(TemplateFormat format)
+    {
+        ITemplateDefinition imported = TemplateJson.Import(Definition(ShortContent, ShortStyles));
+
+        Assert.Equal(BuilderHarness.Build(ShortFormsInCSharp(), format).ContentHash, BuilderHarness.Build(imported, format).ContentHash);
+    }
+
+    [Fact]
+    public void Export_ShortForms()
+    {
+        string json = TemplateJson.Export(ShortFormsInCSharp(), BuilderHarness.Options(TemplateFormat.Docx)).Json;
+        using JsonDocument document = JsonDocument.Parse(json);
+        using JsonDocument expected = JsonDocument.Parse(ShortContent);
+
+        Assert.Equal(Compact(expected.RootElement), Compact(document.RootElement.GetProperty("content")));
+        AssertRoundTrip(ShortFormsInCSharp());
+    }
+
+    [Fact]
+    public void Export_OmitsInheritedStyle_KeepsOthers()
+    {
+        TestDefinition definition = new TestDefinition(t =>
+        {
+            t.Styles(StyleSheet.Create(s =>
+            {
+                s.Defaults(d => d.Paragraph(_body));
+                s.Paragraph(_body, p => { });
+                s.Paragraph(_heading, p => { });
+            }));
+            t.Content(c =>
+            {
+                c.Paragraph(_body, "explicit body");
+                c.Paragraph(_heading, "heading");
+            });
+        });
+
+        string json = TemplateJson.Export(definition, BuilderHarness.Options(TemplateFormat.Docx)).Json;
+        using JsonDocument document = JsonDocument.Parse(json);
+
+        Assert.Equal("""["explicit body",{"style":"Heading","paragraph":"heading"}]""", Compact(document.RootElement.GetProperty("content")));
+        AssertRoundTrip(definition);
+    }
+
+    [Fact]
+    public void Export_ExplicitInheritedStyleInNestedCell_RoundTrips()
+    {
+        TestDefinition definition = new TestDefinition(t =>
+        {
+            t.Styles(StyleSheet.Create(s =>
+            {
+                s.Defaults(d => d.Paragraph(_body));
+                s.Paragraph(_body, p => { });
+                s.Paragraph(_cell, p => { });
+                s.Table(_grid, g => g.TextStyle(_cell));
+                s.Box(_success, b => b.Background(Color.FromHex("EFF6F1")));
+            }));
+            t.Content(c => c.Table(tb =>
+            {
+                tb.Style(_grid).Columns(cols => cols.Relative(1));
+                tb.Row(r => r.Cell(cell =>
+                {
+                    cell.Paragraph(_cell, "explicit cell style");
+                    cell.If(t.Data["flag"], b => b.Box(_success, box => box.Paragraph(_body, "explicit body in box")));
+                    cell.Table(inner =>
+                    {
+                        inner.Columns(cols => cols.Relative(1));
+                        inner.Row(ir => ir.Cell(_cell, "unstyled table, explicit cell style"));
+                    });
+                }));
+            }));
+        });
+
+        string json = TemplateJson.Export(definition, BuilderHarness.Options(TemplateFormat.Docx)).Json;
+        Assert.DoesNotContain("\"style\": \"Body\"", json, StringComparison.Ordinal);
+        Assert.Contains("unstyled table, explicit cell style", json, StringComparison.Ordinal);
+        AssertRoundTrip(definition);
+    }
+
+    [Fact]
+    public void Import_OldShape_IsRejected()
+    {
+        BuildDiagnostic error = Assert.Single(Assert.Throws<TemplateBuildException>(() =>
+            TemplateJson.Import(Definition("""[ { "paragraph": { "style": "Body", "content": "x" } } ]"""))).Errors);
+
+        Assert.Equal("TB9200", error.Code);
+        Assert.Equal("/content/0/paragraph", error.Location);
+    }
+
+    [Fact]
+    public void Import_CellOptionsWithoutContent_IsTB9200()
+    {
+        BuildDiagnostic error = Assert.Single(Assert.Throws<TemplateBuildException>(() =>
+            TemplateJson.Import(Definition("""[ { "columns": [ 1 ], "table": [ { "row": [ { "span": 1 } ] } ] } ]"""))).Errors);
+
+        Assert.Equal("TB9200", error.Code);
+        Assert.Equal("/content/0/table/0/row/0", error.Location);
+    }
+
     private static JsonElement ContentOf(ITemplateDefinition definition)
     {
         string json = TemplateJson.Export(definition, BuilderHarness.Options(TemplateFormat.Docx)).Json;
         using JsonDocument document = JsonDocument.Parse(json);
-        JsonElement paragraph = document.RootElement.GetProperty("content")[0].GetProperty("paragraph");
-        return (paragraph.ValueKind == JsonValueKind.String ? paragraph : paragraph.GetProperty("content")).Clone();
+        JsonElement block = document.RootElement.GetProperty("content")[0];
+        return (block.ValueKind == JsonValueKind.String ? block : block.GetProperty("paragraph")).Clone();
     }
 
     private static string Compact(JsonElement element) =>
