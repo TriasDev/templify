@@ -73,15 +73,26 @@ record, so one theme restyles every template of a product:
 ```csharp
 public static StyleSheet Create(BrandTheme t) => StyleSheet.Create(s =>
 {
-    s.Defaults(d => d.Font(t.Body).Size(10.Pt()).Color(t.Ink));
+    s.Defaults(d => d.Font(t.Body).Size(10.Pt()).Color(t.Ink).Paragraph(Body));
     s.Paragraph(Body, p => p.SpaceAfter(6.Pt()).LineSpacing(1.15));
     s.Paragraph(Heading, p => p.BasedOn(Body).Size(13.Pt()).Bold().Color(t.Accent).KeepWithNext().OutlineLevel(1));
     s.Character(Strong, c => c.Bold());
-    s.Table(Grid, g => g.HeaderRule(1.Pt(), t.Accent).RowRule(0.5.Pt(), t.Line).CellPadding(3.Pt(), 5.Pt()));
+    s.Table(Grid, g => g.HeaderRule(1.Pt(), t.Accent).RowRule(0.5.Pt(), t.Line).CellPadding(3.Pt(), 5.Pt())
+        .TextStyle(TableText).HeaderTextStyle(TableHeader));
     s.Box(Success, b => b.Border(0.75.Pt(), t.SuccessBorder).Background(t.SuccessBackground).Padding(6.Pt(), 8.Pt()));
     s.List(Bullets, l => l.ItemStyle(ListItem).Level(0, "•", 6.Mm(), 4.Mm()));
 });
 ```
+
+A paragraph without a style of its own inherits one, so most paragraphs need none:
+
+1. in a table cell, the row's `TextStyle` (for example a totals row: `r.TextStyle(TableHeader)`), then the table
+   style's `HeaderTextStyle` (header rows) or `TextStyle` (other rows);
+2. the style sheet's default paragraph style, `Defaults(d => d.Paragraph(Body))`;
+3. otherwise none (the application's "Normal" / "Standard").
+
+List items take their list style's `ItemStyle`. The inherited style is written into the document explicitly, so Word
+and LibreOffice show it by name. Without a default and without table text styles nothing is inherited.
 
 The marker paragraphs (`{{#if …}}`, `{{#foreach …}}`) use the style "Template Marker": small and grey, visible but
 quiet.
@@ -236,6 +247,37 @@ c.Raw(new RawBlock
 
 The root must be a paragraph or a table (`w:p`, `w:tbl`; `text:p`, `text:h`, `text:list`, `table:table`). The XML
 cannot add styles, numbering or relationships.
+
+## JSON definitions
+
+`TemplateJson.Export(definition, options[, components])` writes a definition as JSON, and `TemplateJson.Import(json,
+options)` reads it back as a definition that builds the same bytes. The format is compact: an object that fits in 100
+characters is one line, a paragraph in the inherited style is a plain string, and values sit in the text as Templify
+placeholders:
+
+```json
+{"style": "LineGrid", "columns": ["10mm", 4, "16mm", "30mm"], "table": [
+  {"header": true, "row": ["#", "Beschreibung", "Menge", "Betrag"]},
+  {"forEachRow": "order.lines", "as": "line", "rows": [
+    {"row": ["{{@number}}", "{{line.description}}", "{{line.quantity}}", "{{line.amount:currency}}"]}
+  ]},
+  {"textStyle": "TableHeader", "row": [{"span": 3, "content": "Gesamtbetrag"}, "{{order.total:currency}}"]}
+]}
+```
+
+(Hand-wrapped here; the writer applies the width rule.)
+
+| Where | Form |
+|---|---|
+| Text | a string with `{{path}}`, `{{path:format}}`, `{{(condition):format}}`; styled: `{"text": "{{order.number}}", "style": "StrongText"}`; a list mixes strings, styled text, `{"if": …}`, `{"tab": true}`, `{"tabRight": true}`, `{"lineBreak": true}`, `{"pageNumber": true}`, `{"pageCount": true}`, `{"image": …}` |
+| Block | a string (a paragraph in the inherited style), `{"style", "paragraph"}`, `{"style", "box": [blocks]}`, `{"style", "list": [items]}`, `{"style", "columns", "spaceAfter", "table": [rows]}`, `if`, `forEach`, `component`, `group`, `pageBreak`, `rule`, `toc`, `raw` |
+| Row | `{"header", "allowSplit", "textStyle", "row": [cells]}`, `forEachRow`, `rowsIf` |
+| Cell | a string (one paragraph), a list of blocks, or `{"span", "background", "align", "content"}` |
+| List item | a string, `{"level", "item"}`, `forEach`, `if` |
+
+Conditions and loops stay objects; there is no `{{#if}}` inside strings. An expression whose condition is raw has no
+text form and is written as `{"expression": {"raw": …, "uses": […]}, "format": …}`. Import reports every problem at
+once, each with the JSON pointer of the element (`/content/7/table/1/row/3`).
 
 ## Testing your definitions
 

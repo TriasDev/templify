@@ -387,3 +387,25 @@ round-trips through JSON).
 3. **JSON Schema** generated from the vocabulary, for editor completion and as the agent-facing contract (#274).
 4. **Typed paths, approach B** (source generator) if the lambda noise matters in real definitions: same foundation
    (`TemplatePath<T>`, `DataCatalog`), shorter than the string version.
+
+### Compact format (2026-11-26)
+
+Proposal 1 was implemented (`2026-11-26-builder-compact-json-design.md`): placeholders inside strings, inherited
+paragraph styles (style sheet default, table text styles, row text style), block/row/cell/item short forms and the
+100-character layout. The round trip stays byte-identical (612 builder tests, every one round-tripping through JSON).
+
+| | phase 3 | compact | change |
+|---|---|---|---|
+| de-DE JSON | 18,461 characters, 717 lines | 8,861 characters, 273 lines | −52% / −62% |
+| en-GB JSON | 18,347 characters, 717 lines | 8,705 characters, 270 lines | −53% / −62% |
+| approximate tokens (de-DE) | ~4,600 | ~2,200 | −52% |
+| without any whitespace (de-DE) | 7,620 characters | 6,134 characters | −20% |
+| share: content / styles / page | 71% / 13% / 7% | 58% / 28% / 10% | |
+
+A table cell holding one value is now one line (`"{{line.amount:currency}}"`). The C# sample uses the inherited
+styles too: `TypedOrderConfirmation.cs` shrank by 4% (8,585 → 8,276 characters); `OrderConfirmation.cs` stayed the
+same size (its style sheet gained the default, the table text styles and a `Logo` style for the first-page logo, which
+should not inherit body copy spacing).
+
+Still open from the list above: text keys (2), JSON Schema (3), the source generator (4). The styles are now the second
+largest part of the file; they are written once per language file, so text keys would also halve that.
