@@ -32,6 +32,9 @@ internal sealed class ModelJsonWriter
     private readonly List<KeyValuePair<string, FontFace>> _themeFonts = new List<KeyValuePair<string, FontFace>>();
     private readonly List<BuildDiagnostic> _themeConflicts = new List<BuildDiagnostic>();
 
+    // The text keys inside registered components: the JSON holds only the reference, its texts section the translations.
+    private readonly List<string> _componentKeys = new List<string>();
+
     /// <summary>The paragraph style the blocks being written inherit; a paragraph with this style is written without one.</summary>
     private ParagraphStyleKey? _inherited;
 
@@ -66,7 +69,7 @@ internal sealed class ModelJsonWriter
         }
 
         ThemeSection theme = writer.Theme();
-        string written = WithTextKeys(Encoding.UTF8.GetString(stream.ToArray()), texts, writer._assetNames, theme);
+        string written = WithTextKeys(Encoding.UTF8.GetString(stream.ToArray()), texts, writer._componentKeys, writer._assetNames, theme);
         return (indented ? JsonLayout.Format(written) : written, writer._assets);
     }
 
@@ -74,11 +77,11 @@ internal sealed class ModelJsonWriter
     /// Turns the key markers of the composed texts into <c>[[key]]</c> in every string. A literal <c>[[</c> (the import
     /// would read a key) or a key outside the key syntax cannot be written: TB9204 at the string's pointer.
     /// </summary>
-    private static string WithTextKeys(string json, Func<IReadOnlyList<string>, IReadOnlyList<TextSection>>? texts, IReadOnlyList<KeyValuePair<string, string>> assets, ThemeSection theme)
+    private static string WithTextKeys(string json, Func<IReadOnlyList<string>, IReadOnlyList<TextSection>>? texts, IReadOnlyList<string> componentKeys, IReadOnlyList<KeyValuePair<string, string>> assets, ThemeSection theme)
     {
         using JsonDocument document = JsonDocument.Parse(json);
         List<BuildDiagnostic> problems = new List<BuildDiagnostic>();
-        List<string> keys = UsedKeys(document.RootElement).Distinct(StringComparer.Ordinal).Where(TextKeys.IsKey).ToList();
+        List<string> keys = UsedKeys(document.RootElement).Concat(componentKeys).Distinct(StringComparer.Ordinal).Where(TextKeys.IsKey).ToList();
         IReadOnlyList<TextSection> sections = texts?.Invoke(keys) ?? [];
         using MemoryStream stream = new MemoryStream();
         using (Utf8JsonWriter output = new Utf8JsonWriter(stream, new JsonWriterOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }))
@@ -496,6 +499,21 @@ internal sealed class ModelJsonWriter
         _json.WriteEndArray();
     }
 
+    /// <summary>The text keys a component's blocks use, in order (written aside, only to find the markers).</summary>
+    private List<string> KeysIn(List<Block> body)
+    {
+        using MemoryStream stream = new MemoryStream();
+        ModelJsonWriter aside;
+        using (Utf8JsonWriter json = new Utf8JsonWriter(stream))
+        {
+            aside = new ModelJsonWriter(json, _page, _components) { _styles = _styles, _inherited = _inherited };
+            aside.Blocks(body);
+        }
+
+        using JsonDocument document = JsonDocument.Parse(stream.ToArray());
+        return UsedKeys(document.RootElement).Concat(aside._componentKeys).ToList();
+    }
+
     private void Block(Block block)
     {
         switch (block)
@@ -534,9 +552,14 @@ internal sealed class ModelJsonWriter
             case ComponentBlock component when _components?.Find(component.Component.GetType()) is { } registration:
                 _json.WriteStartObject();
                 _json.WriteString("component", registration.Name);
-                _json.WritePropertyName("params");
-                registration.WriteParameters(_json, component.Component, _components!.DataNaming);
+                if (registration.HasParameters)
+                {
+                    _json.WritePropertyName("params");
+                    registration.WriteParameters(_json, component.Component, _components!.DataNaming);
+                }
+
                 _json.WriteEndObject();
+                _componentKeys.AddRange(KeysIn(component.Body));
                 break;
 
             case ComponentBlock component:

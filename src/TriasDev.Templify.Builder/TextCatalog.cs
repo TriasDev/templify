@@ -168,14 +168,22 @@ public sealed class TemplateTexts
 {
     private readonly BuildContext _context;
     private readonly ITextCatalog _catalog;
-    private readonly HashSet<string> _reported = new HashSet<string>(StringComparer.Ordinal);
+    private readonly HashSet<string> _reported;
+    private readonly ITextCatalog? _preferred;
 
     internal TemplateTexts(BuildContext context, ITextCatalog catalog, CultureInfo language, bool writesKeys = false)
+        : this(context, catalog, language, writesKeys, null, new HashSet<string>(StringComparer.Ordinal))
+    {
+    }
+
+    private TemplateTexts(BuildContext context, ITextCatalog catalog, CultureInfo language, bool writesKeys, ITextCatalog? preferred, HashSet<string> reported)
     {
         _context = context;
         _catalog = catalog;
         Language = language;
         WritesKeys = writesKeys;
+        _preferred = preferred;
+        _reported = reported;
     }
 
     /// <summary>Whether the texts are key markers instead of translations (composing for the JSON export).</summary>
@@ -194,7 +202,7 @@ public sealed class TemplateTexts
         get
         {
             ArgumentNullException.ThrowIfNull(key);
-            return Resolve(key, null);
+            return Resolve(key, _preferred);
         }
     }
 
@@ -202,6 +210,12 @@ public sealed class TemplateTexts
     /// The text of a key: a key marker while exporting; else from <paramref name="preferred"/> (a JSON definition's own
     /// texts), then from the catalog; a missing text is reported.
     /// </summary>
+    /// <summary>
+    /// These texts, looked up first in <paramref name="preferred"/>: what the components of a JSON definition see, so
+    /// the JSON's own texts win over the catalog for them too.
+    /// </summary>
+    internal TemplateTexts Preferring(ITextCatalog preferred) => new TemplateTexts(_context, _catalog, Language, WritesKeys, preferred, _reported);
+
     internal string Resolve(string key, ITextCatalog? preferred)
     {
         if (WritesKeys)

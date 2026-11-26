@@ -2,6 +2,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Text.Json;
+using System.Globalization;
 using TriasDev.Templify.Builder.Json;
 using TriasDev.Templify.Core;
 
@@ -131,5 +132,29 @@ public sealed class JsonThemeTests
 
         Assert.Equal(new[] { "Hello World" }, BuilderHarness.ParagraphTexts(TemplateFormat.Docx, filled));
         Assert.Throws<InvalidOperationException>(() => BuilderHarness.Build(new TestDefinition(t => t.Content(c => c.Component(new Greeting()))), TemplateFormat.Docx));
+    }
+
+    [Fact]
+    public void RegisteredComponent_ReadingSharedObjects_Exports_AndImportsWithTheHostsObjects()
+    {
+        ITextCatalog catalog = TextCatalog.FromDictionary(new Dictionary<string, IReadOnlyDictionary<string, string>>
+        {
+            ["name"] = new Dictionary<string, string> { ["en"] = "World" },
+        });
+        TestDefinition definition = new TestDefinition(t =>
+        {
+            t.Share(new Brand("Hello"));
+            t.Content(c => c.Component(new Greeting()));
+        });
+        ComponentCatalog components = new ComponentCatalog().Register<Greeting>("greeting");
+        TemplateBuildOptions options = BuilderHarness.Options(TemplateFormat.Docx) with { Texts = catalog };
+
+        TemplateJsonDocument exported = TemplateJson.Export(definition, options, new TemplateJsonExportOptions { Components = components, TextLanguages = [CultureInfo.GetCultureInfo("en")] });
+
+        // The component's own text is in the JSON's texts, so the JSON builds without the host's catalog.
+        Assert.Contains("\"component\": \"greeting\"", exported.Json, StringComparison.Ordinal);
+        Assert.Contains("\"texts\": {\"name\": {\"en\": \"World\"}}", exported.Json, StringComparison.Ordinal);
+        ITemplateDefinition imported = TemplateJson.Import(exported.Json, new TemplateJsonImportOptions { Components = components, Shared = [new Brand("Hello")] });
+        Assert.Equal(TemplateBuilder.Build(definition, options).ContentHash, TemplateBuilder.Build(imported, options with { Texts = TextCatalog.Empty }).ContentHash);
     }
 }

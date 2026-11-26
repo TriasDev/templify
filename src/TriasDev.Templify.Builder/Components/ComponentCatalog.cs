@@ -114,6 +114,9 @@ public sealed partial class ComponentCatalog
 
         public Type Type { get; } = type;
 
+        /// <summary>Gets a value indicating whether the component takes parameters (a reference without any has no <c>params</c>).</summary>
+        public bool HasParameters => parameters.Count > 0;
+
         /// <summary>Writes the component's parameters as a JSON object.</summary>
         /// <exception cref="ArgumentException">A typed path parameter uses another naming than <paramref name="dataNaming"/>, so it could not be read back.</exception>
         public void WriteParameters(Utf8JsonWriter json, ITemplateComponent component, JsonNamingPolicy? dataNaming)

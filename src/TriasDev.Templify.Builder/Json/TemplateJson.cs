@@ -64,7 +64,8 @@ public static class TemplateJson
                 .Where(section => section.Translations.Count > 0)
                 .ToList();
         (string json, IReadOnlyDictionary<string, byte[]> assets) = ModelJsonWriter.Write(composed, definition.Identity!, export.Components, texts, export.Indented);
-        CheckBuildsTheSame(definition, options, export, json, assets);
+        // The host shares the same objects with an import (TemplateJsonImportOptions.Shared); the check does it for it.
+        CheckBuildsTheSame(definition, options, export, json, assets, composed.Context.Shared.Values.ToList());
         return new TemplateJsonDocument(json, assets);
     }
 
@@ -74,12 +75,12 @@ public static class TemplateJson
     /// changed (<c>string.Format</c>, <c>ToUpper</c>) or one used where JSON cannot hold it would otherwise give a
     /// different template without a word: TB9204.
     /// </summary>
-    private static void CheckBuildsTheSame(ITemplateDefinition definition, TemplateBuildOptions options, TemplateJsonExportOptions export, string json, IReadOnlyDictionary<string, byte[]> assets)
+    private static void CheckBuildsTheSame(ITemplateDefinition definition, TemplateBuildOptions options, TemplateJsonExportOptions export, string json, IReadOnlyDictionary<string, byte[]> assets, IReadOnlyList<object> shared)
     {
         ITemplateDefinition imported;
         try
         {
-            imported = Import(json, new TemplateJsonImportOptions { Assets = assets, Components = export.Components, AllowRawXml = true });
+            imported = Import(json, new TemplateJsonImportOptions { Assets = assets, Components = export.Components, Shared = shared, AllowRawXml = true });
         }
         catch (TemplateBuildException exception)
         {

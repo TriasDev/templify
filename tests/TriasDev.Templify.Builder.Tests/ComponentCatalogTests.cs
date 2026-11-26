@@ -145,4 +145,16 @@ public sealed class ComponentCatalogTests
         Assert.All(exception.Errors, e => Assert.Equal("TB9200", e.Code));
         Assert.Contains(exception.Errors, e => e.Location == "/content/0" && e.Message.Contains("'address'", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public void Import_ReferenceWithoutParams_ForAComponentWithParameters_NamesTheMissingParameter()
+    {
+        string json = """{"templifyDefinition": 1, "identity": {"id": "test", "version": 1}, "content": [{"component": "address"}]}""";
+
+        TemplateBuildException exception = Assert.Throws<TemplateBuildException>(() => TemplateJson.Import(json, new TemplateJsonImportOptions { Components = Catalog() }));
+
+        BuildDiagnostic error = Assert.Single(exception.Errors);
+        Assert.Equal("/content/0/params", error.Location);
+        Assert.Contains("address", error.Message, StringComparison.Ordinal);
+    }
 }
