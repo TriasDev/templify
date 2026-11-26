@@ -43,6 +43,11 @@ Rules:
   options' catalog; a key a language lacks is left out (the build reports it). Re-exporting an imported definition
   without `TextLanguages` keeps the languages of its own `texts` section.
 
+Added after the final review: the export checks itself (imports its JSON, builds it for the options' language and
+each `TextLanguages` entry the definition builds in, TB9204 on different bytes), which catches texts changed by code
+(`string.Format`) and texts placed into quoted values; translations inside raw XML are XML-escaped on import; a `[`
+directly before a key is TB9204 at export; re-export without `TextLanguages` writes the `texts` section verbatim.
+
 ## 4. API (additive)
 
 ```csharp

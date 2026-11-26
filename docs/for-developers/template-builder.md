@@ -291,8 +291,11 @@ translations are written into a `texts` section and the file is self-contained:
 
 At build time a key is translated from the JSON's `texts` for the build language (`de-DE` finds `de`), else from
 `TemplateBuildOptions.Texts`; a key neither has is TB5001. A key is letters, digits, `_`, `.` or `-`; a literal `[[`
-cannot be exported (TB9204). Texts are opaque to the export: code that changes a text (`Texts["x"].ToUpper()`) changes
-the key, not the translation.
+cannot be exported (TB9204). Texts are opaque to the export: code that changes a text (`string.Format(Texts["pages"],
+n)`, `Texts["x"].ToUpper()`) changes the key, not the translation. The export therefore checks itself: it imports the
+JSON it wrote, builds it for the options' language and every `TextLanguages` entry, and fails with TB9204 when the bytes
+differ from the C# definition's. Re-exporting an imported definition without `TextLanguages` writes its `texts` section
+exactly as it was read.
 
 Conditions and loops stay objects; there is no `{{#if}}` inside strings. An expression whose condition is raw has no
 text form and is written as `{"expression": {"raw": …, "uses": […]}, "format": …}`. Import reports every problem at
