@@ -298,6 +298,18 @@ public class BlockComposer
         _blocks.Add(new ComponentBlock(component, Compose(_context, _scope, component.Compose)));
     }
 
+    /// <summary>
+    /// Adds a named section: a group of blocks with no output of its own. Its name marks the part in the JSON form
+    /// (<c>{"section": "items", "blocks": […]}</c>), where hosts and agents read, replace and compare it as a unit.
+    /// </summary>
+    /// <param name="name">The section's name: letters, digits, <c>_</c>, <c>.</c> or <c>-</c>; unique in a definition.</param>
+    /// <param name="content">Describes the blocks.</param>
+    public void Section(string name, Action<BlockComposer> content)
+    {
+        ArgumentNullException.ThrowIfNull(content);
+        Component(new SectionComponent(SectionComponent.ValidateName(name), content));
+    }
+
     /// <summary>Reports paths of a condition that cannot be used here.</summary>
     internal static void CheckCondition(BuildContext context, LoopScope? scope, Condition condition)
     {

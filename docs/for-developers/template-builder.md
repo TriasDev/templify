@@ -312,7 +312,7 @@ placeholders:
 | Where | Form |
 |---|---|
 | Text | a string with `{{path}}`, `{{path:format}}`, `{{(condition):format}}`; styled: `{"text": "{{order.number}}", "style": "StrongText"}`; a list mixes strings, styled text, `{"if": …}`, `{"tab": true}`, `{"tabRight": true}`, `{"lineBreak": true}`, `{"pageNumber": true}`, `{"pageCount": true}`, `{"image": …}` |
-| Block | a string (a paragraph in the inherited style), `{"style", "paragraph"}`, `{"style", "box": [blocks]}`, `{"style", "list": [items]}`, `{"style", "columns", "spaceAfter", "table": [rows]}`, `if`, `forEach`, `component`, `group`, `pageBreak`, `rule`, `toc`, `raw` |
+| Block | a string (a paragraph in the inherited style), `{"style", "paragraph"}`, `{"style", "box": [blocks]}`, `{"style", "list": [items]}`, `{"style", "columns", "spaceAfter", "table": [rows]}`, `if`, `forEach`, `component`, `{"section": "name", "blocks": [blocks]}`, `pageBreak`, `rule`, `toc`, `raw` |
 | Row | `{"header", "allowSplit", "paragraphStyle", "row": [cells]}`, `forEachRow`, `rowsIf` |
 | Cell | a string (one paragraph), a list of blocks, or `{"span", "background", "verticalAlign", "content"}` |
 | List item | a string, `{"level", "item"}`, `forEach`, `if` |
@@ -325,8 +325,8 @@ translations are written into a `texts` section and the file is self-contained:
 
 ```json
 "texts": {
-  "de": {"title": "Auftragsbestätigung", "items": "Positionen"},
-  "en": {"title": "Order confirmation", "items": "Items"}
+  "title": {"de": "Auftragsbestätigung", "en": "Order confirmation"},
+  "items": {"de": "Positionen", "en": "Items"}
 },
 "content": [{"style": "DocTitle", "paragraph": "[[title]]"}, …]
 ```
@@ -339,7 +339,12 @@ JSON it wrote, builds it for the options' language and every `TextLanguages` ent
 differ from the C# definition's. Re-exporting an imported definition without `TextLanguages` writes its `texts` section
 exactly as it was read.
 
-Conditions and loops stay objects; there is no `{{#if}}` inside strings. An expression whose condition is raw has no
+A **section** (`c.Section("items", b => …)` in C#) names a part of the document without adding output: in JSON
+`{"section": "items", "blocks": […]}`, the unit to read, replace or compare. Names are unique in a definition; a
+component the export's catalog does not know is written as a section named after it (`AddressBlock`, `AddressBlock-2`).
+
+Conditions and loops stay objects; there is no `{{#if}}` inside strings. Every conditional has `then`, `elseIf` (a list
+of `{"if": …, "then": …}`) and `else`, in blocks, rows, list items and inline. An expression whose condition is raw has no
 text form and is written as `{"expression": {"raw": …, "uses": […]}, "format": …}`. Import reports every problem at
 once, each with the JSON pointer of the element (`/content/7/table/1/row/3`).
 

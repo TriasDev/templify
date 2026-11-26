@@ -56,11 +56,13 @@ public static class TemplateJson
         IReadOnlyList<CultureInfo> languages = export.TextLanguages ?? [];
         Func<IReadOnlyList<string>, IReadOnlyList<TextSection>> texts = keys => languages.Count == 0
             ? own.Sections
-            : languages.Select(language => new TextSection(
-                language.Name,
-                keys.Select(key => own.Catalog.TryGet(key, language, out string text) || catalog.TryGet(key, language, out text) ? new KeyValuePair<string, string>(key, text) : (KeyValuePair<string, string>?)null)
+            : keys.Select(key => new TextSection(
+                key,
+                languages.Select(language => own.Catalog.TryGet(key, language, out string text) || catalog.TryGet(key, language, out text) ? new KeyValuePair<string, string>(language.Name, text) : (KeyValuePair<string, string>?)null)
                     .OfType<KeyValuePair<string, string>>()
-                    .ToList())).ToList();
+                    .ToList()))
+                .Where(section => section.Translations.Count > 0)
+                .ToList();
         (string json, IReadOnlyDictionary<string, byte[]> assets) = ModelJsonWriter.Write(composed, definition.Identity!, export.Components, texts);
         CheckBuildsTheSame(definition, options, export, json, assets);
         return new TemplateJsonDocument(json, assets);

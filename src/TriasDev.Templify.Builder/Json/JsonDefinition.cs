@@ -37,6 +37,7 @@ internal sealed class JsonComposition
     private readonly Dictionary<string, ParagraphStyleKey> _paragraphStyles = new Dictionary<string, ParagraphStyleKey>(StringComparer.Ordinal);
     private readonly Dictionary<string, CharacterStyleKey> _characterStyles = new Dictionary<string, CharacterStyleKey>(StringComparer.Ordinal);
     private readonly List<(string Name, LoopItem Item)> _scope = new List<(string, LoopItem)>();
+    private readonly HashSet<string> _sectionNames = new HashSet<string>(StringComparer.Ordinal);
     private BuildContext _context = null!;
     private TemplateComposer _template = null!;
 
@@ -70,6 +71,7 @@ internal sealed class JsonComposition
         _template = template;
         _context = template.Context;
         _scope.Clear();
+        _sectionNames.Clear();
         _root = WithTranslations(_source);
 
         Keys(_root, string.Empty, "$schema", "templifyDefinition", "identity", "texts", "properties", "styles", "page", "content", "components");
@@ -422,10 +424,22 @@ internal sealed class JsonComposition
                 ?? throw new JsonImportException(at, $"The component '{name}' is not registered (TemplateJsonImportOptions.Components).");
             c.Component(registration.Create(Required(block, "params", at), _options.Components!.DataNaming, (text, kind) => Resolve(text, at + "/params", kind), ParagraphStyle, CharacterStyle, at + "/params"));
         }
-        else if (block.TryGetProperty("group", out JsonElement group))
+        else if (block.TryGetProperty("section", out _))
         {
-            Keys(block, at, "group", "from");
-            c.Component(new JsonGroupComponent(String(block, "from", at), b => Blocks(b, group, at + "/group")));
+            Keys(block, at, "section", "blocks");
+            string name = String(block, "section", at) ?? throw Missing(at, "section");
+            if (!SectionComponent.IsValidName(name))
+            {
+                throw new JsonImportException(at + "/section", $"'{name}' is not a section name: use letters, digits, '_', '.' or '-'.");
+            }
+
+            if (!_sectionNames.Add(name))
+            {
+                throw new JsonImportException(at + "/section", $"The section name '{name}' is used twice; names are unique in a definition.");
+            }
+
+            JsonElement blocks = Required(block, "blocks", at);
+            c.Section(name, b => Blocks(b, blocks, at + "/blocks"));
         }
         else if (block.TryGetProperty("list", out JsonElement list))
         {
@@ -465,7 +479,7 @@ internal sealed class JsonComposition
         }
         else
         {
-            throw new JsonImportException(at, $"Unknown block {Names(block)}; expected paragraph, pageBreak, if, forEach, component, group, list, box, table, rule, toc or raw.");
+            throw new JsonImportException(at, $"Unknown block {Names(block)}; expected a string (a paragraph), paragraph, pageBreak, if, forEach, component, section, list, box, table, rule, toc or raw.");
         }
     }
 
@@ -1565,10 +1579,3 @@ internal sealed class JsonImportException(string location, string message) : Exc
     public string Location { get; } = location;
 }
 
-/// <summary>A group of blocks read from JSON that was a component in C#; keeps the component's type name for re-export.</summary>
-internal sealed class JsonGroupComponent(string? from, Action<BlockComposer> compose) : ITemplateComponent
-{
-    public string? From { get; } = from;
-
-    public void Compose(BlockComposer content) => compose(content);
-}

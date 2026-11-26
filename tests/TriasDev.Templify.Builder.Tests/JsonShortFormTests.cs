@@ -400,6 +400,51 @@ public sealed class JsonShortFormTests
         Assert.DoesNotContain("\"when\"", json, StringComparison.Ordinal);
     }
 
+    // ── sections ─────────────────────────────────────────────────────────────
+
+    private sealed class Banner : ITemplateComponent
+    {
+        public void Compose(BlockComposer c) => c.Paragraph("banner");
+    }
+
+    [Theory]
+    [MemberData(nameof(Formats))]
+    public void Sections_AreNamedAndTransparent(TemplateFormat format)
+    {
+        TestDefinition sectioned = new TestDefinition(t => t.Content(c =>
+        {
+            c.Section("intro", b => b.Paragraph("Hello"));
+            c.Component(new Banner());
+            c.Component(new Banner());
+        }));
+        TestDefinition plain = new TestDefinition(t => t.Content(c =>
+        {
+            c.Paragraph("Hello");
+            c.Paragraph("banner");
+            c.Paragraph("banner");
+        }));
+
+        Assert.Equal(BuilderHarness.Build(plain, format).ContentHash, BuilderHarness.Build(sectioned, format).ContentHash);
+        string json = TemplateJson.Export(sectioned, BuilderHarness.Options(format)).Json;
+        using JsonDocument document = JsonDocument.Parse(json);
+        Assert.Equal(
+            """[{"section":"intro","blocks":["Hello"]},{"section":"Banner","blocks":["banner"]},{"section":"Banner-2","blocks":["banner"]}]""",
+            Compact(document.RootElement.GetProperty("content")));
+        AssertRoundTrip(sectioned);
+    }
+
+    [Theory]
+    [InlineData("""[ { "section": "a", "blocks": [ "x" ] }, { "section": "a", "blocks": [ "y" ] } ]""", "/content/1/section")]
+    [InlineData("""[ { "section": "has space", "blocks": [ "x" ] } ]""", "/content/0/section")]
+    [InlineData("""[ { "group": [ "x" ] } ]""", "/content/0")]
+    public void SectionErrors(string content, string location)
+    {
+        BuildDiagnostic error = Assert.Single(Assert.Throws<TemplateBuildException>(() => TemplateJson.Import(Definition(content))).Errors);
+
+        Assert.Equal("TB9200", error.Code);
+        Assert.Equal(location, error.Location);
+    }
+
     private static JsonElement ContentOf(ITemplateDefinition definition)
     {
         string json = TemplateJson.Export(definition, BuilderHarness.Options(TemplateFormat.Docx)).Json;

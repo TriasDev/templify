@@ -683,3 +683,4 @@ TriasDev.Templify.Builder.GeneratedDataPathsAttribute.LoopItem.get -> bool
 TriasDev.Templify.Builder.GeneratedDataPathsAttribute.Type.get -> System.Type!
 TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.ValueFormats.get -> System.Collections.Generic.IReadOnlyCollection<string!>?
 TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.ValueFormats.init -> void
+TriasDev.Templify.Builder.BlockComposer.Section(string! name, System.Action<TriasDev.Templify.Builder.BlockComposer!>! content) -> void

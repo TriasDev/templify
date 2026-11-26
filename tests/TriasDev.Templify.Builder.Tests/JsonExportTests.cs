@@ -72,7 +72,7 @@ public sealed class JsonExportTests
         foreach (string key in new[]
         {
             "styles", "page", "properties", "paragraph", "if", "elseIf", "else", "table", "forEachRow", "rowsIf", "box", "rule", "list",
-            "forEach", "image", "toc", "raw", "tabRight", "pageNumber", "pageCount", "group",
+            "forEach", "image", "toc", "raw", "tabRight", "pageNumber", "pageCount", "section",
         })
         {
             Assert.True(keys.Contains(key), $"The export has no '{key}'.");

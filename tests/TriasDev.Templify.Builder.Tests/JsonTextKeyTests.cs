@@ -162,10 +162,11 @@ public sealed class JsonTextKeyTests
         TemplateJsonDocument exported = TemplateJson.Export(Translated(), Options(TemplateFormat.Docx, "en-US"), _bothLanguages);
         JsonElement texts = Root(exported.Json).GetProperty("texts");
 
-        Assert.Equal(new[] { "de", "en" }, texts.EnumerateObject().Select(p => p.Name));
-        Assert.Equal(new[] { "title", "hello", "fmt", "logo", "printed" }, texts.GetProperty("de").EnumerateObject().Select(p => p.Name));
-        Assert.Equal("Hallo", texts.GetProperty("de").GetProperty("hello").GetString());
-        Assert.Equal("Company logo", texts.GetProperty("en").GetProperty("logo").GetString());
+        // Key first: one wording change is one edit at /texts/<key> (style review A8).
+        Assert.Equal(new[] { "title", "hello", "fmt", "logo", "printed" }, texts.EnumerateObject().Select(p => p.Name));
+        Assert.Equal(new[] { "de", "en" }, texts.GetProperty("hello").EnumerateObject().Select(p => p.Name));
+        Assert.Equal("Hallo", texts.GetProperty("hello").GetProperty("de").GetString());
+        Assert.Equal("Company logo", texts.GetProperty("logo").GetProperty("en").GetString());
         Assert.Equal(new[] { "templifyDefinition", "identity", "texts" }, Root(exported.Json).EnumerateObject().Select(p => p.Name).Take(3));
     }
 
@@ -188,7 +189,7 @@ public sealed class JsonTextKeyTests
             {
               "templifyDefinition": 1,
               "identity": { "id": "keys", "version": 1 },
-              "texts": { "de": { "hello": "Servus" } },
+              "texts": { "hello": { "de": "Servus" } },
               "content": [ "[[hello]], [[title]]" ]
             }
             """);
@@ -207,8 +208,8 @@ public sealed class JsonTextKeyTests
     }
 
     [Theory]
-    [InlineData("""{ "de": { "a": 1 } }""", "/texts/de/a")]
-    [InlineData("""{ "de": [ "a" ] }""", "/texts/de")]
+    [InlineData("""{ "a": { "de": 1 } }""", "/texts/a/de")]
+    [InlineData("""{ "a": [ "de" ] }""", "/texts/a")]
     [InlineData("""[ "de" ]""", "/texts")]
     public void MalformedTexts_AreTB9200(string texts, string location)
     {
@@ -279,7 +280,7 @@ public sealed class JsonTextKeyTests
             {
               "templifyDefinition": 1,
               "identity": { "id": "keys", "version": 1 },
-              "texts": { "de": { "hello": "Servus", "unused": "U" }, "de-CH": { "hello": "Grüezi" } },
+              "texts": { "hello": { "de": "Servus", "de-CH": "Grüezi" }, "unused": { "de": "U" } },
               "content": [ "[[hello]] [[title]]" ]
             }
             """;
@@ -287,7 +288,7 @@ public sealed class JsonTextKeyTests
 
         JsonElement texts = Root(TemplateJson.Export(imported, Options(TemplateFormat.Docx, "de-DE")).Json).GetProperty("texts");
 
-        Assert.Equal("""{"de":{"hello":"Servus","unused":"U"},"de-CH":{"hello":"Grüezi"}}""", JsonSerializer.Serialize(texts, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }));
+        Assert.Equal("""{"hello":{"de":"Servus","de-CH":"Grüezi"},"unused":{"de":"U"}}""", JsonSerializer.Serialize(texts, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }));
     }
 
     private static string Definition(string content) => $$"""

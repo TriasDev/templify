@@ -21,6 +21,8 @@ internal sealed class ModelJsonWriter
     private readonly Utf8JsonWriter _json;
     private StyleSheet _styles = StyleSheet.Empty;
 
+    private readonly HashSet<string> _sectionNames = new HashSet<string>(StringComparer.Ordinal);
+
     /// <summary>The paragraph style the blocks being written inherit; a paragraph with this style is written without one.</summary>
     private ParagraphStyleKey? _inherited;
 
@@ -92,10 +94,10 @@ internal sealed class ModelJsonWriter
         output.WriteStartObject("texts");
         foreach (TextSection section in sections)
         {
-            output.WriteStartObject(section.Language);
-            foreach ((string key, string text) in section.Texts)
+            output.WriteStartObject(section.Key);
+            foreach ((string language, string text) in section.Translations)
             {
-                output.WriteString(key, text);
+                output.WriteString(language, text);
             }
 
             output.WriteEndObject();
@@ -103,6 +105,7 @@ internal sealed class ModelJsonWriter
 
         output.WriteEndObject();
     }
+
 
     /// <summary>Whether the import reads <paramref name="written"/> back into exactly <paramref name="text"/> (literal "[[" or "[" before a key would not).</summary>
     private static bool ReadsBack(string written, string text)
@@ -506,10 +509,11 @@ internal sealed class ModelJsonWriter
                 break;
 
             case ComponentBlock component:
+                // A section, or a component the catalog does not know: its blocks under a name unique in the file.
                 _json.WriteStartObject();
-                _json.WritePropertyName("group");
+                _json.WriteString("section", SectionName(component.Component is SectionComponent section ? section.Name : component.Component.GetType().Name));
+                _json.WritePropertyName("blocks");
                 Blocks(component.Body);
-                StringIf("from", component.Component is JsonGroupComponent group ? group.From : component.Component.GetType().Name);
                 _json.WriteEndObject();
                 break;
 
@@ -570,6 +574,18 @@ internal sealed class ModelJsonWriter
             default:
                 throw new NotSupportedException($"The JSON export does not know the block {block.GetType().Name}.");
         }
+    }
+
+    /// <summary>The name, or with "-2", "-3", … when the file already has it (names are unique in a file).</summary>
+    private string SectionName(string name)
+    {
+        string unique = name;
+        for (int i = 2; !_sectionNames.Add(unique); i++)
+        {
+            unique = name + "-" + i.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        return unique;
     }
 
     /// <summary>A paragraph written as a bare string: inherited style, not a list item, one unstyled run.</summary>
@@ -1065,5 +1081,5 @@ internal sealed class ModelJsonWriter
     }
 }
 
-/// <summary>A language of the <c>texts</c> section: its name as written and its texts in order.</summary>
-internal sealed record TextSection(string Language, IReadOnlyList<KeyValuePair<string, string>> Texts);
+/// <summary>A key of the <c>texts</c> section and its translations (language name as written, text), in order.</summary>
+internal sealed record TextSection(string Key, IReadOnlyList<KeyValuePair<string, string>> Translations);

@@ -100,10 +100,10 @@ public sealed class ComponentCatalogTests
         Assert.Contains("\"tone\": \"loudVoice\"", json, StringComparison.Ordinal);
         Assert.Contains("\"gap\": \"3mm\"", json, StringComparison.Ordinal);
         Assert.Contains("\"where\": \"office\"", json, StringComparison.Ordinal);
-        Assert.DoesNotContain("\"group\"", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"section\"", json, StringComparison.Ordinal);
 
         string unregistered = TemplateJson.Export(Definition(), BuilderHarness.Options(TemplateFormat.Docx)).Json;
-        Assert.Contains("\"from\": \"AddressBlock\"", unregistered, StringComparison.Ordinal);
+        Assert.Contains("\"section\": \"AddressBlock\"", unregistered, StringComparison.Ordinal);
     }
 
     [Theory]
