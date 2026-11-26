@@ -30,7 +30,7 @@ internal sealed class ModelJsonWriter
     // The theme section: token → value, in first-use order.
     private readonly List<KeyValuePair<string, Color>> _themeColors = new List<KeyValuePair<string, Color>>();
     private readonly List<KeyValuePair<string, FontFace>> _themeFonts = new List<KeyValuePair<string, FontFace>>();
-    private readonly List<BuildDiagnostic> _themeConflicts = new List<BuildDiagnostic>();
+    private readonly List<BuildDiagnostic> _problems = new List<BuildDiagnostic>();
 
     // The text keys inside registered components: the JSON holds only the reference, its texts section the translations.
     private readonly List<string> _componentKeys = new List<string>();
@@ -63,9 +63,9 @@ internal sealed class ModelJsonWriter
             writer.Document(composed, identity);
         }
 
-        if (writer._themeConflicts.Count > 0)
+        if (writer._problems.Count > 0)
         {
-            throw new TemplateBuildException(writer._themeConflicts);
+            throw new TemplateBuildException(writer._problems);
         }
 
         ThemeSection theme = writer.Theme();
@@ -570,7 +570,15 @@ internal sealed class ModelJsonWriter
                 break;
 
             case ComponentBlock component:
-                // A section, or a component the catalog does not know: its blocks under a name unique in the file.
+                // A section, or a component the catalog does not know: its blocks under a name unique in the file. A
+                // versioned component would lose its version that way (its content frozen in the JSON).
+                if (component.Component is not SectionComponent && ComponentVersions.VersionOf(component.Component.GetType()) is { } version)
+                {
+                    _problems.Add(new BuildDiagnostic(
+                        DiagnosticCodes.TextNotExportable,
+                        $"The component {component.Component.GetType().Name} has a version ({version}): register it in the ComponentCatalog of the export, so the JSON names it and builds always use its current version."));
+                }
+
                 _json.WriteStartObject();
                 _json.WriteString("section", SectionName(component.Component is SectionComponent section ? section.Name : ComponentSectionName(component.Component.GetType())));
                 _json.WritePropertyName("blocks");
@@ -1260,7 +1268,7 @@ internal sealed class ModelJsonWriter
         }
         else if (!Equals(values[index].Value, value))
         {
-            _themeConflicts.Add(new BuildDiagnostic(DiagnosticCodes.TextNotExportable, $"The theme token '{token}' has two values in the definition ({values[index].Value} and {value}); a token has one value."));
+            _problems.Add(new BuildDiagnostic(DiagnosticCodes.TextNotExportable, $"The theme token '{token}' has two values in the definition ({values[index].Value} and {value}); a token has one value."));
         }
     }
 

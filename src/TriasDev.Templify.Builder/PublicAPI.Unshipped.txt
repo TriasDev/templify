@@ -700,3 +700,8 @@ TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.Theme.get -> System.Col
 TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.Theme.init -> void
 TriasDev.Templify.Builder.TemplateComposer.Share<T>(T! value) -> TriasDev.Templify.Builder.TemplateComposer!
 TriasDev.Templify.Builder.DataCatalog.ToJson() -> string!
+TriasDev.Templify.Builder.ComponentVersionAttribute.ComponentVersionAttribute(int version) -> void
+TriasDev.Templify.Builder.ComponentVersionAttribute.Version.get -> int
+TriasDev.Templify.Builder.ComponentVersionAttribute
+TriasDev.Templify.Builder.TemplateStamp.Components.get -> System.Collections.Generic.IReadOnlyDictionary<string!, int>!
+TriasDev.Templify.Builder.TemplateStamp.Components.init -> void

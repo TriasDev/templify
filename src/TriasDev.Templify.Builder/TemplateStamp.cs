@@ -39,16 +39,28 @@ public sealed record TemplateStamp(
     private const string LanguageName = PropertyPrefix + "Language";
     private const string BuilderVersionName = PropertyPrefix + "BuilderVersion";
     private const string EngineVersionName = PropertyPrefix + "MinimumEngineVersion";
+    private const string ComponentsName = PropertyPrefix + "Components";
+
+    private static readonly IReadOnlyDictionary<string, int> _noComponents = new SortedDictionary<string, int>(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Gets the versioned components the template was built from (<see cref="ComponentVersionAttribute"/>; by type
+    /// name without a generic suffix) and their versions; empty when it has none or the stamp predates component versions.
+    /// </summary>
+    public IReadOnlyDictionary<string, int> Components { get; init; } = _noComponents;
 
     /// <summary>The stamp of a build.</summary>
-    internal static TemplateStamp For(TemplateIdentity identity, DataContract contract, CultureInfo language) =>
+    internal static TemplateStamp For(TemplateIdentity identity, DataContract contract, CultureInfo language, IReadOnlyDictionary<string, int> components) =>
         new TemplateStamp(
             identity.Id,
             identity.Version,
             contract.Hash,
             language.Name,
             VersionOf(typeof(TemplateBuilder).Assembly),
-            VersionOf(typeof(TemplateProcessor).Assembly));
+            VersionOf(typeof(TemplateProcessor).Assembly))
+        {
+            Components = components,
+        };
 
     /// <summary>The stamp as document properties (name, value), in a fixed order.</summary>
     internal IEnumerable<(string Name, string Value)> ToProperties()
@@ -59,6 +71,10 @@ public sealed record TemplateStamp(
         yield return (LanguageName, Language);
         yield return (BuilderVersionName, BuilderVersion);
         yield return (EngineVersionName, MinimumEngineVersion);
+        if (Components.Count > 0)
+        {
+            yield return (ComponentsName, string.Join(';', Components.OrderBy(c => c.Key, StringComparer.Ordinal).Select(c => c.Key + "=" + c.Value.ToString(CultureInfo.InvariantCulture))));
+        }
     }
 
     /// <summary>Reads a stamp from document properties; null unless every stamp property is present and valid.</summary>
@@ -72,10 +88,42 @@ public sealed record TemplateStamp(
             && properties.TryGetValue(BuilderVersionName, out string? builderVersion)
             && properties.TryGetValue(EngineVersionName, out string? engineVersion))
         {
-            return new TemplateStamp(id, version, hash, language, builderVersion, engineVersion);
+            return new TemplateStamp(id, version, hash, language, builderVersion, engineVersion)
+            {
+                Components = properties.TryGetValue(ComponentsName, out string? components) ? ParseComponents(components) : _noComponents,
+            };
         }
 
         return null;
+    }
+
+    /// <inheritdoc/>
+    public bool Equals(TemplateStamp? other) =>
+        other is not null
+        && TemplateId == other.TemplateId && Version == other.Version && ContractHash == other.ContractHash && Language == other.Language
+        && BuilderVersion == other.BuilderVersion && MinimumEngineVersion == other.MinimumEngineVersion
+        && Components.Count == other.Components.Count
+        && Components.All(c => other.Components.TryGetValue(c.Key, out int version) && version == c.Value);
+
+    /// <inheritdoc/>
+    public override int GetHashCode() => HashCode.Combine(TemplateId, Version, ContractHash, Language, BuilderVersion, MinimumEngineVersion, Components.Count);
+
+    /// <summary>Reads <c>Name=version;…</c>; anything malformed gives no components (the stamp stays usable).</summary>
+    private static IReadOnlyDictionary<string, int> ParseComponents(string text)
+    {
+        SortedDictionary<string, int> result = new SortedDictionary<string, int>(StringComparer.Ordinal);
+        foreach (string pair in text.Split(';', StringSplitOptions.RemoveEmptyEntries))
+        {
+            string[] parts = pair.Split('=');
+            if (parts.Length != 2 || parts[0].Length == 0
+                || !int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out int version) || version < 1
+                || !result.TryAdd(parts[0], version))
+            {
+                return _noComponents;
+            }
+        }
+
+        return result;
     }
 
     /// <summary>The informational version without build metadata (<c>0.1.0+abc</c> → <c>0.1.0</c>).</summary>

@@ -100,7 +100,7 @@ public static class TemplateBuilder
         }
 
         DataContract contract = DataContract.Collect(allBlocks);
-        TemplateStamp stamp = TemplateStamp.For(definition.Identity!, contract, options.Language);
+        TemplateStamp stamp = TemplateStamp.For(definition.Identity!, contract, options.Language, ComponentVersions.In(allBlocks));
         return new ComposedTemplate(new DocumentModel(body, options.Language, styles, info, stamp, page), userStyles, contract, context);
     }
 
