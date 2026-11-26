@@ -35,7 +35,7 @@ internal sealed class JsonComposition
     private readonly EmbeddedTexts _texts;
 
     /// <summary>The parameters of a component reference without <c>params</c>.</summary>
-    private static readonly JsonElement NoParameters = JsonDocument.Parse("{}").RootElement.Clone();
+    private static readonly JsonElement _noParameters = JsonDocument.Parse("{}").RootElement.Clone();
     private JsonElement _root;
     private readonly Dictionary<string, ParagraphStyleKey> _paragraphStyles = new Dictionary<string, ParagraphStyleKey>(StringComparer.Ordinal);
     private readonly Dictionary<string, CharacterStyleKey> _characterStyles = new Dictionary<string, CharacterStyleKey>(StringComparer.Ordinal);
@@ -438,7 +438,7 @@ internal sealed class JsonComposition
             string name = String(block, "component", at)!;
             ComponentCatalog.Registration registration = _options.Components?.Find(name)
                 ?? throw new JsonImportException(at, $"The component '{name}' is not registered (TemplateJsonImportOptions.Components).");
-            JsonElement parameters = block.TryGetProperty("params", out JsonElement given) ? given : NoParameters;
+            JsonElement parameters = block.TryGetProperty("params", out JsonElement given) ? given : _noParameters;
             c.Component(registration.Create(parameters, _options.Components!.DataNaming, (text, kind) => Resolve(text, at + "/params", kind), ParagraphStyle, CharacterStyle, at + "/params"));
         }
         else if (block.TryGetProperty("section", out _))
