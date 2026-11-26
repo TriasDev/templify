@@ -54,7 +54,8 @@ public static class TemplateInspector
             return new TemplateCheckResult(format, stamp, problems);
         }
 
-        ValidationResult validation = options.Data.ValidateTemplate(bytes, out IReadOnlyCollection<string> openNames);
+        CatalogueCheck catalogue = options.Data.CheckTemplate(bytes);
+        ValidationResult validation = catalogue.Validation;
         foreach (ValidationError error in validation.Errors.Where(e => e.Type != ValidationErrorType.MissingVariable))
         {
             problems.Add(new TemplateCheckProblem(CheckCodes.Syntax, TemplateCheckSeverity.Error, error.Message) { Location = error.Location });
@@ -73,9 +74,14 @@ public static class TemplateInspector
             }
         }
 
-        if (problems.Count == 0)
+        foreach (string path in catalogue.FillMissing.Order(StringComparer.Ordinal))
         {
-            TrialFill(bytes, options.Data.CreateWitness(openNames), problems);
+            problems.Add(new TemplateCheckProblem(CheckCodes.UnknownPath, TemplateCheckSeverity.Error, $"The data has no '{path}'.") { DataPath = path });
+        }
+
+        if (catalogue.FillError is { } fillError)
+        {
+            problems.Add(new TemplateCheckProblem(CheckCodes.WrongKind, TemplateCheckSeverity.Error, fillError));
         }
 
         JudgeStamp(stamp, options, problems);
@@ -146,18 +152,6 @@ public static class TemplateInspector
         else if (version < expected.Version)
         {
             problems.Add(new TemplateCheckProblem(CheckCodes.OlderVersion, TemplateCheckSeverity.Warning, $"The template comes from version {version} of '{expected.Id}'; the current version is {expected.Version}."));
-        }
-    }
-
-    /// <summary>Fills the template with witness data: what validation does not see (a loop over a value) fails here.</summary>
-    private static void TrialFill(byte[] bytes, IReadOnlyDictionary<string, object?> witness, List<TemplateCheckProblem> problems)
-    {
-        using MemoryStream input = new MemoryStream(bytes, writable: false);
-        using MemoryStream output = new MemoryStream();
-        ProcessingResult result = new TemplateProcessor().ProcessTemplate(input, output, witness);
-        if (!result.IsSuccess)
-        {
-            problems.Add(new TemplateCheckProblem(CheckCodes.WrongKind, TemplateCheckSeverity.Error, result.ErrorMessage ?? "Filling the template failed."));
         }
     }
 

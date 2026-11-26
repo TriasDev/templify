@@ -41,6 +41,8 @@ public sealed partial class DataCatalog
 {
     private const int MaximumDepth = 16;
     private const int JsonVersion = 1;
+    private const int MaximumItems = 1000;
+    private const int MaximumPasses = 24;
 
     private readonly HashSet<string> _paths;
     private readonly List<string> _open;
@@ -107,69 +109,112 @@ public sealed partial class DataCatalog
     }
 
     /// <summary>
-    /// Builds data in which every path of the catalogue exists: values are the text <c>"x"</c>, collections hold one
-    /// item, and an open shape is an <see cref="OpenWitness"/> with the given names.
+    /// Builds data in which every path of the catalogue exists: values are the text <c>"x"</c>, collections hold
+    /// <paramref name="items"/> items, and an open shape is an <see cref="OpenWitness"/> with the given names.
     /// </summary>
     /// <param name="openNames">The names an open shape has (at any depth below it); null for none.</param>
-    internal IReadOnlyDictionary<string, object?> CreateWitness(IEnumerable<string>? openNames = null)
+    /// <param name="items">How many items every collection holds (an index <c>[n]</c> needs n + 1).</param>
+    internal IReadOnlyDictionary<string, object?> CreateWitness(IEnumerable<string>? openNames = null, int items = 1)
     {
         OpenWitness open = new OpenWitness(openNames ?? []);
-        Dictionary<string, DataCatalogEntry> byPath = Entries.ToDictionary(e => e.Path, StringComparer.Ordinal);
-        ILookup<string, DataCatalogEntry> children = Entries
+        Dictionary<string, DataCatalogEntry> byPath = new Dictionary<string, DataCatalogEntry>(StringComparer.Ordinal);
+        foreach (DataCatalogEntry entry in Entries)
+        {
+            // A property hidden with `new` lists its path twice; the first entry wins.
+            byPath.TryAdd(entry.Path, entry);
+        }
+
+        ILookup<string, DataCatalogEntry> children = byPath.Values
             .Where(e => !e.Path.EndsWith("[]", StringComparison.Ordinal))
             .ToLookup(e => e.Path.LastIndexOf('.') is var dot and >= 0 ? e.Path[..dot] : string.Empty, StringComparer.Ordinal);
         return ObjectWitness(string.Empty);
 
-        object? Witness(DataCatalogEntry entry) => entry.Kind switch
+        object? Witness(DataCatalogEntry entry)
         {
-            DataKind.Value => "x",
-            DataKind.Open => open,
-            DataKind.Collection => new List<object?> { byPath.TryGetValue(entry.Path + "[]", out DataCatalogEntry? item) ? Witness(item) : "x" },
-            _ => ObjectWitness(entry.Path),
-        };
-
-        Dictionary<string, object?> ObjectWitness(string path) =>
-            children[path].ToDictionary(e => path.Length == 0 ? e.Path : e.Path[(path.Length + 1)..], Witness, StringComparer.Ordinal);
-    }
-
-    /// <summary>
-    /// Validates a template against witness data of the catalogue (<see cref="TemplateProcessor.ValidateTemplate(Stream, IReadOnlyDictionary{string, object?})"/>).
-    /// Names below open shapes cannot be listed in advance, so the names the first pass misses become names of the
-    /// open shapes and the template is validated again, until nothing changes: a missing name that remains is not in the
-    /// data. Paths below closed types never gain names this way.
-    /// </summary>
-    /// <param name="template">The template package.</param>
-    /// <returns>The last validation.</returns>
-    internal ValidationResult ValidateTemplate(byte[] template) => ValidateTemplate(template, out _);
-
-    /// <inheritdoc cref="ValidateTemplate(byte[])"/>
-    /// <param name="template">The template package.</param>
-    /// <param name="openNames">The names the open shapes got (for <see cref="CreateWitness"/>).</param>
-    internal ValidationResult ValidateTemplate(byte[] template, out IReadOnlyCollection<string> openNames)
-    {
-        HashSet<string> names = new HashSet<string>(StringComparer.Ordinal);
-        bool open = Entries.Any(e => e.Kind == DataKind.Open);
-        for (int pass = 0; ; pass++)
-        {
-            ValidationResult result;
-            using (MemoryStream stream = new MemoryStream(template, writable: false))
+            switch (entry.Kind)
             {
-                result = new TemplateProcessor().ValidateTemplate(stream, CreateWitness(names));
+                case DataKind.Value:
+                    return "x";
+                case DataKind.Open:
+                    return open;
+                case DataKind.Collection:
+                    object? item = byPath.TryGetValue(entry.Path + "[]", out DataCatalogEntry? itemEntry) ? Witness(itemEntry) : "x";
+                    return Enumerable.Repeat(item, items).ToList();
+                default:
+                    return ObjectWitness(entry.Path);
+            }
+        }
+
+        Dictionary<string, object?> ObjectWitness(string path)
+        {
+            Dictionary<string, object?> result = new Dictionary<string, object?>(StringComparer.Ordinal);
+            foreach (DataCatalogEntry child in children[path])
+            {
+                result.TryAdd(path.Length == 0 ? child.Path : child.Path[(path.Length + 1)..], Witness(child));
             }
 
-            int before = names.Count;
-            if (open && pass < MaximumDepth)
+            return result;
+        }
+    }
+
+    /// <summary>Validates a template against witness data of the catalogue (see <see cref="CheckTemplate"/>).</summary>
+    internal ValidationResult ValidateTemplate(byte[] template) => CheckTemplate(template).Validation;
+
+    /// <summary>
+    /// Validates a template against witness data of the catalogue and fills it once with that data. The engine's
+    /// validation checks every branch but, inside loops, only the first segment of an item's path; the fill checks
+    /// whole paths in the branches the witness takes. Names below open shapes and indexes cannot be known in advance:
+    /// they start from the template's placeholders, and every name or index a pass misses is added (to the open shapes,
+    /// or as more collection items) until nothing changes. A name that stays missing is not in the data; paths below
+    /// closed types never gain names this way.
+    /// </summary>
+    /// <param name="template">The template package.</param>
+    /// <returns>The last validation, the names only the fill missed, and the fill's error.</returns>
+    internal CatalogueCheck CheckTemplate(byte[] template)
+    {
+        HashSet<string> names = new HashSet<string>(StringComparer.Ordinal);
+        int items = 1;
+        bool open = Entries.Any(e => e.Kind == DataKind.Open);
+
+        // An open loop item with a root name (order) would resolve order.… through the item inside the loop.
+        HashSet<string> roots = Entries.Select(e => e.Path.Split('.', '[')[0]).ToHashSet(StringComparer.Ordinal);
+        for (int pass = 0; ; pass++)
+        {
+            IReadOnlyDictionary<string, object?> witness = CreateWitness(names, items);
+            ValidationResult validation;
+            using (MemoryStream stream = new MemoryStream(template, writable: false))
             {
-                foreach (string missing in MissingNames(result))
+                validation = new TemplateProcessor().ValidateTemplate(stream, witness);
+            }
+
+            ProcessingResult? fill = validation.Errors.All(e => e.Type == ValidationErrorType.MissingVariable) ? Fill(template, witness) : null;
+            List<string> missing = MissingNames(validation).Concat(fill?.MissingVariables ?? []).ToList();
+
+            int namesBefore = names.Count;
+            int itemsBefore = items;
+            foreach (string name in missing)
+            {
+                foreach (Match index in IndexPattern().Matches(name))
                 {
-                    names.UnionWith(missing.Split('.', '[', ']').Where(n => n.Length > 0 && !char.IsAsciiDigit(n[0])));
+                    items = Math.Min(MaximumItems, Math.Max(items, int.Parse(index.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture) + 1));
                 }
             }
 
-            if (names.Count == before)
+            if (open)
             {
-                openNames = names;
-                return result;
+                foreach (string name in validation.AllPlaceholders.Concat(missing))
+                {
+                    names.UnionWith(name.Split('.', '[', ']', ':', '(', ')', ' ').Where(n => n.Length > 0 && !n.StartsWith('@') && !roots.Contains(n)));
+                }
+            }
+
+            if ((names.Count == namesBefore && items == itemsBefore) || pass >= MaximumPasses)
+            {
+                HashSet<string> reported = MissingNames(validation).ToHashSet(StringComparer.Ordinal);
+                return new CatalogueCheck(
+                    validation,
+                    (fill?.MissingVariables ?? []).Where(reported.Add).ToList(),
+                    fill is { IsSuccess: false } ? fill.ErrorMessage ?? "Filling the template failed." : null);
             }
         }
     }
@@ -181,6 +226,13 @@ public sealed partial class DataCatalog
             .Select(w => ConditionVariable().Match(w.Message))
             .Where(m => m.Success)
             .Select(m => m.Groups[1].Value));
+
+    private static ProcessingResult Fill(byte[] template, IReadOnlyDictionary<string, object?> witness)
+    {
+        using MemoryStream input = new MemoryStream(template, writable: false);
+        using MemoryStream output = new MemoryStream();
+        return new TemplateProcessor().ProcessTemplate(input, output, witness);
+    }
 
     /// <summary>The kind of a path: its entry's kind, <see cref="DataKind.Open"/> below an open shape, or null.</summary>
     internal DataKind? KindOf(string path)
@@ -278,7 +330,7 @@ public sealed partial class DataCatalog
             return TypeName(type.GetElementType()!) + "[]";
         }
 
-        if (type.IsGenericType)
+        if (type.IsGenericType && type.Name.Contains('`', StringComparison.Ordinal))
         {
             string name = type.Name[..type.Name.IndexOf('`', StringComparison.Ordinal)];
             return name + "<" + string.Join(", ", type.GetGenericArguments().Select(TypeName)) + ">";
@@ -293,6 +345,9 @@ public sealed partial class DataCatalog
     // read from the message; a test fails if the wording changes.
     [GeneratedRegex(@"uses variable '([^']+)'", RegexOptions.CultureInvariant)]
     private static partial Regex ConditionVariable();
+
+    [GeneratedRegex(@"\[([0-9]{1,3})\]", RegexOptions.CultureInvariant)]
+    private static partial Regex IndexPattern();
 
     private static Type? ItemType(Type type)
     {
@@ -326,3 +381,10 @@ internal sealed class OpenWitness : Dictionary<string, object?>, System.Collecti
 
     public override string ToString() => "x";
 }
+
+/// <summary>What <see cref="DataCatalog.CheckTemplate"/> found.</summary>
+/// <param name="Validation">The last validation against the witness.</param>
+/// <param name="FillMissing">The names only the trial fill found missing (whole paths of loop items).</param>
+/// <param name="FillError">The trial fill's error (for example a loop over a value); null when it succeeded or did not run.</param>
+internal sealed record CatalogueCheck(ValidationResult Validation, IReadOnlyList<string> FillMissing, string? FillError);
+
