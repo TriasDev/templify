@@ -98,34 +98,41 @@ public sealed class ListComposer
 
     /// <summary>Adds a top-level item with literal text.</summary>
     /// <param name="text">The text.</param>
-    public void Item(string text) => Item(0, text);
+    /// <returns>This composer.</returns>
+    public ListComposer Item(string text) => Item(0, text);
 
     /// <summary>Adds an item with literal text.</summary>
     /// <param name="level">The level: 0 is the top level.</param>
     /// <param name="text">The text.</param>
-    public void Item(int level, string text)
+    /// <returns>This composer.</returns>
+    public ListComposer Item(int level, string text)
     {
         ArgumentNullException.ThrowIfNull(text);
         Item(level, x => x.Text(text));
+        return this;
     }
 
     /// <summary>Adds a top-level item holding one value.</summary>
     /// <param name="value">The data path.</param>
-    public void Item(TemplatePath value) => Item(0, x => x.Value(value));
+    /// <returns>This composer.</returns>
+    public ListComposer Item(TemplatePath value) => Item(0, x => x.Value(value));
 
     /// <summary>Adds an item holding one value.</summary>
     /// <param name="level">The level: 0 is the top level.</param>
     /// <param name="value">The data path.</param>
-    public void Item(int level, TemplatePath value) => Item(level, x => x.Value(value));
+    /// <returns>This composer.</returns>
+    public ListComposer Item(int level, TemplatePath value) => Item(level, x => x.Value(value));
 
     /// <summary>Adds a top-level item with mixed content.</summary>
     /// <param name="content">Describes the item's text.</param>
-    public void Item(Action<InlineComposer> content) => Item(0, content);
+    /// <returns>This composer.</returns>
+    public ListComposer Item(Action<InlineComposer> content) => Item(0, content);
 
     /// <summary>Adds an item with mixed content.</summary>
     /// <param name="level">The level: 0 is the top level, at most 8.</param>
     /// <param name="content">Describes the item's text.</param>
-    public void Item(int level, Action<InlineComposer> content)
+    /// <returns>This composer.</returns>
+    public ListComposer Item(int level, Action<InlineComposer> content)
     {
         ArgumentNullException.ThrowIfNull(content);
         EnsureOpen();
@@ -137,6 +144,7 @@ public sealed class ListComposer
         InlineComposer composer = new InlineComposer(_context, _scope);
         content(composer);
         _blocks.Add(new ParagraphBlock(composer.Close(), null, new ListItemInfo(_style, level)));
+        return this;
     }
 
     /// <summary>Repeats items for every item of a typed collection.</summary>
@@ -144,17 +152,20 @@ public sealed class ListComposer
     /// <param name="collection">The collection, from <see cref="TemplatePath{T}.Items{TItem}"/>.</param>
     /// <param name="itemName">The iteration variable.</param>
     /// <param name="items">Describes the items for each element; it receives the typed element.</param>
-    public void ForEach<T>(TemplateCollection<T> collection, string itemName, Action<LoopItem<T>, ListComposer> items)
+    /// <returns>This composer.</returns>
+    public ListComposer ForEach<T>(TemplateCollection<T> collection, string itemName, Action<LoopItem<T>, ListComposer> items)
     {
         ArgumentNullException.ThrowIfNull(items);
         ForEach(collection.Untyped, itemName, (item, l) => items(new LoopItem<T>(item, collection.Naming), l));
+        return this;
     }
 
     /// <summary>Repeats items for every item of a collection.</summary>
     /// <param name="collection">The data path of the collection.</param>
     /// <param name="itemName">The iteration variable.</param>
     /// <param name="items">Describes the items for each element; it receives the element.</param>
-    public void ForEach(TemplatePath collection, string itemName, Action<LoopItem, ListComposer> items)
+    /// <returns>This composer.</returns>
+    public ListComposer ForEach(TemplatePath collection, string itemName, Action<LoopItem, ListComposer> items)
     {
         ArgumentNullException.ThrowIfNull(items);
         EnsureOpen();
@@ -164,6 +175,7 @@ public sealed class ListComposer
             items(item, inner);
             inner.Close();
         });
+        return this;
     }
 
     /// <summary>Adds items shown only when a condition holds.</summary>

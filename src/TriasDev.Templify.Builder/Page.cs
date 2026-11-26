@@ -165,34 +165,42 @@ public sealed class FirstPageComposer
 
     /// <summary>Describes the first page's header.</summary>
     /// <param name="header">Describes the header's blocks.</param>
-    public void Header(Action<BlockComposer> header)
+    /// <returns>This composer.</returns>
+    public FirstPageComposer Header(Action<BlockComposer> header)
     {
         ArgumentNullException.ThrowIfNull(header);
         EnsureOpen();
         _setup.FirstHeader = BlockComposer.Compose(_context, null, header);
+        return this;
     }
 
     /// <summary>Describes the first page's footer.</summary>
     /// <param name="footer">Describes the footer's blocks.</param>
-    public void Footer(Action<BlockComposer> footer)
+    /// <returns>This composer.</returns>
+    public FirstPageComposer Footer(Action<BlockComposer> footer)
     {
         ArgumentNullException.ThrowIfNull(footer);
         EnsureOpen();
         _setup.FirstFooter = BlockComposer.Compose(_context, null, footer);
+        return this;
     }
 
     /// <summary>Leaves the first page without a header.</summary>
-    public void NoHeader()
+    /// <returns>This composer.</returns>
+    public FirstPageComposer NoHeader()
     {
         EnsureOpen();
         _setup.FirstHeader = new List<Block>();
+        return this;
     }
 
     /// <summary>Leaves the first page without a footer.</summary>
-    public void NoFooter()
+    /// <returns>This composer.</returns>
+    public FirstPageComposer NoFooter()
     {
         EnsureOpen();
         _setup.FirstFooter = new List<Block>();
+        return this;
     }
 
     internal void Close() => _isOpen = false;

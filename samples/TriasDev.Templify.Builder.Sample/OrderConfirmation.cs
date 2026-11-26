@@ -137,7 +137,7 @@ public sealed class OrderConfirmation(BrandTheme theme) : ITemplateDefinition
             c.Paragraph(Styles.Subtitle, x =>
             {
                 x.Text(t["orderNo"] + " ");
-                x.Value(order["number"], Styles.Strong);
+                x.Value(Styles.Strong, order["number"]);
                 x.Text(" · ");
                 x.Value(order["date"], ValueFormat.Date(t["dateFormat"]));
             });
@@ -163,12 +163,12 @@ public sealed class OrderConfirmation(BrandTheme theme) : ITemplateDefinition
         c.Paragraph(Styles.Heading, t["customer"]);
         c.Paragraph(x =>
         {
-            x.Value(order["customer.name"], Styles.Strong);
-            x.If(order["customer.isNew"], s => s.Text(" (" + t["newCustomer"] + ")", Styles.Muted));
+            x.Value(Styles.Strong, order["customer.name"]);
+            x.If(order["customer.isNew"], s => s.Text(Styles.Muted, " (" + t["newCustomer"] + ")"));
         });
         c.If(order["customer.contact"].IsNotEmpty, b => b.Paragraph(x =>
         {
-            x.Text(t["attn"] + " ", Styles.Muted);
+            x.Text(Styles.Muted, t["attn"] + " ");
             x.Value(order["customer.contact"]);
         }));
         c.Component(new AddressBlock(order["customer.address"]));
@@ -204,8 +204,8 @@ public sealed class OrderConfirmation(BrandTheme theme) : ITemplateDefinition
                         cell.Paragraph(x =>
                         {
                             x.Value(line["description"]);
-                            x.Text(" — ", Styles.Muted);
-                            x.If(line["inStock"], s => s.Text(t["inStock"], Styles.Muted)).Else(s => s.Text(t["backOrdered"], Styles.Muted));
+                            x.Text(Styles.Muted, " — ");
+                            x.If(line["inStock"], s => s.Text(Styles.Muted, t["inStock"])).Else(s => s.Text(Styles.Muted, t["backOrdered"]));
                         });
                         cell.If(line["tags"].IsNotEmpty, b => b.Paragraph(Styles.Small, x => x.Value(line["tags"], ValueFormat.Join(separator: " · "))));
                     });

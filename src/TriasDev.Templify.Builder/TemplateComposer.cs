@@ -33,11 +33,13 @@ public sealed class TemplateComposer
     /// </summary>
     /// <typeparam name="T">The type components ask for.</typeparam>
     /// <param name="value">The object.</param>
-    public void Share<T>(T value)
+    /// <returns>This composer.</returns>
+    public TemplateComposer Share<T>(T value)
         where T : class
     {
         ArgumentNullException.ThrowIfNull(value);
         _context.Shared[typeof(T)] = value;
+        return this;
     }
 
     /// <summary>Gets the texts of the build's language: <c>template.Texts["invoiceTitle"]</c>.</summary>
@@ -61,17 +63,19 @@ public sealed class TemplateComposer
 
     /// <summary>Sets the template's named styles. Call it once.</summary>
     /// <param name="styles">The style sheet, typically built from the product's theme.</param>
-    public void Styles(StyleSheet styles)
+    /// <returns>This composer.</returns>
+    public TemplateComposer Styles(StyleSheet styles)
     {
         ArgumentNullException.ThrowIfNull(styles);
         EnsureOpen();
         if (_styles != null)
         {
             _context.Error(DiagnosticCodes.StylesAlreadySet, "TemplateComposer.Styles was called more than once; a template has one style sheet.");
-            return;
+            return this;
         }
 
         _styles = styles;
+        return this;
     }
 
     /// <summary>
@@ -79,40 +83,46 @@ public sealed class TemplateComposer
     /// margins and no header or footer.
     /// </summary>
     /// <param name="page">Describes the page.</param>
-    public void Page(Action<PageComposer> page)
+    /// <returns>This composer.</returns>
+    public TemplateComposer Page(Action<PageComposer> page)
     {
         ArgumentNullException.ThrowIfNull(page);
         EnsureOpen();
         if (_page != null)
         {
             _context.Error(DiagnosticCodes.PageAlreadySet, "TemplateComposer.Page was called more than once; a template has one page setup.");
-            return;
+            return this;
         }
 
         _page = new PageSetupBuilder();
         PageComposer composer = new PageComposer(_context, _page);
         page(composer);
         composer.Close();
+        return this;
     }
 
     /// <summary>Sets the standard document properties: title, author, subject.</summary>
     /// <param name="properties">Sets the properties. Several calls combine; a later value replaces an earlier one.</param>
-    public void Properties(Action<DocumentPropertiesComposer> properties)
+    /// <returns>This composer.</returns>
+    public TemplateComposer Properties(Action<DocumentPropertiesComposer> properties)
     {
         ArgumentNullException.ThrowIfNull(properties);
         EnsureOpen();
         properties(_properties);
+        return this;
     }
 
     /// <summary>Describes the document body. Several calls append to the body in order.</summary>
     /// <param name="content">Describes the body's blocks.</param>
-    public void Content(Action<BlockComposer> content)
+    /// <returns>This composer.</returns>
+    public TemplateComposer Content(Action<BlockComposer> content)
     {
         ArgumentNullException.ThrowIfNull(content);
         EnsureOpen();
         BlockComposer composer = new BlockComposer(_context, _body, null);
         content(composer);
         composer.Close();
+        return this;
     }
 
     /// <summary>Ends composing and returns what was composed.</summary>

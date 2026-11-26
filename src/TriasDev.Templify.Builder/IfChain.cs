@@ -83,16 +83,19 @@ public sealed class SwitchComposer
     /// <summary>Adds a case for one value: <c>value = "x"</c>.</summary>
     /// <param name="value">The value.</param>
     /// <param name="then">Describes the blocks for this value.</param>
-    public void Case(string value, Action<BlockComposer> then)
+    /// <returns>This composer.</returns>
+    public SwitchComposer Case(string value, Action<BlockComposer> then)
     {
         ArgumentNullException.ThrowIfNull(value);
         Case(new[] { value }, then);
+        return this;
     }
 
     /// <summary>Adds a case for several values: <c>value in ("x", "y")</c>.</summary>
     /// <param name="values">The values; at least one.</param>
     /// <param name="then">Describes the blocks for these values.</param>
-    public void Case(IEnumerable<string> values, Action<BlockComposer> then)
+    /// <returns>This composer.</returns>
+    public SwitchComposer Case(IEnumerable<string> values, Action<BlockComposer> then)
     {
         ArgumentNullException.ThrowIfNull(values);
         ArgumentNullException.ThrowIfNull(then);
@@ -109,6 +112,7 @@ public sealed class SwitchComposer
         }
 
         _cases.Add((list, BlockComposer.Compose(_context, _scope, then)));
+        return this;
     }
 
     /// <summary>
@@ -116,7 +120,8 @@ public sealed class SwitchComposer
     /// some values and prints nothing for the rest is a silent gap.
     /// </summary>
     /// <param name="otherwise">Describes the blocks.</param>
-    public void Default(Action<BlockComposer> otherwise)
+    /// <returns>This composer.</returns>
+    public SwitchComposer Default(Action<BlockComposer> otherwise)
     {
         ArgumentNullException.ThrowIfNull(otherwise);
         EnsureOpen();
@@ -126,6 +131,7 @@ public sealed class SwitchComposer
         }
 
         _default = BlockComposer.Compose(_context, _scope, otherwise);
+        return this;
     }
 
     /// <summary>Ends composing and returns the blocks: a conditional chain, or the default alone when there are no cases.</summary>

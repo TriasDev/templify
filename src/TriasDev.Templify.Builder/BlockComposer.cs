@@ -31,78 +31,94 @@ public class BlockComposer
 
     /// <summary>Adds a paragraph with literal text, in the default paragraph style.</summary>
     /// <param name="text">The text. Tabs and line breaks become the format's tab and line break.</param>
-    public void Paragraph(string text) => AddText(null, text);
+    /// <returns>This composer.</returns>
+    public BlockComposer Paragraph(string text) => AddText(null, text);
 
     /// <summary>Adds a paragraph with literal text.</summary>
     /// <param name="style">The paragraph style; the style sheet must define it.</param>
     /// <param name="text">The text. Tabs and line breaks become the format's tab and line break.</param>
-    public void Paragraph(ParagraphStyleKey style, string text)
+    /// <returns>This composer.</returns>
+    public BlockComposer Paragraph(ParagraphStyleKey style, string text)
     {
         ArgumentNullException.ThrowIfNull(style);
         AddText(style, text);
+        return this;
     }
 
     /// <summary>Adds a paragraph that holds one value from the data, in the default paragraph style: <c>{{path}}</c>.</summary>
     /// <param name="value">The data path of the value.</param>
-    public void Paragraph(TemplatePath value) => AddValue(null, value);
+    /// <returns>This composer.</returns>
+    public BlockComposer Paragraph(TemplatePath value) => AddValue(null, value);
 
     /// <summary>Adds a paragraph that holds one value from the data: <c>{{path}}</c>.</summary>
     /// <param name="style">The paragraph style; the style sheet must define it.</param>
     /// <param name="value">The data path of the value.</param>
-    public void Paragraph(ParagraphStyleKey style, TemplatePath value)
+    /// <returns>This composer.</returns>
+    public BlockComposer Paragraph(ParagraphStyleKey style, TemplatePath value)
     {
         ArgumentNullException.ThrowIfNull(style);
         AddValue(style, value);
+        return this;
     }
 
     /// <summary>Adds a paragraph with mixed content, in the default paragraph style.</summary>
     /// <param name="content">Describes the paragraph's content.</param>
-    public void Paragraph(Action<InlineComposer> content) => AddComposed(null, content);
+    /// <returns>This composer.</returns>
+    public BlockComposer Paragraph(Action<InlineComposer> content) => AddComposed(null, content);
 
     /// <summary>Adds a paragraph with mixed content: literal text and values.</summary>
     /// <param name="style">The paragraph style; the style sheet must define it.</param>
     /// <param name="content">Describes the paragraph's content.</param>
-    public void Paragraph(ParagraphStyleKey style, Action<InlineComposer> content)
+    /// <returns>This composer.</returns>
+    public BlockComposer Paragraph(ParagraphStyleKey style, Action<InlineComposer> content)
     {
         ArgumentNullException.ThrowIfNull(style);
         AddComposed(style, content);
+        return this;
     }
 
     /// <summary>Adds a paragraph holding one image at its natural size.</summary>
     /// <param name="image">The image.</param>
     /// <param name="altText">The text that describes the image; required.</param>
-    public void Image(ImageSource image, string altText) => AddImage(null, image, altText, ImageFit.Natural);
+    /// <returns>This composer.</returns>
+    public BlockComposer Image(ImageSource image, string altText) => AddImage(null, image, altText, ImageFit.Natural);
 
     /// <summary>Adds a paragraph holding one image.</summary>
     /// <param name="image">The image.</param>
     /// <param name="altText">The text that describes the image; required.</param>
     /// <param name="fit">How the image is sized; the aspect ratio is kept.</param>
-    public void Image(ImageSource image, string altText, ImageFit fit) => AddImage(null, image, altText, fit);
+    /// <returns>This composer.</returns>
+    public BlockComposer Image(ImageSource image, string altText, ImageFit fit) => AddImage(null, image, altText, fit);
 
     /// <summary>Adds a paragraph in a style holding one image (the style aligns and spaces it).</summary>
     /// <param name="style">The paragraph style.</param>
     /// <param name="image">The image.</param>
     /// <param name="altText">The text that describes the image; required.</param>
     /// <param name="fit">How the image is sized; the aspect ratio is kept.</param>
-    public void Image(ParagraphStyleKey style, ImageSource image, string altText, ImageFit fit)
+    /// <returns>This composer.</returns>
+    public BlockComposer Image(ParagraphStyleKey style, ImageSource image, string altText, ImageFit fit)
     {
         ArgumentNullException.ThrowIfNull(style);
         AddImage(style, image, altText, fit);
+        return this;
     }
 
-    private void AddImage(ParagraphStyleKey? style, ImageSource image, string altText, ImageFit fit)
+    private BlockComposer AddImage(ParagraphStyleKey? style, ImageSource image, string altText, ImageFit fit)
     {
         ArgumentNullException.ThrowIfNull(image);
         ArgumentNullException.ThrowIfNull(fit);
         EnsureOpen();
         _blocks.Add(new ParagraphBlock(new Inline[] { InlineComposer.CreateImage(image, altText, fit) }, style));
+        return this;
     }
 
     /// <summary>Adds a page break: the content after it starts on a new page.</summary>
-    public void PageBreak()
+    /// <returns>This composer.</returns>
+    public BlockComposer PageBreak()
     {
         EnsureOpen();
         _blocks.Add(new PageBreakBlock());
+        return this;
     }
 
     /// <summary>
@@ -130,7 +146,8 @@ public class BlockComposer
     /// </summary>
     /// <param name="value">The data path of the value.</param>
     /// <param name="cases">Describes the cases and the default.</param>
-    public void Switch(TemplatePath value, Action<SwitchComposer> cases)
+    /// <returns>This composer.</returns>
+    public BlockComposer Switch(TemplatePath value, Action<SwitchComposer> cases)
     {
         ArgumentNullException.ThrowIfNull(cases);
         EnsureOpen();
@@ -139,6 +156,7 @@ public class BlockComposer
         SwitchComposer composer = new SwitchComposer(_context, _scope);
         cases(composer);
         _blocks.AddRange(composer.Close(value));
+        return this;
     }
 
     /// <summary>Repeats blocks for every item of a typed collection.</summary>
@@ -146,10 +164,12 @@ public class BlockComposer
     /// <param name="collection">The collection, from <see cref="TemplatePath{T}.Items{TItem}"/>.</param>
     /// <param name="itemName">The iteration variable.</param>
     /// <param name="body">Describes the blocks for each item; it receives the typed item.</param>
-    public void ForEach<T>(TemplateCollection<T> collection, string itemName, Action<LoopItem<T>, BlockComposer> body)
+    /// <returns>This composer.</returns>
+    public BlockComposer ForEach<T>(TemplateCollection<T> collection, string itemName, Action<LoopItem<T>, BlockComposer> body)
     {
         ArgumentNullException.ThrowIfNull(body);
         ForEach(collection.Untyped, itemName, (item, b) => body(new LoopItem<T>(item, collection.Naming), b));
+        return this;
     }
 
     /// <summary>
@@ -163,7 +183,8 @@ public class BlockComposer
     /// loop's variable.
     /// </param>
     /// <param name="body">Describes the blocks repeated for each item; it receives the item.</param>
-    public void ForEach(TemplatePath collection, string itemName, Action<LoopItem, BlockComposer> body)
+    /// <returns>This composer.</returns>
+    public BlockComposer ForEach(TemplatePath collection, string itemName, Action<LoopItem, BlockComposer> body)
     {
         ArgumentNullException.ThrowIfNull(body);
         EnsureOpen();
@@ -179,11 +200,13 @@ public class BlockComposer
         body(new LoopItem(scope), composer);
         composer.Close();
         _blocks.Add(new LoopBlock(collection, itemName, blocks));
+        return this;
     }
 
     /// <summary>Adds a table.</summary>
     /// <param name="table">Describes the columns, header rows and rows.</param>
-    public void Table(Action<TableComposer> table)
+    /// <returns>This composer.</returns>
+    public BlockComposer Table(Action<TableComposer> table)
     {
         ArgumentNullException.ThrowIfNull(table);
         EnsureOpen();
@@ -192,6 +215,7 @@ public class BlockComposer
         table(composer);
         composer.Close();
         _blocks.Add(block);
+        return this;
     }
 
     /// <summary>
@@ -200,7 +224,8 @@ public class BlockComposer
     /// </summary>
     /// <param name="style">The box style; the style sheet must define it.</param>
     /// <param name="content">Describes the box's content.</param>
-    public void Box(BoxStyleKey style, Action<BlockComposer> content)
+    /// <returns>This composer.</returns>
+    public BlockComposer Box(BoxStyleKey style, Action<BlockComposer> content)
     {
         ArgumentNullException.ThrowIfNull(style);
         ArgumentNullException.ThrowIfNull(content);
@@ -213,19 +238,22 @@ public class BlockComposer
         row.Cells.Add(cell);
         box.Rows.Add(row);
         _blocks.Add(box);
+        return this;
     }
 
     /// <summary>Adds a horizontal rule across the container.</summary>
     /// <param name="thickness">The line width; more than 0 and at most 6 pt.</param>
     /// <param name="color">The colour.</param>
-    public void Rule(Length thickness, Color color) => Rule(thickness, color, Length.Zero, Length.Zero);
+    /// <returns>This composer.</returns>
+    public BlockComposer Rule(Length thickness, Color color) => Rule(thickness, color, Length.Zero, Length.Zero);
 
     /// <summary>Adds a horizontal rule across the container, with space above and below.</summary>
     /// <param name="thickness">The line width; more than 0 and at most 6 pt.</param>
     /// <param name="color">The colour.</param>
     /// <param name="spaceAbove">The space above the line.</param>
     /// <param name="spaceBelow">The space below the line.</param>
-    public void Rule(Length thickness, Color color, Length spaceAbove, Length spaceBelow)
+    /// <returns>This composer.</returns>
+    public BlockComposer Rule(Length thickness, Color color, Length spaceAbove, Length spaceBelow)
     {
         EnsureOpen();
         if (thickness <= Length.Zero || thickness > 6.Pt())
@@ -234,12 +262,14 @@ public class BlockComposer
         }
 
         _blocks.Add(new RuleBlock(new BorderLine(thickness, color), StyleRanges.NotNegative(spaceAbove, nameof(spaceAbove)), StyleRanges.NotNegative(spaceBelow, nameof(spaceBelow))));
+        return this;
     }
 
     /// <summary>Adds a bullet list: items at levels, loops and conditionals over items.</summary>
     /// <param name="style">The list style; the style sheet must define it and every level used.</param>
     /// <param name="items">Describes the items.</param>
-    public void List(ListStyleKey style, Action<ListComposer> items)
+    /// <returns>This composer.</returns>
+    public BlockComposer List(ListStyleKey style, Action<ListComposer> items)
     {
         ArgumentNullException.ThrowIfNull(style);
         ArgumentNullException.ThrowIfNull(items);
@@ -249,11 +279,13 @@ public class BlockComposer
         items(composer);
         composer.Close();
         _blocks.Add(list);
+        return this;
     }
 
     /// <summary>Adds a block written as format XML, for a construct the vocabulary does not have; both formats are required.</summary>
     /// <param name="raw">The DOCX and ODT XML and the paths it reads.</param>
-    public void Raw(RawBlock raw)
+    /// <returns>This composer.</returns>
+    public BlockComposer Raw(RawBlock raw)
     {
         ArgumentNullException.ThrowIfNull(raw);
         ArgumentNullException.ThrowIfNull(raw.Docx);
@@ -266,10 +298,12 @@ public class BlockComposer
         }
 
         _blocks.Add(new RawXmlBlock(raw));
+        return this;
     }
 
     /// <summary>Adds a table of contents over the headings of outline levels 1 to 3.</summary>
-    public void TableOfContents() => TableOfContents(3);
+    /// <returns>This composer.</returns>
+    public BlockComposer TableOfContents() => TableOfContents(3);
 
     /// <summary>
     /// Adds a table of contents over the headings (paragraph styles with an outline level) up to a level. It is built
@@ -278,7 +312,8 @@ public class BlockComposer
     /// until a user updates it. The build reports this as a warning (<see cref="GeneratedTemplate.Warnings"/>).
     /// </summary>
     /// <param name="maxLevel">The deepest outline level listed, 1 to 9.</param>
-    public void TableOfContents(int maxLevel)
+    /// <returns>This composer.</returns>
+    public BlockComposer TableOfContents(int maxLevel)
     {
         EnsureOpen();
         if (maxLevel is < 1 or > 9)
@@ -287,15 +322,18 @@ public class BlockComposer
         }
 
         _blocks.Add(new TocBlock(maxLevel));
+        return this;
     }
 
     /// <summary>Adds a reusable component's content.</summary>
     /// <param name="component">The component.</param>
-    public void Component(ITemplateComponent component)
+    /// <returns>This composer.</returns>
+    public BlockComposer Component(ITemplateComponent component)
     {
         ArgumentNullException.ThrowIfNull(component);
         EnsureOpen();
         _blocks.Add(new ComponentBlock(component, Compose(_context, _scope, component.Compose)));
+        return this;
     }
 
     /// <summary>Gets the build's texts, for components: <c>c.Texts["title"]</c>.</summary>
@@ -317,10 +355,12 @@ public class BlockComposer
     /// </summary>
     /// <param name="name">The section's name: letters, digits, <c>_</c>, <c>.</c> or <c>-</c>; unique in a definition.</param>
     /// <param name="content">Describes the blocks.</param>
-    public void Section(string name, Action<BlockComposer> content)
+    /// <returns>This composer.</returns>
+    public BlockComposer Section(string name, Action<BlockComposer> content)
     {
         ArgumentNullException.ThrowIfNull(content);
         Component(new SectionComponent(SectionComponent.ValidateName(name), content));
+        return this;
     }
 
     /// <summary>Reports paths of a condition that cannot be used here.</summary>
@@ -344,28 +384,31 @@ public class BlockComposer
 
     internal void Close() => _isOpen = false;
 
-    private void AddText(ParagraphStyleKey? style, string text)
+    private BlockComposer AddText(ParagraphStyleKey? style, string text)
     {
         ArgumentNullException.ThrowIfNull(text);
         EnsureOpen();
         Inline[] inlines = text.Length == 0 ? Array.Empty<Inline>() : new Inline[] { new TextInline(text) };
         InlineComposer.CheckLiteralText(_context, inlines);
         _blocks.Add(new ParagraphBlock(inlines, style));
+        return this;
     }
 
-    private void AddValue(ParagraphStyleKey? style, TemplatePath value)
+    private BlockComposer AddValue(ParagraphStyleKey? style, TemplatePath value)
     {
         EnsureOpen();
         _blocks.Add(new ParagraphBlock(new Inline[] { InlineComposer.CreateValue(_context, _scope, value) }, style));
+        return this;
     }
 
-    private void AddComposed(ParagraphStyleKey? style, Action<InlineComposer> content)
+    private BlockComposer AddComposed(ParagraphStyleKey? style, Action<InlineComposer> content)
     {
         ArgumentNullException.ThrowIfNull(content);
         EnsureOpen();
         InlineComposer composer = new InlineComposer(_context, _scope);
         content(composer);
         _blocks.Add(new ParagraphBlock(composer.Close(), style));
+        return this;
     }
 
     private void EnsureOpen()

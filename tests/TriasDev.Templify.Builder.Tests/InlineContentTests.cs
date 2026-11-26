@@ -142,10 +142,10 @@ public sealed partial class InlineContentTests
         template.Content(c => c.Paragraph(x =>
         {
             x.Text("Dear ");
-            x.Value(customer["name"], _strong);
+            x.Value(_strong, customer["name"]);
             x.Text(", total ");
-            x.Value(customer["total"], ValueFormat.Number("F2"), _strong);
-            x.Text(" ok ", _strong);
+            x.Value(_strong, customer["total"], ValueFormat.Number("F2"));
+            x.Text(_strong, " ok ");
             x.Tab();
             x.Text("end");
             x.LineBreak();
@@ -190,7 +190,7 @@ public sealed partial class InlineContentTests
     [Fact]
     public void CharacterStyle_NotDefined_IsAnError()
     {
-        TestDefinition definition = new TestDefinition(template => template.Content(c => c.Paragraph(x => x.Text("x", _strong))));
+        TestDefinition definition = new TestDefinition(template => template.Content(c => c.Paragraph(x => x.Text(_strong, "x"))));
 
         TemplateBuildException exception = Assert.Throws<TemplateBuildException>(
             () => TemplateBuilder.Build(definition, BuilderHarness.Options(TemplateFormat.Odt)));
@@ -221,7 +221,7 @@ public sealed partial class InlineContentTests
         TestDefinition definition = new TestDefinition(template => template.Content(c => c.Paragraph(x =>
         {
             x.Text("a {");
-            x.Text("{ b", _strong);
+            x.Text(_strong, "{ b");
         })));
 
         TemplateBuildException exception = Assert.Throws<TemplateBuildException>(

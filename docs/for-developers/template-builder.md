@@ -45,7 +45,7 @@ public sealed class OrderConfirmation(BrandTheme theme) : ITemplateDefinition
             c.Paragraph(Styles.Subtitle, x =>
             {
                 x.Text(t["orderNo"] + " ");
-                x.Value(order["number"], Styles.Strong);
+                x.Value(Styles.Strong, order["number"]);
             });
         });
     }
@@ -237,6 +237,10 @@ still ends with a paragraph and a table never touches the next one afterwards, t
 paragraph in the style "Template Spacer" where that could happen (a cell ending with a conditional, a loop or a table; a
 table followed by a marker). A style display name must not contain a comma (TB2006).
 
+A style always comes first (`Paragraph(style, text)`, `Text(style, text)`, `Value(style, path[, format])`), like the
+options before the content in JSON. The methods that add content return their composer, so short parts chain:
+`x.Text("Dear ").Value(Styles.Strong, order["name"]).Text("!")`, `r.Cell("A").Cell("B")`.
+
 ### Raw blocks
 
 For a construct the builder does not have, `Raw` writes format XML. Both formats are required, and the paths the XML
@@ -294,7 +298,7 @@ item has the item type's properties. Every generated property is shorthand for t
 
 `TemplateJson.Export(definition, options[, components])` writes a definition as JSON, and `TemplateJson.Import(json,
 options)` reads it back as a definition that builds the same bytes. The format is compact: an object that fits in 100
-characters is one line, a paragraph in the inherited style is a plain string, and values sit in the text as Templify
+characters (counting its key, not its indentation) is one line, a paragraph in the inherited style is a plain string, and values sit in the text as Templify
 placeholders:
 
 ```json
@@ -337,7 +341,8 @@ cannot be exported (TB9204). Texts are opaque to the export: code that changes a
 n)`, `Texts["x"].ToUpper()`) changes the key, not the translation. The export therefore checks itself: it imports the
 JSON it wrote, builds it for the options' language and every `TextLanguages` entry, and fails with TB9204 when the bytes
 differ from the C# definition's. Re-exporting an imported definition without `TextLanguages` writes its `texts` section
-exactly as it was read.
+exactly as it was read. `Indented = false` in `TemplateJsonExportOptions` writes the JSON on one line without whitespace,
+for storage; the import reads both forms.
 
 A **section** (`c.Section("items", b => …)` in C#) names a part of the document without adding output: in JSON
 `{"section": "items", "blocks": […]}`, the unit to read, replace or compare. Names are unique in a definition; a

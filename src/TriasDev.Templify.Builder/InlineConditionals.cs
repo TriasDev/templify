@@ -28,10 +28,10 @@ public sealed class TextComposer
     public TextComposer Text(string text) => AddText(text, null);
 
     /// <summary>Adds literal text in a character style.</summary>
-    /// <param name="text">The text.</param>
     /// <param name="style">The character style; the style sheet must define it.</param>
+    /// <param name="text">The text.</param>
     /// <returns>This composer.</returns>
-    public TextComposer Text(string text, CharacterStyleKey style)
+    public TextComposer Text(CharacterStyleKey style, string text)
     {
         ArgumentNullException.ThrowIfNull(style);
         return AddText(text, style);
@@ -53,10 +53,10 @@ public sealed class TextComposer
     }
 
     /// <summary>Adds a value from the data in a character style.</summary>
-    /// <param name="path">The data path.</param>
     /// <param name="style">The character style.</param>
+    /// <param name="path">The data path.</param>
     /// <returns>This composer.</returns>
-    public TextComposer Value(TemplatePath path, CharacterStyleKey style)
+    public TextComposer Value(CharacterStyleKey style, TemplatePath path)
     {
         ArgumentNullException.ThrowIfNull(style);
         return AddValue(path, null, style);

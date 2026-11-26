@@ -51,7 +51,7 @@ public sealed class JsonShortFormTests
             t.Content(c => c.Paragraph(x =>
             {
                 x.Text("No. ");
-                x.Value(t.Data["order"]["number"], _strong);
+                x.Value(_strong, t.Data["order"]["number"]);
             }));
         }, new TemplateIdentity("short", 1));
 
@@ -154,8 +154,8 @@ public sealed class JsonShortFormTests
             t.Styles(StyleSheet.Create(s => s.Character(_strong, c => c.Bold())));
             t.Content(c => c.Paragraph(x =>
             {
-                x.Text("x", _strong);
-                x.Value(t.Data["p"], _strong);
+                x.Text(_strong, "x");
+                x.Value(_strong, t.Data["p"]);
                 x.Value(t.Data["q"]);
             }));
         });

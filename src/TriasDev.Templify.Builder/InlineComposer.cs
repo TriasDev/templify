@@ -24,64 +24,78 @@ public sealed class InlineComposer
 
     /// <summary>Adds literal text in the paragraph's formatting.</summary>
     /// <param name="text">The text. Tabs and line breaks become the format's tab and line break.</param>
-    public void Text(string text) => AddText(text, null);
+    /// <returns>This composer.</returns>
+    public InlineComposer Text(string text) => AddText(text, null);
 
     /// <summary>Adds literal text in a character style.</summary>
-    /// <param name="text">The text. Tabs and line breaks become the format's tab and line break.</param>
     /// <param name="style">The character style; the style sheet must define it.</param>
-    public void Text(string text, CharacterStyleKey style)
+    /// <param name="text">The text. Tabs and line breaks become the format's tab and line break.</param>
+    /// <returns>This composer.</returns>
+    public InlineComposer Text(CharacterStyleKey style, string text)
     {
         ArgumentNullException.ThrowIfNull(style);
         AddText(text, style);
+        return this;
     }
 
     /// <summary>Adds a value from the data: <c>{{path}}</c>.</summary>
     /// <param name="path">The data path of the value.</param>
-    public void Value(TemplatePath path) => AddValue(path, null, null);
+    /// <returns>This composer.</returns>
+    public InlineComposer Value(TemplatePath path) => AddValue(path, null, null);
 
     /// <summary>Adds a formatted value from the data, for example <c>{{order.date:date:yyyy-MM-dd}}</c>.</summary>
     /// <param name="path">The data path of the value.</param>
     /// <param name="format">How Templify formats the value.</param>
-    public void Value(TemplatePath path, ValueFormat format)
+    /// <returns>This composer.</returns>
+    public InlineComposer Value(TemplatePath path, ValueFormat format)
     {
         ArgumentNullException.ThrowIfNull(format);
         AddValue(path, format, null);
+        return this;
     }
 
     /// <summary>Adds a value from the data in a character style.</summary>
-    /// <param name="path">The data path of the value.</param>
     /// <param name="style">The character style; the style sheet must define it.</param>
-    public void Value(TemplatePath path, CharacterStyleKey style)
+    /// <param name="path">The data path of the value.</param>
+    /// <returns>This composer.</returns>
+    public InlineComposer Value(CharacterStyleKey style, TemplatePath path)
     {
         ArgumentNullException.ThrowIfNull(style);
         AddValue(path, null, style);
+        return this;
     }
 
     /// <summary>Adds a formatted value from the data in a character style.</summary>
+    /// <param name="style">The character style; the style sheet must define it.</param>
     /// <param name="path">The data path of the value.</param>
     /// <param name="format">How Templify formats the value.</param>
-    /// <param name="style">The character style; the style sheet must define it.</param>
-    public void Value(TemplatePath path, ValueFormat format, CharacterStyleKey style)
+    /// <returns>This composer.</returns>
+    public InlineComposer Value(CharacterStyleKey style, TemplatePath path, ValueFormat format)
     {
         ArgumentNullException.ThrowIfNull(format);
         ArgumentNullException.ThrowIfNull(style);
         AddValue(path, format, style);
+        return this;
     }
 
     /// <summary>Adds a tab.</summary>
-    public void Tab() => AddText("\t", null);
+    /// <returns>This composer.</returns>
+    public InlineComposer Tab() => AddText("\t", null);
 
     /// <summary>Adds a line break inside the paragraph.</summary>
-    public void LineBreak() => AddText("\n", null);
+    /// <returns>This composer.</returns>
+    public InlineComposer LineBreak() => AddText("\n", null);
 
     /// <summary>
     /// Adds a tab to a right-aligned tab stop at the end of the text frame, for example to push an amount or a page
     /// number to the right margin.
     /// </summary>
-    public void TabRight()
+    /// <returns>This composer.</returns>
+    public InlineComposer TabRight()
     {
         EnsureOpen();
         _inlines.Add(new RightTabInline());
+        return this;
     }
 
     /// <summary>
@@ -103,30 +117,35 @@ public sealed class InlineComposer
     /// </summary>
     /// <param name="condition">The condition.</param>
     /// <param name="format">A boolean format such as <see cref="ValueFormat.YesNo"/> or <see cref="ValueFormat.Checkbox"/>.</param>
-    public void Expression(Condition condition, ValueFormat format)
+    /// <returns>This composer.</returns>
+    public InlineComposer Expression(Condition condition, ValueFormat format)
     {
         ArgumentNullException.ThrowIfNull(condition);
         ArgumentNullException.ThrowIfNull(format);
         EnsureOpen();
         BlockComposer.CheckCondition(_context, _scope, condition);
         _inlines.Add(new ExpressionInline(condition, format));
+        return this;
     }
 
     /// <summary>Adds an image at its natural size, inline with the text.</summary>
     /// <param name="image">The image.</param>
     /// <param name="altText">The text that describes the image (accessibility); required.</param>
-    public void Image(ImageSource image, string altText) => Image(image, altText, ImageFit.Natural);
+    /// <returns>This composer.</returns>
+    public InlineComposer Image(ImageSource image, string altText) => Image(image, altText, ImageFit.Natural);
 
     /// <summary>Adds an image inline with the text.</summary>
     /// <param name="image">The image.</param>
     /// <param name="altText">The text that describes the image (accessibility); required.</param>
     /// <param name="fit">How the image is sized; the aspect ratio is kept.</param>
-    public void Image(ImageSource image, string altText, ImageFit fit)
+    /// <returns>This composer.</returns>
+    public InlineComposer Image(ImageSource image, string altText, ImageFit fit)
     {
         ArgumentNullException.ThrowIfNull(image);
         ArgumentNullException.ThrowIfNull(fit);
         EnsureOpen();
         _inlines.Add(CreateImage(image, altText, fit));
+        return this;
     }
 
     internal static ImageInline CreateImage(ImageSource image, string altText, ImageFit fit)
@@ -142,25 +161,31 @@ public sealed class InlineComposer
     }
 
     /// <summary>Adds the current page number (a field Word and LibreOffice update).</summary>
-    public void PageNumber() => AddField(PageField.Number, null);
+    /// <returns>This composer.</returns>
+    public InlineComposer PageNumber() => AddField(PageField.Number, null);
 
     /// <summary>Adds the current page number in a character style.</summary>
     /// <param name="style">The character style; the style sheet must define it.</param>
-    public void PageNumber(CharacterStyleKey style)
+    /// <returns>This composer.</returns>
+    public InlineComposer PageNumber(CharacterStyleKey style)
     {
         ArgumentNullException.ThrowIfNull(style);
         AddField(PageField.Number, style);
+        return this;
     }
 
     /// <summary>Adds the number of pages (a field Word and LibreOffice update).</summary>
-    public void PageCount() => AddField(PageField.Count, null);
+    /// <returns>This composer.</returns>
+    public InlineComposer PageCount() => AddField(PageField.Count, null);
 
     /// <summary>Adds the number of pages in a character style.</summary>
     /// <param name="style">The character style; the style sheet must define it.</param>
-    public void PageCount(CharacterStyleKey style)
+    /// <returns>This composer.</returns>
+    public InlineComposer PageCount(CharacterStyleKey style)
     {
         ArgumentNullException.ThrowIfNull(style);
         AddField(PageField.Count, style);
+        return this;
     }
 
     internal static ValueInline CreateValue(BuildContext context, LoopScope? scope, TemplatePath path, ValueFormat? format = null, CharacterStyleKey? style = null)
@@ -216,7 +241,7 @@ public sealed class InlineComposer
         return _inlines;
     }
 
-    private void AddText(string text, CharacterStyleKey? style)
+    private InlineComposer AddText(string text, CharacterStyleKey? style)
     {
         ArgumentNullException.ThrowIfNull(text);
         EnsureOpen();
@@ -243,18 +268,22 @@ public sealed class InlineComposer
 
             start = i + 1;
         }
+
+        return this;
     }
 
-    private void AddField(PageField field, CharacterStyleKey? style)
+    private InlineComposer AddField(PageField field, CharacterStyleKey? style)
     {
         EnsureOpen();
         _inlines.Add(new PageFieldInline(field, style));
+        return this;
     }
 
-    private void AddValue(TemplatePath path, ValueFormat? format, CharacterStyleKey? style)
+    private InlineComposer AddValue(TemplatePath path, ValueFormat? format, CharacterStyleKey? style)
     {
         EnsureOpen();
         _inlines.Add(CreateValue(_context, _scope, path, format, style));
+        return this;
     }
 
     private void EnsureOpen()

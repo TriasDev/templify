@@ -179,29 +179,29 @@ static TriasDev.Templify.Builder.ValueFormat.TrueFalse.get -> TriasDev.Templify.
 static TriasDev.Templify.Builder.ValueFormat.Uppercase.get -> TriasDev.Templify.Builder.ValueFormat!
 static TriasDev.Templify.Builder.ValueFormat.YesNo.get -> TriasDev.Templify.Builder.ValueFormat!
 TriasDev.Templify.Builder.BlockComposer
-TriasDev.Templify.Builder.BlockComposer.Box(TriasDev.Templify.Builder.BoxStyleKey! style, System.Action<TriasDev.Templify.Builder.BlockComposer!>! content) -> void
-TriasDev.Templify.Builder.BlockComposer.Component(TriasDev.Templify.Builder.ITemplateComponent! component) -> void
-TriasDev.Templify.Builder.BlockComposer.ForEach(TriasDev.Templify.Builder.TemplatePath collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem!, TriasDev.Templify.Builder.BlockComposer!>! body) -> void
-TriasDev.Templify.Builder.BlockComposer.ForEach<T>(TriasDev.Templify.Builder.TemplateCollection<T> collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem<T>!, TriasDev.Templify.Builder.BlockComposer!>! body) -> void
+TriasDev.Templify.Builder.BlockComposer.Box(TriasDev.Templify.Builder.BoxStyleKey! style, System.Action<TriasDev.Templify.Builder.BlockComposer!>! content) -> TriasDev.Templify.Builder.BlockComposer!
+TriasDev.Templify.Builder.BlockComposer.Component(TriasDev.Templify.Builder.ITemplateComponent! component) -> TriasDev.Templify.Builder.BlockComposer!
+TriasDev.Templify.Builder.BlockComposer.ForEach(TriasDev.Templify.Builder.TemplatePath collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem!, TriasDev.Templify.Builder.BlockComposer!>! body) -> TriasDev.Templify.Builder.BlockComposer!
+TriasDev.Templify.Builder.BlockComposer.ForEach<T>(TriasDev.Templify.Builder.TemplateCollection<T> collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem<T>!, TriasDev.Templify.Builder.BlockComposer!>! body) -> TriasDev.Templify.Builder.BlockComposer!
 TriasDev.Templify.Builder.BlockComposer.If(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.BlockComposer!>! then) -> TriasDev.Templify.Builder.IfChain!
-TriasDev.Templify.Builder.BlockComposer.Image(TriasDev.Templify.Builder.ImageSource! image, string! altText, TriasDev.Templify.Builder.ImageFit! fit) -> void
-TriasDev.Templify.Builder.BlockComposer.Image(TriasDev.Templify.Builder.ImageSource! image, string! altText) -> void
-TriasDev.Templify.Builder.BlockComposer.Image(TriasDev.Templify.Builder.ParagraphStyleKey! style, TriasDev.Templify.Builder.ImageSource! image, string! altText, TriasDev.Templify.Builder.ImageFit! fit) -> void
-TriasDev.Templify.Builder.BlockComposer.List(TriasDev.Templify.Builder.ListStyleKey! style, System.Action<TriasDev.Templify.Builder.ListComposer!>! items) -> void
-TriasDev.Templify.Builder.BlockComposer.PageBreak() -> void
-TriasDev.Templify.Builder.BlockComposer.Paragraph(string! text) -> void
-TriasDev.Templify.Builder.BlockComposer.Paragraph(System.Action<TriasDev.Templify.Builder.InlineComposer!>! content) -> void
-TriasDev.Templify.Builder.BlockComposer.Paragraph(TriasDev.Templify.Builder.ParagraphStyleKey! style, string! text) -> void
-TriasDev.Templify.Builder.BlockComposer.Paragraph(TriasDev.Templify.Builder.ParagraphStyleKey! style, System.Action<TriasDev.Templify.Builder.InlineComposer!>! content) -> void
-TriasDev.Templify.Builder.BlockComposer.Paragraph(TriasDev.Templify.Builder.ParagraphStyleKey! style, TriasDev.Templify.Builder.TemplatePath value) -> void
-TriasDev.Templify.Builder.BlockComposer.Paragraph(TriasDev.Templify.Builder.TemplatePath value) -> void
-TriasDev.Templify.Builder.BlockComposer.Raw(TriasDev.Templify.Builder.RawBlock! raw) -> void
-TriasDev.Templify.Builder.BlockComposer.Rule(TriasDev.Templify.Builder.Length thickness, TriasDev.Templify.Builder.Color color, TriasDev.Templify.Builder.Length spaceAbove, TriasDev.Templify.Builder.Length spaceBelow) -> void
-TriasDev.Templify.Builder.BlockComposer.Rule(TriasDev.Templify.Builder.Length thickness, TriasDev.Templify.Builder.Color color) -> void
-TriasDev.Templify.Builder.BlockComposer.Switch(TriasDev.Templify.Builder.TemplatePath value, System.Action<TriasDev.Templify.Builder.SwitchComposer!>! cases) -> void
-TriasDev.Templify.Builder.BlockComposer.Table(System.Action<TriasDev.Templify.Builder.TableComposer!>! table) -> void
-TriasDev.Templify.Builder.BlockComposer.TableOfContents() -> void
-TriasDev.Templify.Builder.BlockComposer.TableOfContents(int maxLevel) -> void
+TriasDev.Templify.Builder.BlockComposer.Image(TriasDev.Templify.Builder.ImageSource! image, string! altText, TriasDev.Templify.Builder.ImageFit! fit) -> TriasDev.Templify.Builder.BlockComposer!
+TriasDev.Templify.Builder.BlockComposer.Image(TriasDev.Templify.Builder.ImageSource! image, string! altText) -> TriasDev.Templify.Builder.BlockComposer!
+TriasDev.Templify.Builder.BlockComposer.Image(TriasDev.Templify.Builder.ParagraphStyleKey! style, TriasDev.Templify.Builder.ImageSource! image, string! altText, TriasDev.Templify.Builder.ImageFit! fit) -> TriasDev.Templify.Builder.BlockComposer!
+TriasDev.Templify.Builder.BlockComposer.List(TriasDev.Templify.Builder.ListStyleKey! style, System.Action<TriasDev.Templify.Builder.ListComposer!>! items) -> TriasDev.Templify.Builder.BlockComposer!
+TriasDev.Templify.Builder.BlockComposer.PageBreak() -> TriasDev.Templify.Builder.BlockComposer!
+TriasDev.Templify.Builder.BlockComposer.Paragraph(string! text) -> TriasDev.Templify.Builder.BlockComposer!
+TriasDev.Templify.Builder.BlockComposer.Paragraph(System.Action<TriasDev.Templify.Builder.InlineComposer!>! content) -> TriasDev.Templify.Builder.BlockComposer!
+TriasDev.Templify.Builder.BlockComposer.Paragraph(TriasDev.Templify.Builder.ParagraphStyleKey! style, string! text) -> TriasDev.Templify.Builder.BlockComposer!
+TriasDev.Templify.Builder.BlockComposer.Paragraph(TriasDev.Templify.Builder.ParagraphStyleKey! style, System.Action<TriasDev.Templify.Builder.InlineComposer!>! content) -> TriasDev.Templify.Builder.BlockComposer!
+TriasDev.Templify.Builder.BlockComposer.Paragraph(TriasDev.Templify.Builder.ParagraphStyleKey! style, TriasDev.Templify.Builder.TemplatePath value) -> TriasDev.Templify.Builder.BlockComposer!
+TriasDev.Templify.Builder.BlockComposer.Paragraph(TriasDev.Templify.Builder.TemplatePath value) -> TriasDev.Templify.Builder.BlockComposer!
+TriasDev.Templify.Builder.BlockComposer.Raw(TriasDev.Templify.Builder.RawBlock! raw) -> TriasDev.Templify.Builder.BlockComposer!
+TriasDev.Templify.Builder.BlockComposer.Rule(TriasDev.Templify.Builder.Length thickness, TriasDev.Templify.Builder.Color color, TriasDev.Templify.Builder.Length spaceAbove, TriasDev.Templify.Builder.Length spaceBelow) -> TriasDev.Templify.Builder.BlockComposer!
+TriasDev.Templify.Builder.BlockComposer.Rule(TriasDev.Templify.Builder.Length thickness, TriasDev.Templify.Builder.Color color) -> TriasDev.Templify.Builder.BlockComposer!
+TriasDev.Templify.Builder.BlockComposer.Switch(TriasDev.Templify.Builder.TemplatePath value, System.Action<TriasDev.Templify.Builder.SwitchComposer!>! cases) -> TriasDev.Templify.Builder.BlockComposer!
+TriasDev.Templify.Builder.BlockComposer.Table(System.Action<TriasDev.Templify.Builder.TableComposer!>! table) -> TriasDev.Templify.Builder.BlockComposer!
+TriasDev.Templify.Builder.BlockComposer.TableOfContents() -> TriasDev.Templify.Builder.BlockComposer!
+TriasDev.Templify.Builder.BlockComposer.TableOfContents(int maxLevel) -> TriasDev.Templify.Builder.BlockComposer!
 TriasDev.Templify.Builder.BoxStyleComposer
 TriasDev.Templify.Builder.BoxStyleComposer.Background(TriasDev.Templify.Builder.Color color) -> TriasDev.Templify.Builder.BoxStyleComposer!
 TriasDev.Templify.Builder.BoxStyleComposer.Border(TriasDev.Templify.Builder.Length width, TriasDev.Templify.Builder.Color color) -> TriasDev.Templify.Builder.BoxStyleComposer!
@@ -253,8 +253,8 @@ TriasDev.Templify.Builder.Color.Equals(TriasDev.Templify.Builder.Color other) ->
 TriasDev.Templify.Builder.Color.G.get -> byte
 TriasDev.Templify.Builder.Color.R.get -> byte
 TriasDev.Templify.Builder.ColumnsComposer
-TriasDev.Templify.Builder.ColumnsComposer.Fixed(TriasDev.Templify.Builder.Length width) -> void
-TriasDev.Templify.Builder.ColumnsComposer.Relative(double weight) -> void
+TriasDev.Templify.Builder.ColumnsComposer.Fixed(TriasDev.Templify.Builder.Length width) -> TriasDev.Templify.Builder.ColumnsComposer!
+TriasDev.Templify.Builder.ColumnsComposer.Relative(double weight) -> TriasDev.Templify.Builder.ColumnsComposer!
 TriasDev.Templify.Builder.ComponentCatalog
 TriasDev.Templify.Builder.ComponentCatalog.ComponentCatalog() -> void
 TriasDev.Templify.Builder.ComponentCatalog.DataNaming.get -> System.Text.Json.JsonNamingPolicy?
@@ -308,10 +308,10 @@ TriasDev.Templify.Builder.DocumentPropertiesComposer.Author(string! author) -> T
 TriasDev.Templify.Builder.DocumentPropertiesComposer.Subject(string! subject) -> TriasDev.Templify.Builder.DocumentPropertiesComposer!
 TriasDev.Templify.Builder.DocumentPropertiesComposer.Title(string! title) -> TriasDev.Templify.Builder.DocumentPropertiesComposer!
 TriasDev.Templify.Builder.FirstPageComposer
-TriasDev.Templify.Builder.FirstPageComposer.Footer(System.Action<TriasDev.Templify.Builder.BlockComposer!>! footer) -> void
-TriasDev.Templify.Builder.FirstPageComposer.Header(System.Action<TriasDev.Templify.Builder.BlockComposer!>! header) -> void
-TriasDev.Templify.Builder.FirstPageComposer.NoFooter() -> void
-TriasDev.Templify.Builder.FirstPageComposer.NoHeader() -> void
+TriasDev.Templify.Builder.FirstPageComposer.Footer(System.Action<TriasDev.Templify.Builder.BlockComposer!>! footer) -> TriasDev.Templify.Builder.FirstPageComposer!
+TriasDev.Templify.Builder.FirstPageComposer.Header(System.Action<TriasDev.Templify.Builder.BlockComposer!>! header) -> TriasDev.Templify.Builder.FirstPageComposer!
+TriasDev.Templify.Builder.FirstPageComposer.NoFooter() -> TriasDev.Templify.Builder.FirstPageComposer!
+TriasDev.Templify.Builder.FirstPageComposer.NoHeader() -> TriasDev.Templify.Builder.FirstPageComposer!
 TriasDev.Templify.Builder.FontFace
 TriasDev.Templify.Builder.FontFace.<Clone>$() -> TriasDev.Templify.Builder.FontFace!
 TriasDev.Templify.Builder.FontFace.Equals(TriasDev.Templify.Builder.FontFace? other) -> bool
@@ -339,23 +339,23 @@ TriasDev.Templify.Builder.ImageSource.NaturalWidth.get -> TriasDev.Templify.Buil
 TriasDev.Templify.Builder.ImageSource.PixelHeight.get -> int
 TriasDev.Templify.Builder.ImageSource.PixelWidth.get -> int
 TriasDev.Templify.Builder.InlineComposer
-TriasDev.Templify.Builder.InlineComposer.Expression(TriasDev.Templify.Builder.Condition! condition, TriasDev.Templify.Builder.ValueFormat! format) -> void
+TriasDev.Templify.Builder.InlineComposer.Expression(TriasDev.Templify.Builder.Condition! condition, TriasDev.Templify.Builder.ValueFormat! format) -> TriasDev.Templify.Builder.InlineComposer!
 TriasDev.Templify.Builder.InlineComposer.If(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.TextComposer!>! then) -> TriasDev.Templify.Builder.InlineIfChain!
-TriasDev.Templify.Builder.InlineComposer.Image(TriasDev.Templify.Builder.ImageSource! image, string! altText, TriasDev.Templify.Builder.ImageFit! fit) -> void
-TriasDev.Templify.Builder.InlineComposer.Image(TriasDev.Templify.Builder.ImageSource! image, string! altText) -> void
-TriasDev.Templify.Builder.InlineComposer.LineBreak() -> void
-TriasDev.Templify.Builder.InlineComposer.PageCount() -> void
-TriasDev.Templify.Builder.InlineComposer.PageCount(TriasDev.Templify.Builder.CharacterStyleKey! style) -> void
-TriasDev.Templify.Builder.InlineComposer.PageNumber() -> void
-TriasDev.Templify.Builder.InlineComposer.PageNumber(TriasDev.Templify.Builder.CharacterStyleKey! style) -> void
-TriasDev.Templify.Builder.InlineComposer.Tab() -> void
-TriasDev.Templify.Builder.InlineComposer.TabRight() -> void
-TriasDev.Templify.Builder.InlineComposer.Text(string! text, TriasDev.Templify.Builder.CharacterStyleKey! style) -> void
-TriasDev.Templify.Builder.InlineComposer.Text(string! text) -> void
-TriasDev.Templify.Builder.InlineComposer.Value(TriasDev.Templify.Builder.TemplatePath path, TriasDev.Templify.Builder.CharacterStyleKey! style) -> void
-TriasDev.Templify.Builder.InlineComposer.Value(TriasDev.Templify.Builder.TemplatePath path, TriasDev.Templify.Builder.ValueFormat! format, TriasDev.Templify.Builder.CharacterStyleKey! style) -> void
-TriasDev.Templify.Builder.InlineComposer.Value(TriasDev.Templify.Builder.TemplatePath path, TriasDev.Templify.Builder.ValueFormat! format) -> void
-TriasDev.Templify.Builder.InlineComposer.Value(TriasDev.Templify.Builder.TemplatePath path) -> void
+TriasDev.Templify.Builder.InlineComposer.Image(TriasDev.Templify.Builder.ImageSource! image, string! altText, TriasDev.Templify.Builder.ImageFit! fit) -> TriasDev.Templify.Builder.InlineComposer!
+TriasDev.Templify.Builder.InlineComposer.Image(TriasDev.Templify.Builder.ImageSource! image, string! altText) -> TriasDev.Templify.Builder.InlineComposer!
+TriasDev.Templify.Builder.InlineComposer.LineBreak() -> TriasDev.Templify.Builder.InlineComposer!
+TriasDev.Templify.Builder.InlineComposer.PageCount() -> TriasDev.Templify.Builder.InlineComposer!
+TriasDev.Templify.Builder.InlineComposer.PageCount(TriasDev.Templify.Builder.CharacterStyleKey! style) -> TriasDev.Templify.Builder.InlineComposer!
+TriasDev.Templify.Builder.InlineComposer.PageNumber() -> TriasDev.Templify.Builder.InlineComposer!
+TriasDev.Templify.Builder.InlineComposer.PageNumber(TriasDev.Templify.Builder.CharacterStyleKey! style) -> TriasDev.Templify.Builder.InlineComposer!
+TriasDev.Templify.Builder.InlineComposer.Tab() -> TriasDev.Templify.Builder.InlineComposer!
+TriasDev.Templify.Builder.InlineComposer.TabRight() -> TriasDev.Templify.Builder.InlineComposer!
+TriasDev.Templify.Builder.InlineComposer.Text(TriasDev.Templify.Builder.CharacterStyleKey! style, string! text) -> TriasDev.Templify.Builder.InlineComposer!
+TriasDev.Templify.Builder.InlineComposer.Text(string! text) -> TriasDev.Templify.Builder.InlineComposer!
+TriasDev.Templify.Builder.InlineComposer.Value(TriasDev.Templify.Builder.CharacterStyleKey! style, TriasDev.Templify.Builder.TemplatePath path) -> TriasDev.Templify.Builder.InlineComposer!
+TriasDev.Templify.Builder.InlineComposer.Value(TriasDev.Templify.Builder.CharacterStyleKey! style, TriasDev.Templify.Builder.TemplatePath path, TriasDev.Templify.Builder.ValueFormat! format) -> TriasDev.Templify.Builder.InlineComposer!
+TriasDev.Templify.Builder.InlineComposer.Value(TriasDev.Templify.Builder.TemplatePath path, TriasDev.Templify.Builder.ValueFormat! format) -> TriasDev.Templify.Builder.InlineComposer!
+TriasDev.Templify.Builder.InlineComposer.Value(TriasDev.Templify.Builder.TemplatePath path) -> TriasDev.Templify.Builder.InlineComposer!
 TriasDev.Templify.Builder.InlineIfChain
 TriasDev.Templify.Builder.InlineIfChain.Else(System.Action<TriasDev.Templify.Builder.TextComposer!>! otherwise) -> void
 TriasDev.Templify.Builder.InlineIfChain.ElseIf(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.TextComposer!>! then) -> TriasDev.Templify.Builder.InlineIfChain!
@@ -387,15 +387,15 @@ TriasDev.Templify.Builder.Length.Length() -> void
 TriasDev.Templify.Builder.Length.Millimeters.get -> double
 TriasDev.Templify.Builder.Length.Points.get -> double
 TriasDev.Templify.Builder.ListComposer
-TriasDev.Templify.Builder.ListComposer.ForEach(TriasDev.Templify.Builder.TemplatePath collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem!, TriasDev.Templify.Builder.ListComposer!>! items) -> void
-TriasDev.Templify.Builder.ListComposer.ForEach<T>(TriasDev.Templify.Builder.TemplateCollection<T> collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem<T>!, TriasDev.Templify.Builder.ListComposer!>! items) -> void
+TriasDev.Templify.Builder.ListComposer.ForEach(TriasDev.Templify.Builder.TemplatePath collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem!, TriasDev.Templify.Builder.ListComposer!>! items) -> TriasDev.Templify.Builder.ListComposer!
+TriasDev.Templify.Builder.ListComposer.ForEach<T>(TriasDev.Templify.Builder.TemplateCollection<T> collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem<T>!, TriasDev.Templify.Builder.ListComposer!>! items) -> TriasDev.Templify.Builder.ListComposer!
 TriasDev.Templify.Builder.ListComposer.If(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.ListComposer!>! items) -> TriasDev.Templify.Builder.ListIfChain!
-TriasDev.Templify.Builder.ListComposer.Item(int level, string! text) -> void
-TriasDev.Templify.Builder.ListComposer.Item(int level, System.Action<TriasDev.Templify.Builder.InlineComposer!>! content) -> void
-TriasDev.Templify.Builder.ListComposer.Item(int level, TriasDev.Templify.Builder.TemplatePath value) -> void
-TriasDev.Templify.Builder.ListComposer.Item(string! text) -> void
-TriasDev.Templify.Builder.ListComposer.Item(System.Action<TriasDev.Templify.Builder.InlineComposer!>! content) -> void
-TriasDev.Templify.Builder.ListComposer.Item(TriasDev.Templify.Builder.TemplatePath value) -> void
+TriasDev.Templify.Builder.ListComposer.Item(int level, string! text) -> TriasDev.Templify.Builder.ListComposer!
+TriasDev.Templify.Builder.ListComposer.Item(int level, System.Action<TriasDev.Templify.Builder.InlineComposer!>! content) -> TriasDev.Templify.Builder.ListComposer!
+TriasDev.Templify.Builder.ListComposer.Item(int level, TriasDev.Templify.Builder.TemplatePath value) -> TriasDev.Templify.Builder.ListComposer!
+TriasDev.Templify.Builder.ListComposer.Item(string! text) -> TriasDev.Templify.Builder.ListComposer!
+TriasDev.Templify.Builder.ListComposer.Item(System.Action<TriasDev.Templify.Builder.InlineComposer!>! content) -> TriasDev.Templify.Builder.ListComposer!
+TriasDev.Templify.Builder.ListComposer.Item(TriasDev.Templify.Builder.TemplatePath value) -> TriasDev.Templify.Builder.ListComposer!
 TriasDev.Templify.Builder.ListIfChain
 TriasDev.Templify.Builder.ListIfChain.Else(System.Action<TriasDev.Templify.Builder.ListComposer!>! items) -> void
 TriasDev.Templify.Builder.ListIfChain.ElseIf(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.ListComposer!>! items) -> TriasDev.Templify.Builder.ListIfChain!
@@ -479,16 +479,16 @@ TriasDev.Templify.Builder.RawContext
 TriasDev.Templify.Builder.RawContext.Frame.get -> TriasDev.Templify.Builder.Length
 TriasDev.Templify.Builder.RawContext.Placeholder(TriasDev.Templify.Builder.TemplatePath path, TriasDev.Templify.Builder.ValueFormat? format = null) -> string!
 TriasDev.Templify.Builder.RowComposer
-TriasDev.Templify.Builder.RowComposer.AllowSplit() -> void
-TriasDev.Templify.Builder.RowComposer.Cell(string! text) -> void
-TriasDev.Templify.Builder.RowComposer.Cell(System.Action<TriasDev.Templify.Builder.CellComposer!>! cell) -> void
-TriasDev.Templify.Builder.RowComposer.Cell(TriasDev.Templify.Builder.ParagraphStyleKey! style, string! text) -> void
-TriasDev.Templify.Builder.RowComposer.Cell(TriasDev.Templify.Builder.ParagraphStyleKey! style, TriasDev.Templify.Builder.TemplatePath value) -> void
-TriasDev.Templify.Builder.RowComposer.Cell(TriasDev.Templify.Builder.TemplatePath value) -> void
+TriasDev.Templify.Builder.RowComposer.AllowSplit() -> TriasDev.Templify.Builder.RowComposer!
+TriasDev.Templify.Builder.RowComposer.Cell(string! text) -> TriasDev.Templify.Builder.RowComposer!
+TriasDev.Templify.Builder.RowComposer.Cell(System.Action<TriasDev.Templify.Builder.CellComposer!>! cell) -> TriasDev.Templify.Builder.RowComposer!
+TriasDev.Templify.Builder.RowComposer.Cell(TriasDev.Templify.Builder.ParagraphStyleKey! style, string! text) -> TriasDev.Templify.Builder.RowComposer!
+TriasDev.Templify.Builder.RowComposer.Cell(TriasDev.Templify.Builder.ParagraphStyleKey! style, TriasDev.Templify.Builder.TemplatePath value) -> TriasDev.Templify.Builder.RowComposer!
+TriasDev.Templify.Builder.RowComposer.Cell(TriasDev.Templify.Builder.TemplatePath value) -> TriasDev.Templify.Builder.RowComposer!
 TriasDev.Templify.Builder.RowsComposer
-TriasDev.Templify.Builder.RowsComposer.ForEachRow(TriasDev.Templify.Builder.TemplatePath collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem!, TriasDev.Templify.Builder.RowsComposer!>! rows) -> void
-TriasDev.Templify.Builder.RowsComposer.ForEachRow<T>(TriasDev.Templify.Builder.TemplateCollection<T> collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem<T>!, TriasDev.Templify.Builder.RowsComposer!>! rows) -> void
-TriasDev.Templify.Builder.RowsComposer.Row(System.Action<TriasDev.Templify.Builder.RowComposer!>! row) -> void
+TriasDev.Templify.Builder.RowsComposer.ForEachRow(TriasDev.Templify.Builder.TemplatePath collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem!, TriasDev.Templify.Builder.RowsComposer!>! rows) -> TriasDev.Templify.Builder.RowsComposer!
+TriasDev.Templify.Builder.RowsComposer.ForEachRow<T>(TriasDev.Templify.Builder.TemplateCollection<T> collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem<T>!, TriasDev.Templify.Builder.RowsComposer!>! rows) -> TriasDev.Templify.Builder.RowsComposer!
+TriasDev.Templify.Builder.RowsComposer.Row(System.Action<TriasDev.Templify.Builder.RowComposer!>! row) -> TriasDev.Templify.Builder.RowsComposer!
 TriasDev.Templify.Builder.RowsComposer.RowsIf(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.RowsComposer!>! rows) -> TriasDev.Templify.Builder.RowsIfChain!
 TriasDev.Templify.Builder.RowsIfChain
 TriasDev.Templify.Builder.RowsIfChain.Else(System.Action<TriasDev.Templify.Builder.RowsComposer!>! rows) -> void
@@ -502,15 +502,15 @@ TriasDev.Templify.Builder.StyleSheetComposer.List(TriasDev.Templify.Builder.List
 TriasDev.Templify.Builder.StyleSheetComposer.Paragraph(TriasDev.Templify.Builder.ParagraphStyleKey! key, System.Action<TriasDev.Templify.Builder.ParagraphStyleComposer!>! style) -> void
 TriasDev.Templify.Builder.StyleSheetComposer.Table(TriasDev.Templify.Builder.TableStyleKey! key, System.Action<TriasDev.Templify.Builder.TableStyleComposer!>! style) -> void
 TriasDev.Templify.Builder.SwitchComposer
-TriasDev.Templify.Builder.SwitchComposer.Case(string! value, System.Action<TriasDev.Templify.Builder.BlockComposer!>! then) -> void
-TriasDev.Templify.Builder.SwitchComposer.Case(System.Collections.Generic.IEnumerable<string!>! values, System.Action<TriasDev.Templify.Builder.BlockComposer!>! then) -> void
-TriasDev.Templify.Builder.SwitchComposer.Default(System.Action<TriasDev.Templify.Builder.BlockComposer!>! otherwise) -> void
+TriasDev.Templify.Builder.SwitchComposer.Case(string! value, System.Action<TriasDev.Templify.Builder.BlockComposer!>! then) -> TriasDev.Templify.Builder.SwitchComposer!
+TriasDev.Templify.Builder.SwitchComposer.Case(System.Collections.Generic.IEnumerable<string!>! values, System.Action<TriasDev.Templify.Builder.BlockComposer!>! then) -> TriasDev.Templify.Builder.SwitchComposer!
+TriasDev.Templify.Builder.SwitchComposer.Default(System.Action<TriasDev.Templify.Builder.BlockComposer!>! otherwise) -> TriasDev.Templify.Builder.SwitchComposer!
 TriasDev.Templify.Builder.TableComposer
 TriasDev.Templify.Builder.TableComposer.Columns(System.Action<TriasDev.Templify.Builder.ColumnsComposer!>! columns) -> TriasDev.Templify.Builder.TableComposer!
-TriasDev.Templify.Builder.TableComposer.ForEachRow(TriasDev.Templify.Builder.TemplatePath collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem!, TriasDev.Templify.Builder.RowsComposer!>! rows) -> void
-TriasDev.Templify.Builder.TableComposer.ForEachRow<T>(TriasDev.Templify.Builder.TemplateCollection<T> collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem<T>!, TriasDev.Templify.Builder.RowsComposer!>! rows) -> void
-TriasDev.Templify.Builder.TableComposer.HeaderRow(System.Action<TriasDev.Templify.Builder.RowComposer!>! row) -> void
-TriasDev.Templify.Builder.TableComposer.Row(System.Action<TriasDev.Templify.Builder.RowComposer!>! row) -> void
+TriasDev.Templify.Builder.TableComposer.ForEachRow(TriasDev.Templify.Builder.TemplatePath collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem!, TriasDev.Templify.Builder.RowsComposer!>! rows) -> TriasDev.Templify.Builder.TableComposer!
+TriasDev.Templify.Builder.TableComposer.ForEachRow<T>(TriasDev.Templify.Builder.TemplateCollection<T> collection, string! itemName, System.Action<TriasDev.Templify.Builder.LoopItem<T>!, TriasDev.Templify.Builder.RowsComposer!>! rows) -> TriasDev.Templify.Builder.TableComposer!
+TriasDev.Templify.Builder.TableComposer.HeaderRow(System.Action<TriasDev.Templify.Builder.RowComposer!>! row) -> TriasDev.Templify.Builder.TableComposer!
+TriasDev.Templify.Builder.TableComposer.Row(System.Action<TriasDev.Templify.Builder.RowComposer!>! row) -> TriasDev.Templify.Builder.TableComposer!
 TriasDev.Templify.Builder.TableComposer.RowsIf(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.RowsComposer!>! rows) -> TriasDev.Templify.Builder.RowsIfChain!
 TriasDev.Templify.Builder.TableComposer.SpaceAfter(TriasDev.Templify.Builder.Length space) -> TriasDev.Templify.Builder.TableComposer!
 TriasDev.Templify.Builder.TableComposer.Style(TriasDev.Templify.Builder.TableStyleKey! style) -> TriasDev.Templify.Builder.TableComposer!
@@ -548,12 +548,12 @@ TriasDev.Templify.Builder.TemplateCollection<TItem>.IsNotEmpty.get -> TriasDev.T
 TriasDev.Templify.Builder.TemplateCollection<TItem>.TemplateCollection() -> void
 TriasDev.Templify.Builder.TemplateCollection<TItem>.Untyped.get -> TriasDev.Templify.Builder.TemplatePath
 TriasDev.Templify.Builder.TemplateComposer
-TriasDev.Templify.Builder.TemplateComposer.Content(System.Action<TriasDev.Templify.Builder.BlockComposer!>! content) -> void
+TriasDev.Templify.Builder.TemplateComposer.Content(System.Action<TriasDev.Templify.Builder.BlockComposer!>! content) -> TriasDev.Templify.Builder.TemplateComposer!
 TriasDev.Templify.Builder.TemplateComposer.Data.get -> TriasDev.Templify.Builder.TemplatePath
 TriasDev.Templify.Builder.TemplateComposer.DataAs<T>(System.Text.Json.JsonNamingPolicy? naming = null) -> TriasDev.Templify.Builder.TemplatePath<T>
-TriasDev.Templify.Builder.TemplateComposer.Page(System.Action<TriasDev.Templify.Builder.PageComposer!>! page) -> void
-TriasDev.Templify.Builder.TemplateComposer.Properties(System.Action<TriasDev.Templify.Builder.DocumentPropertiesComposer!>! properties) -> void
-TriasDev.Templify.Builder.TemplateComposer.Styles(TriasDev.Templify.Builder.StyleSheet! styles) -> void
+TriasDev.Templify.Builder.TemplateComposer.Page(System.Action<TriasDev.Templify.Builder.PageComposer!>! page) -> TriasDev.Templify.Builder.TemplateComposer!
+TriasDev.Templify.Builder.TemplateComposer.Properties(System.Action<TriasDev.Templify.Builder.DocumentPropertiesComposer!>! properties) -> TriasDev.Templify.Builder.TemplateComposer!
+TriasDev.Templify.Builder.TemplateComposer.Styles(TriasDev.Templify.Builder.StyleSheet! styles) -> TriasDev.Templify.Builder.TemplateComposer!
 TriasDev.Templify.Builder.TemplateComposer.Texts.get -> TriasDev.Templify.Builder.TemplateTexts!
 TriasDev.Templify.Builder.TemplateIdentity
 TriasDev.Templify.Builder.TemplateIdentity.<Clone>$() -> TriasDev.Templify.Builder.TemplateIdentity!
@@ -648,9 +648,9 @@ TriasDev.Templify.Builder.TextAlignment.Start = 0 -> TriasDev.Templify.Builder.T
 TriasDev.Templify.Builder.TextCatalog
 TriasDev.Templify.Builder.TextComposer
 TriasDev.Templify.Builder.TextComposer.If(TriasDev.Templify.Builder.Condition! condition, System.Action<TriasDev.Templify.Builder.TextComposer!>! then) -> TriasDev.Templify.Builder.InlineIfChain!
-TriasDev.Templify.Builder.TextComposer.Text(string! text, TriasDev.Templify.Builder.CharacterStyleKey! style) -> TriasDev.Templify.Builder.TextComposer!
+TriasDev.Templify.Builder.TextComposer.Text(TriasDev.Templify.Builder.CharacterStyleKey! style, string! text) -> TriasDev.Templify.Builder.TextComposer!
 TriasDev.Templify.Builder.TextComposer.Text(string! text) -> TriasDev.Templify.Builder.TextComposer!
-TriasDev.Templify.Builder.TextComposer.Value(TriasDev.Templify.Builder.TemplatePath path, TriasDev.Templify.Builder.CharacterStyleKey! style) -> TriasDev.Templify.Builder.TextComposer!
+TriasDev.Templify.Builder.TextComposer.Value(TriasDev.Templify.Builder.CharacterStyleKey! style, TriasDev.Templify.Builder.TemplatePath path) -> TriasDev.Templify.Builder.TextComposer!
 TriasDev.Templify.Builder.TextComposer.Value(TriasDev.Templify.Builder.TemplatePath path, TriasDev.Templify.Builder.ValueFormat! format) -> TriasDev.Templify.Builder.TextComposer!
 TriasDev.Templify.Builder.TextComposer.Value(TriasDev.Templify.Builder.TemplatePath path) -> TriasDev.Templify.Builder.TextComposer!
 TriasDev.Templify.Builder.Units
@@ -664,7 +664,7 @@ TriasDev.Templify.Builder.UploadCheckResult.UnknownPaths.get -> System.Collectio
 TriasDev.Templify.Builder.ValueFormat
 TriasDev.Templify.Builder.ValueFormat.Specifier.get -> string!
 TriasDev.Templify.Builder.DefaultStyleComposer.ParagraphStyle(TriasDev.Templify.Builder.ParagraphStyleKey! style) -> TriasDev.Templify.Builder.DefaultStyleComposer!
-TriasDev.Templify.Builder.RowComposer.ParagraphStyle(TriasDev.Templify.Builder.ParagraphStyleKey! style) -> void
+TriasDev.Templify.Builder.RowComposer.ParagraphStyle(TriasDev.Templify.Builder.ParagraphStyleKey! style) -> TriasDev.Templify.Builder.RowComposer!
 TriasDev.Templify.Builder.TableStyleComposer.HeaderParagraphStyle(TriasDev.Templify.Builder.ParagraphStyleKey! style) -> TriasDev.Templify.Builder.TableStyleComposer!
 TriasDev.Templify.Builder.TableStyleComposer.ParagraphStyle(TriasDev.Templify.Builder.ParagraphStyleKey! style) -> TriasDev.Templify.Builder.TableStyleComposer!
 static TriasDev.Templify.Builder.Json.TemplateJson.Export(TriasDev.Templify.Builder.ITemplateDefinition! definition, TriasDev.Templify.Builder.TemplateBuildOptions! options, TriasDev.Templify.Builder.Json.TemplateJsonExportOptions! export) -> TriasDev.Templify.Builder.Json.TemplateJsonDocument!
@@ -685,7 +685,7 @@ TriasDev.Templify.Builder.GeneratedDataPathsAttribute.LoopItem.get -> bool
 TriasDev.Templify.Builder.GeneratedDataPathsAttribute.Type.get -> System.Type!
 TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.ValueFormats.get -> System.Collections.Generic.IReadOnlyCollection<string!>?
 TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.ValueFormats.init -> void
-TriasDev.Templify.Builder.BlockComposer.Section(string! name, System.Action<TriasDev.Templify.Builder.BlockComposer!>! content) -> void
+TriasDev.Templify.Builder.BlockComposer.Section(string! name, System.Action<TriasDev.Templify.Builder.BlockComposer!>! content) -> TriasDev.Templify.Builder.BlockComposer!
 TriasDev.Templify.Builder.ImageSource.Name.get -> string?
 TriasDev.Templify.Builder.ImageSource.WithName(string! name) -> TriasDev.Templify.Builder.ImageSource!
 static TriasDev.Templify.Builder.Color.Token(string! name, TriasDev.Templify.Builder.Color value) -> TriasDev.Templify.Builder.Color
@@ -698,4 +698,4 @@ TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.Shared.get -> System.Co
 TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.Shared.init -> void
 TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.Theme.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>?
 TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.Theme.init -> void
-TriasDev.Templify.Builder.TemplateComposer.Share<T>(T! value) -> void
+TriasDev.Templify.Builder.TemplateComposer.Share<T>(T! value) -> TriasDev.Templify.Builder.TemplateComposer!

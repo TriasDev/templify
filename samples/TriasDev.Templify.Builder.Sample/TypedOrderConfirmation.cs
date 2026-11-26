@@ -66,7 +66,7 @@ public sealed class TypedOrderConfirmation(BrandTheme theme) : ITemplateDefiniti
             c.Paragraph(Styles.Subtitle, x =>
             {
                 x.Text(t["orderNo"] + " ");
-                x.Value(order.Number, Styles.Strong);
+                x.Value(Styles.Strong, order.Number);
                 x.Text(" · ");
                 x.Value(order.Date, ValueFormat.Date(t["dateFormat"]));
             });
@@ -93,12 +93,12 @@ public sealed class TypedOrderConfirmation(BrandTheme theme) : ITemplateDefiniti
         c.Paragraph(Styles.Heading, t["customer"]);
         c.Paragraph(x =>
         {
-            x.Value(customer.Name, Styles.Strong);
-            x.If(customer.IsNew, s => s.Text(" (" + t["newCustomer"] + ")", Styles.Muted));
+            x.Value(Styles.Strong, customer.Name);
+            x.If(customer.IsNew, s => s.Text(Styles.Muted, " (" + t["newCustomer"] + ")"));
         });
         c.If(customer.Contact.IsNotEmpty, b => b.Paragraph(x =>
         {
-            x.Text(t["attn"] + " ", Styles.Muted);
+            x.Text(Styles.Muted, t["attn"] + " ");
             x.Value(customer.Contact);
         }));
         c.Component(new OrderAddressBlock(customer.Address));
@@ -134,8 +134,8 @@ public sealed class TypedOrderConfirmation(BrandTheme theme) : ITemplateDefiniti
                         cell.Paragraph(x =>
                         {
                             x.Value(line.Description);
-                            x.Text(" — ", Styles.Muted);
-                            x.If(line.InStock, s => s.Text(t["inStock"], Styles.Muted)).Else(s => s.Text(t["backOrdered"], Styles.Muted));
+                            x.Text(Styles.Muted, " — ");
+                            x.If(line.InStock, s => s.Text(Styles.Muted, t["inStock"])).Else(s => s.Text(Styles.Muted, t["backOrdered"]));
                         });
                         cell.If(line.Tags.IsNotEmpty, b => b.Paragraph(Styles.Small, x => x.Value(line.Tags, ValueFormat.Join(separator: " · "))));
                     });

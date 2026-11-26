@@ -32,7 +32,7 @@ public sealed class InlineConditionalTests
             c.Paragraph(x =>
             {
                 x.Text("Status: ");
-                x.If(order["status"].Eq("paid"), y => y.Text("paid", _strong))
+                x.If(order["status"].Eq("paid"), y => y.Text(_strong, "paid"))
                  .ElseIf(order["status"].Eq("overdue"), y => y.Text("overdue").If(order["reminded"], z => z.Text(" (reminded)")))
                  .Else(y => y.Text("open"));
             });

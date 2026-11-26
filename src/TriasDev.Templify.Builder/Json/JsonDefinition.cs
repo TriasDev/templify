@@ -682,7 +682,7 @@ internal sealed class JsonComposition
         }
 
         Apply(Length(table, "spaceAfter", at), v => t.SpaceAfter(v));
-        Rows(new RowTarget(t.Row, t.ForEachRow, t.RowsIf, t.HeaderRow), Required(table, "table", at), at + "/table");
+        Rows(new RowTarget(r => t.Row(r), (c, n, r) => t.ForEachRow(c, n, r), t.RowsIf, r => t.HeaderRow(r)), Required(table, "table", at), at + "/table");
     }
 
     private sealed record RowTarget(
@@ -691,7 +691,7 @@ internal sealed class JsonComposition
         Func<Condition, Action<RowsComposer>, RowsIfChain> RowsIf,
         Action<Action<RowComposer>>? HeaderRow);
 
-    private static RowTarget Target(RowsComposer rows) => new RowTarget(rows.Row, rows.ForEachRow, rows.RowsIf, null);
+    private static RowTarget Target(RowsComposer rows) => new RowTarget(r => rows.Row(r), (c, n, r) => rows.ForEachRow(c, n, r), rows.RowsIf, null);
 
     private void Rows(RowTarget target, JsonElement rows, string at)
     {
@@ -940,7 +940,7 @@ internal sealed class JsonComposition
                     x.Text(literal.Text);
                     break;
                 case TextPiece.Literal literal:
-                    x.Text(literal.Text, style);
+                    x.Text(style, literal.Text);
                     break;
                 case TextPiece.Value value:
                     (TemplatePath path, ValueFormat? format) = ValuePiece(value, at);
@@ -950,13 +950,13 @@ internal sealed class JsonComposition
                             x.Value(path);
                             break;
                         case (null, { } s):
-                            x.Value(path, s);
+                            x.Value(s, path);
                             break;
                         case ({ } f, null):
                             x.Value(path, f);
                             break;
                         default:
-                            x.Value(path, format!, style!);
+                            x.Value(style!, path, format!);
                             break;
                     }
 
@@ -1035,7 +1035,7 @@ internal sealed class JsonComposition
             switch (piece)
             {
                 case TextPiece.Literal literal:
-                    _ = style is null ? t.Text(literal.Text) : t.Text(literal.Text, style);
+                    _ = style is null ? t.Text(literal.Text) : t.Text(style, literal.Text);
                     break;
                 case TextPiece.Value value:
                     (TemplatePath path, ValueFormat? format) = ValuePiece(value, at);
@@ -1044,7 +1044,7 @@ internal sealed class JsonComposition
                         throw new JsonImportException(at, $"Inside an inline conditional the value '{TextTemplate.Write([value])}' cannot have both a format and a character style.");
                     }
 
-                    _ = format is not null ? t.Value(path, format) : style is null ? t.Value(path) : t.Value(path, style);
+                    _ = format is not null ? t.Value(path, format) : style is null ? t.Value(path) : t.Value(style, path);
                     break;
                 case TextPiece.Expression expression:
                     throw new JsonImportException(at, $"Inside an inline conditional an expression ('{TextTemplate.Write([expression])}') is not allowed.");

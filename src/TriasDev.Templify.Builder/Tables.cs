@@ -156,11 +156,17 @@ public sealed class ColumnsComposer
 
     /// <summary>Adds a column of a fixed width.</summary>
     /// <param name="width">The width; greater than zero.</param>
-    public void Fixed(Length width) => _columns.Add(new ColumnSpec(StyleRanges.Positive(width, nameof(width)), 0));
+    /// <returns>This composer.</returns>
+    public ColumnsComposer Fixed(Length width)
+    {
+        _columns.Add(new ColumnSpec(StyleRanges.Positive(width, nameof(width)), 0));
+        return this;
+    }
 
     /// <summary>Adds a column that takes a share of the width the fixed columns leave: <c>Relative(2)</c> is twice <c>Relative(1)</c>.</summary>
     /// <param name="weight">The share; greater than zero.</param>
-    public void Relative(double weight)
+    /// <returns>This composer.</returns>
+    public ColumnsComposer Relative(double weight)
     {
         if (double.IsNaN(weight) || weight <= 0 || weight > 1000)
         {
@@ -168,6 +174,7 @@ public sealed class ColumnsComposer
         }
 
         _columns.Add(new ColumnSpec(null, weight));
+        return this;
     }
 }
 
@@ -223,7 +230,8 @@ public sealed class TableComposer
 
     /// <summary>Adds a header row, repeated at the top of every page. Header rows come before all other rows.</summary>
     /// <param name="row">Describes the row's cells.</param>
-    public void HeaderRow(Action<RowComposer> row)
+    /// <returns>This composer.</returns>
+    public TableComposer HeaderRow(Action<RowComposer> row)
     {
         ArgumentNullException.ThrowIfNull(row);
         EnsureOpen();
@@ -233,15 +241,18 @@ public sealed class TableComposer
         }
 
         _table.Rows.Add(ComposeRow(row, isHeader: true));
+        return this;
     }
 
     /// <summary>Adds a row.</summary>
     /// <param name="row">Describes the row's cells.</param>
-    public void Row(Action<RowComposer> row)
+    /// <returns>This composer.</returns>
+    public TableComposer Row(Action<RowComposer> row)
     {
         ArgumentNullException.ThrowIfNull(row);
         EnsureOpen();
         _table.Rows.Add(ComposeRow(row, isHeader: false));
+        return this;
     }
 
     /// <summary>Repeats rows for every item of a typed collection.</summary>
@@ -249,10 +260,12 @@ public sealed class TableComposer
     /// <param name="collection">The collection, from <see cref="TemplatePath{T}.Items{TItem}"/>.</param>
     /// <param name="itemName">The iteration variable.</param>
     /// <param name="rows">Describes the rows for each item; it receives the typed item.</param>
-    public void ForEachRow<T>(TemplateCollection<T> collection, string itemName, Action<LoopItem<T>, RowsComposer> rows)
+    /// <returns>This composer.</returns>
+    public TableComposer ForEachRow<T>(TemplateCollection<T> collection, string itemName, Action<LoopItem<T>, RowsComposer> rows)
     {
         ArgumentNullException.ThrowIfNull(rows);
         ForEachRow(collection.Untyped, itemName, (item, r) => rows(new LoopItem<T>(item, collection.Naming), r));
+        return this;
     }
 
     /// <summary>
@@ -262,10 +275,12 @@ public sealed class TableComposer
     /// <param name="collection">The data path of the collection.</param>
     /// <param name="itemName">The iteration variable (rules as for <see cref="BlockComposer.ForEach"/>).</param>
     /// <param name="rows">Describes the rows repeated for each item; it receives the item.</param>
-    public void ForEachRow(TemplatePath collection, string itemName, Action<LoopItem, RowsComposer> rows)
+    /// <returns>This composer.</returns>
+    public TableComposer ForEachRow(TemplatePath collection, string itemName, Action<LoopItem, RowsComposer> rows)
     {
         EnsureOpen();
         _table.Rows.Add(RowsComposer.ComposeLoop(_context, _scope, collection, itemName, rows));
+        return this;
     }
 
     /// <summary>Adds rows shown only when a condition holds: <c>{{#if …}}</c> … <c>{{/if}}</c> in marker rows.</summary>
@@ -311,11 +326,13 @@ public sealed class RowsComposer
 
     /// <summary>Adds a row.</summary>
     /// <param name="row">Describes the row's cells.</param>
-    public void Row(Action<RowComposer> row)
+    /// <returns>This composer.</returns>
+    public RowsComposer Row(Action<RowComposer> row)
     {
         ArgumentNullException.ThrowIfNull(row);
         EnsureOpen();
         _rows.Add(ComposeRow(_context, _scope, row, isHeader: false));
+        return this;
     }
 
     /// <summary>Repeats rows for every item of a typed collection.</summary>
@@ -323,20 +340,24 @@ public sealed class RowsComposer
     /// <param name="collection">The collection, from <see cref="TemplatePath{T}.Items{TItem}"/>.</param>
     /// <param name="itemName">The iteration variable.</param>
     /// <param name="rows">Describes the rows for each item; it receives the typed item.</param>
-    public void ForEachRow<T>(TemplateCollection<T> collection, string itemName, Action<LoopItem<T>, RowsComposer> rows)
+    /// <returns>This composer.</returns>
+    public RowsComposer ForEachRow<T>(TemplateCollection<T> collection, string itemName, Action<LoopItem<T>, RowsComposer> rows)
     {
         ArgumentNullException.ThrowIfNull(rows);
         ForEachRow(collection.Untyped, itemName, (item, r) => rows(new LoopItem<T>(item, collection.Naming), r));
+        return this;
     }
 
     /// <summary>Repeats rows for every item of a collection, in marker rows of their own.</summary>
     /// <param name="collection">The data path of the collection.</param>
     /// <param name="itemName">The iteration variable.</param>
     /// <param name="rows">Describes the rows repeated for each item.</param>
-    public void ForEachRow(TemplatePath collection, string itemName, Action<LoopItem, RowsComposer> rows)
+    /// <returns>This composer.</returns>
+    public RowsComposer ForEachRow(TemplatePath collection, string itemName, Action<LoopItem, RowsComposer> rows)
     {
         EnsureOpen();
         _rows.Add(ComposeLoop(_context, _scope, collection, itemName, rows));
+        return this;
     }
 
     /// <summary>Adds rows shown only when a condition holds, in marker rows of their own.</summary>
@@ -476,25 +497,30 @@ public sealed class RowComposer
 
     /// <summary>Adds a cell with literal text in the inherited paragraph style (row, table style, style sheet default).</summary>
     /// <param name="text">The text.</param>
-    public void Cell(string text) => Cell(c => c.Paragraph(text));
+    /// <returns>This composer.</returns>
+    public RowComposer Cell(string text) => Cell(c => c.Paragraph(text));
 
     /// <summary>Adds a cell with literal text.</summary>
     /// <param name="style">The paragraph style.</param>
     /// <param name="text">The text.</param>
-    public void Cell(ParagraphStyleKey style, string text) => Cell(c => c.Paragraph(style, text));
+    /// <returns>This composer.</returns>
+    public RowComposer Cell(ParagraphStyleKey style, string text) => Cell(c => c.Paragraph(style, text));
 
     /// <summary>Adds a cell holding one value from the data.</summary>
     /// <param name="value">The data path.</param>
-    public void Cell(TemplatePath value) => Cell(c => c.Paragraph(value));
+    /// <returns>This composer.</returns>
+    public RowComposer Cell(TemplatePath value) => Cell(c => c.Paragraph(value));
 
     /// <summary>Adds a cell holding one value from the data.</summary>
     /// <param name="style">The paragraph style.</param>
     /// <param name="value">The data path.</param>
-    public void Cell(ParagraphStyleKey style, TemplatePath value) => Cell(c => c.Paragraph(style, value));
+    /// <returns>This composer.</returns>
+    public RowComposer Cell(ParagraphStyleKey style, TemplatePath value) => Cell(c => c.Paragraph(style, value));
 
     /// <summary>Adds a cell with any block content and the cell's own options (span, background, alignment).</summary>
     /// <param name="cell">Describes the cell.</param>
-    public void Cell(Action<CellComposer> cell)
+    /// <returns>This composer.</returns>
+    public RowComposer Cell(Action<CellComposer> cell)
     {
         ArgumentNullException.ThrowIfNull(cell);
         EnsureOpen();
@@ -503,6 +529,7 @@ public sealed class RowComposer
         cell(composer);
         composer.Close();
         _row.Cells.Add(model);
+        return this;
     }
 
     /// <summary>
@@ -510,18 +537,22 @@ public sealed class RowComposer
     /// style's text style (for example a totals row).
     /// </summary>
     /// <param name="style">The paragraph style.</param>
-    public void ParagraphStyle(ParagraphStyleKey style)
+    /// <returns>This composer.</returns>
+    public RowComposer ParagraphStyle(ParagraphStyleKey style)
     {
         ArgumentNullException.ThrowIfNull(style);
         EnsureOpen();
         _row.ParagraphStyle = style;
+        return this;
     }
 
     /// <summary>Lets the row break across pages; by default a row is kept on one page.</summary>
-    public void AllowSplit()
+    /// <returns>This composer.</returns>
+    public RowComposer AllowSplit()
     {
         EnsureOpen();
         _row.AllowSplit = true;
+        return this;
     }
 
     internal void Close() => _isOpen = false;
