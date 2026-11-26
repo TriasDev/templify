@@ -248,6 +248,35 @@ c.Raw(new RawBlock
 The root must be a paragraph or a table (`w:p`, `w:tbl`; `text:p`, `text:h`, `text:list`, `table:table`). The XML
 cannot add styles, numbering or relationships.
 
+## Typed data paths
+
+Instead of string paths (`order["customer.name"]`), a definition can take its paths from the C# classes of its data.
+The package's source generator writes C# 14 extension properties for every type used in `template.DataAs<T>()` and every
+type reachable from it, so the paths read like the data:
+
+```csharp
+TemplatePath<Order> order = template.DataAs<OrderData>().Order;
+c.Paragraph(x => x.Value(order.Customer.Name));
+table.ForEachRow(order.Lines, "line", (line, rows) => rows.Row(r =>
+{
+    r.Cell(line.Description);
+    r.Cell(line.Quantity);
+}));
+c.If(order.Total.Gt(1000) & order.IsExpress, b => b.Paragraph("Free express shipping"));
+```
+
+The data classes need nothing (no attribute, no `partial`); they may live in another assembly. Names follow the JSON
+rules of the data: `[JsonPropertyName]` wins, otherwise the naming policy given to `DataAs<T>(policy)` (camelCase by
+default); `[JsonIgnore]` hides a property. A collection property gives a `TemplateCollection<T>` for loops, and the loop
+item has the item type's properties. Every generated property is shorthand for the lambda form, which always works too:
+`order.Path(o => o.Customer.Name)`.
+
+- A property whose name the path or loop item type already uses (`Number`, `Count`, `Index` on a loop item; `Path`,
+  `Items`, `Exists`, `IsEmpty` on a path) is not generated (warning TBG001); use the lambda there.
+- Private or protected nested data types are skipped; types not reached from `DataAs` are added with
+  `[assembly: TemplateData(typeof(Address))]` (for example in a component library).
+- C# 14 or later is required (.NET 10 SDK); below, the generator reports TBG002 and generates nothing.
+
 ## JSON definitions
 
 `TemplateJson.Export(definition, options[, components])` writes a definition as JSON, and `TemplateJson.Import(json,
