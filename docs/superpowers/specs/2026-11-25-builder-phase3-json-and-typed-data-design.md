@@ -409,3 +409,19 @@ should not inherit body copy spacing).
 
 Still open from the list above: text keys (2), JSON Schema (3), the source generator (4). The styles are now the second
 largest part of the file; they are written once per language file, so text keys would also halve that.
+
+### Text keys (2026-11-26)
+
+Proposal 2 was implemented (`2026-11-26-builder-json-text-keys-design.md`): texts are `[[key]]`, the translations sit
+in an optional `texts` section (falling back to the host catalog), and the `language` member is gone. The sample now
+exports **one** `order-confirmation.json` for de and en; importing it without any catalog builds the same bytes as the
+C# definition in both languages.
+
+| | before (one file per language) | one file, with `texts` |
+|---|---|---|
+| JSON for de + en | 2 × ~8,800 characters, 2 × ~270 lines | 10,859 characters, 317 lines |
+| approximate tokens for both languages | ~4,400 | ~2,700 |
+| share: content / texts / styles / page | — | 41% / 27% / 22% / 6% |
+
+Without the `texts` section (keys only, translations from the host's catalog) the file is 8,249 characters and 255 lines.
+

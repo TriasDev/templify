@@ -275,6 +275,25 @@ placeholders:
 | Cell | a string (one paragraph), a list of blocks, or `{"span", "background", "align", "content"}` |
 | List item | a string, `{"level", "item"}`, `forEach`, `if` |
 
+**One JSON for every language.** Texts from `template.Texts["key"]` are exported as `[[key]]` references, wherever the
+code put them (in text, in a date format such as `{{order.date:date:[[dateFormat]]}}`, in raw XML, in document
+properties), so the exported JSON does not depend on the language. With
+`TemplateJson.Export(definition, options, new TemplateJsonExportOptions { TextLanguages = [de, en] })` the
+translations are written into a `texts` section and the file is self-contained:
+
+```json
+"texts": {
+  "de": {"title": "Auftragsbestätigung", "items": "Positionen"},
+  "en": {"title": "Order confirmation", "items": "Items"}
+},
+"content": [{"style": "DocTitle", "paragraph": "[[title]]"}, …]
+```
+
+At build time a key is translated from the JSON's `texts` for the build language (`de-DE` finds `de`), else from
+`TemplateBuildOptions.Texts`; a key neither has is TB5001. A key is letters, digits, `_`, `.` or `-`; a literal `[[`
+cannot be exported (TB9204). Texts are opaque to the export: code that changes a text (`Texts["x"].ToUpper()`) changes
+the key, not the translation.
+
 Conditions and loops stay objects; there is no `{{#if}}` inside strings. An expression whose condition is raw has no
 text form and is written as `{"expression": {"raw": …, "uses": […]}, "format": …}`. Import reports every problem at
 once, each with the JSON pointer of the element (`/content/7/table/1/row/3`).
