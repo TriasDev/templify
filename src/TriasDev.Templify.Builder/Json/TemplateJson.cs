@@ -10,30 +10,55 @@ namespace TriasDev.Templify.Builder.Json;
 public static class TemplateJson
 {
     /// <summary>
-    /// Exports a definition: it is composed and checked as for a build (same errors), then written as JSON. The
-    /// texts are those of <paramref name="options"/>' language; the format does not matter.
+    /// Exports a definition: it is composed and checked as for a build (same errors), then written as JSON. Texts from
+    /// <see cref="TemplateBuildOptions.Texts"/> are written as <c>[[key]]</c>, so the JSON serves every language; the
+    /// language and format of <paramref name="options"/> do not matter.
     /// </summary>
     /// <param name="definition">The definition.</param>
-    /// <param name="options">The language and texts to compose with.</param>
+    /// <param name="options">The options to compose with.</param>
     /// <returns>The JSON and its assets.</returns>
-    /// <exception cref="TemplateBuildException">The definition does not build.</exception>
-    public static TemplateJsonDocument Export(ITemplateDefinition definition, TemplateBuildOptions options) => Export(definition, options, null);
+    /// <exception cref="TemplateBuildException">The definition does not build, or a text cannot be written (TB9204).</exception>
+    public static TemplateJsonDocument Export(ITemplateDefinition definition, TemplateBuildOptions options) =>
+        Export(definition, options, new TemplateJsonExportOptions());
 
     /// <summary>
     /// Exports a definition; components registered in <paramref name="components"/> are written as references with
     /// their parameters, others as the blocks they produced.
     /// </summary>
     /// <param name="definition">The definition.</param>
-    /// <param name="options">The language and texts to compose with.</param>
+    /// <param name="options">The options to compose with.</param>
     /// <param name="components">The registered components, or null.</param>
     /// <returns>The JSON and its assets.</returns>
-    /// <exception cref="TemplateBuildException">The definition does not build.</exception>
-    public static TemplateJsonDocument Export(ITemplateDefinition definition, TemplateBuildOptions options, ComponentCatalog? components)
+    /// <exception cref="TemplateBuildException">The definition does not build, or a text cannot be written (TB9204).</exception>
+    public static TemplateJsonDocument Export(ITemplateDefinition definition, TemplateBuildOptions options, ComponentCatalog? components) =>
+        Export(definition, options, new TemplateJsonExportOptions { Components = components });
+
+    /// <summary>
+    /// Exports a definition with components and, for <see cref="TemplateJsonExportOptions.TextLanguages"/>, the
+    /// translations in a <c>texts</c> section (from the definition's own texts if it was imported, then from
+    /// <see cref="TemplateBuildOptions.Texts"/>).
+    /// </summary>
+    /// <param name="definition">The definition.</param>
+    /// <param name="options">The options to compose with; their catalog supplies the translations.</param>
+    /// <param name="export">What to write besides the definition.</param>
+    /// <returns>The JSON and its assets.</returns>
+    /// <exception cref="TemplateBuildException">The definition does not build, or a text cannot be written (TB9204).</exception>
+    public static TemplateJsonDocument Export(ITemplateDefinition definition, TemplateBuildOptions options, TemplateJsonExportOptions export)
     {
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(export);
         ComposedTemplate composed = TemplateBuilder.Compose(definition, options, keyMarkers: true);
-        (string json, IReadOnlyDictionary<string, byte[]> assets) = ModelJsonWriter.Write(composed, definition.Identity!, components);
+        EmbeddedTexts own = (definition as JsonDefinition)?.Texts ?? EmbeddedTexts.None;
+        ITextCatalog catalog = options.Texts ?? TextCatalog.Empty;
+        IEnumerable<string> names = export.TextLanguages is { Count: > 0 } languages ? languages.Select(l => l.Name) : own.Languages;
+        List<TextLanguage> texts = names.Select(name =>
+        {
+            System.Globalization.CultureInfo culture = System.Globalization.CultureInfo.GetCultureInfo(name);
+            return new TextLanguage(name, key =>
+                own.Catalog.TryGet(key, culture, out string text) || catalog.TryGet(key, culture, out text) ? text : null);
+        }).ToList();
+        (string json, IReadOnlyDictionary<string, byte[]> assets) = ModelJsonWriter.Write(composed, definition.Identity!, export.Components, texts);
         return new TemplateJsonDocument(json, assets);
     }
 

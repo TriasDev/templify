@@ -20,8 +20,11 @@ internal sealed class JsonDefinition(JsonElement root, TemplateIdentity identity
 {
     public TemplateIdentity Identity { get; } = identity;
 
+    /// <summary>Gets the definition's own translations (its <c>texts</c> section).</summary>
+    internal EmbeddedTexts Texts { get; } = EmbeddedTexts.Read(root);
+
     /// <summary>Composes through a fresh <see cref="JsonComposition"/>: the definition holds no per-build state, so one import can be built concurrently.</summary>
-    public void Compose(TemplateComposer template) => new JsonComposition(root, Identity, options).Compose(template);
+    public void Compose(TemplateComposer template) => new JsonComposition(root, Identity, options, Texts).Compose(template);
 }
 
 /// <summary>One composition of a JSON definition: the loop scope and diagnostics of a single build.</summary>
@@ -29,6 +32,7 @@ internal sealed class JsonComposition
 {
     private readonly JsonElement _source;
     private readonly TemplateJsonImportOptions _options;
+    private readonly EmbeddedTexts _texts;
     private JsonElement _root;
     private readonly Dictionary<string, ParagraphStyleKey> _paragraphStyles = new Dictionary<string, ParagraphStyleKey>(StringComparer.Ordinal);
     private readonly Dictionary<string, CharacterStyleKey> _characterStyles = new Dictionary<string, CharacterStyleKey>(StringComparer.Ordinal);
@@ -36,8 +40,9 @@ internal sealed class JsonComposition
     private BuildContext _context = null!;
     private TemplateComposer _template = null!;
 
-    public JsonComposition(JsonElement root, TemplateIdentity identity, TemplateJsonImportOptions options)
+    public JsonComposition(JsonElement root, TemplateIdentity identity, TemplateJsonImportOptions options, EmbeddedTexts texts)
     {
+        _texts = texts;
         _source = root;
         _root = root;
         Identity = identity;
@@ -67,7 +72,8 @@ internal sealed class JsonComposition
         _scope.Clear();
         _root = WithTranslations(_source);
 
-        Keys(_root, string.Empty, "templifyDefinition", "identity", "properties", "styles", "page", "content");
+        Keys(_root, string.Empty, "templifyDefinition", "identity", "texts", "properties", "styles", "page", "content");
+        _ = EmbeddedTexts.Read(_root, Fail);
         if (_root.TryGetProperty("styles", out JsonElement styles))
         {
             Guard("/styles", () =>
@@ -1064,6 +1070,13 @@ internal sealed class JsonComposition
                 foreach (JsonProperty property in element.EnumerateObject())
                 {
                     output.WritePropertyName(property.Name);
+                    if (at.Length == 0 && property.Name == "texts")
+                    {
+                        // The translations themselves are literal: a "[[" inside one is text.
+                        property.Value.WriteTo(output);
+                        continue;
+                    }
+
                     Translate(property.Value, at + "/" + Escape(property.Name), output);
                 }
 
@@ -1104,7 +1117,7 @@ internal sealed class JsonComposition
         _context.CurrentLocation = at;
         try
         {
-            string text = _template.Texts.Resolve(key, null);
+            string text = _template.Texts.Resolve(key, _texts.Catalog);
             if (!_template.Texts.WritesKeys && text.Contains("{{", StringComparison.Ordinal))
             {
                 _context.Error(DiagnosticCodes.InvalidJsonValue, $"The text '{key}' ({_template.Texts.Language.Name}) contains '{{{{', which would read as a value; texts are literal.", at);

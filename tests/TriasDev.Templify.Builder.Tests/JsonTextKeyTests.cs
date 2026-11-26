@@ -149,6 +149,76 @@ public sealed class JsonTextKeyTests
         Assert.Contains("two words", error.Message, StringComparison.Ordinal);
     }
 
+    // ── embedded texts ───────────────────────────────────────────────────────
+
+    private static readonly TemplateJsonExportOptions _bothLanguages = new TemplateJsonExportOptions
+    {
+        TextLanguages = [CultureInfo.GetCultureInfo("de"), CultureInfo.GetCultureInfo("en")],
+    };
+
+    [Fact]
+    public void Export_WithTextLanguages_WritesTextsInFirstUseOrder()
+    {
+        TemplateJsonDocument exported = TemplateJson.Export(Translated(), Options(TemplateFormat.Docx, "en-US"), _bothLanguages);
+        JsonElement texts = Root(exported.Json).GetProperty("texts");
+
+        Assert.Equal(new[] { "de", "en" }, texts.EnumerateObject().Select(p => p.Name));
+        Assert.Equal(new[] { "title", "hello", "fmt", "logo", "printed" }, texts.GetProperty("de").EnumerateObject().Select(p => p.Name));
+        Assert.Equal("Hallo", texts.GetProperty("de").GetProperty("hello").GetString());
+        Assert.Equal("Company logo", texts.GetProperty("en").GetProperty("logo").GetString());
+        Assert.Equal(new[] { "templifyDefinition", "identity", "texts" }, Root(exported.Json).EnumerateObject().Select(p => p.Name).Take(3));
+    }
+
+    [Theory]
+    [MemberData(nameof(FormatsAndLanguages))]
+    public void Import_WithEmbeddedTexts_NeedsNoCatalog(TemplateFormat format, string language)
+    {
+        TemplateJsonDocument exported = TemplateJson.Export(Translated(), Options(TemplateFormat.Docx, "en-US"), _bothLanguages);
+        ITemplateDefinition imported = TemplateJson.Import(exported.Json, new TemplateJsonImportOptions { Assets = exported.Assets, AllowRawXml = true });
+
+        Assert.Equal(
+            TemplateBuilder.Build(Translated(), Options(format, language)).ContentHash,
+            TemplateBuilder.Build(imported, Options(format, language, TextCatalog.Empty)).ContentHash);
+    }
+
+    [Fact]
+    public void EmbeddedTexts_WinOverTheCatalog_WhichFillsGaps()
+    {
+        ITemplateDefinition imported = TemplateJson.Import("""
+            {
+              "templifyDefinition": 1,
+              "identity": { "id": "keys", "version": 1 },
+              "texts": { "de": { "hello": "Servus" } },
+              "content": [ "[[hello]], [[title]]" ]
+            }
+            """);
+
+        (_, byte[] filled) = BuilderHarness.BuildAndFill(imported, Options(TemplateFormat.Docx, "de-DE"), "{}");
+        Assert.Equal(new[] { "Servus, Titel" }, BuilderHarness.ParagraphTexts(TemplateFormat.Docx, filled));
+    }
+
+    [Fact]
+    public void ReExport_KeepsTheTexts()
+    {
+        TemplateJsonDocument exported = TemplateJson.Export(Translated(), Options(TemplateFormat.Docx, "en-US"), _bothLanguages);
+        ITemplateDefinition imported = TemplateJson.Import(exported.Json, new TemplateJsonImportOptions { Assets = exported.Assets, AllowRawXml = true });
+
+        Assert.Equal(exported.Json, TemplateJson.Export(imported, Options(TemplateFormat.Odt, "de-DE", TextCatalog.Empty)).Json);
+    }
+
+    [Theory]
+    [InlineData("""{ "de": { "a": 1 } }""", "/texts/de/a")]
+    [InlineData("""{ "de": [ "a" ] }""", "/texts/de")]
+    [InlineData("""[ "de" ]""", "/texts")]
+    public void MalformedTexts_AreTB9200(string texts, string location)
+    {
+        string json = Definition("""[ "x" ]""").Replace("\"content\"", "\"texts\": " + texts + ", \"content\"", StringComparison.Ordinal);
+
+        BuildDiagnostic error = Assert.Single(Assert.Throws<TemplateBuildException>(() => TemplateJson.Import(json)).Errors);
+        Assert.Equal("TB9200", error.Code);
+        Assert.Equal(location, error.Location);
+    }
+
     private static string Definition(string content) => $$"""
         {
           "templifyDefinition": 1,

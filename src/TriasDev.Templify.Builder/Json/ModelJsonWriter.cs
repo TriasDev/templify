@@ -36,7 +36,7 @@ internal sealed class ModelJsonWriter
     }
 
     /// <summary>Writes the definition.</summary>
-    public static (string Json, IReadOnlyDictionary<string, byte[]> Assets) Write(ComposedTemplate composed, TemplateIdentity identity, ComponentCatalog? components)
+    public static (string Json, IReadOnlyDictionary<string, byte[]> Assets) Write(ComposedTemplate composed, TemplateIdentity identity, ComponentCatalog? components, IReadOnlyList<TextLanguage>? texts = null)
     {
         using MemoryStream stream = new MemoryStream();
         ModelJsonWriter writer;
@@ -49,21 +49,33 @@ internal sealed class ModelJsonWriter
             writer.Document(composed, identity);
         }
 
-        return (JsonLayout.Format(WithTextKeys(Encoding.UTF8.GetString(stream.ToArray()))), writer._assets);
+        return (JsonLayout.Format(WithTextKeys(Encoding.UTF8.GetString(stream.ToArray()), texts ?? [])), writer._assets);
     }
 
     /// <summary>
     /// Turns the key markers of the composed texts into <c>[[key]]</c> in every string. A literal <c>[[</c> (the import
     /// would read a key) or a key outside the key syntax cannot be written: TB9204 at the string's pointer.
     /// </summary>
-    private static string WithTextKeys(string json)
+    private static string WithTextKeys(string json, IReadOnlyList<TextLanguage> languages)
     {
         using JsonDocument document = JsonDocument.Parse(json);
         List<BuildDiagnostic> problems = new List<BuildDiagnostic>();
+        List<string> keys = UsedKeys(document.RootElement).Distinct(StringComparer.Ordinal).Where(TextKeys.IsKey).ToList();
         using MemoryStream stream = new MemoryStream();
         using (Utf8JsonWriter output = new Utf8JsonWriter(stream, new JsonWriterOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }))
         {
-            Copy(document.RootElement, string.Empty, output, problems);
+            output.WriteStartObject();
+            foreach (JsonProperty property in document.RootElement.EnumerateObject())
+            {
+                output.WritePropertyName(property.Name);
+                Copy(property.Value, "/" + JsonComposition.Escape(property.Name), output, problems);
+                if (property.Name == "identity" && languages.Count > 0)
+                {
+                    Texts(output, languages, keys);
+                }
+            }
+
+            output.WriteEndObject();
         }
 
         if (problems.Count > 0)
@@ -73,6 +85,36 @@ internal sealed class ModelJsonWriter
 
         return Encoding.UTF8.GetString(stream.ToArray());
     }
+
+    /// <summary>The translations of the used keys, per language; a key a language lacks is left out (the build reports it).</summary>
+    private static void Texts(Utf8JsonWriter output, IReadOnlyList<TextLanguage> languages, List<string> keys)
+    {
+        output.WriteStartObject("texts");
+        foreach (TextLanguage language in languages)
+        {
+            output.WriteStartObject(language.Name);
+            foreach (string key in keys)
+            {
+                if (language.Lookup(key) is { } text)
+                {
+                    output.WriteString(key, text);
+                }
+            }
+
+            output.WriteEndObject();
+        }
+
+        output.WriteEndObject();
+    }
+
+    /// <summary>The keys of the text markers, in document order.</summary>
+    private static IEnumerable<string> UsedKeys(JsonElement element) => element.ValueKind switch
+    {
+        JsonValueKind.Object => element.EnumerateObject().SelectMany(p => UsedKeys(p.Value)),
+        JsonValueKind.Array => element.EnumerateArray().SelectMany(UsedKeys),
+        JsonValueKind.String => TextKeys.MarkedKeys(element.GetString()!),
+        _ => [],
+    };
 
     private static void Copy(JsonElement element, string at, Utf8JsonWriter output, List<BuildDiagnostic> problems)
     {
@@ -1011,3 +1053,6 @@ internal sealed class ModelJsonWriter
         }
     }
 }
+
+/// <summary>A language of the <c>texts</c> section: its name as written and how its texts are found.</summary>
+internal sealed record TextLanguage(string Name, Func<string, string?> Lookup);
