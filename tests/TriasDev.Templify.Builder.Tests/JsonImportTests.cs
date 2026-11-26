@@ -45,7 +45,7 @@ public sealed class JsonImportTests
               "content": [
                 { "paragraph": "Hi" },
                 { "paragraph": { "content": "Hi" } },
-                { "paragraph": { "style": "Body", "content": [ { "text": "a" }, { "tab": true }, { "value": "name" } ] } }
+                { "paragraph": { "style": "Body", "content": [ "a", { "tab": true }, "{{name}}" ] } }
               ]
             }
             """;
@@ -74,8 +74,8 @@ public sealed class JsonImportTests
               "language": "en-US",
               "content": [
                 { "forEach": "order.lines", "as": "line", "body": [
-                  { "paragraph": { "content": [ { "value": "@number" }, { "text": " " }, { "value": "line.description" } ] } } ] },
-                { "paragraph": { "content": [ { "value": "line.description" } ] } }
+                  { "paragraph": { "content": "{{@number}} {{line.description}}" } } ] },
+                { "paragraph": { "content": "{{line.description}}" } }
               ]
             }
             """;

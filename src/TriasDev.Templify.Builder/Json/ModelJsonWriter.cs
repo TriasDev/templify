@@ -342,7 +342,7 @@ internal sealed class ModelJsonWriter
     {
         switch (block)
         {
-            case ParagraphBlock paragraph when paragraph.Style is null && paragraph.List is null && IsPlainText(paragraph.Inlines, out string? text):
+            case ParagraphBlock paragraph when paragraph.Style is null && paragraph.List is null && IsSingleString(paragraph.Inlines, out string? text):
                 _json.WriteStartObject();
                 _json.WriteString("paragraph", text);
                 _json.WriteEndObject();
@@ -495,7 +495,7 @@ internal sealed class ModelJsonWriter
             {
                 case ParagraphBlock { List: { } info } paragraph:
                     _json.WriteStartObject();
-                    if (info.Level == 0 && IsPlainText(paragraph.Inlines, out string? text))
+                    if (info.Level == 0 && IsSingleString(paragraph.Inlines, out string? text))
                     {
                         _json.WriteString("item", text);
                     }
@@ -664,101 +664,170 @@ internal sealed class ModelJsonWriter
 
     // ── inlines ──────────────────────────────────────────────────────────────
 
-    private static bool IsPlainText(IReadOnlyList<Inline> inlines, out string? text)
-    {
-        text = inlines is [TextInline { Style: null } only] ? only.Text : null;
-        return text != null;
-    }
-
     private void Content(IReadOnlyList<Inline> inlines)
     {
-        if (IsPlainText(inlines, out string? text))
+        _json.WritePropertyName("content");
+        InlineContent(inlines);
+    }
+
+    /// <summary>
+    /// Inline content: one string when it is a single unstyled run of text and placeholders, else a list of runs
+    /// (strings, styled <c>{"text": …}</c>) and inline objects.
+    /// </summary>
+    private void InlineContent(IReadOnlyList<Inline> inlines)
+    {
+        List<object> parts = Runs(inlines);
+        if (parts is [TextRun { Style: null } only])
         {
-            _json.WriteString("content", text);
+            _json.WriteStringValue(TextTemplate.Write(only.Pieces));
             return;
         }
 
-        _json.WritePropertyName("content");
-        Inlines(inlines);
-    }
-
-    private void Inlines(IEnumerable<Inline> inlines)
-    {
         _json.WriteStartArray();
-        foreach (Inline inline in inlines)
+        foreach (object part in parts)
         {
-            _json.WriteStartObject();
-            switch (inline)
+            if (part is TextRun run)
             {
-                case TextInline { Text: "\t", Style: null }:
-                    _json.WriteBoolean("tab", true);
-                    break;
-                case TextInline { Text: "\n", Style: null }:
-                    _json.WriteBoolean("lineBreak", true);
-                    break;
-                case TextInline text:
-                    _json.WriteString("text", text.Text);
-                    StringIf("style", text.Style?.Id);
-                    break;
-                case ValueInline value:
-                    _json.WriteString("value", value.Path.ToString());
-                    StringIf("format", value.Format?.Specifier);
-                    StringIf("style", value.Style?.Id);
-                    break;
-                case PageFieldInline field:
-                    _json.WriteBoolean(field.Field == PageField.Number ? "pageNumber" : "pageCount", true);
-                    StringIf("style", field.Style?.Id);
-                    break;
-                case RightTabInline:
-                    _json.WriteBoolean("tabRight", true);
-                    break;
-                case ImageInline image:
-                    _json.WriteString("image", Asset(image.Image.Hash, image.Image.Data));
-                    _json.WriteString("alt", image.AltText);
-                    _json.WriteString("width", JsonValues.Length(image.Width));
-                    _json.WriteString("height", JsonValues.Length(image.Height));
-                    break;
-                case ExpressionInline expression:
-                    _json.WritePropertyName("expression");
-                    Condition(expression.Condition);
-                    StringIf("format", expression.Format?.Specifier);
-                    break;
-                case InlineConditional conditional:
-                    _json.WritePropertyName("if");
-                    Condition(conditional.Branches[0].Condition);
-                    _json.WritePropertyName("then");
-                    Inlines(conditional.Branches[0].Inlines);
-                    if (conditional.Branches.Count > 1)
-                    {
-                        _json.WriteStartArray("elseIf");
-                        foreach ((Condition condition, IReadOnlyList<Inline> branch) in conditional.Branches.Skip(1))
-                        {
-                            _json.WriteStartObject();
-                            _json.WritePropertyName("when");
-                            Condition(condition);
-                            _json.WritePropertyName("then");
-                            Inlines(branch);
-                            _json.WriteEndObject();
-                        }
-
-                        _json.WriteEndArray();
-                    }
-
-                    if (conditional.Else is { } otherwise)
-                    {
-                        _json.WritePropertyName("else");
-                        Inlines(otherwise);
-                    }
-
-                    break;
-                default:
-                    throw new NotSupportedException($"The JSON export does not know the inline {inline.GetType().Name}.");
+                if (run.Style is null)
+                {
+                    _json.WriteStringValue(TextTemplate.Write(run.Pieces));
+                }
+                else
+                {
+                    _json.WriteStartObject();
+                    _json.WriteString("text", TextTemplate.Write(run.Pieces));
+                    _json.WriteString("style", run.Style.Id);
+                    _json.WriteEndObject();
+                }
             }
-
-            _json.WriteEndObject();
+            else
+            {
+                InlineObject((Inline)part);
+            }
         }
 
         _json.WriteEndArray();
+    }
+
+    /// <summary>Whether the inlines are written as one string (a single unstyled run).</summary>
+    private static bool IsSingleString(IReadOnlyList<Inline> inlines, out string? text)
+    {
+        text = Runs(inlines) is [TextRun { Style: null } only] ? TextTemplate.Write(only.Pieces) : null;
+        return text != null;
+    }
+
+    /// <summary>A run of text and placeholders in one character style, written as one string.</summary>
+    private sealed record TextRun(List<TextPiece> Pieces, CharacterStyleKey? Style);
+
+    /// <summary>
+    /// Groups text, values and expressions of one character style into runs, but only where the import splits the
+    /// string back into the same inlines: two texts never join (the import would read one text), and a text ending
+    /// with '{' never joins a following placeholder (the import would read "{{{").
+    /// </summary>
+    private static List<object> Runs(IReadOnlyList<Inline> inlines)
+    {
+        List<object> parts = new List<object>();
+        TextRun? current = null;
+        foreach (Inline inline in inlines)
+        {
+            (TextPiece? piece, CharacterStyleKey? style) = inline switch
+            {
+                TextInline { Text: "\t" or "\n", Style: null } => ((TextPiece?)null, (CharacterStyleKey?)null),
+                TextInline text => (new TextPiece.Literal(text.Text), text.Style),
+                ValueInline value => (new TextPiece.Value(value.Path.ToString(), value.Format?.Specifier), value.Style),
+                ExpressionInline { Condition: not RawCondition } expression => (new TextPiece.Expression(expression.Condition.ToString(), expression.Format?.Specifier), null),
+                _ => (null, null),
+            };
+
+            if (piece is null)
+            {
+                current = null;
+                parts.Add(inline);
+                continue;
+            }
+
+            TextPiece? last = current?.Pieces[^1];
+            bool joins = current != null
+                && Equals(current.Style, style)
+                && !(piece is TextPiece.Literal && last is TextPiece.Literal)
+                && !(piece is not TextPiece.Literal && last is TextPiece.Literal { Text: var before } && before.EndsWith('{'));
+            if (joins)
+            {
+                current!.Pieces.Add(piece);
+            }
+            else
+            {
+                current = new TextRun([piece], style);
+                parts.Add(current);
+            }
+        }
+
+        return parts;
+    }
+
+    private void InlineObject(Inline inline)
+    {
+        _json.WriteStartObject();
+        switch (inline)
+        {
+            case TextInline { Text: "\t", Style: null }:
+                _json.WriteBoolean("tab", true);
+                break;
+            case TextInline { Text: "\n", Style: null }:
+                _json.WriteBoolean("lineBreak", true);
+                break;
+            case PageFieldInline field:
+                _json.WriteBoolean(field.Field == PageField.Number ? "pageNumber" : "pageCount", true);
+                StringIf("style", field.Style?.Id);
+                break;
+            case RightTabInline:
+                _json.WriteBoolean("tabRight", true);
+                break;
+            case ImageInline image:
+                _json.WriteString("image", Asset(image.Image.Hash, image.Image.Data));
+                _json.WriteString("alt", image.AltText);
+                _json.WriteString("width", JsonValues.Length(image.Width));
+                _json.WriteString("height", JsonValues.Length(image.Height));
+                break;
+            case ExpressionInline expression:
+                // Only raw conditions get here: every other expression is written in text as {{(condition):format}}.
+                _json.WritePropertyName("expression");
+                Condition(expression.Condition);
+                StringIf("format", expression.Format?.Specifier);
+                break;
+            case InlineConditional conditional:
+                _json.WritePropertyName("if");
+                Condition(conditional.Branches[0].Condition);
+                _json.WritePropertyName("then");
+                InlineContent(conditional.Branches[0].Inlines);
+                if (conditional.Branches.Count > 1)
+                {
+                    _json.WriteStartArray("elseIf");
+                    foreach ((Condition condition, IReadOnlyList<Inline> branch) in conditional.Branches.Skip(1))
+                    {
+                        _json.WriteStartObject();
+                        _json.WritePropertyName("when");
+                        Condition(condition);
+                        _json.WritePropertyName("then");
+                        InlineContent(branch);
+                        _json.WriteEndObject();
+                    }
+
+                    _json.WriteEndArray();
+                }
+
+                if (conditional.Else is { } otherwise)
+                {
+                    _json.WritePropertyName("else");
+                    InlineContent(otherwise);
+                }
+
+                break;
+            default:
+                throw new NotSupportedException($"The JSON export does not know the inline {inline.GetType().Name}.");
+        }
+
+        _json.WriteEndObject();
     }
 
     // ── values ───────────────────────────────────────────────────────────────

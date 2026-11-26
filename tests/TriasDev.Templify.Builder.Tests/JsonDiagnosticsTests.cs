@@ -71,7 +71,7 @@ public sealed class JsonDiagnosticsTests
     {
         string json = Definition("""
             [
-              { "paragraph": { "content": [ { "value": "@index" } ] } }
+              { "paragraph": { "content": [ "{{@index}}" ] } }
             ]
             """);
 

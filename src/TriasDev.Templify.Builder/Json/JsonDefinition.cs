@@ -458,16 +458,22 @@ internal sealed class JsonComposition
 
     private void Paragraph(BlockComposer c, JsonElement paragraph, string at)
     {
-        if (paragraph.ValueKind == JsonValueKind.String)
+        if (IsPlainText(paragraph))
         {
             c.Paragraph(paragraph.GetString()!);
+            return;
+        }
+
+        if (paragraph.ValueKind == JsonValueKind.String)
+        {
+            c.Paragraph(x => Inlines(x, paragraph, at));
             return;
         }
 
         Keys(paragraph, at, "style", "content");
         ParagraphStyleKey? style = String(paragraph, "style", at) is { } id ? ParagraphStyle(id) : null;
         JsonElement content = Required(paragraph, "content", at);
-        if (content.ValueKind == JsonValueKind.String)
+        if (IsPlainText(content))
         {
             if (style is null)
             {
@@ -506,16 +512,22 @@ internal sealed class JsonComposition
         if (item.TryGetProperty("item", out JsonElement content))
         {
             Keys(item, at, "item");
-            if (content.ValueKind == JsonValueKind.String)
+            if (IsPlainText(content))
             {
                 l.Item(content.GetString()!);
+                return;
+            }
+
+            if (content.ValueKind == JsonValueKind.String)
+            {
+                l.Item(0, x => Inlines(x, content, at + "/item"));
                 return;
             }
 
             Keys(content, at + "/item", "level", "content");
             int level = Int(content, "level", at + "/item") ?? 0;
             JsonElement inlines = Required(content, "content", at + "/item");
-            if (inlines.ValueKind == JsonValueKind.String)
+            if (IsPlainText(inlines))
             {
                 l.Item(level, inlines.GetString()!);
             }
@@ -728,10 +740,17 @@ internal sealed class JsonComposition
 
     // ── inlines ──────────────────────────────────────────────────────────────
 
+    /// <summary>Inline content: a string (text with placeholders) or a list of inlines.</summary>
     private void Inlines(InlineComposer x, JsonElement inlines, string at)
     {
+        if (inlines.ValueKind == JsonValueKind.String)
+        {
+            Guard(at, () => Text(x, inlines.GetString()!, null, at));
+            return;
+        }
+
         int i = 0;
-        foreach (JsonElement inline in Items(inlines, at, "a list of inlines"))
+        foreach (JsonElement inline in Items(inlines, at, "a string or a list of inlines"))
         {
             string inlineAt = at + "/" + i++;
             Guard(inlineAt, () => Inline(x, inline, inlineAt));
@@ -740,47 +759,22 @@ internal sealed class JsonComposition
 
     private void Inline(InlineComposer x, JsonElement inline, string at)
     {
+        if (inline.ValueKind == JsonValueKind.String)
+        {
+            Text(x, inline.GetString()!, null, at);
+            return;
+        }
+
         if (inline.ValueKind != JsonValueKind.Object)
         {
-            throw new JsonImportException(at, "An inline is an object such as { \"text\": … }.");
+            throw new JsonImportException(at, "An inline is a string or an object such as { \"text\": …, \"style\": … }.");
         }
 
         CharacterStyleKey? style = String(inline, "style", at) is { } id ? CharacterStyle(id) : null;
         if (inline.TryGetProperty("text", out _))
         {
             Keys(inline, at, "text", "style");
-            string value = String(inline, "text", at) ?? throw Missing(at, "text");
-            if (style is null)
-            {
-                x.Text(value);
-            }
-            else
-            {
-                x.Text(value, style);
-            }
-        }
-        else if (inline.TryGetProperty("value", out JsonElement value))
-        {
-            Keys(inline, at, "value", "format", "style");
-            // :join prints a collection; every other value reads a single value.
-            bool join = String(inline, "format", at) is { } joined && (joined == "join" || joined.StartsWith("join:", StringComparison.Ordinal));
-            TemplatePath path = Path(value, at + "/value", join ? null : DataKind.Value);
-            ValueFormat? format = String(inline, "format", at) is { } specifier ? ValueFormat.Custom(specifier) : null;
-            switch (format, style)
-            {
-                case (null, null):
-                    x.Value(path);
-                    break;
-                case (null, { } s):
-                    x.Value(path, s);
-                    break;
-                case ({ } f, null):
-                    x.Value(path, f);
-                    break;
-                default:
-                    x.Value(path, format!, style!);
-                    break;
-            }
+            Text(x, String(inline, "text", at) ?? throw Missing(at, "text"), style, at);
         }
         else if (inline.TryGetProperty("tab", out _))
         {
@@ -836,7 +830,14 @@ internal sealed class JsonComposition
         }
         else if (inline.TryGetProperty("expression", out JsonElement expression))
         {
+            // Expressions are written in text as {{(condition):format}}; the object form is only for raw conditions,
+            // which have no text form.
             Keys(inline, at, "expression", "format");
+            if (expression.ValueKind != JsonValueKind.Object)
+            {
+                throw new JsonImportException(at + "/expression", "Write an expression in text as \"{{(condition):format}}\"; the expression object is only for a raw condition { \"raw\": …, \"uses\": … }.");
+            }
+
             x.Expression(Condition(expression, at + "/expression"), ValueFormat.Custom(String(inline, "format", at) ?? throw Missing(at, "format")));
         }
         else if (inline.TryGetProperty("if", out JsonElement condition))
@@ -858,15 +859,65 @@ internal sealed class JsonComposition
         }
         else
         {
-            throw new JsonImportException(at, $"Unknown inline {Names(inline)}; expected text, value, tab, lineBreak, tabRight, pageNumber, pageCount, image, expression or if.");
+            throw new JsonImportException(at, $"Unknown inline {Names(inline)}; expected a string, text, tab, lineBreak, tabRight, pageNumber, pageCount, image, expression or if.");
         }
     }
 
-    /// <summary>The inlines of an inline conditional: text, values and nested conditionals.</summary>
+    /// <summary>Text with placeholders, every piece in <paramref name="style"/>.</summary>
+    private void Text(InlineComposer x, string text, CharacterStyleKey? style, string at)
+    {
+        foreach (TextPiece piece in Pieces(text, at))
+        {
+            switch (piece)
+            {
+                case TextPiece.Literal literal when style is null:
+                    x.Text(literal.Text);
+                    break;
+                case TextPiece.Literal literal:
+                    x.Text(literal.Text, style);
+                    break;
+                case TextPiece.Value value:
+                    (TemplatePath path, ValueFormat? format) = ValuePiece(value, at);
+                    switch (format, style)
+                    {
+                        case (null, null):
+                            x.Value(path);
+                            break;
+                        case (null, { } s):
+                            x.Value(path, s);
+                            break;
+                        case ({ } f, null):
+                            x.Value(path, f);
+                            break;
+                        default:
+                            x.Value(path, format!, style!);
+                            break;
+                    }
+
+                    break;
+                case TextPiece.Expression expression:
+                    if (style is not null)
+                    {
+                        throw new JsonImportException(at, $"The expression '{TextTemplate.Write([expression])}' cannot have a character style.");
+                    }
+
+                    x.Expression(ConditionText(expression.Condition, at), ValueFormat.Custom(expression.Format ?? throw new JsonImportException(at, $"The expression '{TextTemplate.Write([expression])}' needs a format, for example {{{{(…):yesno}}}}.")));
+                    break;
+            }
+        }
+    }
+
+    /// <summary>The inlines of an inline conditional: a string, or a list of strings, styled text and nested conditionals.</summary>
     private void TextInlines(TextComposer t, JsonElement inlines, string at)
     {
+        if (inlines.ValueKind == JsonValueKind.String)
+        {
+            Guard(at, () => Text(t, inlines.GetString()!, null, at));
+            return;
+        }
+
         int i = 0;
-        foreach (JsonElement inline in Items(inlines, at, "a list of inlines"))
+        foreach (JsonElement inline in Items(inlines, at, "a string or a list of inlines"))
         {
             string inlineAt = at + "/" + i++;
             Guard(inlineAt, () => TextInline(t, inline, inlineAt));
@@ -875,22 +926,17 @@ internal sealed class JsonComposition
 
     private void TextInline(TextComposer t, JsonElement inline, string at)
     {
+        if (inline.ValueKind == JsonValueKind.String)
+        {
+            Text(t, inline.GetString()!, null, at);
+            return;
+        }
+
         CharacterStyleKey? style = String(inline, "style", at) is { } id ? CharacterStyle(id) : null;
         if (inline.TryGetProperty("text", out _))
         {
             Keys(inline, at, "text", "style");
-            string text = String(inline, "text", at) ?? throw Missing(at, "text");
-            _ = style is null ? t.Text(text) : t.Text(text, style);
-        }
-        else if (inline.TryGetProperty("value", out JsonElement value))
-        {
-            Keys(inline, at, "value", "format", "style");
-            // :join prints a collection; every other value reads a single value.
-            bool join = String(inline, "format", at) is { } joined && (joined == "join" || joined.StartsWith("join:", StringComparison.Ordinal));
-            TemplatePath path = Path(value, at + "/value", join ? null : DataKind.Value);
-            _ = String(inline, "format", at) is { } specifier
-                ? t.Value(path, ValueFormat.Custom(specifier))
-                : style is null ? t.Value(path) : t.Value(path, style);
+            Text(t, String(inline, "text", at) ?? throw Missing(at, "text"), style, at);
         }
         else if (inline.TryGetProperty("if", out JsonElement condition))
         {
@@ -911,8 +957,56 @@ internal sealed class JsonComposition
         }
         else
         {
-            throw new JsonImportException(at, "Inside an inline conditional only text, value and if are allowed.");
+            throw new JsonImportException(at, "Inside an inline conditional only strings, { \"text\": …, \"style\": … } and if are allowed.");
         }
+    }
+
+    /// <summary>Text with placeholders inside an inline conditional (no expressions, no formatted styled values).</summary>
+    private void Text(TextComposer t, string text, CharacterStyleKey? style, string at)
+    {
+        foreach (TextPiece piece in Pieces(text, at))
+        {
+            switch (piece)
+            {
+                case TextPiece.Literal literal:
+                    _ = style is null ? t.Text(literal.Text) : t.Text(literal.Text, style);
+                    break;
+                case TextPiece.Value value:
+                    (TemplatePath path, ValueFormat? format) = ValuePiece(value, at);
+                    if (format is not null && style is not null)
+                    {
+                        throw new JsonImportException(at, $"Inside an inline conditional the value '{TextTemplate.Write([value])}' cannot have both a format and a character style.");
+                    }
+
+                    _ = format is not null ? t.Value(path, format) : style is null ? t.Value(path) : t.Value(path, style);
+                    break;
+                case TextPiece.Expression expression:
+                    throw new JsonImportException(at, $"Inside an inline conditional an expression ('{TextTemplate.Write([expression])}') is not allowed.");
+            }
+        }
+    }
+
+    /// <summary>A string without placeholders: composed as literal text, exactly like the C# overloads that take a string.</summary>
+    private static bool IsPlainText(JsonElement element) =>
+        element.ValueKind == JsonValueKind.String && !element.GetString()!.Contains("{{", StringComparison.Ordinal);
+
+    private static IReadOnlyList<TextPiece> Pieces(string text, string at)
+    {
+        try
+        {
+            return TextTemplate.Parse(text);
+        }
+        catch (FormatException exception)
+        {
+            throw new JsonImportException(at, exception.Message);
+        }
+    }
+
+    /// <summary>The path and format of a value placeholder; <c>:join</c> reads a collection, every other value a single value.</summary>
+    private (TemplatePath Path, ValueFormat? Format) ValuePiece(TextPiece.Value value, string at)
+    {
+        bool join = value.Format is "join" || value.Format?.StartsWith("join:", StringComparison.Ordinal) == true;
+        return (Resolve(value.Path, at, join ? null : DataKind.Value), value.Format is { } specifier ? ValueFormat.Custom(specifier) : null);
     }
 
     // ── paths, conditions, scope ─────────────────────────────────────────────
@@ -1029,7 +1123,11 @@ internal sealed class JsonComposition
             throw new JsonImportException(at, "A condition is a string such as \"order.total > 1000\".");
         }
 
-        string text = condition.GetString()!;
+        return ConditionText(condition.GetString()!, at);
+    }
+
+    private Condition ConditionText(string text, string at)
+    {
         CheckConditionSize(text, at);
         try
         {

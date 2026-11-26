@@ -41,16 +41,7 @@ public sealed class JsonExportTests
               "language": "en-US",
               "content": [
                 {
-                  "paragraph": {
-                    "content": [
-                      {
-                        "text": "Hello "
-                      },
-                      {
-                        "value": "name"
-                      }
-                    ]
-                  }
+                  "paragraph": "Hello {{name}}"
                 }
               ]
             }
@@ -95,12 +86,14 @@ public sealed class JsonExportTests
         foreach (string key in new[]
         {
             "styles", "page", "properties", "paragraph", "if", "elseIf", "else", "table", "forEachRow", "rowsIf", "box", "rule", "list",
-            "forEach", "image", "toc", "raw", "expression", "tabRight", "pageNumber", "pageCount", "value", "format", "group",
+            "forEach", "image", "toc", "raw", "tabRight", "pageNumber", "pageCount", "group",
         })
         {
             Assert.True(keys.Contains(key), $"The export has no '{key}'.");
         }
 
+        Assert.Contains("{{(order.isExpress and order.total > 1000):yesno}}", document.Json, StringComparison.Ordinal);
+        Assert.Contains("{{line.amount:currency}}", document.Json, StringComparison.Ordinal);
         string logo = Assert.Single(document.Assets.Keys);
         Assert.StartsWith("sha256:", logo, StringComparison.Ordinal);
         Assert.Contains("\"" + logo + "\"", document.Json, StringComparison.Ordinal);

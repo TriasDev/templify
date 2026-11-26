@@ -240,9 +240,9 @@ public sealed class Phase3ReviewTests
         string json = Definition("""
             [
               { "forEach": "title", "as": "t", "body": [ { "paragraph": "x" } ] },
-              { "paragraph": { "content": [ { "value": "address" } ] } },
+              { "paragraph": { "content": "{{address}}" } },
               { "component": "where", "params": { "where": "title" } },
-              { "forEach": "tags", "as": "tag", "body": [ { "paragraph": { "content": [ { "value": "tag" } ] } } ] },
+              { "forEach": "tags", "as": "tag", "body": [ { "paragraph": { "content": "{{tag}}" } } ] },
               { "component": "where", "params": { "where": "address" } }
             ]
             """);
@@ -251,7 +251,7 @@ public sealed class Phase3ReviewTests
             TemplateJson.Import(json, new TemplateJsonImportOptions { Components = catalog, Data = DataCatalog.From<KindData>() }));
 
         Assert.All(exception.Errors, e => Assert.Equal("TB9203", e.Code));
-        Assert.Equal(new[] { "/content/0/forEach", "/content/1/paragraph/content/0/value", "/content/2/params" }, exception.Errors.Select(e => e.Location));
+        Assert.Equal(new[] { "/content/0/forEach", "/content/1/paragraph/content", "/content/2/params" }, exception.Errors.Select(e => e.Location));
     }
 
     // ── Re-graded minor: flags must be true ───────────────────────────────────
