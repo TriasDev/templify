@@ -82,8 +82,16 @@ internal sealed partial class LoopScope(string itemName, TemplatePath collection
     /// A loop's collection path has no index: Templify's loop marker takes letters, digits, <c>_</c> and <c>.</c> only, so
     /// <c>{{#foreach l in groups[1].lines}}</c> would stay text in the filled document.
     /// </summary>
-    public static TemplatePath ValidateCollection(TemplatePath collection)
+    public static TemplatePath ValidateCollection(TemplatePath collection, string itemName)
     {
+        // foreach order in order.lines: inside, "order" would be the item, not the data's root.
+        if (collection.Scope is null && string.Equals(collection.ToString().Split('.', '[')[0], itemName, StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                $"The loop variable '{itemName}' hides the data path '{collection}' it loops over; choose another name.",
+                nameof(itemName));
+        }
+
         if (collection.ToString().Contains('[', StringComparison.Ordinal))
         {
             throw new ArgumentException(

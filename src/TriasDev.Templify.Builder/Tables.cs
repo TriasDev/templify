@@ -378,7 +378,7 @@ public sealed class RowsComposer
         }
 
         LoopScope.CheckUse(context, scope, collection);
-        LoopScope loopScope = new LoopScope(LoopScope.ValidateItemName(itemName, scope), LoopScope.ValidateCollection(collection), scope);
+        LoopScope loopScope = new LoopScope(LoopScope.ValidateItemName(itemName, scope), LoopScope.ValidateCollection(collection, itemName), scope);
         TableRowLoop loop = new TableRowLoop(collection, itemName);
         RowsComposer composer = new RowsComposer(context, loopScope, loop.Rows);
         rows(new LoopItem(loopScope), composer);

@@ -72,7 +72,11 @@ internal sealed class JsonComposition
         _scope.Clear();
         _root = WithTranslations(_source);
 
-        Keys(_root, string.Empty, "templifyDefinition", "identity", "texts", "properties", "styles", "page", "content");
+        Keys(_root, string.Empty, "$schema", "templifyDefinition", "identity", "texts", "properties", "styles", "page", "content", "components");
+        if (_root.TryGetProperty("components", out _))
+        {
+            Fail("/components", "The root key 'components' is reserved for components defined inside the definition (a later version).");
+        }
         _ = EmbeddedTexts.Read(_root, Fail);
         if (_root.TryGetProperty("styles", out JsonElement styles))
         {
@@ -198,7 +202,7 @@ internal sealed class JsonComposition
                     Apply(Border(e, "columnRule", at), v => t.ColumnRule(v.Width, v.Color));
                     Apply(Border(e, "headerRule", at), v => t.HeaderRule(v.Width, v.Color));
                     Apply(Color(e, "headerBackground", at), v => t.HeaderBackground(v));
-                    if (Box(e, "cellPadding", at) is { } padding)
+                    if (Padding(e, "cellPadding", at) is { } padding)
                     {
                         t.CellPadding(padding.Top, padding.Right);
                     }
@@ -220,7 +224,7 @@ internal sealed class JsonComposition
                 {
                     Apply(Border(e, "border", at), v => b.Border(v.Width, v.Color));
                     Apply(Color(e, "background", at), v => b.Background(v));
-                    if (Box(e, "padding", at) is { } padding)
+                    if (Padding(e, "padding", at) is { } padding)
                     {
                         b.Padding(padding.Top, padding.Right);
                     }
@@ -872,7 +876,7 @@ internal sealed class JsonComposition
                 throw new JsonImportException(at + "/expression", "Write an expression in text as \"{{(condition):format}}\"; the expression object is only for a raw condition { \"raw\": …, \"uses\": … }.");
             }
 
-            x.Expression(Condition(expression, at + "/expression"), ValueFormat.Custom(String(inline, "format", at) ?? throw Missing(at, "format")));
+            x.Expression(Condition(expression, at + "/expression"), Format(String(inline, "format", at) ?? throw Missing(at, "format"), at));
         }
         else if (inline.TryGetProperty("if", out JsonElement condition))
         {
@@ -935,7 +939,7 @@ internal sealed class JsonComposition
                         throw new JsonImportException(at, $"The expression '{TextTemplate.Write([expression])}' cannot have a character style.");
                     }
 
-                    x.Expression(ConditionText(expression.Condition, at), ValueFormat.Custom(expression.Format ?? throw new JsonImportException(at, $"The expression '{TextTemplate.Write([expression])}' needs a format, for example {{{{(…):yesno}}}}.")));
+                    x.Expression(ConditionText(expression.Condition, at), Format(expression.Format ?? throw new JsonImportException(at, $"The expression '{TextTemplate.Write([expression])}' needs a format, for example {{{{(…):yesno}}}}."), at));
                     break;
             }
         }
@@ -1040,7 +1044,30 @@ internal sealed class JsonComposition
     private (TemplatePath Path, ValueFormat? Format) ValuePiece(TextPiece.Value value, string at)
     {
         bool join = value.Format is "join" || value.Format?.StartsWith("join:", StringComparison.Ordinal) == true;
-        return (Resolve(value.Path, at, join ? null : DataKind.Value), value.Format is { } specifier ? ValueFormat.Custom(specifier) : null);
+        return (Resolve(value.Path, at, join ? null : DataKind.Value), value.Format is { } specifier ? Format(specifier, at) : null);
+    }
+
+    private static readonly HashSet<string> _plainFormats = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "currency", "uppercase", "lowercase", "raw", "yesno", "truefalse", "onoff", "enabled", "active", "checkbox", "checkmark", "check", "join",
+    };
+
+    /// <summary>A value format Templify knows (or the host registered); anything else is an error instead of a silently ignored format.</summary>
+    private ValueFormat Format(string specifier, string at)
+    {
+        bool known = _plainFormats.Contains(specifier)
+            || (_options.ValueFormats?.Contains(specifier) ?? false)
+            || specifier.StartsWith("join:", StringComparison.Ordinal)
+            || (specifier.StartsWith("date:", StringComparison.Ordinal) && specifier.Length > "date:".Length)
+            || (specifier.StartsWith("number:", StringComparison.Ordinal) && specifier.Length > "number:".Length);
+        if (!known)
+        {
+            throw new JsonImportException(
+                at,
+                $"Unknown value format '{specifier}'. Known: currency, number:<pattern> (number:N2), date:<pattern> (date:d MMMM yyyy), yesno, truefalse, onoff, enabled, active, checkbox, checkmark, uppercase, lowercase, raw, join, join:<item path>, join:<item path>:\"<separator>\".");
+        }
+
+        return ValueFormat.Custom(specifier);
     }
 
     // ── text keys ──────────────────────────────────────────────────────────────
@@ -1353,6 +1380,19 @@ internal sealed class JsonComposition
 
     private (Length Top, Length Right, Length Bottom, Length Left)? Box(JsonElement owner, string name, string at) =>
         Value(owner, name, at, "one, two or four lengths", (string text, out (Length, Length, Length, Length) value) => JsonValues.TryBox(text, out value));
+
+    /// <summary>Padding as the model holds it: one value, or vertical and horizontal; four different values are not dropped silently.</summary>
+    private (Length Top, Length Right, Length Bottom, Length Left)? Padding(JsonElement owner, string name, string at)
+    {
+        (Length Top, Length Right, Length Bottom, Length Left)? box = Box(owner, name, at);
+        if (box is { } value && (value.Top != value.Bottom || value.Right != value.Left))
+        {
+            Fail(at + "/" + Escape(name), $"'{name}' takes one value or two (vertical horizontal), for example \"6pt 8pt\"; different top/bottom or left/right padding is not supported.");
+            return null;
+        }
+
+        return box;
+    }
 
     private Model.BorderLine? Border(JsonElement owner, string name, string at)
     {

@@ -15,6 +15,12 @@ public sealed class TemplateJsonImportOptions
     /// <summary>Gets the components the JSON may refer to by name.</summary>
     public ComponentCatalog? Components { get; init; }
 
+    /// <summary>
+    /// Gets value format names the host registered with Templify (for example a boolean formatter "janein") that a
+    /// definition may use besides the built-in ones; any other unknown format is an error.
+    /// </summary>
+    public IReadOnlyCollection<string>? ValueFormats { get; init; }
+
     /// <summary>Gets a value indicating whether raw XML blocks are accepted. Default: false (a JSON definition is input from outside).</summary>
     public bool AllowRawXml { get; init; }
 }

@@ -109,9 +109,39 @@ public static class TemplateJson
 
             if (actual != expected.ContentHash)
             {
-                throw NotTheSame(language, "a text is changed by code (string.Format, ToUpper, concatenated into a quoted value) or used where the JSON cannot hold it.");
+                throw NotTheSame(language, FirstDifference(expected, TemplateBuilder.Build(imported, languageOptions)));
             }
         }
+    }
+
+    /// <summary>Where the C# build and the JSON build part: the first paragraph whose text differs, or that the texts are equal.</summary>
+    private static string FirstDifference(GeneratedTemplate csharp, GeneratedTemplate json)
+    {
+        List<string> expected = ParagraphTexts(csharp);
+        List<string> actual = ParagraphTexts(json);
+        for (int i = 0; i < Math.Max(expected.Count, actual.Count); i++)
+        {
+            string left = i < expected.Count ? expected[i] : "(none)";
+            string right = i < actual.Count ? actual[i] : "(none)";
+            if (left != right)
+            {
+                return $"paragraph {i + 1} reads \"{left}\" from C# but \"{right}\" from the JSON — a text changed by code (string.Format, ToUpper, concatenated into a quoted value) or used where the JSON cannot hold it.";
+            }
+        }
+
+        return "the texts are the same, so something else differs — for example a column width or another value the definition computes per language, which the JSON holds only once.";
+    }
+
+    private static List<string> ParagraphTexts(GeneratedTemplate template)
+    {
+        using System.IO.Compression.ZipArchive zip = new System.IO.Compression.ZipArchive(template.OpenRead());
+        string part = template.Format == TriasDev.Templify.Core.TemplateFormat.Docx ? "word/document.xml" : "content.xml";
+        using Stream stream = zip.GetEntry(part)!.Open();
+        System.Xml.Linq.XDocument document = System.Xml.Linq.XDocument.Load(stream);
+        return document.Descendants()
+            .Where(e => e.Name.LocalName is "p" or "h")
+            .Select(p => string.Concat(p.DescendantNodes().OfType<System.Xml.Linq.XText>().Where(t => t.Parent!.Name.LocalName != "instrText").Select(t => t.Value)))
+            .ToList();
     }
 
     private static TemplateBuildException NotTheSame(CultureInfo language, string reason) =>

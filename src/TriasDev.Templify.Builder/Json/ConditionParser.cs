@@ -80,7 +80,9 @@ internal static class ConditionParser
                     tokens.Add(ReadString(text, ref i));
                     continue;
                 case '=':
-                    tokens.Add(new Token(Kind.Operator, "=", i++));
+                    // "==" is "=", as in Templify.
+                    tokens.Add(new Token(Kind.Operator, "=", i));
+                    i += i + 1 < text.Length && text[i + 1] == '=' ? 2 : 1;
                     continue;
                 case '!' or '>' or '<':
                     i++;
