@@ -296,66 +296,134 @@ item has the item type's properties. Every generated property is shorthand for t
 
 ## JSON definitions
 
-`TemplateJson.Export(definition, options[, components])` writes a definition as JSON, and `TemplateJson.Import(json,
-options)` reads it back as a definition that builds the same bytes. The format is compact: an object that fits in 100
-characters (counting its key, not its indentation) is one line, a paragraph in the inherited style is a plain string, and values sit in the text as Templify
-placeholders:
+A definition can also be a JSON file: something an editor or an agent changes without a build, and that a host stores
+per customer. `TemplateJson.Export` writes a C# definition as JSON; `TemplateJson.Import` reads JSON as a definition that
+builds the same bytes. Every builder test checks that round trip, both ways.
+
+```csharp
+TemplateJsonDocument exported = TemplateJson.Export(new OrderConfirmation(theme), options, new TemplateJsonExportOptions
+{
+    Components = catalog,                 // registered components are written as references
+    TextLanguages = [de, en],             // translations go into the file's texts section
+    Indented = true,                      // false: one line without whitespace, for storage
+});
+ITemplateDefinition definition = TemplateJson.Import(exported.Json, new TemplateJsonImportOptions
+{
+    Assets = exported.Assets,             // the images and fonts the file names
+    Components = catalog,                 // the components it may refer to
+    Shared = [theme],                     // what template.Share(…) gives components in C#
+    Data = DataCatalog.From<OrderData>(), // optional: every data path must exist (TB9203)
+    Theme = customerColours,              // optional: token → value, replaces the file's theme
+    ValueFormats = ["janein"],            // formats the host registered with Templify
+    AllowRawXml = false,                  // default: raw XML is refused (TB9202)
+});
+```
+
+### Layout
+
+An object or array whose one-line form fits in 100 characters (counting its key, not its indentation) is written on
+one line, otherwise one member per line. Options come before the content key (`{"style": …, "paragraph": …}`), so a
+reader sees what a block is before what it holds. A paragraph in the inherited style is a plain string, values sit in
+the text as Templify placeholders, and conditions are strings in Templify's condition syntax:
 
 ```json
 {"style": "LineGrid", "columns": ["10mm", 4, "16mm", "30mm"], "table": [
-  {"header": true, "row": ["#", "Beschreibung", "Menge", "Betrag"]},
+  {"header": true, "row": ["#", "[[description]]", "[[quantity]]", "[[amount]]"]},
   {"forEachRow": "order.lines", "as": "line", "rows": [
     {"row": ["{{@number}}", "{{line.description}}", "{{line.quantity}}", "{{line.amount:currency}}"]}
   ]},
-  {"paragraphStyle": "TableHeader", "row": [{"span": 3, "content": "Gesamtbetrag"}, "{{order.total:currency}}"]}
+  {"rowsIf": "order.discount > 0", "then": [{"row": [{"span": 3, "content": "[[discount]]"}, "{{order.discount:currency}}"]}]},
+  {"paragraphStyle": "TableHeader", "row": [{"span": 3, "content": "[[total]]"}, "{{order.total:currency}}"]}
 ]}
 ```
 
 (Hand-wrapped here; the writer applies the width rule.)
 
+### Root
+
+| Key | Holds |
+|---|---|
+| `templifyDefinition` | the format version, `1` (required) |
+| `identity` | `{"id", "version"}` (required) |
+| `texts` | translations, key first: `"title": {"de": "…", "en": "…"}` |
+| `assets` | images and fonts by name: `"logo": "sha256:…"`; the content comes from `TemplateJsonImportOptions.Assets` |
+| `theme` | `{"colors": {"accent": "#1F4E79"}, "fonts": {"heading": "Source Serif 4"}}` |
+| `properties` | document properties: `title`, `author`, `subject` |
+| `styles` | `defaults`, `paragraph`, `character`, `table`, `box`, `list`, each a map from style id to its settings |
+| `page` | `size` (`"A4"`, `"Letter"`, … or `{"width", "height"}`), `margins`, `headerFooterDistance`, `header`, `footer`, `firstPage` (`header`, `footer`; `"none"` for an empty one) |
+| `content` | the body: a list of blocks |
+
+`$schema` is allowed and ignored; `components` is reserved. Any other key is an error.
+
+### Content
+
 | Where | Form |
 |---|---|
-| Text | a string with `{{path}}`, `{{path:format}}`, `{{(condition):format}}`, a tab `\t` and a line break `\n`; styled: `{"text": "{{order.number}}", "style": "StrongText"}`; a list mixes strings, styled text, `{"if": …}`, `{"tabRight": true}`, `{"pageNumber": true}`, `{"pageCount": true}`, `{"image": …}` |
-| Block | a string (a paragraph in the inherited style), `{"style", "paragraph"}`, `{"style", "box": [blocks]}`, `{"style", "list": [items]}`, `{"style", "columns", "spaceAfter", "table": [rows]}`, `if`, `forEach`, `component`, `{"section": "name", "blocks": [blocks]}`, `pageBreak`, `rule`, `toc`, `raw` |
+| Text | a string with `{{path}}`, `{{path:format}}`, `{{(condition):format}}`, `[[key]]`, a tab `\t` and a line break `\n`; styled: `{"text": "{{order.number}}", "style": "StrongText"}`; a list mixes strings, styled text, `{"if": …}`, `{"tabRight": true}`, `{"pageNumber": true}`, `{"pageCount": true}`, `{"image": …}` |
+| Block | a string (a paragraph in the inherited style), `{"style", "paragraph"}`, `{"style", "box": [blocks]}`, `{"style", "list": [items]}`, `{"style", "columns", "spaceAfter", "table": [rows]}`, `if`, `forEach`, `{"section": "name", "blocks": [blocks]}`, `component`, `pageBreak`, `rule`, `toc`, `raw` |
 | Row | `{"header", "allowSplit", "paragraphStyle", "row": [cells]}`, `forEachRow`, `rowsIf` |
 | Cell | a string (one paragraph), `{"style": "Label", "content": "…"}` (one paragraph in its own style), or `{"span", "background", "verticalAlign", "content": [blocks]}` |
 | List item | a string, `{"level", "item"}`, `forEach`, `if` |
+| Image | `{"image": "logo", "alt": "…", "width": "40mm"}`; one size is enough, the other follows from the image's proportions |
+| Component | `{"component": "address", "params": {"address": "order.customer.address"}}`; a component without parameters is `{"component": "terms"}` |
+
+Every conditional has `then`, `elseIf` (a list of `{"if": …, "then": …}`) and `else`, in blocks, rows, list items and
+inline. A loop is `{"forEach": "order.checks", "as": "check", "body": […]}` (rows: `"rows"`, list items: `"items"`). There
+is no `{{#if}}` inside strings. An expression whose condition is raw has no text form and is written as
+`{"expression": {"raw": …, "uses": […]}, "format": …}`.
+
+### Values
+
+- **Lengths** carry a unit: `"10mm"`, `"6pt"`, `"2cm"`, `"0.5in"`. A table column is a length (fixed) or a number
+  (relative weight).
+- **Colours** are `"#1F4E79"` or a theme token `"$accent"`. A **line** is a thickness and a colour: `"0.5pt $line"`.
+- **Padding** (`padding`, `cellPadding`) is one value for all sides or two (vertical, horizontal): `"6pt 8pt"`.
+- **Value formats** are Templify's: `date:…`, `number:…`, `currency`, `uppercase`, `lowercase`, `raw`, `join`, and the
+  boolean formats (`yesno`, `checkmark`, …). A format the host registered with Templify is listed in
+  `TemplateJsonImportOptions.ValueFormats`; any other name is an error.
+
+### Strictness
+
+The import accepts only what it understands, so a mistake fails where it is made instead of building a different
+template: an unknown key or block kind, an unknown format, padding with three values, a loop variable that shadows its
+own collection's root (`{"forEach": "line.parts", "as": "line"}`), a text in `texts` without a language the others
+have (a regional `de-CH` is covered by `de`), a duplicate section name. `==` is read as `=`. The import reports every problem at once, each with the JSON pointer of the
+element (`/content/7/table/1/row/3`): TB9200 (structure), TB9201 (a value the builder rejects), TB9202 (raw XML not
+allowed), TB9203 (a data path outside `Data`).
+
+### Texts
 
 **One JSON for every language.** Texts from `template.Texts["key"]` are exported as `[[key]]` references, wherever the
 code put them (in text, in a date format such as `{{order.date:date:[[dateFormat]]}}`, in raw XML, in document
-properties), so the exported JSON does not depend on the language. With
-`TemplateJson.Export(definition, options, new TemplateJsonExportOptions { TextLanguages = [de, en] })` the
-translations are written into a `texts` section and the file is self-contained:
-
-```json
-"texts": {
-  "title": {"de": "Auftragsbestätigung", "en": "Order confirmation"},
-  "items": {"de": "Positionen", "en": "Items"}
-},
-"content": [{"style": "DocTitle", "paragraph": "[[title]]"}, …]
-```
+properties), so the exported JSON does not depend on the language. With `TextLanguages` the translations are written
+into the `texts` section and the file is self-contained, including the texts a registered component reads.
 
 At build time a key is translated from the JSON's `texts` for the build language (`de-DE` finds `de`), else from
-`TemplateBuildOptions.Texts`; a key neither has is TB5001. A key is letters, digits, `_`, `.` or `-`; a literal `[[`
-cannot be exported (TB9204). Texts are opaque to the export: code that changes a text (`string.Format(Texts["pages"],
-n)`, `Texts["x"].ToUpper()`) changes the key, not the translation. The export therefore checks itself: it imports the
-JSON it wrote, builds it for the options' language and every `TextLanguages` entry, and fails with TB9204 when the bytes
-differ from the C# definition's. Re-exporting an imported definition without `TextLanguages` writes its `texts` section
-exactly as it was read. `Indented = false` in `TemplateJsonExportOptions` writes the JSON on one line without whitespace,
-for storage; the import reads both forms.
+`TemplateBuildOptions.Texts`; a key neither has is TB5001. Components of an imported definition look their texts up the
+same way. A key is letters, digits, `_`, `.` or `-`; a literal `[[` cannot be exported (TB9204). Texts are opaque to the
+export: code that changes a text (`string.Format(Texts["pages"], n)`, `Texts["x"].ToUpper()`) changes the key, not the
+translation. The export therefore checks itself: it imports the JSON it wrote, builds it for the options' language and
+every `TextLanguages` entry, and fails with TB9204 (naming the first paragraph that differs) when the bytes differ from
+the C# definition's. Re-exporting an imported definition without `TextLanguages` writes its `texts` section exactly as
+it was read.
+
+### Sections, components, assets, theme
 
 A **section** (`c.Section("items", b => …)` in C#) names a part of the document without adding output: in JSON
 `{"section": "items", "blocks": […]}`, the unit to read, replace or compare. Names are unique in a definition; a
 component the export's catalog does not know is written as a section named after it (`AddressBlock`, `AddressBlock-2`).
 
-Images and embedded fonts are **named assets**: `"assets": {"logo": "sha256:…"}` at the root, the content itself passed to
-`TemplateJsonImportOptions.Assets`, and `{"image": "logo", "alt": "…", "height": "12mm"}` in the text. One size is
-enough when the other follows from the image's proportions. In C# an image gets its name with
-`ImageSource.Png(bytes).WithName("logo")`; unnamed images are exported as `image-1`, `image-2`, fonts as `font-<family>`.
+**Components** see the build's texts (`c.Texts["title"]`) and objects the definition shares (`template.Share(theme)`,
+`c.Shared<BrandTheme>()`; for JSON imports `TemplateJsonImportOptions.Shared`). A component then needs only data paths
+as parameters, so it can be registered in a `ComponentCatalog` and written as a reference; the import builds it from the
+current component code.
+
+Images and embedded fonts are **named assets**. In C# an image gets its name with `ImageSource.Png(bytes).WithName("logo")`;
+unnamed images are exported as `image-1`, `image-2`, fonts as `font-<family>`.
 
 **Theme tokens.** A colour or font that comes from the theme is a token: in C# `Color.Token("accent",
 Color.FromHex("1F4E79"))` or `FontFace.Token("heading", new FontFace("Source Serif 4"))`, in JSON `"$accent"` wherever a
-colour or font goes (also in lines: `"0.5pt $line"`), with the values in a `theme` section:
+colour or font goes, with the values in the `theme` section:
 
 ```json
 "theme": {"colors": {"accent": "#1F4E79", "line": "#D4D4D4"}, "fonts": {"heading": "Source Serif 4"}},
@@ -364,15 +432,6 @@ colour or font goes (also in lines: `"0.5pt $line"`), with the values in a `them
 
 A host replaces values on import (`TemplateJsonImportOptions.Theme`, for example a customer's accent colour), so a
 customer's JSON keeps working when the brand changes.
-
-**Components** see the build's texts (`c.Texts["title"]`) and objects the definition shares (`template.Share(theme)`,
-`c.Shared<BrandTheme>()`; for JSON imports `TemplateJsonImportOptions.Shared`). A component then needs only data paths
-as parameters, so it can be registered in a `ComponentCatalog` and written as a reference.
-
-Conditions and loops stay objects; there is no `{{#if}}` inside strings. Every conditional has `then`, `elseIf` (a list
-of `{"if": …, "then": …}`) and `else`, in blocks, rows, list items and inline. An expression whose condition is raw has no
-text form and is written as `{"expression": {"raw": …, "uses": […]}, "format": …}`. Import reports every problem at
-once, each with the JSON pointer of the element (`/content/7/table/1/row/3`).
 
 ## Testing your definitions
 
