@@ -8,6 +8,8 @@
   <ItemGroup Label="Core">
     <PackageVersion Include="DocumentFormat.OpenXml" Version="3.5.1" />
     <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0" />
+    <!-- The builder's typed path source generator (C# 14 extension properties; .NET 10 SDK or later). -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
   </ItemGroup>
 
   <ItemGroup Label="Tools">

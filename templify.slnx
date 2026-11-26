@@ -9,6 +9,7 @@
   <Folder Name="/src/">
     <Project Path="src/TriasDev.Templify/TriasDev.Templify.csproj" />
     <Project Path="src/TriasDev.Templify.Builder/TriasDev.Templify.Builder.csproj" />
+    <Project Path="src/TriasDev.Templify.Builder.Generators/TriasDev.Templify.Builder.Generators.csproj" />
     <Project Path="src/TriasDev.Templify.Builder.Testing/TriasDev.Templify.Builder.Testing.csproj" />
   </Folder>
   <Folder Name="/tests/">
