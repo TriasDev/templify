@@ -39,6 +39,8 @@ internal sealed class JsonComposition
     private readonly List<(string Name, LoopItem Item)> _scope = new List<(string, LoopItem)>();
     private readonly HashSet<string> _sectionNames = new HashSet<string>(StringComparer.Ordinal);
     private readonly Dictionary<string, byte[]> _assetsByName = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+    private readonly Dictionary<string, Builder.Color> _themeColors = new Dictionary<string, Builder.Color>(StringComparer.Ordinal);
+    private readonly Dictionary<string, FontFace> _themeFonts = new Dictionary<string, FontFace>(StringComparer.Ordinal);
     private BuildContext _context = null!;
     private TemplateComposer _template = null!;
 
@@ -73,10 +75,16 @@ internal sealed class JsonComposition
         _context = template.Context;
         _scope.Clear();
         _sectionNames.Clear();
+        foreach (object shared in _options.Shared ?? [])
+        {
+            _context.Shared[shared.GetType()] = shared;
+        }
+
         _root = WithTranslations(_source);
 
-        Keys(_root, string.Empty, "$schema", "templifyDefinition", "identity", "texts", "assets", "properties", "styles", "page", "content", "components");
+        Keys(_root, string.Empty, "$schema", "templifyDefinition", "identity", "texts", "assets", "theme", "properties", "styles", "page", "content", "components");
         ReadAssets();
+        ReadTheme();
         if (_root.TryGetProperty("components", out _))
         {
             Fail("/components", "The root key 'components' is reserved for components defined inside the definition (a later version).");
@@ -1374,6 +1382,14 @@ internal sealed class JsonComposition
             return null;
         }
 
+        if (font.ValueKind == JsonValueKind.String && font.GetString()!.StartsWith('$'))
+        {
+            string token = font.GetString()![1..];
+            return _themeFonts.TryGetValue(token, out FontFace? themed)
+                ? FontFace.Token(token, themed)
+                : throw new JsonImportException(at + "/font", $"The theme has no font '{token}' ({string.Join(", ", _themeFonts.Keys)}).");
+        }
+
         if (font.ValueKind == JsonValueKind.String)
         {
             return new FontFace(font.GetString()!);
@@ -1430,7 +1446,83 @@ internal sealed class JsonComposition
         Value(owner, name, at, "a length such as \"10pt\" or \"25mm\"", (string text, out Length value) => JsonValues.TryLength(text, out value));
 
     private Color? Color(JsonElement owner, string name, string at) =>
-        Value(owner, name, at, "a colour such as \"#1F4E79\"", (string text, out Color value) => JsonValues.TryColor(text, out value));
+        PlainString(owner, name) is { } token && token.StartsWith('$')
+            ? ThemeColor(token[1..], at + "/" + Escape(name))
+            : Value(owner, name, at, "a colour such as \"#1F4E79\" or a theme colour \"$accent\"", (string text, out Color value) => JsonValues.TryColor(text, out value));
+
+    private Builder.Color ThemeColor(string token, string at) =>
+        _themeColors.TryGetValue(token, out Builder.Color color)
+            ? Builder.Color.Token(token, color)
+            : throw new JsonImportException(at, $"The theme has no colour '{token}' ({string.Join(", ", _themeColors.Keys)}).");
+
+    /// <summary>The <c>theme</c> section: <c>colors</c> and <c>fonts</c> by token name; the host's values replace the file's.</summary>
+    private void ReadTheme()
+    {
+        _themeColors.Clear();
+        _themeFonts.Clear();
+        if (_root.TryGetProperty("theme", out JsonElement theme))
+        {
+            const string at = "/theme";
+            if (theme.ValueKind != JsonValueKind.Object)
+            {
+                Fail(at, "The theme is an object: { \"colors\": { \"accent\": \"#1F4E79\" }, \"fonts\": { \"body\": \"Liberation Sans\" } }.");
+            }
+            else if (Keys(theme, at, "colors", "fonts"))
+            {
+                foreach (JsonProperty color in Members(theme, "colors"))
+                {
+                    string colorAt = at + "/colors/" + Escape(color.Name);
+                    if (!ThemeTokens.IsValid(color.Name))
+                    {
+                        Fail(colorAt, $"'{color.Name}' is not a theme token name: a letter, then letters, digits, '_', '.' or '-'.");
+                    }
+                    else if (color.Value.ValueKind == JsonValueKind.String && JsonValues.TryColor(color.Value.GetString(), out Builder.Color value))
+                    {
+                        _themeColors[color.Name] = value;
+                    }
+                    else
+                    {
+                        Fail(colorAt, "A theme colour is \"#RRGGBB\".");
+                    }
+                }
+
+                foreach (JsonProperty font in Members(theme, "fonts"))
+                {
+                    string fontAt = at + "/fonts/" + Escape(font.Name);
+                    if (!ThemeTokens.IsValid(font.Name))
+                    {
+                        Fail(fontAt, $"'{font.Name}' is not a theme token name: a letter, then letters, digits, '_', '.' or '-'.");
+                        continue;
+                    }
+
+                    Guard(fontAt, () =>
+                    {
+                        if (font.Value.ValueKind == JsonValueKind.String)
+                        {
+                            _themeFonts[font.Name] = new FontFace(font.Value.GetString()!);
+                            return;
+                        }
+
+                        Keys(font.Value, fontAt, "family", "embedded");
+                        string family = String(font.Value, "family", fontAt) ?? throw Missing(fontAt, "family");
+                        _themeFonts[font.Name] = FontFace.Embedded(family, Asset(Required(font.Value, "embedded", fontAt), fontAt + "/embedded"));
+                    });
+                }
+            }
+        }
+
+        foreach ((string token, string value) in _options.Theme ?? new Dictionary<string, string>())
+        {
+            if (JsonValues.TryColor(value, out Builder.Color color))
+            {
+                _themeColors[token] = color;
+            }
+            else
+            {
+                _themeFonts[token] = new FontFace(value);
+            }
+        }
+    }
 
     private (Length Top, Length Right, Length Bottom, Length Left)? Box(JsonElement owner, string name, string at) =>
         Value(owner, name, at, "one, two or four lengths", (string text, out (Length, Length, Length, Length) value) => JsonValues.TryBox(text, out value));
@@ -1455,9 +1547,15 @@ internal sealed class JsonComposition
             return null;
         }
 
+        string[] parts = text.Split(' ');
+        if (parts.Length == 2 && parts[1].StartsWith('$') && JsonValues.TryLength(parts[0], out Length width))
+        {
+            return new Model.BorderLine(width, ThemeColor(parts[1][1..], at + "/" + Escape(name)));
+        }
+
         return JsonValues.TryBorder(text, out Model.BorderLine? line)
             ? line
-            : throw new JsonImportException(at + "/" + name, $"'{text}' is not a line such as \"0.5pt #D4D4D4\".");
+            : throw new JsonImportException(at + "/" + name, $"'{text}' is not a line such as \"0.5pt #D4D4D4\" or \"0.5pt $line\".");
     }
 
     private delegate bool TryParse<T>(string text, out T value);

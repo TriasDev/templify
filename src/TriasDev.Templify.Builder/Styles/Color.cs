@@ -8,12 +8,28 @@ namespace TriasDev.Templify.Builder;
 /// <summary>An opaque RGB colour.</summary>
 public readonly struct Color : IEquatable<Color>
 {
-    private Color(byte red, byte green, byte blue)
+    private Color(byte red, byte green, byte blue, string? token = null)
     {
         R = red;
         G = green;
         B = blue;
+        TokenName = token;
     }
+
+    /// <summary>
+    /// Gets the theme token the colour came from (<see cref="Token"/>); the JSON form writes <c>"$name"</c> for it and
+    /// lists the value in its <c>theme</c>. Null for a plain colour. Equality compares the colour only.
+    /// </summary>
+    public string? TokenName { get; }
+
+    /// <summary>
+    /// A colour of the theme: <paramref name="value"/> under a name, so the JSON form refers to it as <c>"$name"</c> and a
+    /// host can replace it (<c>TemplateJsonImportOptions.Theme</c>).
+    /// </summary>
+    /// <param name="name">The token's name: a letter, then letters, digits, <c>_</c>, <c>.</c> or <c>-</c>.</param>
+    /// <param name="value">The colour.</param>
+    /// <returns>The colour with its token.</returns>
+    public static Color Token(string name, Color value) => new Color(value.R, value.G, value.B, Json.ThemeTokens.Validate(name, nameof(name)));
 
     /// <summary>Gets the red component.</summary>
     public byte R { get; }

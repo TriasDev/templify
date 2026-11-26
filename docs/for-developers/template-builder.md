@@ -348,6 +348,22 @@ Images and embedded fonts are **named assets**: `"assets": {"logo": "sha256:…"
 enough when the other follows from the image's proportions. In C# an image gets its name with
 `ImageSource.Png(bytes).WithName("logo")`; unnamed images are exported as `image-1`, `image-2`, fonts as `font-<family>`.
 
+**Theme tokens.** A colour or font that comes from the theme is a token: in C# `Color.Token("accent",
+Color.FromHex("1F4E79"))` or `FontFace.Token("heading", new FontFace("Source Serif 4"))`, in JSON `"$accent"` wherever a
+colour or font goes (also in lines: `"0.5pt $line"`), with the values in a `theme` section:
+
+```json
+"theme": {"colors": {"accent": "#1F4E79", "line": "#D4D4D4"}, "fonts": {"heading": "Source Serif 4"}},
+"styles": {"paragraph": {"SectionHeading": {"font": "$heading", "color": "$accent"}}}
+```
+
+A host replaces values on import (`TemplateJsonImportOptions.Theme`, for example a customer's accent colour), so a
+customer's JSON keeps working when the brand changes.
+
+**Components** see the build's texts (`c.Texts["title"]`) and objects the definition shares (`template.Share(theme)`,
+`c.Shared<BrandTheme>()`; for JSON imports `TemplateJsonImportOptions.Shared`). A component then needs only data paths
+as parameters, so it can be registered in a `ComponentCatalog` and written as a reference.
+
 Conditions and loops stay objects; there is no `{{#if}}` inside strings. Every conditional has `then`, `elseIf` (a list
 of `{"if": …, "then": …}`) and `else`, in blocks, rows, list items and inline. An expression whose condition is raw has no
 text form and is written as `{"expression": {"raw": …, "uses": […]}, "format": …}`. Import reports every problem at

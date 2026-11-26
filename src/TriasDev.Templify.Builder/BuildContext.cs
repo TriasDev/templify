@@ -23,6 +23,12 @@ internal sealed class BuildContext
     /// <summary>Records an error; the build fails after composing, with every error found.</summary>
     public void Error(string code, string message) => _errors.Add(new BuildDiagnostic(code, message) { Location = CurrentLocation });
 
+    /// <summary>Gets or sets the build's texts (for components).</summary>
+    public TemplateTexts? Texts { get; set; }
+
+    /// <summary>Gets the objects a definition shares with its components, by type.</summary>
+    public Dictionary<Type, object> Shared { get; } = new Dictionary<Type, object>();
+
     /// <summary>Where a JSON definition is being composed (a JSON pointer); null for C# definitions.</summary>
     public string? CurrentLocation { get; set; }
 

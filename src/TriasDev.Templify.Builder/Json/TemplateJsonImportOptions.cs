@@ -21,6 +21,15 @@ public sealed class TemplateJsonImportOptions
     /// </summary>
     public IReadOnlyCollection<string>? ValueFormats { get; init; }
 
+    /// <summary>
+    /// Gets theme values the host sets instead of the file's <c>theme</c> (a customer's brand): token name to a colour
+    /// (<c>"#00A000"</c>) or a font family.
+    /// </summary>
+    public IReadOnlyDictionary<string, string>? Theme { get; init; }
+
+    /// <summary>Gets objects shared with registered components (<see cref="BlockComposer.Shared{T}"/>), as <see cref="TemplateComposer.Share{T}"/> does in C#.</summary>
+    public IReadOnlyList<object>? Shared { get; init; }
+
     /// <summary>Gets a value indicating whether raw XML blocks are accepted. Default: false (a JSON definition is input from outside).</summary>
     public bool AllowRawXml { get; init; }
 }

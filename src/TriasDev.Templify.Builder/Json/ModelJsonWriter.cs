@@ -27,6 +27,11 @@ internal sealed class ModelJsonWriter
     private readonly List<KeyValuePair<string, string>> _assetNames = new List<KeyValuePair<string, string>>();
     private readonly Dictionary<string, string> _unnamed = new Dictionary<string, string>(StringComparer.Ordinal);
 
+    // The theme section: token → value, in first-use order.
+    private readonly List<KeyValuePair<string, Color>> _themeColors = new List<KeyValuePair<string, Color>>();
+    private readonly List<KeyValuePair<string, FontFace>> _themeFonts = new List<KeyValuePair<string, FontFace>>();
+    private readonly List<BuildDiagnostic> _themeConflicts = new List<BuildDiagnostic>();
+
     /// <summary>The paragraph style the blocks being written inherit; a paragraph with this style is written without one.</summary>
     private ParagraphStyleKey? _inherited;
 
@@ -55,14 +60,20 @@ internal sealed class ModelJsonWriter
             writer.Document(composed, identity);
         }
 
-        return (JsonLayout.Format(WithTextKeys(Encoding.UTF8.GetString(stream.ToArray()), texts, writer._assetNames)), writer._assets);
+        if (writer._themeConflicts.Count > 0)
+        {
+            throw new TemplateBuildException(writer._themeConflicts);
+        }
+
+        ThemeSection theme = writer.Theme();
+        return (JsonLayout.Format(WithTextKeys(Encoding.UTF8.GetString(stream.ToArray()), texts, writer._assetNames, theme)), writer._assets);
     }
 
     /// <summary>
     /// Turns the key markers of the composed texts into <c>[[key]]</c> in every string. A literal <c>[[</c> (the import
     /// would read a key) or a key outside the key syntax cannot be written: TB9204 at the string's pointer.
     /// </summary>
-    private static string WithTextKeys(string json, Func<IReadOnlyList<string>, IReadOnlyList<TextSection>>? texts, IReadOnlyList<KeyValuePair<string, string>> assets)
+    private static string WithTextKeys(string json, Func<IReadOnlyList<string>, IReadOnlyList<TextSection>>? texts, IReadOnlyList<KeyValuePair<string, string>> assets, ThemeSection theme)
     {
         using JsonDocument document = JsonDocument.Parse(json);
         List<BuildDiagnostic> problems = new List<BuildDiagnostic>();
@@ -93,6 +104,8 @@ internal sealed class ModelJsonWriter
 
                         output.WriteEndObject();
                     }
+
+                    WriteTheme(output, theme);
                 }
             }
 
@@ -371,16 +384,15 @@ internal sealed class ModelJsonWriter
     {
         if (text.Font is { } font)
         {
-            if (font.Embedding is { } file)
+            if (font.TokenName is { } token)
             {
-                _json.WriteStartObject("font");
-                _json.WriteString("family", font.Family);
-                _json.WriteString("embedded", Asset(file.Hash, file.Data, null, "font-" + AssetNames.From(font.Family)));
-                _json.WriteEndObject();
+                ThemeValue(_themeFonts, token, font);
+                _json.WriteString("font", "$" + token);
             }
             else
             {
-                _json.WriteString("font", font.Family);
+                _json.WritePropertyName("font");
+                FontValue(font);
             }
         }
 
@@ -559,7 +571,7 @@ internal sealed class ModelJsonWriter
             case RuleBlock rule:
                 _json.WriteStartObject();
                 _json.WriteStartObject("rule");
-                _json.WriteString("line", JsonValues.Border(rule.Line));
+                _json.WriteString("line", BorderText(rule.Line));
                 if (rule.SpaceBefore != Length.Zero || rule.SpaceAfter != Length.Zero)
                 {
                     _json.WriteString("spaceAbove", JsonValues.Length(rule.SpaceBefore));
@@ -1058,6 +1070,54 @@ internal sealed class ModelJsonWriter
         _json.WriteEndArray();
     }
 
+    /// <summary>The theme's values, in first-use order; embedded fonts become assets.</summary>
+    private ThemeSection Theme() => new ThemeSection(
+        _themeColors.Select(c => new KeyValuePair<string, string>(c.Key, JsonValues.Color(c.Value))).ToList(),
+        _themeFonts.Select(f => (f.Key, f.Value.Family, f.Value.Embedding is { } file ? Asset(file.Hash, file.Data, null, "font-" + AssetNames.From(f.Value.Family)) : null)).ToList());
+
+    private static void WriteTheme(Utf8JsonWriter output, ThemeSection theme)
+    {
+        if (theme.Colors.Count == 0 && theme.Fonts.Count == 0)
+        {
+            return;
+        }
+
+        output.WriteStartObject("theme");
+        if (theme.Colors.Count > 0)
+        {
+            output.WriteStartObject("colors");
+            foreach ((string name, string value) in theme.Colors)
+            {
+                output.WriteString(name, value);
+            }
+
+            output.WriteEndObject();
+        }
+
+        if (theme.Fonts.Count > 0)
+        {
+            output.WriteStartObject("fonts");
+            foreach ((string name, string family, string? embedded) in theme.Fonts)
+            {
+                if (embedded is null)
+                {
+                    output.WriteString(name, family);
+                }
+                else
+                {
+                    output.WriteStartObject(name);
+                    output.WriteString("family", family);
+                    output.WriteString("embedded", embedded);
+                    output.WriteEndObject();
+                }
+            }
+
+            output.WriteEndObject();
+        }
+
+        output.WriteEndObject();
+    }
+
     /// <summary>The asset name for content; the name is kept unless it already names other content.</summary>
     private string Asset(string hash, byte[] data, string? name, string generated)
     {
@@ -1118,7 +1178,7 @@ internal sealed class ModelJsonWriter
     {
         if (value is { } color)
         {
-            _json.WriteString(name, JsonValues.Color(color));
+            _json.WriteString(name, ColorText(color));
         }
     }
 
@@ -1126,7 +1186,50 @@ internal sealed class ModelJsonWriter
     {
         if (value is { } line)
         {
-            _json.WriteString(name, JsonValues.Border(line));
+            _json.WriteString(name, BorderText(line));
+        }
+    }
+
+    /// <summary>A colour: <c>"$token"</c> for a theme colour (its value goes to the <c>theme</c>), else <c>"#RRGGBB"</c>.</summary>
+    private string ColorText(Color color)
+    {
+        if (color.TokenName is not { } token)
+        {
+            return JsonValues.Color(color);
+        }
+
+        ThemeValue(_themeColors, token, color);
+        return "$" + token;
+    }
+
+    private string BorderText(BorderLine line) => JsonValues.Length(line.Width) + " " + ColorText(line.Color);
+
+    private void FontValue(FontFace font)
+    {
+        if (font.Embedding is { } file)
+        {
+            _json.WriteStartObject();
+            _json.WriteString("family", font.Family);
+            _json.WriteString("embedded", Asset(file.Hash, file.Data, null, "font-" + AssetNames.From(font.Family)));
+            _json.WriteEndObject();
+        }
+        else
+        {
+            _json.WriteStringValue(font.Family);
+        }
+    }
+
+    /// <summary>Records a theme value; one token has one value in a definition.</summary>
+    private void ThemeValue<T>(List<KeyValuePair<string, T>> values, string token, T value)
+    {
+        int index = values.FindIndex(v => v.Key == token);
+        if (index < 0)
+        {
+            values.Add(new KeyValuePair<string, T>(token, value));
+        }
+        else if (!Equals(values[index].Value, value))
+        {
+            _themeConflicts.Add(new BuildDiagnostic(DiagnosticCodes.TextNotExportable, $"The theme token '{token}' has two values in the definition ({values[index].Value} and {value}); a token has one value."));
         }
     }
 
@@ -1141,3 +1244,6 @@ internal sealed class ModelJsonWriter
 
 /// <summary>A key of the <c>texts</c> section and its translations (language name as written, text), in order.</summary>
 internal sealed record TextSection(string Key, IReadOnlyList<KeyValuePair<string, string>> Translations);
+
+/// <summary>The <c>theme</c> section: colour tokens and font tokens (family, embedded font asset or null).</summary>
+internal sealed record ThemeSection(IReadOnlyList<KeyValuePair<string, string>> Colors, IReadOnlyList<(string Name, string Family, string? Embedded)> Fonts);

@@ -298,6 +298,19 @@ public class BlockComposer
         _blocks.Add(new ComponentBlock(component, Compose(_context, _scope, component.Compose)));
     }
 
+    /// <summary>Gets the build's texts, for components: <c>c.Texts["title"]</c>.</summary>
+    public TemplateTexts Texts => _context.Texts ?? throw new InvalidOperationException("No texts in this composition.");
+
+    /// <summary>Gets an object the definition shared with <see cref="TemplateComposer.Share{T}"/> (or the JSON import's options).</summary>
+    /// <typeparam name="T">The type it was shared as.</typeparam>
+    /// <returns>The object.</returns>
+    /// <exception cref="InvalidOperationException">Nothing was shared as <typeparamref name="T"/>.</exception>
+    public T Shared<T>()
+        where T : class =>
+        _context.Shared.TryGetValue(typeof(T), out object? value) ? (T)value
+        : _context.Shared.Values.OfType<T>().FirstOrDefault()
+          ?? throw new InvalidOperationException($"Nothing of type {typeof(T).Name} was shared with the components; call template.Share(…) in the definition.");
+
     /// <summary>
     /// Adds a named section: a group of blocks with no output of its own. Its name marks the part in the JSON form
     /// (<c>{"section": "items", "blocks": […]}</c>), where hosts and agents read, replace and compare it as a unit.

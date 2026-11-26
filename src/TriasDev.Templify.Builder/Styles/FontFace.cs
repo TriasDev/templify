@@ -36,6 +36,19 @@ public sealed record FontFace
         Embedding = embedding;
     }
 
+    /// <summary>Gets the theme token the font came from (<see cref="Token"/>); null for a plain font. Equality ignores it.</summary>
+    public string? TokenName { get; private init; }
+
+    /// <summary>A font of the theme: <paramref name="face"/> under a name the JSON form refers to as <c>"$name"</c>.</summary>
+    /// <param name="name">The token's name: a letter, then letters, digits, <c>_</c>, <c>.</c> or <c>-</c>.</param>
+    /// <param name="face">The font.</param>
+    /// <returns>The font with its token.</returns>
+    public static FontFace Token(string name, FontFace face)
+    {
+        ArgumentNullException.ThrowIfNull(face);
+        return face with { TokenName = Json.ThemeTokens.Validate(name, nameof(name)) };
+    }
+
     /// <summary>Gets the family name.</summary>
     public string Family { get; }
 

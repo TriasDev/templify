@@ -686,3 +686,14 @@ TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.ValueFormats.init -> vo
 TriasDev.Templify.Builder.BlockComposer.Section(string! name, System.Action<TriasDev.Templify.Builder.BlockComposer!>! content) -> void
 TriasDev.Templify.Builder.ImageSource.Name.get -> string?
 TriasDev.Templify.Builder.ImageSource.WithName(string! name) -> TriasDev.Templify.Builder.ImageSource!
+static TriasDev.Templify.Builder.Color.Token(string! name, TriasDev.Templify.Builder.Color value) -> TriasDev.Templify.Builder.Color
+static TriasDev.Templify.Builder.FontFace.Token(string! name, TriasDev.Templify.Builder.FontFace! face) -> TriasDev.Templify.Builder.FontFace!
+TriasDev.Templify.Builder.BlockComposer.Shared<T>() -> T!
+TriasDev.Templify.Builder.BlockComposer.Texts.get -> TriasDev.Templify.Builder.TemplateTexts!
+TriasDev.Templify.Builder.Color.TokenName.get -> string?
+TriasDev.Templify.Builder.FontFace.TokenName.get -> string?
+TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.Shared.get -> System.Collections.Generic.IReadOnlyList<object!>?
+TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.Shared.init -> void
+TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.Theme.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>?
+TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.Theme.init -> void
+TriasDev.Templify.Builder.TemplateComposer.Share<T>(T! value) -> void

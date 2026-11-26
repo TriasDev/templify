@@ -22,8 +22,22 @@ public sealed class TemplateComposer
 
     internal TemplateComposer(BuildContext context, TemplateTexts texts)
     {
+        context.Texts = texts;
         _context = context;
         Texts = texts;
+    }
+
+    /// <summary>
+    /// Shares an object with the components of this definition (<see cref="BlockComposer.Shared{T}"/>), for example the
+    /// theme, so a component needs only data paths as parameters and can be registered for JSON.
+    /// </summary>
+    /// <typeparam name="T">The type components ask for.</typeparam>
+    /// <param name="value">The object.</param>
+    public void Share<T>(T value)
+        where T : class
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        _context.Shared[typeof(T)] = value;
     }
 
     /// <summary>Gets the texts of the build's language: <c>template.Texts["invoiceTitle"]</c>.</summary>
