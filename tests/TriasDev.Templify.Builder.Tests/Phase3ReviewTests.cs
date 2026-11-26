@@ -90,7 +90,7 @@ public sealed class Phase3ReviewTests
     public void I1_HeaderRowAfterBodyRow_IsTB9201()
     {
         string json = Definition("""
-            [ { "columns": [ 1 ], "table": [ { "row": [ [ "a" ] ] }, { "header": true, "row": [ "h" ] } ] } ]
+            [ { "columns": [ 1 ], "table": [ { "row": [ "a" ] }, { "header": true, "row": [ "h" ] } ] } ]
             """);
 
         BuildDiagnostic error = Assert.Single(Assert.Throws<TemplateBuildException>(() => BuilderHarness.Build(TemplateJson.Import(json), TemplateFormat.Docx)).Errors);
@@ -257,7 +257,7 @@ public sealed class Phase3ReviewTests
 
     [Theory]
     [InlineData("""{ "pageBreak": false }""", "/content/0/pageBreak")]
-    [InlineData("""{ "paragraph": [ { "tab": false } ] }""", "/content/0/paragraph/0/tab")]
+    [InlineData("""{ "paragraph": [ { "tabRight": false } ] }""", "/content/0/paragraph/0/tabRight")]
     public void Flags_MustBeTrue(string block, string location)
     {
         BuildDiagnostic error = Assert.Single(Assert.Throws<TemplateBuildException>(() => TemplateJson.Import(Definition("[" + block + "]"))).Errors);

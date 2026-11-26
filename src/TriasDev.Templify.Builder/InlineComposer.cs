@@ -220,9 +220,28 @@ public sealed class InlineComposer
     {
         ArgumentNullException.ThrowIfNull(text);
         EnsureOpen();
-        if (text.Length > 0)
+
+        // A tab or a line break is an inline of its own, also inside a longer text: Text("a\tb") is Text("a"), Tab(),
+        // Text("b"), so the JSON form writes both as "a\tb".
+        int start = 0;
+        for (int i = 0; i <= text.Length; i++)
         {
-            _inlines.Add(new TextInline(text, style));
+            if (i < text.Length && text[i] is not ('\t' or '\n'))
+            {
+                continue;
+            }
+
+            if (i > start)
+            {
+                _inlines.Add(new TextInline(text[start..i], style));
+            }
+
+            if (i < text.Length)
+            {
+                _inlines.Add(new TextInline(text[i].ToString(), style));
+            }
+
+            start = i + 1;
         }
     }
 

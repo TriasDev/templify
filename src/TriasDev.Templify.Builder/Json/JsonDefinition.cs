@@ -531,12 +531,12 @@ internal sealed class JsonComposition
     }
 
     /// <summary>The content of a cell: a string (one paragraph) or a list of blocks.</summary>
-    private void CellBlocks(BlockComposer c, JsonElement content, string at)
+    private void CellBlocks(BlockComposer c, JsonElement content, string at, string? style = null)
     {
         if (content.ValueKind == JsonValueKind.String)
         {
             int before = c.Blocks.Count;
-            Guard(at, () => Paragraph(c, null, content, at));
+            Guard(at, () => Paragraph(c, style, content, at));
             for (int added = before; added < c.Blocks.Count; added++)
             {
                 _context.Locations.AddOrUpdate(c.Blocks[added], at);
@@ -766,7 +766,7 @@ internal sealed class JsonComposition
             string cellAt = at + "/row/" + i++;
             Guard(cellAt, () =>
             {
-                if (cell.ValueKind is JsonValueKind.String or JsonValueKind.Array)
+                if (cell.ValueKind == JsonValueKind.String)
                 {
                     r.Cell(c => CellBlocks(c, cell, cellAt));
                     return;
@@ -774,17 +774,23 @@ internal sealed class JsonComposition
 
                 if (cell.ValueKind != JsonValueKind.Object)
                 {
-                    throw new JsonImportException(cellAt, "A cell is a string, a list of blocks, or { \"span\": …, \"content\": … }.");
+                    throw new JsonImportException(cellAt, "A cell is a string (one paragraph) or an object: { \"content\": [ blocks ] }, { \"style\": \"…\", \"content\": \"…\" }, with span, background and verticalAlign as options.");
                 }
 
-                Keys(cell, cellAt, "span", "background", "verticalAlign", "content");
+                Keys(cell, cellAt, "span", "background", "verticalAlign", "style", "content");
                 JsonElement content = Required(cell, "content", cellAt);
+                string? style = String(cell, "style", cellAt);
+                if (style is not null && content.ValueKind != JsonValueKind.String)
+                {
+                    throw new JsonImportException(cellAt + "/content", "With \"style\" a cell's content is one string, a paragraph in that style; without it, write blocks as a list.");
+                }
+
                 r.Cell(c =>
                 {
                     Apply(Int(cell, "span", cellAt), v => c.ColumnSpan(v));
                     Apply(Color(cell, "background", cellAt), v => c.Background(v));
                     Apply(String(cell, "verticalAlign", cellAt), v => c.VerticalAlignment(Enum<CellVerticalAlignment>(v, cellAt + "/verticalAlign")));
-                    CellBlocks(c, content, cellAt + "/content");
+                    CellBlocks(c, content, cellAt + "/content", style);
                 });
             });
         }
@@ -827,18 +833,6 @@ internal sealed class JsonComposition
         {
             Keys(inline, at, "text", "style");
             Text(x, String(inline, "text", at) ?? throw Missing(at, "text"), style, at);
-        }
-        else if (inline.TryGetProperty("tab", out _))
-        {
-            Keys(inline, at, "tab");
-            Flag(inline, "tab", at);
-            x.Tab();
-        }
-        else if (inline.TryGetProperty("lineBreak", out _))
-        {
-            Keys(inline, at, "lineBreak");
-            Flag(inline, "lineBreak", at);
-            x.LineBreak();
         }
         else if (inline.TryGetProperty("tabRight", out _))
         {
@@ -911,7 +905,7 @@ internal sealed class JsonComposition
         }
         else
         {
-            throw new JsonImportException(at, $"Unknown inline {Names(inline)}; expected a string, text, tab, lineBreak, tabRight, pageNumber, pageCount, image, expression or if.");
+            throw new JsonImportException(at, $"Unknown inline {Names(inline)}; expected a string (a tab or line break is \\t or \\n in it), text, tabRight, pageNumber, pageCount, image, expression or if.");
         }
     }
 

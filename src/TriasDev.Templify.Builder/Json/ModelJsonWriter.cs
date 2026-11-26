@@ -798,37 +798,42 @@ internal sealed class ModelJsonWriter
     private void Cell(TableCellModel cell)
     {
         bool hasOptions = cell.Span != 1 || cell.Background != null || cell.VerticalAlignment != null;
-        if (hasOptions)
-        {
-            _json.WriteStartObject();
-            if (cell.Span != 1)
-            {
-                _json.WriteNumber("span", cell.Span);
-            }
-
-            ColorIf("background", cell.Background);
-            if (cell.VerticalAlignment is { } alignment)
-            {
-                _json.WriteString("verticalAlign", Enum(alignment));
-            }
-
-            _json.WritePropertyName("content");
-        }
-
-        if (cell.Content is [ParagraphBlock only] && IsPlainParagraph(only, out string? text))
+        string? text = null;
+        ParagraphBlock? single = cell.Content is [ParagraphBlock { List: null } only] && IsSingleString(only.Inlines, out text) ? only : null;
+        bool ownStyle = single is not null && !Equals(single.Style, _inherited) && single.Style is not null;
+        if (!hasOptions && single is not null && !ownStyle)
         {
             _json.WriteStringValue(text);
+            return;
+        }
+
+        // A cell is a string or an object; one paragraph in its own style is {"style", "content": "…"}.
+        _json.WriteStartObject();
+        if (cell.Span != 1)
+        {
+            _json.WriteNumber("span", cell.Span);
+        }
+
+        ColorIf("background", cell.Background);
+        if (cell.VerticalAlignment is { } alignment)
+        {
+            _json.WriteString("verticalAlign", Enum(alignment));
+        }
+
+        if (single is not null)
+        {
+            StringIf("style", ownStyle ? single.Style!.Id : null);
+            _json.WriteString("content", text);
         }
         else
         {
+            _json.WritePropertyName("content");
             Blocks(cell.Content);
         }
 
-        if (hasOptions)
-        {
-            _json.WriteEndObject();
-        }
+        _json.WriteEndObject();
     }
+
 
     // ── inlines ──────────────────────────────────────────────────────────────
 
@@ -894,8 +899,7 @@ internal sealed class ModelJsonWriter
         {
             (TextPiece? piece, CharacterStyleKey? style) = inline switch
             {
-                TextInline { Text: "\t" or "\n", Style: null } => ((TextPiece?)null, (CharacterStyleKey?)null),
-                TextInline text => (new TextPiece.Literal(text.Text), text.Style),
+                TextInline text => ((TextPiece?)new TextPiece.Literal(text.Text), text.Style),
                 ValueInline value => (new TextPiece.Value(value.Path.ToString(), value.Format?.Specifier), value.Style),
                 ExpressionInline { Condition: not RawCondition } expression => (new TextPiece.Expression(expression.Condition.ToString(), expression.Format?.Specifier), null),
                 _ => (null, null),
@@ -911,7 +915,7 @@ internal sealed class ModelJsonWriter
             TextPiece? last = current?.Pieces[^1];
             bool joins = current != null
                 && Equals(current.Style, style)
-                && !(piece is TextPiece.Literal && last is TextPiece.Literal)
+                && !(piece is TextPiece.Literal { Text: var literal } && last is TextPiece.Literal { Text: var previous } && !IsControl(literal) && !IsControl(previous))
                 && !(piece is not TextPiece.Literal && last is TextPiece.Literal { Text: var before } && before.EndsWith('{'));
             if (joins)
             {
@@ -927,17 +931,14 @@ internal sealed class ModelJsonWriter
         return parts;
     }
 
+    /// <summary>A tab or line break: the import splits a string at it, so it joins the texts around it.</summary>
+    private static bool IsControl(string text) => text is "\t" or "\n";
+
     private void InlineObject(Inline inline)
     {
         _json.WriteStartObject();
         switch (inline)
         {
-            case TextInline { Text: "\t", Style: null }:
-                _json.WriteBoolean("tab", true);
-                break;
-            case TextInline { Text: "\n", Style: null }:
-                _json.WriteBoolean("lineBreak", true);
-                break;
             case PageFieldInline field:
                 _json.WriteBoolean(field.Field == PageField.Number ? "pageNumber" : "pageCount", true);
                 StringIf("style", field.Style?.Id);

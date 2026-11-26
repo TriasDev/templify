@@ -127,7 +127,8 @@ public sealed class JsonShortFormTests
             x.Text("c");
         })));
 
-        Assert.Equal("""["a","b{{v}}",{"tab":true},"c"]""", Compact(ContentOf(definition)));
+        // A tab or line break is part of the string ("\t", "\n"); two plain texts still never join.
+        Assert.Equal("""["a","b{{v}}\tc"]""", Compact(ContentOf(definition)));
         AssertRoundTrip(definition);
     }
 
@@ -209,7 +210,7 @@ public sealed class JsonShortFormTests
           { "style": "Bullets", "list": [ "first", { "level": 1, "item": "second {{name}}" } ] },
           { "style": "Grid", "columns": [ "20mm", 1 ], "table": [
             { "header": true, "row": [ "#", "Item" ] },
-            { "row": [ "1", [ "a", { "style": "Heading", "paragraph": "b" } ] ] },
+            { "row": [ "1", { "content": [ "a", { "style": "Heading", "paragraph": "b" } ] } ] },
             { "paragraphStyle": "TotalText", "row": [ { "span": 2, "content": "Total {{total}}" } ] }
           ] }
         ]
@@ -443,6 +444,73 @@ public sealed class JsonShortFormTests
 
         Assert.Equal("TB9200", error.Code);
         Assert.Equal(location, error.Location);
+    }
+
+    // ── cells and control characters ─────────────────────────────────────────
+
+    [Fact]
+    public void Cell_WithAStyledParagraph_IsStyleAndContent()
+    {
+        TestDefinition definition = new TestDefinition(t =>
+        {
+            t.Styles(StyleSheet.Create(s =>
+            {
+                s.Paragraph(_heading, p => { });
+                s.Paragraph(_cell, p => { });
+                s.Table(_grid, g => g.ParagraphStyle(_cell));
+            }));
+            t.Content(c => c.Table(tb =>
+            {
+                tb.Style(_grid).Columns(cols =>
+                {
+                    cols.Relative(1);
+                    cols.Relative(1);
+                });
+                tb.Row(r =>
+                {
+                    r.Cell(_heading, "styled");
+                    r.Cell(cell => cell.ColumnSpan(1).Background(Color.FromHex("EEEEEE")).Paragraph(_heading, "both"));
+                });
+            }));
+        });
+
+        string json = TemplateJson.Export(definition, BuilderHarness.Options(TemplateFormat.Docx)).Json;
+        using JsonDocument document = JsonDocument.Parse(json);
+        Assert.Equal(
+            """[{"style":"Heading","content":"styled"},{"background":"#EEEEEE","style":"Heading","content":"both"}]""",
+            Compact(document.RootElement.GetProperty("content")[0].GetProperty("table")[0].GetProperty("row")));
+        AssertRoundTrip(definition);
+    }
+
+    [Theory]
+    [InlineData("""[ { "columns": [ 1 ], "table": [ { "row": [ [ "a" ] ] } ] } ]""", "/content/0/table/0/row/0")]
+    [InlineData("""[ { "columns": [ 1 ], "table": [ { "row": [ { "style": "Heading", "content": [ "a" ] } ] } ] } ]""", "/content/0/table/0/row/0/content")]
+    [InlineData("""[ { "paragraph": [ "a", { "tab": true } ] } ]""", "/content/0/paragraph/1")]
+    [InlineData("""[ { "paragraph": [ "a", { "lineBreak": true } ] } ]""", "/content/0/paragraph/1")]
+    public void RemovedForms_AreErrors(string content, string location)
+    {
+        BuildDiagnostic error = Assert.Single(Assert.Throws<TemplateBuildException>(() => TemplateJson.Import(Definition(content, ShortStyles))).Errors);
+
+        Assert.Equal("TB9200", error.Code);
+        Assert.Equal(location, error.Location);
+    }
+
+    [Theory]
+    [MemberData(nameof(Formats))]
+    public void TabsAndLineBreaks_AreInTheString(TemplateFormat format)
+    {
+        TestDefinition fromCSharp = new TestDefinition(t => t.Content(c => c.Paragraph(x =>
+        {
+            x.Text("a\tb");
+            x.LineBreak();
+            x.Text("c");
+            x.Tab();
+            x.Value(t.Data["v"]);
+        })), new TemplateIdentity("short", 1));
+
+        Assert.Equal("a\tb\nc\t{{v}}", ContentOf(fromCSharp).GetString());
+        ITemplateDefinition imported = TemplateJson.Import(Definition("""[ "a\tb\nc\t{{v}}" ]""", "{}"));
+        Assert.Equal(BuilderHarness.Build(fromCSharp, format).ContentHash, BuilderHarness.Build(imported, format).ContentHash);
     }
 
     private static JsonElement ContentOf(ITemplateDefinition definition)

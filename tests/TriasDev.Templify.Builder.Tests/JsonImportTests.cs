@@ -44,7 +44,7 @@ public sealed class JsonImportTests
               "content": [
                 { "paragraph": "Hi" },
                 "Hi",
-                { "style": "Body", "paragraph": [ "a", { "tab": true }, "{{name}}" ] }
+                { "style": "Body", "paragraph": "a\t{{name}}" }
               ]
             }
             """;

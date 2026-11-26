@@ -311,10 +311,10 @@ placeholders:
 
 | Where | Form |
 |---|---|
-| Text | a string with `{{path}}`, `{{path:format}}`, `{{(condition):format}}`; styled: `{"text": "{{order.number}}", "style": "StrongText"}`; a list mixes strings, styled text, `{"if": …}`, `{"tab": true}`, `{"tabRight": true}`, `{"lineBreak": true}`, `{"pageNumber": true}`, `{"pageCount": true}`, `{"image": …}` |
+| Text | a string with `{{path}}`, `{{path:format}}`, `{{(condition):format}}`, a tab `\t` and a line break `\n`; styled: `{"text": "{{order.number}}", "style": "StrongText"}`; a list mixes strings, styled text, `{"if": …}`, `{"tabRight": true}`, `{"pageNumber": true}`, `{"pageCount": true}`, `{"image": …}` |
 | Block | a string (a paragraph in the inherited style), `{"style", "paragraph"}`, `{"style", "box": [blocks]}`, `{"style", "list": [items]}`, `{"style", "columns", "spaceAfter", "table": [rows]}`, `if`, `forEach`, `component`, `{"section": "name", "blocks": [blocks]}`, `pageBreak`, `rule`, `toc`, `raw` |
 | Row | `{"header", "allowSplit", "paragraphStyle", "row": [cells]}`, `forEachRow`, `rowsIf` |
-| Cell | a string (one paragraph), a list of blocks, or `{"span", "background", "verticalAlign", "content"}` |
+| Cell | a string (one paragraph), `{"style": "Label", "content": "…"}` (one paragraph in its own style), or `{"span", "background", "verticalAlign", "content": [blocks]}` |
 | List item | a string, `{"level", "item"}`, `forEach`, `if` |
 
 **One JSON for every language.** Texts from `template.Texts["key"]` are exported as `[[key]]` references, wherever the
