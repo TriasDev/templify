@@ -112,12 +112,13 @@ internal sealed class JsonComposition
             const string at = "/styles/defaults";
             Guard(at, () =>
             {
-                Keys(defaults, at, "font", "size", "color");
+                Keys(defaults, at, "font", "size", "color", "paragraph");
                 s.Defaults(d =>
                 {
                     Apply(Font(defaults, at), v => d.Font(v));
                     Apply(Length(defaults, "size", at), v => d.Size(v));
                     Apply(Color(defaults, "color", at), v => d.Color(v));
+                    Apply(String(defaults, "paragraph", at), v => d.Paragraph(ParagraphStyle(v)));
                 });
             });
         }
@@ -180,7 +181,7 @@ internal sealed class JsonComposition
             string at = "/styles/table/" + Escape(style.Name);
             Guard(at, () =>
             {
-                Keys(e, at, "outerBorder", "rowRule", "columnRule", "headerRule", "headerBackground", "cellPadding");
+                Keys(e, at, "outerBorder", "rowRule", "columnRule", "headerRule", "headerBackground", "cellPadding", "textStyle", "headerTextStyle");
                 s.Table(new TableStyleKey(style.Name), t =>
                 {
                     Apply(Border(e, "outerBorder", at), v => t.OuterBorder(v.Width, v.Color));
@@ -192,6 +193,9 @@ internal sealed class JsonComposition
                     {
                         t.CellPadding(padding.Top, padding.Right);
                     }
+
+                    Apply(String(e, "textStyle", at), v => t.TextStyle(ParagraphStyle(v)));
+                    Apply(String(e, "headerTextStyle", at), v => t.HeaderTextStyle(ParagraphStyle(v)));
                 });
             });
         }
@@ -645,7 +649,7 @@ internal sealed class JsonComposition
         if (item.TryGetProperty("row", out JsonElement row))
         {
             Keys(item, at, "row");
-            Keys(row, at + "/row", "header", "allowSplit", "cells");
+            Keys(row, at + "/row", "header", "allowSplit", "textStyle", "cells");
             Action<RowComposer> cells = r => Row(r, row, at + "/row");
             if (Bool(row, "header", at + "/row") == true)
             {
@@ -696,6 +700,11 @@ internal sealed class JsonComposition
         if (Bool(row, "allowSplit", at) == true)
         {
             r.AllowSplit();
+        }
+
+        if (String(row, "textStyle", at) is { } textStyle)
+        {
+            r.TextStyle(ParagraphStyle(textStyle));
         }
 
         int i = 0;

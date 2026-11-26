@@ -80,7 +80,7 @@ internal sealed class ModelJsonWriter
 
     private void Styles(StyleSheet sheet)
     {
-        bool hasDefaults = HasText(sheet.Defaults);
+        bool hasDefaults = HasText(sheet.Defaults) || sheet.DefaultParagraphStyle != null;
         if (!hasDefaults && sheet.ParagraphStyles.Count == 0 && sheet.CharacterStyles.Count == 0 && sheet.TableStyles.Count == 0
             && sheet.BoxStyles.Count == 0 && sheet.ListStyles.Count == 0)
         {
@@ -92,6 +92,7 @@ internal sealed class ModelJsonWriter
         {
             _json.WriteStartObject("defaults");
             Text(sheet.Defaults);
+            StringIf("paragraph", sheet.DefaultParagraphStyle?.Id);
             _json.WriteEndObject();
         }
 
@@ -161,6 +162,8 @@ internal sealed class ModelJsonWriter
                 _json.WriteString("cellPadding", JsonValues.Length(style.PaddingVertical) + " " + JsonValues.Length(style.PaddingHorizontal));
             }
 
+            StringIf("textStyle", style.TextStyle?.Id);
+            StringIf("headerTextStyle", style.HeaderTextStyle?.Id);
             _json.WriteEndObject();
         });
 
@@ -586,6 +589,8 @@ internal sealed class ModelJsonWriter
                     {
                         _json.WriteBoolean("allowSplit", true);
                     }
+
+                    StringIf("textStyle", row.TextStyle?.Id);
 
                     _json.WriteStartArray("cells");
                     foreach (TableCellModel cell in row.Cells)

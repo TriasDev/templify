@@ -23,8 +23,10 @@ public sealed class StyleSheet
         IReadOnlyList<CharacterStyleDefinition> characterStyles,
         IReadOnlyList<TableStyleDefinition> tableStyles,
         IReadOnlyList<BoxStyleDefinition> boxStyles,
-        IReadOnlyList<ListStyleDefinition> listStyles)
+        IReadOnlyList<ListStyleDefinition> listStyles,
+        ParagraphStyleKey? defaultParagraphStyle)
     {
+        DefaultParagraphStyle = defaultParagraphStyle;
         BoxStyles = boxStyles;
         ListStyles = listStyles;
         Defaults = defaults;
@@ -35,6 +37,36 @@ public sealed class StyleSheet
         foreach (IGrouping<string, string> duplicate in tableStyles.Select(t => t.Key.Id).Concat(boxStyles.Select(b => b.Key.Id)).Concat(listStyles.Select(l => l.Key.Id)).GroupBy(id => id, StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1))
         {
             ((List<BuildDiagnostic>)Problems).Add(new BuildDiagnostic(DiagnosticCodes.DuplicateStyleId, $"The table, box or list style id '{duplicate.Key}' is defined more than once."));
+        }
+
+        foreach ((ParagraphStyleKey key, string usage) in InheritedStyleUses().Where(u => Find(u.Key) == null))
+        {
+            ((List<BuildDiagnostic>)Problems).Add(new BuildDiagnostic(DiagnosticCodes.UndefinedStyle, $"{usage} is the paragraph style '{key.Id}', which the style sheet does not define."));
+        }
+    }
+
+    /// <summary>Gets the paragraph style of paragraphs without one of their own; null when there is none.</summary>
+    internal ParagraphStyleKey? DefaultParagraphStyle { get; }
+
+    /// <summary>The paragraph styles the sheet hands down (default, table text styles), with where each is set.</summary>
+    internal IEnumerable<(ParagraphStyleKey Key, string Usage)> InheritedStyleUses()
+    {
+        if (DefaultParagraphStyle is { } fallback)
+        {
+            yield return (fallback, "The default paragraph style");
+        }
+
+        foreach (TableStyleDefinition table in TableStyles)
+        {
+            if (table.TextStyle is { } text)
+            {
+                yield return (text, $"The text style of the table style '{table.Key.Id}'");
+            }
+
+            if (table.HeaderTextStyle is { } header)
+            {
+                yield return (header, $"The header text style of the table style '{table.Key.Id}'");
+            }
         }
     }
 
@@ -79,7 +111,7 @@ public sealed class StyleSheet
     internal IReadOnlyList<BuildDiagnostic> Problems { get; }
 
     /// <summary>Gets an empty style sheet: default formatting of the application that opens the document.</summary>
-    internal static StyleSheet Empty { get; } = new StyleSheet(new TextProperties(), [], [], [], [], []);
+    internal static StyleSheet Empty { get; } = new StyleSheet(new TextProperties(), [], [], [], [], [], null);
 
     /// <summary>Creates a style sheet.</summary>
     /// <param name="styles">Defines the defaults and the styles.</param>
@@ -90,12 +122,12 @@ public sealed class StyleSheet
         StyleSheetComposer composer = new StyleSheetComposer();
         styles(composer);
         composer.Close();
-        return new StyleSheet(composer.DefaultText, composer.ParagraphStyles, composer.CharacterStyles, composer.TableStyles, composer.BoxStyles, composer.ListStyles);
+        return new StyleSheet(composer.DefaultText, composer.ParagraphStyles, composer.CharacterStyles, composer.TableStyles, composer.BoxStyles, composer.ListStyles, composer.DefaultParagraphStyle);
     }
 
     /// <summary>A copy of this style sheet with one more paragraph style (the builder's own default styles).</summary>
     internal StyleSheet WithParagraphStyle(ParagraphStyleDefinition definition) =>
-        new StyleSheet(Defaults, ParagraphStyles.Append(definition).ToList(), CharacterStyles, TableStyles, BoxStyles, ListStyles);
+        new StyleSheet(Defaults, ParagraphStyles.Append(definition).ToList(), CharacterStyles, TableStyles, BoxStyles, ListStyles, DefaultParagraphStyle);
 
     /// <summary>Finds the definition of a paragraph style.</summary>
     /// <summary>Every font face the styles use, defaults first, in definition order (with repeats).</summary>

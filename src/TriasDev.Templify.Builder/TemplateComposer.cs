@@ -102,7 +102,7 @@ public sealed class TemplateComposer
     }
 
     /// <summary>Ends composing and returns what was composed.</summary>
-    internal (IReadOnlyList<Block> Body, StyleSheet Styles, DocumentInfo Info, PageSetup Page) Close()
+    internal (List<Block> Body, StyleSheet Styles, DocumentInfo Info, PageSetup Page) Close()
     {
         _isOpen = false;
         _properties.Close();

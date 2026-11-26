@@ -48,7 +48,8 @@ public static class TemplateBuilder
 
         TemplateComposer composer = new TemplateComposer(context, new TemplateTexts(context, options.Texts ?? TextCatalog.Empty, options.Language));
         definition.Compose(composer);
-        (IReadOnlyList<Block> body, StyleSheet styles, DocumentInfo info, PageSetup page) = composer.Close();
+        (List<Block> body, StyleSheet styles, DocumentInfo info, PageSetup page) = composer.Close();
+        StyleInheritance.Apply(body, page, styles, context);
         StyleSheet userStyles = styles;
         List<Block> allBlocks = body.Concat(page.AllBlocks).ToList();
 
@@ -97,7 +98,8 @@ public static class TemplateBuilder
 
     private static void CheckStylesAreDefined(IReadOnlyList<Block> body, StyleSheet styles, BuildContext context)
     {
-        HashSet<string> reported = new HashSet<string>(StringComparer.Ordinal);
+        // An undefined inherited style is reported once by the style sheet, not again for every paragraph using it.
+        HashSet<string> reported = styles.InheritedStyleUses().Where(u => styles.Find(u.Key) == null).Select(u => "p:" + u.Key.Id).ToHashSet(StringComparer.Ordinal);
         foreach (ParagraphBlock paragraph in BlockTree.Paragraphs(body))
         {
             context.At(paragraph);

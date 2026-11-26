@@ -19,6 +19,8 @@ public sealed class StyleSheetComposer
 
     internal TextProperties DefaultText { get; } = new TextProperties();
 
+    internal ParagraphStyleKey? DefaultParagraphStyle { get; set; }
+
     internal List<ParagraphStyleDefinition> ParagraphStyles { get; } = new List<ParagraphStyleDefinition>();
 
     internal List<CharacterStyleDefinition> CharacterStyles { get; } = new List<CharacterStyleDefinition>();
@@ -155,6 +157,19 @@ public sealed class DefaultStyleComposer
     {
         _owner.EnsureOpen();
         _text.Color = color;
+        return this;
+    }
+
+    /// <summary>
+    /// Sets the paragraph style of every paragraph that has no style of its own and gets none from its container (a
+    /// table's text styles, a list's item style).
+    /// </summary>
+    /// <param name="style">The paragraph style; the style sheet must define it.</param>
+    /// <returns>This composer.</returns>
+    public DefaultStyleComposer Paragraph(ParagraphStyleKey style)
+    {
+        _owner.EnsureOpen();
+        _owner.DefaultParagraphStyle = style ?? throw new ArgumentNullException(nameof(style));
         return this;
     }
 }

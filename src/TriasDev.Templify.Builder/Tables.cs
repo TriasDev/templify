@@ -47,6 +47,26 @@ public sealed class TableStyleComposer
         _style = style;
     }
 
+    /// <summary>Sets the paragraph style of body-row paragraphs that have no style of their own.</summary>
+    /// <param name="style">The paragraph style; the style sheet must define it.</param>
+    /// <returns>This composer.</returns>
+    public TableStyleComposer TextStyle(ParagraphStyleKey style)
+    {
+        _owner.EnsureOpen();
+        _style.TextStyle = style ?? throw new ArgumentNullException(nameof(style));
+        return this;
+    }
+
+    /// <summary>Sets the paragraph style of header-row paragraphs that have no style of their own.</summary>
+    /// <param name="style">The paragraph style; the style sheet must define it.</param>
+    /// <returns>This composer.</returns>
+    public TableStyleComposer HeaderTextStyle(ParagraphStyleKey style)
+    {
+        _owner.EnsureOpen();
+        _style.HeaderTextStyle = style ?? throw new ArgumentNullException(nameof(style));
+        return this;
+    }
+
     /// <summary>Sets the border around the table.</summary>
     /// <param name="width">The line width.</param>
     /// <param name="color">The colour.</param>
@@ -454,7 +474,7 @@ public sealed class RowComposer
         _row = row;
     }
 
-    /// <summary>Adds a cell with literal text in the default paragraph style.</summary>
+    /// <summary>Adds a cell with literal text in the inherited paragraph style (row, table style, style sheet default).</summary>
     /// <param name="text">The text.</param>
     public void Cell(string text) => Cell(c => c.Paragraph(text));
 
@@ -483,6 +503,18 @@ public sealed class RowComposer
         cell(composer);
         composer.Close();
         _row.Cells.Add(model);
+    }
+
+    /// <summary>
+    /// Sets the paragraph style of this row's paragraphs that have no style of their own, instead of the table
+    /// style's text style (for example a totals row).
+    /// </summary>
+    /// <param name="style">The paragraph style.</param>
+    public void TextStyle(ParagraphStyleKey style)
+    {
+        ArgumentNullException.ThrowIfNull(style);
+        EnsureOpen();
+        _row.TextStyle = style;
     }
 
     /// <summary>Lets the row break across pages; by default a row is kept on one page.</summary>
