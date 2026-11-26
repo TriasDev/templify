@@ -30,7 +30,7 @@ public sealed class TypedPathGenerator : IIncrementalGenerator
         "Data property not generated",
         "'{0}.{1}' is not generated for {2}: it already has a member '{1}'; write the lambda, for example .Path(x => x.{1})",
         "TemplifyBuilder",
-        DiagnosticSeverity.Warning,
+        DiagnosticSeverity.Info,
         isEnabledByDefault: true);
 
     private static readonly DiagnosticDescriptor _languageVersion = new DiagnosticDescriptor(
@@ -53,12 +53,16 @@ public sealed class TypedPathGenerator : IIncrementalGenerator
 
         IncrementalValueProvider<RootModel?> attributes = context.CompilationProvider.Select(static (compilation, token) => FromAttributes(compilation, token));
 
+        // Typed paths a referenced assembly generated and lets this one use (InternalsVisibleTo): not generated again,
+        // or both extension members would be in scope and every use ambiguous.
+        IncrementalValueProvider<EquatableArray<string>> covered = context.CompilationProvider.Select(static (compilation, _) => Covered(compilation));
+
         IncrementalValueProvider<bool> supported = context.ParseOptionsProvider.Select(static (options, _) =>
             options is CSharpParseOptions csharp && csharp.LanguageVersion >= LanguageVersion.CSharp14);
 
-        context.RegisterSourceOutput(calls.Collect().Combine(attributes).Combine(supported), static (output, input) =>
+        context.RegisterSourceOutput(calls.Collect().Combine(attributes).Combine(supported).Combine(covered), static (output, input) =>
         {
-            ((ImmutableArray<RootModel> fromCalls, RootModel? fromAttributes), bool languageSupported) = input;
+            (((ImmutableArray<RootModel> fromCalls, RootModel? fromAttributes), bool languageSupported), EquatableArray<string> coveredBlocks) = input;
             List<RootModel> roots = fromCalls.ToList();
             if (fromAttributes is not null)
             {
@@ -87,7 +91,11 @@ public sealed class TypedPathGenerator : IIncrementalGenerator
                 output.ReportDiagnostic(Diagnostic.Create(_collision, collision.Location?.ToLocation() ?? Location.None, collision.TypeName, collision.Property, collision.Receiver));
             }
 
-            output.AddSource("TemplifyDataPaths.g.cs", Emit(types));
+            string? source = Emit(types, new HashSet<string>(coveredBlocks, System.StringComparer.Ordinal));
+            if (source is not null)
+            {
+                output.AddSource("TemplifyDataPaths.g.cs", source);
+            }
         });
     }
 
@@ -108,6 +116,33 @@ public sealed class TypedPathGenerator : IIncrementalGenerator
 
         return Build(context.SemanticModel.Compilation, [method.TypeArguments[0]], token);
     }
+
+    private static EquatableArray<string> Covered(Compilation compilation)
+    {
+        List<string> keys = new List<string>();
+        foreach (IAssemblySymbol assembly in compilation.SourceModule.ReferencedAssemblySymbols)
+        {
+            if (!assembly.GivesAccessTo(compilation.Assembly))
+            {
+                continue;
+            }
+
+            foreach (AttributeData attribute in assembly.GetAttributes())
+            {
+                if (attribute.AttributeClass?.ToDisplayString() == BuilderNamespace + ".GeneratedDataPathsAttribute"
+                    && attribute.ConstructorArguments.Length == 2
+                    && attribute.ConstructorArguments[0].Value is ITypeSymbol type
+                    && attribute.ConstructorArguments[1].Value is bool loopItem)
+                {
+                    keys.Add(BlockKey(type.ToDisplayString(_typeFormat), loopItem));
+                }
+            }
+        }
+
+        return new EquatableArray<string>(keys.ToImmutableArray());
+    }
+
+    private static string BlockKey(string typeName, bool loopItem) => (loopItem ? "loop:" : "path:") + typeName;
 
     private static RootModel? FromAttributes(Compilation compilation, CancellationToken token)
     {
@@ -140,7 +175,8 @@ public sealed class TypedPathGenerator : IIncrementalGenerator
         {
             token.ThrowIfCancellationRequested();
             ITypeSymbol type = pending.Dequeue();
-            if (!seen.Add(type) || Classify(compilation, type) != Shape.Object || !IsAccessible(compilation, type))
+            // Types of .NET itself are not walked: the lambda API rejects their members as data (PathExpression).
+            if (!seen.Add(type) || Classify(compilation, type) != Shape.Object || !IsAccessible(compilation, type) || IsSystem(type) || IsObsolete(type))
             {
                 continue;
             }
@@ -149,6 +185,11 @@ public sealed class TypedPathGenerator : IIncrementalGenerator
             List<PropertyModel> properties = new List<PropertyModel>();
             foreach (IPropertySymbol property in DataProperties(type))
             {
+                if (property.ReturnsByRef || property.ReturnsByRefReadonly || property.Type.IsRefLikeType || IsObsolete(property.Type))
+                {
+                    continue;
+                }
+
                 ITypeSymbol bare = Unwrap(property.Type);
                 PropertyKind kind = PropertyKind.Path;
                 ITypeSymbol target = property.Type;
@@ -165,7 +206,7 @@ public sealed class TypedPathGenerator : IIncrementalGenerator
                     pending.Enqueue(property.Type);
                 }
 
-                if (!IsAccessible(compilation, target))
+                if (!IsAccessible(compilation, target) || target.IsRefLikeType || IsObsolete(target))
                 {
                     continue;
                 }
@@ -183,7 +224,7 @@ public sealed class TypedPathGenerator : IIncrementalGenerator
                     collisions.Add(new CollisionModel(type.Name, property.Name, "LoopItem<" + type.Name + ">", location));
                 }
 
-                properties.Add(new PropertyModel(property.Name, Identifier(property.Name), kind, target.ToDisplayString(_typeFormat), skipOnPath, skipOnLoopItem));
+                properties.Add(new PropertyModel(property.Name, Identifier(property.Name), kind, target.ToDisplayString(_typeFormat), skipOnPath, skipOnLoopItem, ObsoleteAttribute(property)));
             }
 
             types.Add(new DataTypeModel(typeName, false, new EquatableArray<PropertyModel>(properties.ToImmutableArray())));
@@ -197,10 +238,52 @@ public sealed class TypedPathGenerator : IIncrementalGenerator
         return new RootModel(new EquatableArray<DataTypeModel>(types.ToImmutableArray()), new EquatableArray<CollisionModel>(collisions.ToImmutableArray()));
     }
 
-    /// <summary>Public readable instance properties, the type's own first, then inherited ones it does not hide.</summary>
+    private static bool IsSystem(ITypeSymbol type)
+    {
+        string? name = type.ContainingNamespace?.ToDisplayString();
+        return name is not null && (name == "System" || name.StartsWith("System.", System.StringComparison.Ordinal));
+    }
+
+    private static bool IsObsolete(ISymbol symbol) =>
+        symbol.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == "System.ObsoleteAttribute");
+
+    /// <summary>An obsolete data property stays obsolete: the attribute is copied, so its use warns where it is used, not in the generated file.</summary>
+    private static string? ObsoleteAttribute(IPropertySymbol property)
+    {
+        AttributeData? obsolete = property.GetAttributes().FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "System.ObsoleteAttribute");
+        if (obsolete is null)
+        {
+            return null;
+        }
+
+        IEnumerable<string> arguments = obsolete.ConstructorArguments.Select(a => a.Value switch
+        {
+            string text => SymbolDisplay.FormatLiteral(text, quote: true),
+            bool flag => flag ? "true" : "false",
+            _ => "null",
+        });
+        return "[global::System.Obsolete(" + string.Join(", ", arguments) + ")]";
+    }
+
+    /// <summary>
+    /// Public readable instance properties, the type's own first, then inherited ones it does not hide. For an interface,
+    /// a name that only several base interfaces declare is ambiguous in C# and left out.
+    /// </summary>
     private static IEnumerable<IPropertySymbol> DataProperties(ITypeSymbol type)
     {
         HashSet<string> names = new HashSet<string>(System.StringComparer.Ordinal);
+        if (type.TypeKind == TypeKind.Interface)
+        {
+            HashSet<string> own = new HashSet<string>(type.GetMembers().OfType<IPropertySymbol>().Select(p => p.Name), System.StringComparer.Ordinal);
+            foreach (IGrouping<string, INamedTypeSymbol> shared in type.AllInterfaces
+                .SelectMany(i => i.GetMembers().OfType<IPropertySymbol>().Select(p => (p.Name, Owner: i)))
+                .GroupBy(p => p.Name, p => p.Owner)
+                .Where(g => !own.Contains(g.Key) && g.Distinct(SymbolEqualityComparer.Default).Count() > 1))
+            {
+                names.Add(shared.Key);
+            }
+        }
+
         IEnumerable<ITypeSymbol> chain = type.TypeKind == TypeKind.Interface
             ? new[] { type }.Concat(type.AllInterfaces)
             : Bases(type);
@@ -341,7 +424,7 @@ public sealed class TypedPathGenerator : IIncrementalGenerator
     private static bool IsAccessible(Compilation compilation, ITypeSymbol type) => type switch
     {
         IArrayTypeSymbol array => IsAccessible(compilation, array.ElementType),
-        INamedTypeSymbol named => compilation.IsSymbolAccessibleWithin(named.OriginalDefinition, compilation.Assembly)
+        INamedTypeSymbol named => !named.IsFileLocal && compilation.IsSymbolAccessibleWithin(named.OriginalDefinition, compilation.Assembly)
             && (named.ContainingType is null || IsAccessible(compilation, named.ContainingType))
             && named.TypeArguments.All(t => IsAccessible(compilation, t)),
         ITypeParameterSymbol => false,
@@ -365,55 +448,80 @@ public sealed class TypedPathGenerator : IIncrementalGenerator
             ? new LocationModel(tree.FilePath, location.SourceSpan, location.GetLineSpan().Span)
             : null;
 
-    private static string Emit(IReadOnlyList<DataTypeModel> types)
+    private static string? Emit(IReadOnlyList<DataTypeModel> types, HashSet<string> covered)
     {
+        StringBuilder blocks = new StringBuilder();
+        List<string> marks = new List<string>();
+        foreach (DataTypeModel type in types)
+        {
+            if (!covered.Contains(BlockKey(type.TypeName, false))
+                && Block(blocks, type, "global::" + BuilderNamespace + ".TemplatePath<" + type.TypeName + ">", PathParameter, p => !p.SkipOnPath))
+            {
+                marks.Add("[assembly: global::" + BuilderNamespace + ".GeneratedDataPaths(typeof(" + type.TypeName + "), false)]");
+            }
+
+            if (type.IsItem && !covered.Contains(BlockKey(type.TypeName, true))
+                && Block(blocks, type, "global::" + BuilderNamespace + ".LoopItem<" + type.TypeName + ">", ItemParameter, p => !p.SkipOnLoopItem))
+            {
+                marks.Add("[assembly: global::" + BuilderNamespace + ".GeneratedDataPaths(typeof(" + type.TypeName + "), true)]");
+            }
+        }
+
+        if (marks.Count == 0)
+        {
+            return null;
+        }
+
         StringBuilder text = new StringBuilder();
         text.AppendLine("// <auto-generated/>");
         text.AppendLine("// Typed data paths of TriasDev.Templify.Builder: order.Number instead of order.Path(o => o.Number).");
         text.AppendLine("#nullable disable");
         text.AppendLine();
+        foreach (string mark in marks)
+        {
+            text.AppendLine(mark);
+        }
+
+        text.AppendLine();
         text.AppendLine("namespace " + BuilderNamespace);
         text.AppendLine("{");
         text.AppendLine("    internal static class TemplifyDataPaths");
         text.AppendLine("    {");
-        bool first = true;
-        foreach (DataTypeModel type in types)
-        {
-            Block(text, type, "global::" + BuilderNamespace + ".TemplatePath<" + type.TypeName + ">", PathParameter, p => !p.SkipOnPath, ref first);
-            if (type.IsItem)
-            {
-                Block(text, type, "global::" + BuilderNamespace + ".LoopItem<" + type.TypeName + ">", ItemParameter, p => !p.SkipOnLoopItem, ref first);
-            }
-        }
-
+        text.Append(blocks.ToString().TrimEnd('\n', '\r'));
+        text.AppendLine();
         text.AppendLine("    }");
         text.AppendLine("}");
         return text.ToString();
     }
 
-    private static void Block(StringBuilder text, DataTypeModel type, string receiver, string parameter, System.Func<PropertyModel, bool> include, ref bool first)
+    private static bool Block(StringBuilder text, DataTypeModel type, string receiver, string parameter, System.Func<PropertyModel, bool> include)
     {
         List<PropertyModel> properties = type.Properties.Where(include).ToList();
         if (properties.Count == 0)
         {
-            return;
+            return false;
         }
 
-        if (!first)
+        if (text.Length > 0)
         {
             text.AppendLine();
         }
 
-        first = false;
         text.AppendLine("        extension(" + receiver + " " + parameter + ")");
         text.AppendLine("        {");
         foreach (PropertyModel property in properties)
         {
+            if (property.Obsolete is { } obsolete)
+            {
+                text.AppendLine("            " + obsolete);
+            }
+
             text.AppendLine(property.Kind == PropertyKind.Collection
                 ? "            public global::" + BuilderNamespace + ".TemplateCollection<" + property.TypeName + "> " + property.Identifier + " => " + parameter + ".Items<" + property.TypeName + ">(__x => __x." + property.Identifier + ");"
                 : "            public global::" + BuilderNamespace + ".TemplatePath<" + property.TypeName + "> " + property.Identifier + " => " + parameter + ".Path(__x => __x." + property.Identifier + ");");
         }
 
         text.AppendLine("        }");
+        return true;
     }
 }

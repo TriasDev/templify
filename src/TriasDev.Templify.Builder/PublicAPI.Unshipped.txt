@@ -677,3 +677,7 @@ TriasDev.Templify.Builder.Json.TemplateJsonExportOptions.TextLanguages.init -> v
 TriasDev.Templify.Builder.TemplateDataAttribute
 TriasDev.Templify.Builder.TemplateDataAttribute.TemplateDataAttribute(System.Type! type) -> void
 TriasDev.Templify.Builder.TemplateDataAttribute.Type.get -> System.Type!
+TriasDev.Templify.Builder.GeneratedDataPathsAttribute
+TriasDev.Templify.Builder.GeneratedDataPathsAttribute.GeneratedDataPathsAttribute(System.Type! type, bool loopItem) -> void
+TriasDev.Templify.Builder.GeneratedDataPathsAttribute.LoopItem.get -> bool
+TriasDev.Templify.Builder.GeneratedDataPathsAttribute.Type.get -> System.Type!

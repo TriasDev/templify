@@ -192,6 +192,113 @@ public sealed class GeneratorTests
         Assert.Empty(generator);
     }
 
+    // ── final review fixes ───────────────────────────────────────────────────
+
+    [Fact]
+    public void ProjectWithInternalsVisibleTo_DoesNotGenerateTwice()
+    {
+        const string app = """
+            using System.Runtime.CompilerServices;
+            using TriasDev.Templify.Builder;
+
+            [assembly: InternalsVisibleTo("Client")]
+
+            namespace App;
+
+            public sealed record Order(string Number, string Name);
+
+            public static class AppUse
+            {
+                public static void Compose(TemplateComposer t) => t.Content(c => c.Paragraph(t.DataAs<Order>().Name));
+            }
+            """;
+        CSharpParseOptions parse = new CSharpParseOptions(LanguageVersion.CSharp14);
+        CSharpCompilation appCompilation = CSharpCompilation.Create("App", [CSharpSyntaxTree.ParseText(app, parse, cancellationToken: TestContext.Current.CancellationToken)], _references, new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+        CSharpGeneratorDriver.Create([new TypedPathGenerator().AsSourceGenerator()], parseOptions: parse)
+            .RunGeneratorsAndUpdateCompilation(appCompilation, out Compilation appOutput, out _, TestContext.Current.CancellationToken);
+        Assert.Empty(appOutput.GetDiagnostics(TestContext.Current.CancellationToken).Where(d => d.Severity == DiagnosticSeverity.Error));
+
+        const string client = """
+            using TriasDev.Templify.Builder;
+
+            namespace Client;
+
+            public static class ClientUse
+            {
+                public static TemplatePath<string> Number(TemplateComposer t) => t.DataAs<App.Order>().Number;
+            }
+            """;
+        CSharpCompilation clientCompilation = CSharpCompilation.Create("Client", [CSharpSyntaxTree.ParseText(client, parse, cancellationToken: TestContext.Current.CancellationToken)], _references.Append(appOutput.ToMetadataReference()), new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+        CSharpGeneratorDriver.Create([new TypedPathGenerator().AsSourceGenerator()], parseOptions: parse)
+            .RunGeneratorsAndUpdateCompilation(clientCompilation, out Compilation clientOutput, out _, TestContext.Current.CancellationToken);
+
+        Assert.Empty(clientOutput.GetDiagnostics(TestContext.Current.CancellationToken).Where(d => d.Severity >= DiagnosticSeverity.Warning));
+    }
+
+    [Fact]
+    public void ShapesTheGeneratedCodeCannotHold_AreSkipped()
+    {
+        (string? source, _, ImmutableArray<Diagnostic> compiler) = Run(LanguageVersion.CSharp14, """
+            using System;
+            using System.Collections.Generic;
+            using TriasDev.Templify.Builder;
+
+            namespace Shapes;
+
+            public interface IA { string Name { get; } }
+            public interface IB { string Name { get; } }
+            public interface IBoth : IA, IB { string Code { get; } }
+
+            public sealed class Data
+            {
+                private int _value;
+                public ReadOnlyMemory<byte> Bytes { get; init; }
+                public ref int Ref => ref _value;
+                public IBoth Both { get; init; } = null!;
+                public Uri Link { get; init; } = null!;
+                public Exception Error { get; init; } = null!;
+                public List<Version> Versions { get; init; } = [];
+                public int? Maybe { get; init; }
+                public Money? Price { get; init; }
+                [Obsolete("Use Code.")] public string Old { get; init; } = "";
+                public string Code { get; init; } = "";
+            }
+
+            public struct Money { public decimal Amount { get; init; } }
+
+            file sealed class Local { public string Text { get; init; } = ""; }
+
+            public static class Use
+            {
+                public static void Compose(TemplateComposer t)
+                {
+                    TemplatePath<Data> data = t.DataAs<Data>();
+                    t.Content(c => c.Paragraph(data.Code));
+                    _ = t.DataAs<Local>();
+                }
+            }
+            """);
+
+        Assert.Empty(compiler.Where(d => d.Severity >= DiagnosticSeverity.Warning));
+        Assert.DoesNotContain(" Ref ", source!, StringComparison.Ordinal);
+        Assert.DoesNotContain(" Span ", source!, StringComparison.Ordinal);
+        Assert.DoesNotContain("Local", source!, StringComparison.Ordinal);
+        Assert.Contains("TemplatePath<string> Code", Block(source!, "TemplatePath<global::Shapes.IBoth>"), StringComparison.Ordinal);
+        Assert.DoesNotContain(" Name ", Block(source!, "TemplatePath<global::Shapes.IBoth>"), StringComparison.Ordinal);
+        Assert.Contains("TemplatePath<global::System.Uri> Link", source!, StringComparison.Ordinal);
+        Assert.DoesNotContain("extension(global::TriasDev.Templify.Builder.TemplatePath<global::System.", source!, StringComparison.Ordinal);
+        Assert.DoesNotContain("LoopItem<global::System.", source!, StringComparison.Ordinal);
+        Assert.Contains("[global::System.Obsolete(\"Use Code.\")]", source!, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Collisions_AreInformationOnly()
+    {
+        (_, ImmutableArray<Diagnostic> generator, _) = Run(LanguageVersion.CSharp14, Client);
+
+        Assert.All(generator, d => Assert.Equal(DiagnosticSeverity.Info, d.Severity));
+    }
+
     [Fact]
     public void Output_IsDeterministic()
     {

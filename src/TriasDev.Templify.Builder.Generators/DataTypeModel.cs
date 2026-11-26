@@ -26,7 +26,7 @@ internal enum PropertyKind
 /// A data property: its C# name (escaped if a keyword), its type (or item type for a collection) and the receivers it is
 /// not generated for because they already have a member of that name.
 /// </summary>
-internal sealed record PropertyModel(string Name, string Identifier, PropertyKind Kind, string TypeName, bool SkipOnPath, bool SkipOnLoopItem);
+internal sealed record PropertyModel(string Name, string Identifier, PropertyKind Kind, string TypeName, bool SkipOnPath, bool SkipOnLoopItem, string? Obsolete);
 
 /// <summary>A name collision to report (TBG001).</summary>
 internal sealed record CollisionModel(string TypeName, string Property, string Receiver, LocationModel? Location);
