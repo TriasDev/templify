@@ -5,6 +5,8 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
+using TriasDev.Templify.Core;
 
 namespace TriasDev.Templify.Builder;
 
@@ -35,9 +37,10 @@ public sealed record DataCatalogEntry(string Path, DataKind Kind, Type ClrType);
 /// wins, <see cref="JsonIgnoreAttribute"/> hides). An import checks a definition's paths against it; a template's data
 /// contract should be inside it.
 /// </summary>
-public sealed class DataCatalog
+public sealed partial class DataCatalog
 {
     private const int MaximumDepth = 16;
+    private const int JsonVersion = 1;
 
     private readonly HashSet<string> _paths;
     private readonly List<string> _open;
@@ -79,6 +82,99 @@ public sealed class DataCatalog
         return _paths.Contains(path)
             || _open.Any(open => path.StartsWith(open, StringComparison.Ordinal) && path.Length > open.Length && path[open.Length] is '.' or '[');
     }
+
+    /// <summary>
+    /// Writes the catalogue as JSON, for agents and for hosts that keep a snapshot: a version and the paths in
+    /// <see cref="Entries"/> order, each with its kind (<c>value</c>, <c>object</c>, <c>collection</c>, <c>open</c>) and
+    /// its C# type name.
+    /// </summary>
+    /// <returns>The JSON, indented.</returns>
+    public string ToJson()
+    {
+        JsonObject root = new JsonObject
+        {
+            ["version"] = JsonVersion,
+            ["paths"] = new JsonArray(Entries
+                .Select(e => (JsonNode)new JsonObject
+                {
+                    ["path"] = e.Path,
+                    ["kind"] = e.Kind.ToString().ToLowerInvariant(),
+                    ["type"] = TypeName(e.ClrType),
+                })
+                .ToArray()),
+        };
+        return root.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    /// <summary>
+    /// Builds data in which every path of the catalogue exists: values are the text <c>"x"</c>, collections hold one
+    /// item, and an open shape is an <see cref="OpenWitness"/> with the given names.
+    /// </summary>
+    /// <param name="openNames">The names an open shape has (at any depth below it); null for none.</param>
+    internal IReadOnlyDictionary<string, object?> CreateWitness(IEnumerable<string>? openNames = null)
+    {
+        OpenWitness open = new OpenWitness(openNames ?? []);
+        Dictionary<string, DataCatalogEntry> byPath = Entries.ToDictionary(e => e.Path, StringComparer.Ordinal);
+        ILookup<string, DataCatalogEntry> children = Entries
+            .Where(e => !e.Path.EndsWith("[]", StringComparison.Ordinal))
+            .ToLookup(e => e.Path.LastIndexOf('.') is var dot and >= 0 ? e.Path[..dot] : string.Empty, StringComparer.Ordinal);
+        return ObjectWitness(string.Empty);
+
+        object? Witness(DataCatalogEntry entry) => entry.Kind switch
+        {
+            DataKind.Value => "x",
+            DataKind.Open => open,
+            DataKind.Collection => new List<object?> { byPath.TryGetValue(entry.Path + "[]", out DataCatalogEntry? item) ? Witness(item) : "x" },
+            _ => ObjectWitness(entry.Path),
+        };
+
+        Dictionary<string, object?> ObjectWitness(string path) =>
+            children[path].ToDictionary(e => path.Length == 0 ? e.Path : e.Path[(path.Length + 1)..], Witness, StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// Validates a template against witness data of the catalogue (<see cref="TemplateProcessor.ValidateTemplate(Stream, IReadOnlyDictionary{string, object?})"/>).
+    /// Names below open shapes cannot be listed in advance, so the names the first pass misses become names of the
+    /// open shapes and the template is validated again, until nothing changes: a missing name that remains is not in the
+    /// data. Paths below closed types never gain names this way.
+    /// </summary>
+    /// <param name="template">The template package.</param>
+    /// <returns>The last validation.</returns>
+    internal ValidationResult ValidateTemplate(byte[] template)
+    {
+        HashSet<string> names = new HashSet<string>(StringComparer.Ordinal);
+        bool open = Entries.Any(e => e.Kind == DataKind.Open);
+        for (int pass = 0; ; pass++)
+        {
+            ValidationResult result;
+            using (MemoryStream stream = new MemoryStream(template, writable: false))
+            {
+                result = new TemplateProcessor().ValidateTemplate(stream, CreateWitness(names));
+            }
+
+            int before = names.Count;
+            if (open && pass < MaximumDepth)
+            {
+                foreach (string missing in MissingNames(result))
+                {
+                    names.UnionWith(missing.Split('.', '[', ']').Where(n => n.Length > 0 && !char.IsAsciiDigit(n[0])));
+                }
+            }
+
+            if (names.Count == before)
+            {
+                return result;
+            }
+        }
+    }
+
+    /// <summary>The variables a validation reports missing: values and loops, and variables of conditions.</summary>
+    internal static IEnumerable<string> MissingNames(ValidationResult result) =>
+        result.MissingVariables.Concat(result.Warnings
+            .Where(w => w.Type == ValidationWarningType.MissingConditionVariable)
+            .Select(w => ConditionVariable().Match(w.Message))
+            .Where(m => m.Success)
+            .Select(m => m.Groups[1].Value));
 
     /// <summary>The kind of a path: its entry's kind, <see cref="DataKind.Open"/> below an open shape, or null.</summary>
     internal DataKind? KindOf(string path)
@@ -163,6 +259,35 @@ public sealed class DataCatalog
     private static bool IsDictionaryInterface(Type type) =>
         type.IsGenericType && (type.GetGenericTypeDefinition() == typeof(IDictionary<,>) || type.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>));
 
+    /// <summary>A readable C# type name: <c>decimal</c>, <c>int?</c>, <c>IReadOnlyList&lt;Line&gt;</c>.</summary>
+    private static string TypeName(Type type)
+    {
+        if (Nullable.GetUnderlyingType(type) is { } underlying)
+        {
+            return TypeName(underlying) + "?";
+        }
+
+        if (type.IsArray)
+        {
+            return TypeName(type.GetElementType()!) + "[]";
+        }
+
+        if (type.IsGenericType)
+        {
+            string name = type.Name[..type.Name.IndexOf('`', StringComparison.Ordinal)];
+            return name + "<" + string.Join(", ", type.GetGenericArguments().Select(TypeName)) + ">";
+        }
+
+        return type == typeof(string) ? "string" : type == typeof(int) ? "int" : type == typeof(long) ? "long"
+            : type == typeof(bool) ? "bool" : type == typeof(decimal) ? "decimal" : type == typeof(double) ? "double"
+            : type == typeof(float) ? "float" : type == typeof(object) ? "object" : type.Name;
+    }
+
+    // Until the engine exposes the variable of a MissingConditionVariable warning (TriasDev/templify#275), its name is
+    // read from the message; a test fails if the wording changes.
+    [GeneratedRegex(@"uses variable '([^']+)'", RegexOptions.CultureInvariant)]
+    private static partial Regex ConditionVariable();
+
     private static Type? ItemType(Type type)
     {
         if (type.IsArray)
@@ -173,4 +298,25 @@ public sealed class DataCatalog
         Type? enumerable = type.GetInterfaces().Append(type).FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
         return enumerable?.GetGenericArguments()[0];
     }
+}
+
+/// <summary>
+/// Witness data below an open shape: every given name exists and is the witness again; it prints as <c>x</c>, and as
+/// a collection it holds one item (itself).
+/// </summary>
+internal sealed class OpenWitness : Dictionary<string, object?>, System.Collections.IEnumerable
+{
+    public OpenWitness(IEnumerable<string> names)
+        : base(StringComparer.Ordinal)
+    {
+        foreach (string name in names)
+        {
+            this[name] = this;
+        }
+    }
+
+    // A loop enumerates without the generic interface: one item, which has the same names.
+    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => new object?[] { this }.GetEnumerator();
+
+    public override string ToString() => "x";
 }

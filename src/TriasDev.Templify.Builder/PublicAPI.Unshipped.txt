@@ -699,3 +699,4 @@ TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.Shared.init -> void
 TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.Theme.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>?
 TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.Theme.init -> void
 TriasDev.Templify.Builder.TemplateComposer.Share<T>(T! value) -> TriasDev.Templify.Builder.TemplateComposer!
+TriasDev.Templify.Builder.DataCatalog.ToJson() -> string!
