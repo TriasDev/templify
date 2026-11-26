@@ -71,6 +71,30 @@ internal sealed class EmbeddedTexts
             byKey[key.Name] = translations.ToDictionary(t => t.Key, t => t.Value, StringComparer.OrdinalIgnoreCase);
         }
 
+        // Every text has the languages of the others, so an added key cannot miss a language without a word. A regional
+        // language is covered by its parent ("de-CH" by "de"), as the build looks it up.
+        List<string> languages = entries.SelectMany(e => e.Translations.Select(t => t.Key)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        foreach (TextSection entry in entries)
+        {
+            HashSet<string> own = entry.Translations.Select(t => t.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            List<string> missing = languages.Where(l => !LanguageChain(l).Any(own.Contains)).ToList();
+            if (missing.Count > 0)
+            {
+                fail?.Invoke(
+                    "/texts/" + JsonComposition.Escape(entry.Key),
+                    $"The text '{entry.Key}' has no {string.Join(", ", missing.Select(l => $"'{l}'"))} translation; every text has the languages of the others ({string.Join(", ", languages)}).");
+            }
+        }
+
         return new EmbeddedTexts(entries, TextCatalog.FromDictionary(byKey));
+    }
+
+    /// <summary>A language name and its parents: <c>de-CH</c>, <c>de</c>.</summary>
+    private static IEnumerable<string> LanguageChain(string language)
+    {
+        for (string name = language; name.Length > 0; name = name.LastIndexOf('-') is int dash and > 0 ? name[..dash] : string.Empty)
+        {
+            yield return name;
+        }
     }
 }

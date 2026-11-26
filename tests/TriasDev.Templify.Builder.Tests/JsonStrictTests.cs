@@ -119,4 +119,37 @@ public sealed class JsonStrictTests
         Assert.Contains("Page 5", error.Message, StringComparison.Ordinal);
         Assert.Contains("Page {0}", error.Message, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void TextsKey_MissingALanguageTheOthersHave_IsAnError()
+    {
+        string json = Definition(
+            """[ "[[title]] [[note]]" ]""",
+            """ "texts": { "title": { "de": "Titel", "en": "Title" }, "note": { "de": "Hinweis" } },""");
+
+        BuildDiagnostic error = Assert.Single(Assert.Throws<TemplateBuildException>(() => TemplateJson.Import(json)).Errors);
+
+        Assert.Equal("TB9200", error.Code);
+        Assert.Equal("/texts/note", error.Location);
+        Assert.Contains("'en'", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TextsKey_WithoutARegionalVariant_IsCoveredByItsParent_ButNotTheOtherWayRound()
+    {
+        string covered = Definition("""[ "[[a]] [[b]]" ]""", """ "texts": { "a": { "de": "A", "de-CH": "A!" }, "b": { "de": "B" } },""");
+        string notCovered = Definition("""[ "[[a]] [[b]]" ]""", """ "texts": { "a": { "de": "A" }, "b": { "de-CH": "B" } },""");
+
+        Assert.NotNull(TemplateJson.Import(covered));
+        BuildDiagnostic error = Assert.Single(Assert.Throws<TemplateBuildException>(() => TemplateJson.Import(notCovered)).Errors);
+        Assert.Equal("/texts/b", error.Location);
+    }
+
+    [Fact]
+    public void Texts_AllInOneLanguage_AreAccepted()
+    {
+        string json = Definition("""[ "[[title]]" ]""", """ "texts": { "title": { "de": "Titel" } },""");
+
+        Assert.NotNull(TemplateJson.Import(json));
+    }
 }
