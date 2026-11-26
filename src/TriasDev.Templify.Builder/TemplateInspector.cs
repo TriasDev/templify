@@ -2,7 +2,6 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.IO.Compression;
-using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.CustomProperties;
 using DocumentFormat.OpenXml.Packaging;
@@ -10,73 +9,16 @@ using TriasDev.Templify.Core;
 
 namespace TriasDev.Templify.Builder;
 
-/// <summary>How an inspected template relates to the current definition.</summary>
-public enum TemplateOrigin
-{
-    /// <summary>The template has no stamp: edited in an application that dropped it, or not built by the builder.</summary>
-    Unknown = 0,
-
-    /// <summary>The stamp names the expected template and the current data contract.</summary>
-    CurrentContract = 1,
-
-    /// <summary>The stamp names the expected template, built against a different data contract (typically an older version).</summary>
-    DifferentContract = 2,
-
-    /// <summary>The stamp names a different template than the one expected.</summary>
-    OtherTemplate = 3,
-}
-
 /// <summary>What <see cref="TemplateInspector.Inspect"/> found in a template.</summary>
 /// <param name="Format">The file format; <see cref="TemplateFormat.Unknown"/> for anything else.</param>
 /// <param name="Stamp">The builder's stamp; null when there is none.</param>
 public sealed record TemplateInspection(TemplateFormat Format, TemplateStamp? Stamp);
 
-/// <summary>The result of <see cref="TemplateInspector.CheckUpload"/>.</summary>
-public sealed class UploadCheckResult
-{
-    internal UploadCheckResult(TemplateFormat format, TemplateStamp? stamp, TemplateOrigin origin, ValidationResult syntax, IReadOnlyList<string> unknownPaths)
-    {
-        Format = format;
-        Stamp = stamp;
-        Origin = origin;
-        Syntax = syntax;
-        UnknownPaths = unknownPaths;
-    }
-
-    /// <summary>
-    /// Gets a value indicating whether the template can be filled with data of the current contract: a known format,
-    /// valid template syntax and no unknown paths.
-    /// </summary>
-    public bool IsUsable => Format != TemplateFormat.Unknown && Syntax.IsValid && UnknownPaths.Count == 0;
-
-    /// <summary>Gets the file format.</summary>
-    public TemplateFormat Format { get; }
-
-    /// <summary>Gets the builder's stamp; null when there is none.</summary>
-    public TemplateStamp? Stamp { get; }
-
-    /// <summary>Gets how the template relates to the current definition, by its stamp.</summary>
-    public TemplateOrigin Origin { get; }
-
-    /// <summary>Gets the result of <see cref="TemplateProcessor.ValidateTemplate(Stream)"/>: the template's own syntax.</summary>
-    public ValidationResult Syntax { get; }
-
-    /// <summary>
-    /// Gets the paths the template uses that the current data contract does not provide, as the template writes them
-    /// (with its own loop variable names), sorted.
-    /// </summary>
-    /// <remarks>
-    /// Paths used as comparison operands (<c>{{#if order.priority = "high"}}</c>) are found only once the engine reports
-    /// them (TriasDev/templify#271).
-    /// </remarks>
-    public IReadOnlyList<string> UnknownPaths { get; }
-}
-
 /// <summary>
-/// Reads the builder's stamp from a template and checks an uploaded (possibly hand-edited) template against the
-/// current data contract.
+/// Reads the builder's stamp from a template and checks stored templates (copies and JSON definitions) against the
+/// current data.
 /// </summary>
-public static partial class TemplateInspector
+public static class TemplateInspector
 {
     /// <summary>Reads a template's format and stamp.</summary>
     /// <param name="template">The template; it is read, not changed.</param>
@@ -90,52 +32,103 @@ public static partial class TemplateInspector
     }
 
     /// <summary>
-    /// Checks a template a user uploaded: its syntax, its stamp against the expected identity and the current
-    /// contract, and the paths it uses that the current data does not provide.
+    /// Checks a stored template (a DOCX or ODT copy, typically edited by a user) against the current data: its syntax,
+    /// every path it reads (against the catalogue, so a copy may read fields the standard template does not), a trial
+    /// fill, and its stamp (identity, version, component versions).
     /// </summary>
-    /// <param name="template">The uploaded template; it is read, not changed.</param>
-    /// <param name="current">The contract of the current definition (<see cref="GeneratedTemplate.Contract"/>).</param>
-    /// <param name="expected">The identity the upload should have; null to skip that check.</param>
-    /// <returns>The result.</returns>
-    public static UploadCheckResult CheckUpload(Stream template, DataContract current, TemplateIdentity? expected = null)
+    /// <param name="template">The template; it is read, not changed.</param>
+    /// <param name="options">The current data catalogue, and the identity and components to compare the stamp with.</param>
+    /// <returns>The status and the problems.</returns>
+    public static TemplateCheckResult Check(Stream template, TemplateCheckOptions options)
     {
         ArgumentNullException.ThrowIfNull(template);
-        ArgumentNullException.ThrowIfNull(current);
+        ArgumentNullException.ThrowIfNull(options);
         byte[] bytes = ReadAll(template);
         TemplateFormat format = DetectFormat(bytes);
         TemplateStamp? stamp = ReadStamp(bytes, format);
+        List<TemplateCheckProblem> problems = new List<TemplateCheckProblem>();
 
-        TemplateProcessor processor = new TemplateProcessor();
-        ValidationResult syntax;
-        using (MemoryStream stream = new MemoryStream(bytes, writable: false))
+        if (format == TemplateFormat.Unknown)
         {
-            syntax = processor.ValidateTemplate(stream);
+            problems.Add(new TemplateCheckProblem(CheckCodes.Syntax, TemplateCheckSeverity.Error, "The file is not a DOCX or ODT template."));
+            return new TemplateCheckResult(format, stamp, problems);
         }
 
-        List<string> unknown = new List<string>();
-        if (format != TemplateFormat.Unknown)
+        ValidationResult validation = options.Data.ValidateTemplate(bytes, out IReadOnlyCollection<string> openNames);
+        foreach (ValidationError error in validation.Errors.Where(e => e.Type != ValidationErrorType.MissingVariable))
         {
-            using MemoryStream stream = new MemoryStream(bytes, writable: false);
-            ValidationResult withData = processor.ValidateTemplate(stream, current.CreateWitness());
-            unknown.AddRange(withData.MissingVariables);
-            unknown.AddRange(withData.Warnings
-                .Where(w => w.Type == ValidationWarningType.MissingConditionVariable)
-                .Select(w => ConditionVariable().Match(w.Message))
-                .Where(m => m.Success)
-                .Select(m => m.Groups[1].Value));
+            problems.Add(new TemplateCheckProblem(CheckCodes.Syntax, TemplateCheckSeverity.Error, error.Message) { Location = error.Location });
         }
 
-        TemplateOrigin origin = stamp is null ? TemplateOrigin.Unknown
-            : expected != null && !string.Equals(stamp.TemplateId, expected.Id, StringComparison.Ordinal) ? TemplateOrigin.OtherTemplate
-            : string.Equals(stamp.ContractHash, current.Hash, StringComparison.Ordinal) ? TemplateOrigin.CurrentContract
-            : TemplateOrigin.DifferentContract;
+        foreach (string path in validation.MissingVariables.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
+        {
+            problems.Add(new TemplateCheckProblem(CheckCodes.UnknownPath, TemplateCheckSeverity.Error, $"The data has no '{path}'.") { DataPath = path });
+        }
 
-        return new UploadCheckResult(
-            format,
-            stamp,
-            origin,
-            syntax,
-            unknown.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList());
+        foreach (ValidationWarning warning in validation.Warnings.Where(w => w.Type == ValidationWarningType.MissingConditionVariable))
+        {
+            foreach (string path in DataCatalog.MissingNames(new ValidationResult { Warnings = [warning] }))
+            {
+                problems.Add(new TemplateCheckProblem(CheckCodes.UnknownPath, TemplateCheckSeverity.Error, $"A condition reads '{path}', which the data does not have.") { DataPath = path, Location = warning.Location });
+            }
+        }
+
+        if (problems.Count == 0)
+        {
+            TrialFill(bytes, options.Data.CreateWitness(openNames), problems);
+        }
+
+        JudgeStamp(stamp, options, problems);
+        return new TemplateCheckResult(format, stamp, problems);
+    }
+
+    /// <summary>Fills the template with witness data: what validation does not see (a loop over a value) fails here.</summary>
+    private static void TrialFill(byte[] bytes, IReadOnlyDictionary<string, object?> witness, List<TemplateCheckProblem> problems)
+    {
+        using MemoryStream input = new MemoryStream(bytes, writable: false);
+        using MemoryStream output = new MemoryStream();
+        ProcessingResult result = new TemplateProcessor().ProcessTemplate(input, output, witness);
+        if (!result.IsSuccess)
+        {
+            problems.Add(new TemplateCheckProblem(CheckCodes.WrongKind, TemplateCheckSeverity.Error, result.ErrorMessage ?? "Filling the template failed."));
+        }
+    }
+
+    private static void JudgeStamp(TemplateStamp? stamp, TemplateCheckOptions options, List<TemplateCheckProblem> problems)
+    {
+        if (stamp is null)
+        {
+            problems.Add(new TemplateCheckProblem(CheckCodes.NoStamp, TemplateCheckSeverity.Warning, "The template has no builder stamp: its origin is unknown (edited in an application that dropped it, or not built by the builder)."));
+            return;
+        }
+
+        if (options.Expected is { } expected)
+        {
+            if (!string.Equals(stamp.TemplateId, expected.Id, StringComparison.Ordinal))
+            {
+                problems.Add(new TemplateCheckProblem(CheckCodes.OtherTemplate, TemplateCheckSeverity.Warning, $"The template comes from '{stamp.TemplateId}', not from '{expected.Id}'."));
+            }
+            else if (stamp.Version < expected.Version)
+            {
+                problems.Add(new TemplateCheckProblem(CheckCodes.OlderVersion, TemplateCheckSeverity.Warning, $"The template comes from version {stamp.Version} of '{expected.Id}'; the current version is {expected.Version}."));
+            }
+        }
+
+        if (options.Components is { } components)
+        {
+            IReadOnlyDictionary<string, int> current = components.Versions();
+            foreach ((string name, int version) in stamp.Components)
+            {
+                if (!current.TryGetValue(name, out int now))
+                {
+                    problems.Add(new TemplateCheckProblem(CheckCodes.OlderComponent, TemplateCheckSeverity.Warning, $"The template was built with the component {name} (version {version}), which is no longer registered."));
+                }
+                else if (version < now)
+                {
+                    problems.Add(new TemplateCheckProblem(CheckCodes.OlderComponent, TemplateCheckSeverity.Warning, $"The template was built with version {version} of the component {name}; the current version is {now}."));
+                }
+            }
+        }
     }
 
     /// <summary>The builder's document properties of a package (name → value).</summary>
@@ -176,7 +169,7 @@ public static partial class TemplateInspector
         }
         catch (Exception exception) when (exception is InvalidDataException or System.Xml.XmlException or OpenXmlPackageException or IOException)
         {
-            // A damaged package has no readable stamp; CheckUpload reports its syntax through the engine.
+            // A damaged package has no readable stamp; Check reports its syntax through the engine.
         }
 
         return properties;
@@ -197,9 +190,4 @@ public static partial class TemplateInspector
         stream.CopyTo(buffer);
         return buffer.ToArray();
     }
-
-    // Until the engine exposes the variable of a MissingConditionVariable warning (TriasDev/templify#275), its name is
-    // read from the message; a test fails if the wording changes.
-    [GeneratedRegex(@"uses variable '([^']+)'", RegexOptions.CultureInvariant)]
-    private static partial Regex ConditionVariable();
 }

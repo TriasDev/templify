@@ -34,7 +34,7 @@ public sealed class SampleTests
                 files.Select(Path.GetFileName));
             Assert.All(files, f => Assert.True(new FileInfo(f).Length > 0, f));
             Assert.Contains("Template verification passed (4 templates).", log.ToString(), StringComparison.Ordinal);
-            Assert.Contains("usable=True, origin=CurrentContract", log.ToString(), StringComparison.Ordinal);
+            Assert.Contains("check of the unchanged template: Ok", log.ToString(), StringComparison.Ordinal);
 
             byte[] filled = File.ReadAllBytes(Path.Combine(directory, "order-confirmation.en-GB.filled.odt"));
             string snapshot = TemplateSnapshot.Create(TemplateFormat.Odt, filled);

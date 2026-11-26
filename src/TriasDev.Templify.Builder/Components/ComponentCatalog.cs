@@ -31,6 +31,14 @@ public sealed partial class ComponentCatalog
     /// </summary>
     public System.Text.Json.JsonNamingPolicy? DataNaming { get; init; }
 
+    /// <summary>The registered components that have a <see cref="ComponentVersionAttribute"/>: stamp name → version.</summary>
+    internal IReadOnlyDictionary<string, int> Versions() =>
+        _byType.Keys
+            .Select(type => (Name: ComponentVersions.NameOf(type), Version: ComponentVersions.VersionOf(type)))
+            .Where(c => c.Version is not null)
+            .GroupBy(c => c.Name, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.Max(c => c.Version!.Value), StringComparer.Ordinal);
+
     /// <summary>Gets the registered names.</summary>
     public IReadOnlyCollection<string> Names => _byName.Keys;
 

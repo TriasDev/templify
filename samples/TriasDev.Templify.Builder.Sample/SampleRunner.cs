@@ -67,13 +67,18 @@ public static class SampleRunner
                 $"{result.ReplacementCount} replacements, build warnings: {string.Join(", ", template.Warnings.Select(w => w.Code))}");
         }
 
-        // 3. The data contract (the JSON shape the template reads) and the upload check of an unchanged template.
+        // 3. The data contract (the JSON shape the template reads) and the check of an unchanged template against the data.
         GeneratedTemplate first = report.Templates[0].Template;
         files.Add(Write(outputDirectory, "data-contract.json", System.Text.Encoding.UTF8.GetBytes(first.Contract.ToJson())));
         using (Stream upload = first.OpenRead())
         {
-            UploadCheckResult check = TemplateInspector.CheckUpload(upload, first.Contract, new OrderConfirmation(theme).Identity);
-            log.WriteLine($"upload check of the unchanged template: usable={check.IsUsable}, origin={check.Origin}");
+            TemplateCheckResult check = TemplateInspector.Check(upload, new TemplateCheckOptions
+            {
+                Data = DataCatalog.From<OrderData>(),
+                Expected = new OrderConfirmation(theme).Identity,
+                Components = Components,
+            });
+            log.WriteLine($"check of the unchanged template: {check.Status}{string.Concat(check.Problems.Select(p => "; " + p))}");
         }
 
         return files;

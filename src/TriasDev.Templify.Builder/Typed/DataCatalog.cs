@@ -140,7 +140,12 @@ public sealed partial class DataCatalog
     /// </summary>
     /// <param name="template">The template package.</param>
     /// <returns>The last validation.</returns>
-    internal ValidationResult ValidateTemplate(byte[] template)
+    internal ValidationResult ValidateTemplate(byte[] template) => ValidateTemplate(template, out _);
+
+    /// <inheritdoc cref="ValidateTemplate(byte[])"/>
+    /// <param name="template">The template package.</param>
+    /// <param name="openNames">The names the open shapes got (for <see cref="CreateWitness"/>).</param>
+    internal ValidationResult ValidateTemplate(byte[] template, out IReadOnlyCollection<string> openNames)
     {
         HashSet<string> names = new HashSet<string>(StringComparer.Ordinal);
         bool open = Entries.Any(e => e.Kind == DataKind.Open);
@@ -163,6 +168,7 @@ public sealed partial class DataCatalog
 
             if (names.Count == before)
             {
+                openNames = names;
                 return result;
             }
         }

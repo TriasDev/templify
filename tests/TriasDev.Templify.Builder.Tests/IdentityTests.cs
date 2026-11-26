@@ -16,10 +16,10 @@ public sealed class IdentityTests
 
     public static TheoryData<TemplateFormat> Formats => new TheoryData<TemplateFormat>(BuilderHarness.Formats);
 
-    private static readonly TemplateIdentity _invoice = new TemplateIdentity("invoice", 1);
+    internal static readonly TemplateIdentity InvoiceIdentity = new TemplateIdentity("invoice", 1);
 
     /// <summary>Version 1 of an invoice template. <paramref name="withOldFields"/> adds fields that version 2 dropped.</summary>
-    private static TestDefinition Invoice(int version, bool withOldFields = false) => new TestDefinition(
+    internal static TestDefinition Invoice(int version, bool withOldFields = false) => new TestDefinition(
         template =>
         {
             TemplatePath order = template.Data["order"];
@@ -50,7 +50,7 @@ public sealed class IdentityTests
                 }
             });
         },
-        _invoice with { Version = version });
+        InvoiceIdentity with { Version = version });
 
     [Theory]
     [MemberData(nameof(Formats))]
@@ -114,107 +114,7 @@ public sealed class IdentityTests
         Assert.Throws<ArgumentException>(() => TemplateStampRemover.Remove(template.OpenRead()));
     }
 
-    [Theory]
-    [MemberData(nameof(Formats))]
-    public void CheckUpload_UnchangedTemplate_IsUsableAndCurrent(TemplateFormat format)
-    {
-        GeneratedTemplate template = BuilderHarness.Build(Invoice(2), format);
-
-        UploadCheckResult result = TemplateInspector.CheckUpload(template.OpenRead(), template.Contract, _invoice);
-
-        Assert.True(result.IsUsable);
-        Assert.Equal(TemplateOrigin.CurrentContract, result.Origin);
-        Assert.Equal(format, result.Format);
-        Assert.Empty(result.UnknownPaths);
-    }
-
-    [Theory]
-    [MemberData(nameof(Formats))]
-    public void CheckUpload_CopyOfAnOlderVersion_IsUsableButDifferent(TemplateFormat format)
-    {
-        GeneratedTemplate old = BuilderHarness.Build(Invoice(1), format);
-        DataContract current = BuilderHarness.Build(Invoice(2), format).Contract;
-
-        UploadCheckResult result = TemplateInspector.CheckUpload(old.OpenRead(), current, _invoice);
-
-        Assert.True(result.IsUsable);
-        Assert.Equal(TemplateOrigin.DifferentContract, result.Origin);
-        Assert.Equal(1, result.Stamp!.Version);
-    }
-
-    [Theory]
-    [MemberData(nameof(Formats))]
-    public void CheckUpload_PathsTheCurrentDataNoLongerHas_AreListed(TemplateFormat format)
-    {
-        GeneratedTemplate old = BuilderHarness.Build(Invoice(1, withOldFields: true), format);
-        DataContract current = BuilderHarness.Build(Invoice(2), format).Contract;
-
-        UploadCheckResult result = TemplateInspector.CheckUpload(old.OpenRead(), current, _invoice);
-
-        Assert.False(result.IsUsable);
-        Assert.True(result.Syntax.IsValid);
-        // order.archived comes from a MissingConditionVariable warning, read from its message until #275.
-        Assert.Equal(new[] { "line.discount", "order.archived", "order.fax" }, result.UnknownPaths);
-    }
-
-    [Theory]
-    [MemberData(nameof(Formats))]
-    public void CheckUpload_HandEdits_AreJudgedByTheirPaths(TemplateFormat format)
-    {
-        GeneratedTemplate template = BuilderHarness.Build(Invoice(2), format);
-        byte[] bytes = template.Content.ToArray();
-        string part = BuilderHarness.MainPart(format);
-
-        // A section deleted (the paid note and its markers), a loop variable renamed.
-        byte[] cutDown = BuilderHarness.EditEntry(bytes, part, xml => RemoveParagraphsContaining(xml, format, "{{#if order.isPaid}}", "Paid", "{{/if}}"));
-        byte[] renamed = BuilderHarness.EditEntry(bytes, part, xml => xml.Replace("line.", "l.", StringComparison.Ordinal).Replace("foreach line in", "foreach l in", StringComparison.Ordinal));
-        // The end marker deleted: broken syntax.
-        byte[] broken = BuilderHarness.EditEntry(bytes, part, xml => RemoveParagraphsContaining(xml, format, "{{/foreach}}"));
-
-        Assert.True(TemplateInspector.CheckUpload(new MemoryStream(cutDown), template.Contract).IsUsable);
-        Assert.True(TemplateInspector.CheckUpload(new MemoryStream(renamed), template.Contract).IsUsable);
-        UploadCheckResult brokenResult = TemplateInspector.CheckUpload(new MemoryStream(broken), template.Contract);
-        Assert.False(brokenResult.IsUsable);
-        Assert.False(brokenResult.Syntax.IsValid);
-    }
-
-    [Theory]
-    [MemberData(nameof(Formats))]
-    public void CheckUpload_StampRemoved_IsUnknownButStillChecked(TemplateFormat format)
-    {
-        GeneratedTemplate template = BuilderHarness.Build(Invoice(2), format);
-        using MemoryStream stripped = new MemoryStream();
-        template.WriteTo(stripped);
-        TemplateStampRemover.Remove(stripped);
-
-        UploadCheckResult result = TemplateInspector.CheckUpload(stripped, template.Contract, _invoice);
-
-        Assert.Null(result.Stamp);
-        Assert.Equal(TemplateOrigin.Unknown, result.Origin);
-        Assert.True(result.IsUsable);
-    }
-
-    [Fact]
-    public void CheckUpload_OtherTemplate_IsReported()
-    {
-        GeneratedTemplate template = BuilderHarness.Build(Invoice(2), TemplateFormat.Odt);
-
-        UploadCheckResult result = TemplateInspector.CheckUpload(template.OpenRead(), template.Contract, new TemplateIdentity("letter", 1));
-
-        Assert.Equal(TemplateOrigin.OtherTemplate, result.Origin);
-    }
-
-    [Fact]
-    public void CheckUpload_NotATemplate_IsNotUsable()
-    {
-        UploadCheckResult result = TemplateInspector.CheckUpload(new MemoryStream(new byte[] { 1, 2, 3, 4 }), BuilderHarness.Build(Invoice(2), TemplateFormat.Docx).Contract);
-
-        Assert.Equal(TemplateFormat.Unknown, result.Format);
-        Assert.False(result.IsUsable);
-        Assert.Null(TemplateInspector.Inspect(new MemoryStream(new byte[] { 1, 2, 3, 4 })).Stamp);
-    }
-
-    private static string RemoveParagraphsContaining(string xml, TemplateFormat format, params string[] texts)
+    internal static string RemoveParagraphsContaining(string xml, TemplateFormat format, params string[] texts)
     {
         XDocument document = XDocument.Parse(xml);
         XNamespace w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
