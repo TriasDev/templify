@@ -96,31 +96,36 @@ public static class SampleRunner
         string data = SampleResources.SampleData;
         List<string> files = new List<string>();
 
+        // One JSON for every language: texts are [[key]] references, translated from the JSON's own "texts" section.
+        TemplateJsonDocument exported = TemplateJson.Export(
+            new OrderConfirmation(theme),
+            new TemplateBuildOptions { Format = TemplateFormat.Docx, Language = Languages[0], Texts = SampleTexts.Catalog },
+            new TemplateJsonExportOptions { Components = Components, TextLanguages = [CultureInfo.GetCultureInfo("de"), CultureInfo.GetCultureInfo("en")] });
+        files.Add(Write(outputDirectory, "order-confirmation.json", System.Text.Encoding.UTF8.GetBytes(exported.Json)));
+        foreach ((string key, byte[] asset) in exported.Assets)
+        {
+            files.Add(Write(Path.Combine(outputDirectory, "assets"), key.Replace("sha256:", string.Empty, StringComparison.Ordinal)[..16] + ".png", asset));
+        }
+
+        int lines = exported.Json.Count(c => c == '\n');
+        log.WriteLine($"order-confirmation.json: {exported.Json.Length} characters, {lines} lines, about {exported.Json.Length / 4} tokens");
+        ITemplateDefinition imported = TemplateJson.Import(exported.Json, new TemplateJsonImportOptions
+        {
+            Assets = exported.Assets,
+            Components = Components,
+            Data = DataCatalog.From<OrderData>(),
+            AllowRawXml = true,
+        });
+
         foreach (CultureInfo language in Languages)
         {
+            // The C# definition translates from the catalog; the imported JSON needs none.
             TemplateBuildOptions options = new TemplateBuildOptions { Format = TemplateFormat.Docx, Language = language, Texts = SampleTexts.Catalog };
-            TemplateJsonDocument exported = TemplateJson.Export(new OrderConfirmation(theme), options, Components);
             string name = $"order-confirmation.{language.Name}";
-            files.Add(Write(outputDirectory, name + ".json", System.Text.Encoding.UTF8.GetBytes(exported.Json)));
-            foreach ((string key, byte[] asset) in exported.Assets)
-            {
-                files.Add(Write(Path.Combine(outputDirectory, "assets"), key.Replace("sha256:", string.Empty, StringComparison.Ordinal)[..16] + ".png", asset));
-            }
-
-            ITemplateDefinition imported = TemplateJson.Import(exported.Json, new TemplateJsonImportOptions
-            {
-                Assets = exported.Assets,
-                Components = Components,
-                Data = DataCatalog.From<OrderData>(),
-                AllowRawXml = true,
-            });
-
-            int lines = exported.Json.Count(c => c == '\n') + 1;
-            log.WriteLine($"{name}.json: {exported.Json.Length} characters, {lines} lines, about {exported.Json.Length / 4} tokens");
             foreach (TemplateFormat format in new[] { TemplateFormat.Docx, TemplateFormat.Odt })
             {
                 TemplateBuildOptions formatOptions = options with { Format = format };
-                GeneratedTemplate fromJson = TemplateBuilder.Build(imported, formatOptions);
+                GeneratedTemplate fromJson = TemplateBuilder.Build(imported, formatOptions with { Texts = TextCatalog.Empty });
                 GeneratedTemplate fromCSharp = TemplateBuilder.Build(new OrderConfirmation(theme), formatOptions);
                 if (fromJson.ContentHash != fromCSharp.ContentHash)
                 {

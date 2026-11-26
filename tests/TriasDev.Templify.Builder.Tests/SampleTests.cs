@@ -62,9 +62,11 @@ public sealed class SampleTests
 
             IReadOnlyList<string> files = SampleRunner.RunPhase3(directory, log);
 
+            string json = Assert.Single(files, f => Path.GetExtension(f) == ".json");
+            Assert.Equal("order-confirmation.json", Path.GetFileName(json));
+            Assert.Contains("\"texts\"", File.ReadAllText(json), StringComparison.Ordinal);
             foreach (string language in new[] { "de-DE", "en-GB" })
             {
-                Assert.Contains(files, f => Path.GetFileName(f) == $"order-confirmation.{language}.json");
                 foreach (string extension in new[] { "docx", "odt" })
                 {
                     Assert.Contains(files, f => Path.GetFileName(f) == $"order-confirmation.{language}.from-json.{extension}");
