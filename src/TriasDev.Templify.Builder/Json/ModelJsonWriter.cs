@@ -42,8 +42,6 @@ internal sealed class ModelJsonWriter
         ModelJsonWriter writer;
         using (Utf8JsonWriter json = new Utf8JsonWriter(stream, new JsonWriterOptions
         {
-            Indented = true,
-            NewLine = "\n",
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         }))
         {
@@ -51,7 +49,7 @@ internal sealed class ModelJsonWriter
             writer.Document(composed, identity);
         }
 
-        return (Encoding.UTF8.GetString(stream.ToArray()), writer._assets);
+        return (JsonLayout.Format(Encoding.UTF8.GetString(stream.ToArray())), writer._assets);
     }
 
     private void Document(ComposedTemplate composed, TemplateIdentity identity)

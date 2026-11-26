@@ -34,15 +34,11 @@ public sealed class JsonExportTests
             """
             {
               "templifyDefinition": 1,
-              "identity": {
-                "id": "test",
-                "version": 1
-              },
+              "identity": {"id": "test", "version": 1},
               "language": "en-US",
-              "content": [
-                "Hello {{name}}"
-              ]
+              "content": ["Hello {{name}}"]
             }
+
             """.Replace("\r\n", "\n", StringComparison.Ordinal),
             document.Json);
         Assert.Empty(document.Assets);

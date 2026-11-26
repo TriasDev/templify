@@ -35,6 +35,7 @@ public static class Styles
     public static readonly ParagraphStyleKey TableHeader = new("TableHeader", "Table Header");
     public static readonly ParagraphStyleKey Small = new("SmallPrint", "Small Print");
     public static readonly ParagraphStyleKey ListItem = new("ListItem", "List Item");
+    public static readonly ParagraphStyleKey Logo = new("Logo", "Logo");
     public static readonly CharacterStyleKey Strong = new("StrongText", "Strong Text");
     public static readonly CharacterStyleKey Muted = new("MutedText", "Muted Text");
     public static readonly TableStyleKey Grid = new("LineGrid");
@@ -45,7 +46,8 @@ public static class Styles
     /// <summary>The style sheet, built from the theme.</summary>
     public static StyleSheet Create(BrandTheme t) => StyleSheet.Create(s =>
     {
-        s.Defaults(d => d.Font(t.Body).Size(10.Pt()).Color(t.Ink));
+        // Paragraphs without a style are body copy; table cells get the table style's text styles.
+        s.Defaults(d => d.Font(t.Body).Size(10.Pt()).Color(t.Ink).Paragraph(Body));
         s.Paragraph(Body, p => p.SpaceAfter(6.Pt()).LineSpacing(1.15));
         s.Paragraph(Title, p => p.BasedOn(Body).Next(Subtitle).Font(t.Heading).Size(22.Pt()).Bold().Color(t.Accent).SpaceAfter(2.Pt()));
         s.Paragraph(Subtitle, p => p.BasedOn(Body).Next(Body).Size(11.Pt()).Color(t.Muted).SpaceAfter(14.Pt()));
@@ -55,13 +57,16 @@ public static class Styles
         s.Paragraph(TableHeader, p => p.BasedOn(TableText).Bold());
         s.Paragraph(Small, p => p.BasedOn(Body).Size(8.Pt()).Color(t.Muted));
         s.Paragraph(ListItem, p => p.BasedOn(Body).SpaceAfter(2.Pt()));
+        s.Paragraph(Logo, p => p.SpaceAfter(0.Pt()));
         s.Character(Strong, c => c.Bold());
         s.Character(Muted, c => c.Color(t.Muted));
         s.Table(Grid, g => g
             .HeaderBackground(Color.FromHex("F2F5F8"))
             .HeaderRule(1.Pt(), t.Accent)
             .RowRule(0.5.Pt(), t.Line)
-            .CellPadding(3.Pt(), 5.Pt()));
+            .CellPadding(3.Pt(), 5.Pt())
+            .TextStyle(TableText)
+            .HeaderTextStyle(TableHeader));
         s.Box(Success, b => b.Border(0.75.Pt(), Color.FromHex("96C6A8")).Background(t.SuccessBackground).Padding(6.Pt(), 8.Pt()).SpaceAfter(8.Pt()));
         s.Box(Warning, b => b.Border(0.75.Pt(), Color.FromHex("E3B27A")).Background(t.WarningBackground).Padding(6.Pt(), 8.Pt()).SpaceAfter(8.Pt()));
         s.List(Bullets, l => l.ItemStyle(ListItem).Level(0, "•", 6.Mm(), 4.Mm()).Level(1, "–", 12.Mm(), 4.Mm()));
@@ -76,7 +81,7 @@ public sealed record AddressBlock(TemplatePath Address) : ITemplateComponent
 {
     public void Compose(BlockComposer c)
     {
-        c.Paragraph(Styles.Body, x =>
+        c.Paragraph(x =>
         {
             x.Value(Address["street"]);
             x.LineBreak();
@@ -122,7 +127,7 @@ public sealed class OrderConfirmation(BrandTheme theme) : ITemplateDefinition
             .FirstPage(first =>
             {
                 // The first page carries the logo instead of the running header.
-                first.Header(h => h.Paragraph(x => x.Image(theme.Logo, "Example Trading", ImageFit.Height(12.Mm()))));
+                first.Header(h => h.Paragraph(Styles.Logo, x => x.Image(theme.Logo, "Example Trading", ImageFit.Height(12.Mm()))));
                 first.Footer(f => f.Paragraph(Styles.Small, t["footer"]));
             }));
 
@@ -156,12 +161,12 @@ public sealed class OrderConfirmation(BrandTheme theme) : ITemplateDefinition
     private static void Customer(BlockComposer c, TemplateTexts t, TemplatePath order)
     {
         c.Paragraph(Styles.Heading, t["customer"]);
-        c.Paragraph(Styles.Body, x =>
+        c.Paragraph(x =>
         {
             x.Value(order["customer.name"], Styles.Strong);
             x.If(order["customer.isNew"], s => s.Text(" (" + t["newCustomer"] + ")", Styles.Muted));
         });
-        c.If(order["customer.contact"].IsNotEmpty, b => b.Paragraph(Styles.Body, x =>
+        c.If(order["customer.contact"].IsNotEmpty, b => b.Paragraph(x =>
         {
             x.Text(t["attn"] + " ", Styles.Muted);
             x.Value(order["customer.contact"]);
@@ -184,19 +189,19 @@ public sealed class OrderConfirmation(BrandTheme theme) : ITemplateDefinition
             });
             table.HeaderRow(r =>
             {
-                r.Cell(Styles.TableHeader, "#");
-                r.Cell(Styles.TableHeader, t["description"]);
-                r.Cell(Styles.TableHeader, t["quantity"]);
-                r.Cell(Styles.TableHeader, t["amount"]);
+                r.Cell("#");
+                r.Cell(t["description"]);
+                r.Cell(t["quantity"]);
+                r.Cell(t["amount"]);
             });
             table.ForEachRow(order["lines"], "line", (line, rows) =>
             {
                 rows.Row(r =>
                 {
-                    r.Cell(Styles.TableText, line.Number);
+                    r.Cell(line.Number);
                     r.Cell(cell =>
                     {
-                        cell.Paragraph(Styles.TableText, x =>
+                        cell.Paragraph(x =>
                         {
                             x.Value(line["description"]);
                             x.Text(" — ", Styles.Muted);
@@ -204,23 +209,24 @@ public sealed class OrderConfirmation(BrandTheme theme) : ITemplateDefinition
                         });
                         cell.If(line["tags"].IsNotEmpty, b => b.Paragraph(Styles.Small, x => x.Value(line["tags"], ValueFormat.Join(separator: " · "))));
                     });
-                    r.Cell(Styles.TableText, line["quantity"]);
-                    r.Cell(cell => cell.Paragraph(Styles.TableText, x => x.Value(line["amount"], ValueFormat.Currency)));
+                    r.Cell(line["quantity"]);
+                    r.Cell(cell => cell.Paragraph(x => x.Value(line["amount"], ValueFormat.Currency)));
                 });
             });
             table.RowsIf(order["discount"].Gt(0), rows => rows.Row(r =>
             {
-                r.Cell(cell => cell.ColumnSpan(3).Paragraph(Styles.TableText, t["discount"]));
-                r.Cell(cell => cell.Paragraph(Styles.TableText, x => x.Value(order["discount"], ValueFormat.Currency)));
+                r.Cell(cell => cell.ColumnSpan(3).Paragraph(t["discount"]));
+                r.Cell(cell => cell.Paragraph(x => x.Value(order["discount"], ValueFormat.Currency)));
             }));
             table.Row(r =>
             {
-                r.Cell(cell => cell.ColumnSpan(3).Paragraph(Styles.TableHeader, t["total"]));
-                r.Cell(cell => cell.Paragraph(Styles.TableHeader, x => x.Value(order["total"], ValueFormat.Currency)));
+                r.TextStyle(Styles.TableHeader);
+                r.Cell(cell => cell.ColumnSpan(3).Paragraph(t["total"]));
+                r.Cell(cell => cell.Paragraph(x => x.Value(order["total"], ValueFormat.Currency)));
             });
         });
 
-        c.Paragraph(Styles.Body, x =>
+        c.Paragraph(x =>
         {
             x.Text(t["freeExpress"] + " ");
             x.Expression(order["isExpress"] & order["total"].Gt(1000), ValueFormat.YesNo);
@@ -232,14 +238,14 @@ public sealed class OrderConfirmation(BrandTheme theme) : ITemplateDefinition
         // Every unknown status falls into Default.
         c.Switch(order["status"], s =>
         {
-            s.Case("paid", b => b.Box(Styles.Success, x => x.Paragraph(Styles.Body, t["statusPaid"])));
-            s.Case(new[] { "overdue", "reminded" }, b => b.Box(Styles.Warning, x => x.Paragraph(Styles.Body, t["statusOverdue"])));
-            s.Default(b => b.Paragraph(Styles.Body, t["statusOpen"]));
+            s.Case("paid", b => b.Box(Styles.Success, x => x.Paragraph(t["statusPaid"])));
+            s.Case(new[] { "overdue", "reminded" }, b => b.Box(Styles.Warning, x => x.Paragraph(t["statusOverdue"])));
+            s.Default(b => b.Paragraph(t["statusOpen"]));
         });
 
-        c.If(order["isExpress"] & order["total"].Gt(1000), b => b.Paragraph(Styles.Body, t["expressFree"]))
-         .ElseIf(order["isExpress"], b => b.Paragraph(Styles.Body, t["express"]))
-         .Else(b => b.Paragraph(Styles.Body, t["standard"]));
+        c.If(order["isExpress"] & order["total"].Gt(1000), b => b.Paragraph(t["expressFree"]))
+         .ElseIf(order["isExpress"], b => b.Paragraph(t["express"]))
+         .Else(b => b.Paragraph(t["standard"]));
     }
 
     private static void Checks(BlockComposer c, TemplateTexts t, TemplatePath order)
@@ -265,7 +271,7 @@ public sealed class OrderConfirmation(BrandTheme theme) : ITemplateDefinition
         c.If(order["notes"].IsNotEmpty, b =>
         {
             b.Paragraph(Styles.Heading, t["notes"]);
-            b.Paragraph(Styles.Body, order["notes"]);
+            b.Paragraph(order["notes"]);
         });
     }
 
