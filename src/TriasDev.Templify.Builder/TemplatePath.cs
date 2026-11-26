@@ -231,6 +231,6 @@ public readonly partial struct TemplatePath : IEquatable<TemplatePath>
     }
 
     // Templify's placeholder grammar (PlaceholderScanner) accepts \w characters in names.
-    [GeneratedRegex(@"^\w+(\[\d{1,3}\])?$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"^\w+(\[[0-9]{1,3}\])?$", RegexOptions.CultureInvariant)]
     private static partial Regex SegmentPattern();
 }

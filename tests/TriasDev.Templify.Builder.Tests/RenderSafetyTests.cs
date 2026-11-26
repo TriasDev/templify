@@ -166,6 +166,51 @@ public sealed class RenderSafetyTests
         Assert.Contains("TemplifySpacer", LastContent(cells[1]).ToString(), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [MemberData(nameof(Formats))]
+    public void NestedBoxEndingWithAConditional_BothCellsEndWithAParagraph(TemplateFormat format)
+    {
+        TestDefinition definition = new TestDefinition(t =>
+        {
+            t.Styles(Sheet());
+            t.Content(c => c.Box(_box, outer => outer.Box(_box, inner =>
+            {
+                Inner(inner);
+                inner.If(t.Data["flag"], b => b.Paragraph("x"));
+            })));
+        });
+
+        (_, byte[] filled) = BuilderHarness.BuildAndFill(definition, format, """{ "flag": false }""");
+
+        XElement outerBox = Body(format, filled).Elements(TableName(format)).Single();
+        XElement outerCell = FirstCell(format, outerBox);
+        XElement innerBox = outerCell.Elements(TableName(format)).Single();
+        Assert.Equal(ParagraphName(format), LastContent(outerCell).Name);
+        Assert.Equal(ParagraphName(format), LastContent(FirstCell(format, innerBox)).Name);
+    }
+
+    [Fact]
+    public void HeaderWithTablesAroundAConditional_StaysApartAndEndsWithAParagraph()
+    {
+        TestDefinition definition = new TestDefinition(t =>
+        {
+            t.Page(p => p.Header(h =>
+            {
+                Inner(h);
+                h.If(t.Data["flag"], b => b.Paragraph("between"));
+                Inner(h);
+                h.If(t.Data["flag"], b => b.Paragraph("after"));
+            }));
+            t.Content(c => c.Paragraph("body"));
+        });
+
+        (_, byte[] filled) = BuilderHarness.BuildAndFill(definition, TemplateFormat.Docx, """{ "flag": false }""");
+
+        List<XElement> header = BuilderHarness.ReadXml(filled, "word/header1.xml").Root!.Elements().ToList();
+        Assert.Equal(ParagraphName(TemplateFormat.Docx), header[^1].Name);
+        Assert.DoesNotContain(header.Zip(header.Skip(1)), pair => pair.First.Name == _w + "tbl" && pair.Second.Name == _w + "tbl");
+    }
+
     [Fact]
     public void CommaInAStyleName_IsTB2006()
     {

@@ -78,6 +78,22 @@ internal sealed partial class LoopScope(string itemName, TemplatePath collection
         }
     }
 
+    /// <summary>
+    /// A loop's collection path has no index: Templify's loop marker takes letters, digits, <c>_</c> and <c>.</c> only, so
+    /// <c>{{#foreach l in groups[1].lines}}</c> would stay text in the filled document.
+    /// </summary>
+    public static TemplatePath ValidateCollection(TemplatePath collection)
+    {
+        if (collection.ToString().Contains('[', StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                $"Templify cannot loop over '{collection}': a loop's collection path has no list index (its loop marker takes letters, digits, '_' and '.' only).",
+                nameof(collection));
+        }
+
+        return collection;
+    }
+
     /// <summary>Checks an iteration variable name where it is written.</summary>
     public static string ValidateItemName(string itemName, LoopScope? enclosing)
     {

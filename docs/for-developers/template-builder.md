@@ -117,7 +117,8 @@ style.
 
 A segment may read one item of a list by its index (0 to 999): `order["items[0].name"]`, typed
 `order.Path(o => o.Items[0].Name)`, in JSON `{{order.items[0].name}}`. The data contract keeps the index, and its
-witness holds enough items for the highest index used.
+witness holds enough items for the highest index used. A loop cannot run over an indexed path (`groups[1].lines`):
+Templify's loop marker does not accept an index.
 
 ### Conditions
 

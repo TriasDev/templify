@@ -173,7 +173,7 @@ public class BlockComposer
         }
 
         LoopScope.CheckUse(_context, _scope, collection);
-        LoopScope scope = new LoopScope(LoopScope.ValidateItemName(itemName, _scope), collection, _scope);
+        LoopScope scope = new LoopScope(LoopScope.ValidateItemName(itemName, _scope), LoopScope.ValidateCollection(collection), _scope);
         List<Block> blocks = new List<Block>();
         BlockComposer composer = new BlockComposer(_context, blocks, scope);
         body(new LoopItem(scope), composer);

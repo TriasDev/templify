@@ -136,6 +136,57 @@ public sealed class IndexedPathTests
     }
 
     [Fact]
+    public void LoopOverAnIndexedPath_IsRejected()
+    {
+        // Templify's loop markers take a path of letters, digits, '_' and '.': {{#foreach l in groups[1].lines}} would stay text.
+        Assert.Throws<ArgumentException>(() => BuilderHarness.Build(new TestDefinition(t => t.Content(c =>
+            c.ForEach(t.Data["groups[1].lines"], "l", (l, b) => b.Paragraph(l["name"])))), TemplateFormat.Docx));
+        Assert.Throws<ArgumentException>(() => BuilderHarness.Build(new TestDefinition(t => t.Content(c =>
+            c.ForEach(t.DataAs<Root>().Items(r => r.Order.Items[0].Parts), "p", (p, b) => b.Paragraph(p.Path(x => x.Name))))), TemplateFormat.Docx));
+        Assert.Throws<ArgumentException>(() => BuilderHarness.Build(new TestDefinition(t => t.Content(c => c.Table(tb =>
+        {
+            tb.Columns(cols => cols.Relative(1));
+            tb.ForEachRow(t.Data["matrix[1]"], "cell", (cell, rows) => rows.Row(r => r.Cell(cell.Self)));
+        }))), TemplateFormat.Docx));
+
+        ITemplateDefinition imported = TemplateJson.Import("""
+            { "templifyDefinition": 1, "identity": { "id": "c", "version": 1 }, "content": [ { "forEach": "order.items[0].parts", "as": "p", "body": [ "{{p.name}}" ] } ] }
+            """);
+        BuildDiagnostic error = Assert.Single(Assert.Throws<TemplateBuildException>(() => BuilderHarness.Build(imported, TemplateFormat.Docx)).Errors);
+        Assert.Equal("TB9201", error.Code);
+        Assert.Equal("/content/0", error.Location);
+    }
+
+    [Fact]
+    public void NonAsciiDigits_AreNotAnIndex()
+    {
+        Assert.Throws<ArgumentException>(() => TemplatePath.Root("items[\u0663].name"));
+    }
+
+    [Theory]
+    [MemberData(nameof(Formats))]
+    public void IndexInsideNestedLoops(TemplateFormat format)
+    {
+        TestDefinition definition = new TestDefinition(t => t.Content(c =>
+            c.ForEach(t.Data["order.groups"], "g", (g, outer) =>
+                outer.ForEach(g["lines"], "line", (line, inner) => inner.Paragraph(x =>
+                {
+                    x.Value(line["parts[1].name"]);
+                    x.Text("/");
+                    x.Value(g["lines[0].parts[0].name"]);
+                })))));
+
+        (GeneratedTemplate template, byte[] filled) = BuilderHarness.BuildAndFill(definition, format, """
+            { "order": { "groups": [ { "lines": [ { "parts": [ { "name": "a0" }, { "name": "a1" } ] }, { "parts": [ { "name": "b0" }, { "name": "b1" } ] } ] } ] } }
+            """);
+
+        Assert.Equal(new[] { "a1/a0", "b1/a0" }, BuilderHarness.ParagraphTexts(format, filled));
+        Assert.Contains(new ContractEntry("order.groups[].lines[].parts[1].name", ContractUsage.Value), template.Contract.Entries);
+        Assert.Contains(new ContractEntry("order.groups[].lines[0].parts[0].name", ContractUsage.Value), template.Contract.Entries);
+        BuilderHarness.BuildAndFill(definition, format, template.Contract.CreateWitness());
+    }
+
+    [Fact]
     public void Catalogue_AcceptsIndexedPaths()
     {
         TemplateJsonImportOptions options = new TemplateJsonImportOptions { Data = DataCatalog.From<Root>() };

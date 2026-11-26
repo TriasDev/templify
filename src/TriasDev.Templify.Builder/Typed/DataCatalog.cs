@@ -84,7 +84,7 @@ public sealed class DataCatalog
     internal DataKind? KindOf(string path)
     {
         // items[0].name reads an item like items[].name.
-        path = System.Text.RegularExpressions.Regex.Replace(path, @"\[\d+\]", "[]");
+        path = System.Text.RegularExpressions.Regex.Replace(path, @"\[[0-9]+\]", "[]");
         DataCatalogEntry? entry = Entries.FirstOrDefault(e => e.Path == path);
         if (entry != null)
         {
