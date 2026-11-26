@@ -38,6 +38,7 @@ internal sealed class JsonComposition
     private readonly Dictionary<string, CharacterStyleKey> _characterStyles = new Dictionary<string, CharacterStyleKey>(StringComparer.Ordinal);
     private readonly List<(string Name, LoopItem Item)> _scope = new List<(string, LoopItem)>();
     private readonly HashSet<string> _sectionNames = new HashSet<string>(StringComparer.Ordinal);
+    private readonly Dictionary<string, byte[]> _assetsByName = new Dictionary<string, byte[]>(StringComparer.Ordinal);
     private BuildContext _context = null!;
     private TemplateComposer _template = null!;
 
@@ -74,7 +75,8 @@ internal sealed class JsonComposition
         _sectionNames.Clear();
         _root = WithTranslations(_source);
 
-        Keys(_root, string.Empty, "$schema", "templifyDefinition", "identity", "texts", "properties", "styles", "page", "content", "components");
+        Keys(_root, string.Empty, "$schema", "templifyDefinition", "identity", "texts", "assets", "properties", "styles", "page", "content", "components");
+        ReadAssets();
         if (_root.TryGetProperty("components", out _))
         {
             Fail("/components", "The root key 'components' is reserved for components defined inside the definition (a later version).");
@@ -869,10 +871,20 @@ internal sealed class JsonComposition
         else if (inline.TryGetProperty("image", out JsonElement image))
         {
             Keys(inline, at, "image", "alt", "width", "height");
+            string name = image.ValueKind == JsonValueKind.String ? image.GetString()! : throw new JsonImportException(at + "/image", "An image names an entry of \"assets\".");
             byte[] data = Asset(image, at + "/image");
-            Length width = Length(inline, "width", at) ?? throw Missing(at, "width");
-            Length height = Length(inline, "height", at) ?? throw Missing(at, "height");
-            x.Image(ImageSource.FromBytes(data), String(inline, "alt", at) ?? string.Empty, ImageFit.Exact(width, height));
+            Length? width = Length(inline, "width", at);
+            Length? height = Length(inline, "height", at);
+
+            // One size is enough: the other follows from the image's proportions.
+            ImageFit fit = (width, height) switch
+            {
+                ({ } w, { } h) => ImageFit.Exact(w, h),
+                ({ } w, null) => ImageFit.Width(w),
+                (null, { } h) => ImageFit.Height(h),
+                _ => ImageFit.Natural,
+            };
+            x.Image(ImageSource.FromBytes(data).WithName(name), String(inline, "alt", at) ?? string.Empty, fit);
         }
         else if (inline.TryGetProperty("expression", out JsonElement expression))
         {
@@ -1372,12 +1384,46 @@ internal sealed class JsonComposition
         return FontFace.Embedded(family, Asset(Required(font, "embedded", at + "/font"), at + "/font/embedded"));
     }
 
+    /// <summary>The content of an asset named in the definition's <c>assets</c>.</summary>
     private byte[] Asset(JsonElement key, string at)
     {
         string? name = key.ValueKind == JsonValueKind.String ? key.GetString() : null;
-        return name != null && _options.Assets is { } assets && assets.TryGetValue(name, out byte[]? data)
+        return name != null && _assetsByName.TryGetValue(name, out byte[]? data)
             ? data
-            : throw new JsonImportException(at, $"The asset '{name}' is not in TemplateJsonImportOptions.Assets.");
+            : throw new JsonImportException(at, $"The asset '{name}' is not in the definition's \"assets\" ({string.Join(", ", _assetsByName.Keys)}).");
+    }
+
+    /// <summary>The <c>assets</c> section: names to content keys, each key in <see cref="TemplateJsonImportOptions.Assets"/>.</summary>
+    private void ReadAssets()
+    {
+        _assetsByName.Clear();
+        if (!_root.TryGetProperty("assets", out JsonElement assets))
+        {
+            return;
+        }
+
+        if (assets.ValueKind != JsonValueKind.Object)
+        {
+            Fail("/assets", "The assets are an object of names and content keys, for example { \"logo\": \"sha256:…\" }.");
+            return;
+        }
+
+        foreach (JsonProperty asset in assets.EnumerateObject())
+        {
+            string at = "/assets/" + Escape(asset.Name);
+            if (!AssetNames.IsValid(asset.Name))
+            {
+                Fail(at, $"'{asset.Name}' is not an asset name: use letters, digits, '_', '.' or '-'.");
+            }
+            else if (asset.Value.ValueKind != JsonValueKind.String || _options.Assets is not { } contents || !contents.TryGetValue(asset.Value.GetString()!, out byte[]? data))
+            {
+                Fail(at, $"The asset '{asset.Name}' refers to content that is not in TemplateJsonImportOptions.Assets.");
+            }
+            else
+            {
+                _assetsByName[asset.Name] = data;
+            }
+        }
     }
 
     private Length? Length(JsonElement owner, string name, string at) =>

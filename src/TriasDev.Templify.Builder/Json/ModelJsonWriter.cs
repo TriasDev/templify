@@ -23,6 +23,10 @@ internal sealed class ModelJsonWriter
 
     private readonly HashSet<string> _sectionNames = new HashSet<string>(StringComparer.Ordinal);
 
+    // The assets section: name → "sha256:…", in first-use order; unnamed images get one name per content (image-1, …).
+    private readonly List<KeyValuePair<string, string>> _assetNames = new List<KeyValuePair<string, string>>();
+    private readonly Dictionary<string, string> _unnamed = new Dictionary<string, string>(StringComparer.Ordinal);
+
     /// <summary>The paragraph style the blocks being written inherit; a paragraph with this style is written without one.</summary>
     private ParagraphStyleKey? _inherited;
 
@@ -51,14 +55,14 @@ internal sealed class ModelJsonWriter
             writer.Document(composed, identity);
         }
 
-        return (JsonLayout.Format(WithTextKeys(Encoding.UTF8.GetString(stream.ToArray()), texts)), writer._assets);
+        return (JsonLayout.Format(WithTextKeys(Encoding.UTF8.GetString(stream.ToArray()), texts, writer._assetNames)), writer._assets);
     }
 
     /// <summary>
     /// Turns the key markers of the composed texts into <c>[[key]]</c> in every string. A literal <c>[[</c> (the import
     /// would read a key) or a key outside the key syntax cannot be written: TB9204 at the string's pointer.
     /// </summary>
-    private static string WithTextKeys(string json, Func<IReadOnlyList<string>, IReadOnlyList<TextSection>>? texts)
+    private static string WithTextKeys(string json, Func<IReadOnlyList<string>, IReadOnlyList<TextSection>>? texts, IReadOnlyList<KeyValuePair<string, string>> assets)
     {
         using JsonDocument document = JsonDocument.Parse(json);
         List<BuildDiagnostic> problems = new List<BuildDiagnostic>();
@@ -72,9 +76,23 @@ internal sealed class ModelJsonWriter
             {
                 output.WritePropertyName(property.Name);
                 Copy(property.Value, "/" + JsonComposition.Escape(property.Name), output, problems);
-                if (property.Name == "identity" && sections.Count > 0)
+                if (property.Name == "identity")
                 {
-                    Texts(output, sections);
+                    if (sections.Count > 0)
+                    {
+                        Texts(output, sections);
+                    }
+
+                    if (assets.Count > 0)
+                    {
+                        output.WriteStartObject("assets");
+                        foreach ((string name, string key) in assets)
+                        {
+                            output.WriteString(name, key);
+                        }
+
+                        output.WriteEndObject();
+                    }
                 }
             }
 
@@ -357,7 +375,7 @@ internal sealed class ModelJsonWriter
             {
                 _json.WriteStartObject("font");
                 _json.WriteString("family", font.Family);
-                _json.WriteString("embedded", Asset(file.Hash, file.Data));
+                _json.WriteString("embedded", Asset(file.Hash, file.Data, null, "font-" + AssetNames.From(font.Family)));
                 _json.WriteEndObject();
             }
             else
@@ -947,10 +965,23 @@ internal sealed class ModelJsonWriter
                 _json.WriteBoolean("tabRight", true);
                 break;
             case ImageInline image:
-                _json.WriteString("image", Asset(image.Image.Hash, image.Image.Data));
+                _json.WriteString("image", ImageAsset(image.Image));
                 _json.WriteString("alt", image.AltText);
-                _json.WriteString("width", JsonValues.Length(image.Width));
-                _json.WriteString("height", JsonValues.Length(image.Height));
+
+                // One size when the other follows from the image's proportions (the import computes it the same way).
+                if (ImageFit.Height(image.Height).Resolve(image.Image) == (image.Width, image.Height))
+                {
+                    _json.WriteString("height", JsonValues.Length(image.Height));
+                }
+                else if (ImageFit.Width(image.Width).Resolve(image.Image) == (image.Width, image.Height))
+                {
+                    _json.WriteString("width", JsonValues.Length(image.Width));
+                }
+                else
+                {
+                    _json.WriteString("width", JsonValues.Length(image.Width));
+                    _json.WriteString("height", JsonValues.Length(image.Height));
+                }
                 break;
             case ExpressionInline expression:
                 // Only raw conditions get here: every other expression is written in text as {{(condition):format}}.
@@ -1027,12 +1058,38 @@ internal sealed class ModelJsonWriter
         _json.WriteEndArray();
     }
 
-    private string Asset(string hash, byte[] data)
+    /// <summary>The asset name for content; the name is kept unless it already names other content.</summary>
+    private string Asset(string hash, byte[] data, string? name, string generated)
     {
         string key = "sha256:" + hash;
         _assets[key] = data;
-        return key;
+        if (name is null && _unnamed.TryGetValue(key, out string? known))
+        {
+            return known;
+        }
+
+        string wanted = name ?? generated;
+        string unique = wanted;
+        for (int i = 2; _assetNames.Any(a => a.Key == unique && a.Value != key); i++)
+        {
+            unique = wanted + "-" + i.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        if (!_assetNames.Any(a => a.Key == unique))
+        {
+            _assetNames.Add(new KeyValuePair<string, string>(unique, key));
+        }
+
+        if (name is null)
+        {
+            _unnamed[key] = unique;
+        }
+
+        return unique;
     }
+
+    private string ImageAsset(ImageSource image) =>
+        Asset(image.Hash, image.Data, image.Name, "image-" + (_unnamed.Count + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
 
     private static string Enum<T>(T value)
         where T : struct, System.Enum

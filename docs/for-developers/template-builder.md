@@ -343,6 +343,11 @@ A **section** (`c.Section("items", b => …)` in C#) names a part of the documen
 `{"section": "items", "blocks": […]}`, the unit to read, replace or compare. Names are unique in a definition; a
 component the export's catalog does not know is written as a section named after it (`AddressBlock`, `AddressBlock-2`).
 
+Images and embedded fonts are **named assets**: `"assets": {"logo": "sha256:…"}` at the root, the content itself passed to
+`TemplateJsonImportOptions.Assets`, and `{"image": "logo", "alt": "…", "height": "12mm"}` in the text. One size is
+enough when the other follows from the image's proportions. In C# an image gets its name with
+`ImageSource.Png(bytes).WithName("logo")`; unnamed images are exported as `image-1`, `image-2`, fonts as `font-<family>`.
+
 Conditions and loops stay objects; there is no `{{#if}}` inside strings. Every conditional has `then`, `elseIf` (a list
 of `{"if": …, "then": …}`) and `else`, in blocks, rows, list items and inline. An expression whose condition is raw has no
 text form and is written as `{"expression": {"raw": …, "uses": […]}, "format": …}`. Import reports every problem at

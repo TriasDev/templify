@@ -33,7 +33,7 @@ public sealed class JsonDiagnosticsTests
               { "paragrahp": "typo" },
               { "style": 5, "paragraph": "x" },
               { "paragraph": "x", "colour": "red" },
-              { "paragraph": [ { "image": "sha256:missing", "alt": "a", "width": "10pt", "height": "10pt" } ] }
+              { "paragraph": [ { "image": "missing", "alt": "a", "width": "10pt", "height": "10pt" } ] }
             ]
             """);
 

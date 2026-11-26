@@ -684,3 +684,5 @@ TriasDev.Templify.Builder.GeneratedDataPathsAttribute.Type.get -> System.Type!
 TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.ValueFormats.get -> System.Collections.Generic.IReadOnlyCollection<string!>?
 TriasDev.Templify.Builder.Json.TemplateJsonImportOptions.ValueFormats.init -> void
 TriasDev.Templify.Builder.BlockComposer.Section(string! name, System.Action<TriasDev.Templify.Builder.BlockComposer!>! content) -> void
+TriasDev.Templify.Builder.ImageSource.Name.get -> string?
+TriasDev.Templify.Builder.ImageSource.WithName(string! name) -> TriasDev.Templify.Builder.ImageSource!

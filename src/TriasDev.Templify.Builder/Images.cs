@@ -23,6 +23,23 @@ public sealed class ImageSource
         Hash = Convert.ToHexStringLower(SHA256.HashData(data));
     }
 
+    /// <summary>Gets the name the JSON form gives the image in its <c>assets</c>; null for a generated one (<c>image-1</c>).</summary>
+    public string? Name { get; private init; }
+
+    /// <summary>The same image under a name, for the JSON form's <c>assets</c> (<c>"logo": "sha256:…"</c>).</summary>
+    /// <param name="name">The name: letters, digits, <c>_</c>, <c>.</c> or <c>-</c>.</param>
+    /// <returns>The named image.</returns>
+    public ImageSource WithName(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+        if (!Json.AssetNames.IsValid(name))
+        {
+            throw new ArgumentException($"'{name}' is not an asset name: use letters, digits, '_', '.' or '-'.", nameof(name));
+        }
+
+        return new ImageSource(Data, IsPng, PixelWidth, PixelHeight, DpiX, DpiY) { Name = name };
+    }
+
     /// <summary>Gets the width in pixels.</summary>
     public int PixelWidth { get; }
 
