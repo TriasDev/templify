@@ -206,7 +206,7 @@ A copy is checked against the **catalogue**, not against the contract of the sta
 the data has, also one the standard template does not use. `Check` validates the syntax, every path the copy reads
 (loop variables are resolved; any path below an open shape such as a dictionary is accepted) and fills the copy once
 with data of the catalogue's shape. `CheckDefinition` imports the JSON with the catalogue and, given build options,
-builds it; its problems carry the JSON pointer.
+builds it; its problems carry the JSON pointer. See the known limits for what the check of a copy cannot see.
 
 | Code | Severity | Meaning |
 |---|---|---|
@@ -526,6 +526,11 @@ Known behaviour of the applications:
 - **Condition variables are read from a message.** The check of stored templates reads the variable of a missing-condition-variable
   warning from its message text until the engine exposes it
   ([#275](https://github.com/TriasDev/templify/issues/275)).
+- **What the check of stored templates cannot see.** The engine's validation checks every branch, but inside a loop
+  only the first segment of an item's path; the trial fill checks whole paths, but only in the branches data of the
+  catalogue's shape takes (its values are the text `x`, so `{{#if order.status = "paid"}}` is false). So a removed
+  field deeper than the item itself (`{{line.product.name}}`) is found in values of taken branches, not in conditions
+  and not in untaken branches, and a loop over a value is found only in a taken branch.
 - **No location for unknown value paths.** `Check` names the path of a TB9301 problem but not its place in the
   document; the engine does not report locations of missing variables yet.
 - **Implicit names inside loops.** Inside a loop the engine also resolves names on the current item, so a root path
