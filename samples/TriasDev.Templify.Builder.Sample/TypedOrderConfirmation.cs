@@ -13,19 +13,20 @@ public sealed record OrderAddressBlock(TemplatePath<Address> Address) : ITemplat
     {
         c.Paragraph(x =>
         {
-            x.Value(Address.Path(a => a.Street));
+            x.Value(Address.Street);
             x.LineBreak();
-            x.Value(Address.Path(a => a.PostalCode));
+            x.Value(Address.PostalCode);
             x.Text(" ");
-            x.Value(Address.Path(a => a.City));
-            x.If(Address.Path(a => a.Country).NotEq("DE"), t => t.Text(", ").Value(Address.Path(a => a.Country)));
+            x.Value(Address.City);
+            x.If(Address.Country.NotEq("DE"), t => t.Text(", ").Value(Address.Country));
         });
     }
 }
 
 /// <summary>
 /// The order confirmation of <see cref="OrderConfirmation"/>, with data paths from <see cref="OrderData"/> instead of
-/// strings. It builds byte for byte the same templates.
+/// strings: <c>order.Number</c>, <c>line.Quantity</c> are generated from the data classes (TriasDev.Templify.Builder's
+/// source generator). It builds byte for byte the same templates.
 /// </summary>
 public sealed class TypedOrderConfirmation(BrandTheme theme) : ITemplateDefinition
 {
@@ -34,7 +35,7 @@ public sealed class TypedOrderConfirmation(BrandTheme theme) : ITemplateDefiniti
     public void Compose(TemplateComposer template)
     {
         TemplateTexts t = template.Texts;
-        TemplatePath<Order> order = template.DataAs<OrderData>().Path(d => d.Order);
+        TemplatePath<Order> order = template.DataAs<OrderData>().Order;
 
         template.Styles(Styles.Create(theme));
         template.Properties(p => p.Title(t["title"]).Author("Example Trading").Subject(t["title"]));
@@ -45,7 +46,7 @@ public sealed class TypedOrderConfirmation(BrandTheme theme) : ITemplateDefiniti
             .Header(h => h.Paragraph(Styles.Small, x =>
             {
                 x.Text(t["title"] + " ");
-                x.Value(order.Path(o => o.Number));
+                x.Value(order.Number);
                 x.TabRight();
                 x.Text(t["page"] + " ");
                 x.PageNumber();
@@ -65,9 +66,9 @@ public sealed class TypedOrderConfirmation(BrandTheme theme) : ITemplateDefiniti
             c.Paragraph(Styles.Subtitle, x =>
             {
                 x.Text(t["orderNo"] + " ");
-                x.Value(order.Path(o => o.Number), Styles.Strong);
+                x.Value(order.Number, Styles.Strong);
                 x.Text(" · ");
-                x.Value(order.Path(o => o.Date), ValueFormat.Date(t["dateFormat"]));
+                x.Value(order.Date, ValueFormat.Date(t["dateFormat"]));
             });
 
             c.TableOfContents(1);
@@ -88,19 +89,19 @@ public sealed class TypedOrderConfirmation(BrandTheme theme) : ITemplateDefiniti
 
     private static void Customer(BlockComposer c, TemplateTexts t, TemplatePath<Order> order)
     {
-        TemplatePath<Customer> customer = order.Path(o => o.Customer);
+        TemplatePath<Customer> customer = order.Customer;
         c.Paragraph(Styles.Heading, t["customer"]);
         c.Paragraph(x =>
         {
-            x.Value(customer.Path(k => k.Name), Styles.Strong);
-            x.If(customer.Path(k => k.IsNew), s => s.Text(" (" + t["newCustomer"] + ")", Styles.Muted));
+            x.Value(customer.Name, Styles.Strong);
+            x.If(customer.IsNew, s => s.Text(" (" + t["newCustomer"] + ")", Styles.Muted));
         });
-        c.If(customer.Path(k => k.Contact).IsNotEmpty, b => b.Paragraph(x =>
+        c.If(customer.Contact.IsNotEmpty, b => b.Paragraph(x =>
         {
             x.Text(t["attn"] + " ", Styles.Muted);
-            x.Value(customer.Path(k => k.Contact));
+            x.Value(customer.Contact);
         }));
-        c.Component(new OrderAddressBlock(customer.Path(k => k.Address)));
+        c.Component(new OrderAddressBlock(customer.Address));
     }
 
     private static void Items(BlockComposer c, TemplateTexts t, TemplatePath<Order> order)
@@ -123,7 +124,7 @@ public sealed class TypedOrderConfirmation(BrandTheme theme) : ITemplateDefiniti
                 r.Cell(t["quantity"]);
                 r.Cell(t["amount"]);
             });
-            table.ForEachRow(order.Items(o => o.Lines), "line", (line, rows) =>
+            table.ForEachRow(order.Lines, "line", (line, rows) =>
             {
                 rows.Row(r =>
                 {
@@ -132,54 +133,54 @@ public sealed class TypedOrderConfirmation(BrandTheme theme) : ITemplateDefiniti
                     {
                         cell.Paragraph(x =>
                         {
-                            x.Value(line.Path(l => l.Description));
+                            x.Value(line.Description);
                             x.Text(" — ", Styles.Muted);
-                            x.If(line.Path(l => l.InStock), s => s.Text(t["inStock"], Styles.Muted)).Else(s => s.Text(t["backOrdered"], Styles.Muted));
+                            x.If(line.InStock, s => s.Text(t["inStock"], Styles.Muted)).Else(s => s.Text(t["backOrdered"], Styles.Muted));
                         });
-                        cell.If(line.Path(l => l.Tags).IsNotEmpty, b => b.Paragraph(Styles.Small, x => x.Value(line.Path(l => l.Tags), ValueFormat.Join(separator: " · "))));
+                        cell.If(line.Tags.IsNotEmpty, b => b.Paragraph(Styles.Small, x => x.Value(line.Tags, ValueFormat.Join(separator: " · "))));
                     });
-                    r.Cell(line.Path(l => l.Quantity));
-                    r.Cell(cell => cell.Paragraph(x => x.Value(line.Path(l => l.Amount), ValueFormat.Currency)));
+                    r.Cell(line.Quantity);
+                    r.Cell(cell => cell.Paragraph(x => x.Value(line.Amount, ValueFormat.Currency)));
                 });
             });
-            table.RowsIf(order.Path(o => o.Discount).Gt(0), rows => rows.Row(r =>
+            table.RowsIf(order.Discount.Gt(0), rows => rows.Row(r =>
             {
                 r.Cell(cell => cell.ColumnSpan(3).Paragraph(t["discount"]));
-                r.Cell(cell => cell.Paragraph(x => x.Value(order.Path(o => o.Discount), ValueFormat.Currency)));
+                r.Cell(cell => cell.Paragraph(x => x.Value(order.Discount, ValueFormat.Currency)));
             }));
             table.Row(r =>
             {
                 r.TextStyle(Styles.TableHeader);
                 r.Cell(cell => cell.ColumnSpan(3).Paragraph(t["total"]));
-                r.Cell(cell => cell.Paragraph(x => x.Value(order.Path(o => o.Total), ValueFormat.Currency)));
+                r.Cell(cell => cell.Paragraph(x => x.Value(order.Total, ValueFormat.Currency)));
             });
         });
 
         c.Paragraph(x =>
         {
             x.Text(t["freeExpress"] + " ");
-            x.Expression(order.Path(o => o.IsExpress) & order.Path(o => o.Total).Gt(1000), ValueFormat.YesNo);
+            x.Expression(order.IsExpress & order.Total.Gt(1000), ValueFormat.YesNo);
         });
     }
 
     private static void Status(BlockComposer c, TemplateTexts t, TemplatePath<Order> order)
     {
-        c.Switch(order.Path(o => o.Status), s =>
+        c.Switch(order.Status, s =>
         {
             s.Case("paid", b => b.Box(Styles.Success, x => x.Paragraph(t["statusPaid"])));
             s.Case(new[] { "overdue", "reminded" }, b => b.Box(Styles.Warning, x => x.Paragraph(t["statusOverdue"])));
             s.Default(b => b.Paragraph(t["statusOpen"]));
         });
 
-        Condition expressFree = order.Path(o => o.IsExpress) & order.Path(o => o.Total).Gt(1000);
+        Condition expressFree = order.IsExpress & order.Total.Gt(1000);
         c.If(expressFree, b => b.Paragraph(t["expressFree"]))
-         .ElseIf(order.Path(o => o.IsExpress), b => b.Paragraph(t["express"]))
+         .ElseIf(order.IsExpress, b => b.Paragraph(t["express"]))
          .Else(b => b.Paragraph(t["standard"]));
     }
 
     private static void Checks(BlockComposer c, TemplateTexts t, TemplatePath<Order> order)
     {
-        TemplateCollection<Check> checks = order.Items(o => o.Checks);
+        TemplateCollection<Check> checks = order.Checks;
         c.If(checks.IsNotEmpty, b =>
         {
             b.Paragraph(Styles.Heading, t["checks"]);
@@ -187,21 +188,21 @@ public sealed class TypedOrderConfirmation(BrandTheme theme) : ITemplateDefiniti
             {
                 items.Item(x =>
                 {
-                    x.Value(check.Path(k => k.Title));
+                    x.Value(check.Title);
                     x.Text(": ");
-                    x.Value(check.Path(k => k.Passed), ValueFormat.Checkmark);
+                    x.Value(check.Passed, ValueFormat.Checkmark);
                 });
-                items.If(check.Path(k => k.Note).Exists, notes => notes.Item(1, check.Path(k => k.Note)));
+                items.If(check.Note.Exists, notes => notes.Item(1, check.Note));
             }));
         });
     }
 
     private static void Notes(BlockComposer c, TemplateTexts t, TemplatePath<Order> order)
     {
-        c.If(order.Path(o => o.Notes).IsNotEmpty, b =>
+        c.If(order.Notes.IsNotEmpty, b =>
         {
             b.Paragraph(Styles.Heading, t["notes"]);
-            b.Paragraph(order.Path(o => o.Notes));
+            b.Paragraph(order.Notes);
         });
     }
 }

@@ -10,8 +10,9 @@
     <ProjectReference Include="..\..\src\TriasDev.Templify.Builder.Testing\TriasDev.Templify.Builder.Testing.csproj" />
     <!-- The sample runs as a test, so CI runs it (#287). -->
     <ProjectReference Include="..\..\samples\TriasDev.Templify.Builder.Sample\TriasDev.Templify.Builder.Sample.csproj" />
-    <!-- The typed path generator: tested through CSharpGeneratorDriver. -->
-    <ProjectReference Include="..\..\src\TriasDev.Templify.Builder.Generators\TriasDev.Templify.Builder.Generators.csproj" />
+    <!-- The typed path generator: tested through CSharpGeneratorDriver, and run on this project like in a client
+         (the package ships it under analyzers/dotnet/cs). -->
+    <ProjectReference Include="..\..\src\TriasDev.Templify.Builder.Generators\TriasDev.Templify.Builder.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true" />
   </ItemGroup>
 
   <ItemGroup>
