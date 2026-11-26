@@ -115,6 +115,10 @@ embeds the file in the document, so a server-side PDF conversion and recipients 
 `Date("d MMMM yyyy")`, `Number("N2")`, `YesNo`, `Checkmark`, `Join(separator: ", ")`, `Raw`, …) and a character
 style.
 
+A segment may read one item of a list by its index (0 to 999): `order["items[0].name"]`, typed
+`order.Path(o => o.Items[0].Name)`, in JSON `{{order.items[0].name}}`. The data contract keeps the index, and its
+witness holds enough items for the highest index used.
+
 ### Conditions
 
 Conditions are built from paths and are written in Templify's syntax, with the correct quoting and precedence:
