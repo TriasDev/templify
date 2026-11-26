@@ -219,6 +219,36 @@ public sealed class StyleInheritanceTests
 
     [Theory]
     [MemberData(nameof(Formats))]
+    public void ListWithoutItemStyle_GetsTheInheritedStyle(TemplateFormat format)
+    {
+        ListStyleKey plain = new ListStyleKey("PlainBullets");
+        string snapshot = Snapshot(new TestDefinition(t =>
+        {
+            t.Styles(StyleSheet.Create(s =>
+            {
+                s.Defaults(d => d.Paragraph(_body));
+                s.Paragraph(_body, p => p.SpaceAfter(1.Pt()));
+                s.Paragraph(_cell, p => p.SpaceAfter(1.Pt()));
+                s.Table(_grid, g => g.TextStyle(_cell));
+                s.List(plain, l => l.Level(0, "•", 6.Mm(), 4.Mm()));
+            }));
+            t.Content(c =>
+            {
+                c.List(plain, l => l.Item("in body"));
+                c.Table(tb =>
+                {
+                    tb.Style(_grid).Columns(cols => cols.Relative(1));
+                    tb.Row(r => r.Cell(cell => cell.List(plain, l => l.Item("in cell"))));
+                });
+            });
+        }), format);
+
+        Assert.Contains("Body [list 1] | in body", snapshot, StringComparison.Ordinal);
+        Assert.Contains("CellText [list 1] | in cell", snapshot, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [MemberData(nameof(Formats))]
     public void HeaderAndFooter_GetTheDefault(TemplateFormat format)
     {
         TestDefinition definition = new TestDefinition(t =>

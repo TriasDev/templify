@@ -8,7 +8,8 @@ namespace TriasDev.Templify.Builder;
 /// <summary>
 /// Gives every paragraph without a style of its own the style it inherits: in a table cell the row's text style,
 /// then the table style's header or body text style; everywhere the style sheet's default paragraph style. List items
-/// keep their list style's item style. Runs once after composition, so writers see explicit styles only.
+/// keep their list style's item style and inherit only when it has none. Runs once after composition, so writers see
+/// explicit styles only.
 /// </summary>
 internal static class StyleInheritance
 {
@@ -31,7 +32,9 @@ internal static class StyleInheritance
         {
             switch (blocks[i])
             {
-                case ParagraphBlock { Style: null, List: null } paragraph when inherited != null:
+                // A list item takes its list style's item style (the writers apply it); only without one it inherits.
+                case ParagraphBlock { Style: null } paragraph when inherited != null
+                    && (paragraph.List is null || styles.Find(paragraph.List.Style)?.ItemStyle is null):
                     ParagraphBlock styled = paragraph with { Style = inherited };
                     if (context.Locations.TryGetValue(paragraph, out string? location))
                     {
