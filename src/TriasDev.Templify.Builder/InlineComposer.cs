@@ -241,13 +241,14 @@ public sealed class InlineComposer
         return _inlines;
     }
 
-    private InlineComposer AddText(string text, CharacterStyleKey? style)
+    /// <summary>
+    /// Literal text as inlines. A tab or a line break is an inline of its own, also inside a longer text: Text("a\tb")
+    /// is Text("a"), Tab(), Text("b"), and so is the paragraph "a\tb", so the JSON form writes all of them as "a\tb".
+    /// </summary>
+    internal static List<Inline> TextInlines(string text, CharacterStyleKey? style)
     {
-        ArgumentNullException.ThrowIfNull(text);
-        EnsureOpen();
-
-        // A tab or a line break is an inline of its own, also inside a longer text: Text("a\tb") is Text("a"), Tab(),
-        // Text("b"), so the JSON form writes both as "a\tb".
+        text = text.Replace("\r\n", "\n", StringComparison.Ordinal); // a Windows line break is one break
+        List<Inline> inlines = new List<Inline>();
         int start = 0;
         for (int i = 0; i <= text.Length; i++)
         {
@@ -258,17 +259,25 @@ public sealed class InlineComposer
 
             if (i > start)
             {
-                _inlines.Add(new TextInline(text[start..i], style));
+                inlines.Add(new TextInline(text[start..i], style));
             }
 
             if (i < text.Length)
             {
-                _inlines.Add(new TextInline(text[i].ToString(), style));
+                inlines.Add(new TextInline(text[i].ToString(), style));
             }
 
             start = i + 1;
         }
 
+        return inlines;
+    }
+
+    private InlineComposer AddText(string text, CharacterStyleKey? style)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        EnsureOpen();
+        _inlines.AddRange(TextInlines(text, style));
         return this;
     }
 

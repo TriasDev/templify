@@ -388,7 +388,7 @@ public class BlockComposer
     {
         ArgumentNullException.ThrowIfNull(text);
         EnsureOpen();
-        Inline[] inlines = text.Length == 0 ? Array.Empty<Inline>() : new Inline[] { new TextInline(text) };
+        List<Inline> inlines = InlineComposer.TextInlines(text, null);
         InlineComposer.CheckLiteralText(_context, inlines);
         _blocks.Add(new ParagraphBlock(inlines, style));
         return this;

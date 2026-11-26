@@ -54,16 +54,40 @@ public static class TemplateJson
         EmbeddedTexts own = (definition as JsonDefinition)?.Texts ?? EmbeddedTexts.None;
         ITextCatalog catalog = options.Texts ?? TextCatalog.Empty;
         IReadOnlyList<CultureInfo> languages = export.TextLanguages ?? [];
+        List<BuildDiagnostic> untranslated = new List<BuildDiagnostic>();
         Func<IReadOnlyList<string>, IReadOnlyList<TextSection>> texts = keys => languages.Count == 0
             ? own.Sections
-            : keys.Select(key => new TextSection(
-                key,
-                languages.Select(language => own.Catalog.TryGet(key, language, out string text) || catalog.TryGet(key, language, out text) ? new KeyValuePair<string, string>(language.Name, text) : (KeyValuePair<string, string>?)null)
-                    .OfType<KeyValuePair<string, string>>()
-                    .ToList()))
+            : keys.Select(key => new TextSection(key, Translations(key)))
                 .Where(section => section.Translations.Count > 0)
                 .ToList();
         (string json, IReadOnlyDictionary<string, byte[]> assets) = ModelJsonWriter.Write(composed, definition.Identity!, export.Components, texts, export.Indented);
+        if (untranslated.Count > 0)
+        {
+            // Every text in the file has every language (the import's rule), so a missing one is named here.
+            throw new TemplateBuildException(untranslated);
+        }
+
+        List<KeyValuePair<string, string>> Translations(string key)
+        {
+            List<KeyValuePair<string, string>> found = new List<KeyValuePair<string, string>>();
+            foreach (CultureInfo language in languages)
+            {
+                if (own.Catalog.TryGet(key, language, out string text) || catalog.TryGet(key, language, out text))
+                {
+                    found.Add(new KeyValuePair<string, string>(language.Name, text));
+                }
+                else
+                {
+                    untranslated.Add(new BuildDiagnostic(
+                        DiagnosticCodes.TextNotExportable,
+                        $"The text '{key}' has no translation for '{language.Name}', which TemplateJsonExportOptions.TextLanguages asks for; add it to the catalog or leave the language out.")
+                    { Location = "/texts/" + JsonComposition.Escape(key) });
+                }
+            }
+
+            return found;
+        }
+
         // The host shares the same objects with an import (TemplateJsonImportOptions.Shared); the check does it for it.
         CheckBuildsTheSame(definition, options, export, json, assets, composed.Context.Shared.Values.ToList());
         return new TemplateJsonDocument(json, assets);
@@ -80,7 +104,7 @@ public static class TemplateJson
         ITemplateDefinition imported;
         try
         {
-            imported = Import(json, new TemplateJsonImportOptions { Assets = assets, Components = export.Components, Shared = shared, AllowRawXml = true });
+            imported = Import(json, new TemplateJsonImportOptions { Assets = assets, Components = export.Components, Shared = shared, AllowRawXml = true, AcceptsAnyValueFormat = true });
         }
         catch (TemplateBuildException exception)
         {
@@ -90,15 +114,7 @@ public static class TemplateJson
         foreach (CultureInfo language in new[] { options.Language }.Concat(export.TextLanguages ?? []).DistinctBy(l => l.Name))
         {
             TemplateBuildOptions languageOptions = options with { Language = language };
-            GeneratedTemplate expected;
-            try
-            {
-                expected = TemplateBuilder.Build(definition, languageOptions);
-            }
-            catch (TemplateBuildException) when (language != options.Language)
-            {
-                continue; // A language the definition does not build in (missing texts) is reported when it is built.
-            }
+            GeneratedTemplate expected = TemplateBuilder.Build(definition, languageOptions);
 
             string actual;
             try
@@ -185,9 +201,14 @@ public static class TemplateJson
         if (!root.TryGetProperty("identity", out System.Text.Json.JsonElement identity)
             || identity.ValueKind != System.Text.Json.JsonValueKind.Object
             || !identity.TryGetProperty("id", out System.Text.Json.JsonElement id) || id.ValueKind != System.Text.Json.JsonValueKind.String
-            || !identity.TryGetProperty("version", out System.Text.Json.JsonElement number) || !number.TryGetInt32(out int identityVersion))
+            || !identity.TryGetProperty("version", out System.Text.Json.JsonElement number))
         {
             throw Invalid("/identity", "The identity { \"id\": …, \"version\": … } is missing or incomplete.");
+        }
+
+        if (number.ValueKind != System.Text.Json.JsonValueKind.Number || !number.TryGetInt32(out int identityVersion))
+        {
+            throw Invalid("/identity/version", "The identity's version is a whole number, for example 1.");
         }
 
         JsonDefinition definition = new JsonDefinition(root, new TemplateIdentity(id.GetString()!, identityVersion), options);

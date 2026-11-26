@@ -108,6 +108,9 @@ internal static class DiagnosticCodes
     /// <summary>The JSON export cannot write a text: a literal "[[" (read as a text key) or a key outside the key syntax.</summary>
     public const string TextNotExportable = "TB9204";
 
+    /// <summary>A theme value the host sets on import names a token the definition's theme does not have; it is not used.</summary>
+    public const string UnusedThemeValue = "TB9205";
+
     /// <summary><see cref="TemplateComposer.Page"/> was called more than once.</summary>
     public const string PageAlreadySet = "TB6001";
 

@@ -117,7 +117,7 @@ public sealed class Phase3ReviewTests
     [Theory]
     [InlineData("\"templifyDefinition\": 1.5", "/templifyDefinition")]
     [InlineData("\"identity\": \"x\"", "/identity")]
-    [InlineData("\"identity\": { \"id\": \"x\", \"version\": 1.5 }", "/identity")]
+    [InlineData("\"identity\": { \"id\": \"x\", \"version\": 1.5 }", "/identity/version")]
     public void I1_MalformedHeader_IsTB9200(string header, string location)
     {
         string json = Definition("[]").Replace("\"templifyDefinition\": 1", "\"templifyDefinition\": 1, \"__\": 0", StringComparison.Ordinal);

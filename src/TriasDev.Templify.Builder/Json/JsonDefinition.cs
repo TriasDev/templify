@@ -439,7 +439,7 @@ internal sealed class JsonComposition
             ComponentCatalog.Registration registration = _options.Components?.Find(name)
                 ?? throw new JsonImportException(at, $"The component '{name}' is not registered (TemplateJsonImportOptions.Components).");
             JsonElement parameters = block.TryGetProperty("params", out JsonElement given) ? given : _noParameters;
-            c.Component(registration.Create(parameters, _options.Components!.DataNaming, (text, kind) => Resolve(text, at + "/params", kind), ParagraphStyle, CharacterStyle, at + "/params"));
+            c.Component(registration.Create(parameters, _options.Components!.DataNaming, (text, kind) => Resolve(text, at + "/params", kind), ParagraphStyle, CharacterStyle, ParameterColor, at + "/params"));
         }
         else if (block.TryGetProperty("section", out _))
         {
@@ -1091,6 +1091,7 @@ internal sealed class JsonComposition
     private ValueFormat Format(string specifier, string at)
     {
         bool known = _plainFormats.Contains(specifier)
+            || _options.AcceptsAnyValueFormat
             || (_options.ValueFormats?.Contains(specifier) ?? false)
             || specifier.StartsWith("join:", StringComparison.Ordinal)
             || (specifier.StartsWith("date:", StringComparison.Ordinal) && specifier.Length > "date:".Length)
@@ -1457,6 +1458,12 @@ internal sealed class JsonComposition
             ? ThemeColor(token[1..], at + "/" + Escape(name))
             : Value(owner, name, at, "a colour such as \"#1F4E79\" or a theme colour \"$accent\"", (string text, out Color value) => JsonValues.TryColor(text, out value));
 
+    /// <summary>A colour parameter of a component: <c>"$token"</c> from the theme, else <c>"#RRGGBB"</c>.</summary>
+    private Builder.Color ParameterColor(string text, string at) =>
+        text.StartsWith('$') ? ThemeColor(text[1..], at)
+        : JsonValues.TryColor(text, out Builder.Color color) ? color
+        : throw new JsonImportException(at, $"'{text}' is not a colour such as \"#1F4E79\" or a theme colour \"$accent\".");
+
     private Builder.Color ThemeColor(string token, string at) =>
         _themeColors.TryGetValue(token, out Builder.Color color)
             ? Builder.Color.Token(token, color)
@@ -1518,15 +1525,28 @@ internal sealed class JsonComposition
             }
         }
 
+        // The host's values replace the file's: a colour token takes a colour, a font token a family. A token the file does
+        // not have is not used (a host may apply one palette to many definitions), which the build reports as a warning.
         foreach ((string token, string value) in _options.Theme ?? new Dictionary<string, string>())
         {
-            if (JsonValues.TryColor(value, out Builder.Color color))
+            if (_themeColors.ContainsKey(token))
             {
-                _themeColors[token] = color;
+                if (JsonValues.TryColor(value, out Builder.Color color))
+                {
+                    _themeColors[token] = color;
+                }
+                else
+                {
+                    Fail("/theme/colors/" + Escape(token), $"TemplateJsonImportOptions.Theme gives the colour '{token}' the value '{value}', which is not a colour \"#RRGGBB\".");
+                }
+            }
+            else if (_themeFonts.ContainsKey(token))
+            {
+                _themeFonts[token] = new FontFace(value);
             }
             else
             {
-                _themeFonts[token] = new FontFace(value);
+                _context.Warn(DiagnosticCodes.UnusedThemeValue, $"TemplateJsonImportOptions.Theme sets '{token}', which the definition's theme does not have; it is not used.");
             }
         }
     }

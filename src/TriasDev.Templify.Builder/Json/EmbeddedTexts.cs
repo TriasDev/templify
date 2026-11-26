@@ -27,9 +27,9 @@ internal sealed class EmbeddedTexts
     public ITextCatalog Catalog { get; }
 
     /// <summary>
-    /// Reads the section of a definition: key first, <c>{"title": {"de": "…", "en": "…"}}</c>. A key may lack a language;
-    /// the build then takes it from the host's catalog (TB5001 when that has none either). Malformed parts are reported to
-    /// <paramref name="fail"/> and skipped.
+    /// Reads the section of a definition: key first, <c>{"title": {"de": "…", "en": "…"}}</c>. Every key has the languages
+    /// of the others (a regional language is covered by its parent); a key the section does not have comes from the host's
+    /// catalog (TB5001 when that has none either). Malformed parts are reported to <paramref name="fail"/> and skipped.
     /// </summary>
     public static EmbeddedTexts Read(JsonElement root, Action<string, string>? fail = null)
     {
@@ -61,6 +61,12 @@ internal sealed class EmbeddedTexts
                 if (language.Value.ValueKind != JsonValueKind.String)
                 {
                     fail?.Invoke(at + "/" + JsonComposition.Escape(language.Name), "A translation is a string.");
+                    continue;
+                }
+
+                if (translations.Any(t => string.Equals(t.Key, language.Name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    fail?.Invoke(at, $"The language '{language.Name}' appears twice in the text '{key.Name}'.");
                     continue;
                 }
 

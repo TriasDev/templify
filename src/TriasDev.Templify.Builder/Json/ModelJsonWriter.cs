@@ -499,6 +499,13 @@ internal sealed class ModelJsonWriter
         _json.WriteEndArray();
     }
 
+    /// <summary>A component type's name as a section name: <c>Card`1</c> is <c>Card</c>; anything else unusable becomes <c>Component</c>.</summary>
+    private static string ComponentSectionName(Type type)
+    {
+        string name = type.Name.Split('`')[0];
+        return SectionComponent.IsValidName(name) ? name : "Component";
+    }
+
     /// <summary>The text keys a component's blocks use, in order (written aside, only to find the markers).</summary>
     private List<string> KeysIn(List<Block> body)
     {
@@ -555,7 +562,7 @@ internal sealed class ModelJsonWriter
                 if (registration.HasParameters)
                 {
                     _json.WritePropertyName("params");
-                    registration.WriteParameters(_json, component.Component, _components!.DataNaming);
+                    registration.WriteParameters(_json, component.Component, _components!.DataNaming, ColorText);
                 }
 
                 _json.WriteEndObject();
@@ -565,7 +572,7 @@ internal sealed class ModelJsonWriter
             case ComponentBlock component:
                 // A section, or a component the catalog does not know: its blocks under a name unique in the file.
                 _json.WriteStartObject();
-                _json.WriteString("section", SectionName(component.Component is SectionComponent section ? section.Name : component.Component.GetType().Name));
+                _json.WriteString("section", SectionName(component.Component is SectionComponent section ? section.Name : ComponentSectionName(component.Component.GetType())));
                 _json.WritePropertyName("blocks");
                 Blocks(component.Body);
                 _json.WriteEndObject();

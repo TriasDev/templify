@@ -119,7 +119,7 @@ public sealed partial class ComponentCatalog
 
         /// <summary>Writes the component's parameters as a JSON object.</summary>
         /// <exception cref="ArgumentException">A typed path parameter uses another naming than <paramref name="dataNaming"/>, so it could not be read back.</exception>
-        public void WriteParameters(Utf8JsonWriter json, ITemplateComponent component, JsonNamingPolicy? dataNaming)
+        public void WriteParameters(Utf8JsonWriter json, ITemplateComponent component, JsonNamingPolicy? dataNaming, Func<Color, string> colorText)
         {
             json.WriteStartObject();
             foreach ((ParameterInfo parameter, PropertyInfo property) in parameters)
@@ -132,7 +132,7 @@ public sealed partial class ComponentCatalog
                 }
 
                 json.WritePropertyName(JsonNamingPolicy.CamelCase.ConvertName(parameter.Name!));
-                WriteValue(json, value);
+                WriteValue(json, value, colorText);
             }
 
             json.WriteEndObject();
@@ -152,7 +152,7 @@ public sealed partial class ComponentCatalog
         }
 
         /// <summary>Creates the component from its JSON parameters.</summary>
-        public ITemplateComponent Create(JsonElement values, JsonNamingPolicy? dataNaming, Func<string, DataKind?, TemplatePath> resolvePath, Func<string, ParagraphStyleKey> paragraphStyle, Func<string, CharacterStyleKey> characterStyle, string at)
+        public ITemplateComponent Create(JsonElement values, JsonNamingPolicy? dataNaming, Func<string, DataKind?, TemplatePath> resolvePath, Func<string, ParagraphStyleKey> paragraphStyle, Func<string, CharacterStyleKey> characterStyle, Func<string, string, Color> color, string at)
         {
             if (values.ValueKind != JsonValueKind.Object)
             {
@@ -167,7 +167,7 @@ public sealed partial class ComponentCatalog
                 string key = JsonNamingPolicy.CamelCase.ConvertName(parameter.Name!);
                 unknown.Remove(key);
                 arguments[i] = values.TryGetProperty(key, out JsonElement value)
-                    ? ReadValue(value, parameter.ParameterType, dataNaming, resolvePath, paragraphStyle, characterStyle, at + "/" + key)
+                    ? ReadValue(value, parameter.ParameterType, dataNaming, resolvePath, paragraphStyle, characterStyle, color, at + "/" + key)
                     : throw new JsonImportException(at, $"The parameter '{key}' of '{Name}' is missing.");
             }
 
@@ -188,7 +188,7 @@ public sealed partial class ComponentCatalog
             }
         }
 
-        private static void WriteValue(Utf8JsonWriter json, object? value)
+        private static void WriteValue(Utf8JsonWriter json, object? value, Func<Color, string> colorText)
         {
             switch (value)
             {
@@ -239,13 +239,13 @@ public sealed partial class ComponentCatalog
                     json.WriteStringValue(JsonValues.Length(length));
                     break;
                 case Color color:
-                    json.WriteStringValue(JsonValues.Color(color));
+                    json.WriteStringValue(colorText(color)); // a theme colour stays "$token"
                     break;
                 case System.Collections.IEnumerable list:
                     json.WriteStartArray();
                     foreach (object? item in list)
                     {
-                        WriteValue(json, item);
+                        WriteValue(json, item, colorText);
                     }
 
                     json.WriteEndArray();
@@ -262,7 +262,7 @@ public sealed partial class ComponentCatalog
             }
         }
 
-        private static object? ReadValue(JsonElement value, Type type, JsonNamingPolicy? dataNaming, Func<string, DataKind?, TemplatePath> resolvePath, Func<string, ParagraphStyleKey> paragraphStyle, Func<string, CharacterStyleKey> characterStyle, string at)
+        private static object? ReadValue(JsonElement value, Type type, JsonNamingPolicy? dataNaming, Func<string, DataKind?, TemplatePath> resolvePath, Func<string, ParagraphStyleKey> paragraphStyle, Func<string, CharacterStyleKey> characterStyle, Func<string, string, Color> color, string at)
         {
             Type? underlying = Nullable.GetUnderlyingType(type);
             if (value.ValueKind == JsonValueKind.Null)
@@ -280,7 +280,7 @@ public sealed partial class ComponentCatalog
                     int i = 0;
                     foreach (JsonElement item in value.EnumerateArray())
                     {
-                        list.Add(ReadValue(item, itemType, dataNaming, resolvePath, paragraphStyle, characterStyle, at + "/" + i++));
+                        list.Add(ReadValue(item, itemType, dataNaming, resolvePath, paragraphStyle, characterStyle, color, at + "/" + i++));
                     }
 
                     return list;
@@ -319,7 +319,7 @@ public sealed partial class ComponentCatalog
                     _ when type == typeof(TableStyleKey) => new TableStyleKey(value.GetString()!),
                     _ when type == typeof(ListStyleKey) => new ListStyleKey(value.GetString()!),
                     _ when type == typeof(Length) => JsonValues.TryLength(value.GetString(), out Length length) ? length : throw new JsonImportException(at, $"{value} is not a length."),
-                    _ when type == typeof(Color) => JsonValues.TryColor(value.GetString(), out Color color) ? color : throw new JsonImportException(at, $"{value} is not a colour."),
+                    _ when type == typeof(Color) => color(value.GetString()!, at),
                     _ => throw new JsonImportException(at, $"A parameter of type {type.Name} cannot be read."),
                 };
             }

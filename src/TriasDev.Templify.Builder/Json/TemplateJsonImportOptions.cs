@@ -32,4 +32,10 @@ public sealed class TemplateJsonImportOptions
 
     /// <summary>Gets a value indicating whether raw XML blocks are accepted. Default: false (a JSON definition is input from outside).</summary>
     public bool AllowRawXml { get; init; }
+
+    /// <summary>
+    /// Whether any value format is accepted: the export's self-check, which reads back what the C# definition wrote
+    /// (host formats included); the host's own list applies when it imports.
+    /// </summary>
+    internal bool AcceptsAnyValueFormat { get; init; }
 }
