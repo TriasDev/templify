@@ -164,6 +164,12 @@ An `ITemplateComponent` is a reusable block, for example an address, a signature
 share it through `c.Component(new AddressBlock(order["customer.address"]))`. A component receives paths, so the same
 block can print the customer's address and the delivery address.
 
+A standard block whose changes stored copies should pick up (terms, legal notes) gets a version:
+`[ComponentVersion(2)]` on the class. The stamp records the versioned components a template was built from, and the
+check reports copies built from an older version (TB9306). A JSON export must name a versioned component through its
+registration (`ComponentCatalog`), so builds from the JSON always use the current version; exporting it unregistered is
+an error (TB9204), because inlining it as a section would freeze its content.
+
 ### Data contract
 
 Every build lists the data the template reads in `template.Contract`: each path with its use (value, collection,
@@ -172,24 +178,53 @@ JSON (`ToJson`, `FromJson`) and creates a *witness*, a minimal data object that 
 not depend on the language or the format. Different contracts for German and English mean the definition branches on
 something it should not.
 
-### Stamp and upload check
+### Stamp and checking stored templates
 
-The build writes an identity stamp into the document properties: template id, version, contract hash, language and
-builder version (`Templify.*` custom properties). When a user uploads an edited copy, `TemplateInspector.CheckUpload`
-reads the stamp, validates the syntax and checks that the copy reads only paths of the current contract:
+The build writes an identity stamp into the document properties: template id, version, contract hash, language,
+builder version and the versioned components (`Templify.*` custom properties). The stamp stays in filled documents;
+`TemplateStampRemover.Remove(stream)` removes it before a document leaves the organisation.
+
+Templates the host builds from code are rebuilt and always match the current data. Stored templates are different: a
+copy a user downloaded, edited in Word and uploaded, or a stored JSON definition. When the data changes, the host checks
+them against the current data catalogue:
 
 ```csharp
-UploadCheckResult check = TemplateInspector.CheckUpload(upload, current.Contract, new TemplateIdentity("order-confirmation", 1));
-if (!check.IsUsable)
+TemplateCheckOptions options = new TemplateCheckOptions
 {
-    // check.UnknownPaths lists the paths as the copy writes them, check.Syntax the template errors.
-}
+    Data = DataCatalog.From<OrderData>(),                      // every path the data has today
+    Expected = new TemplateIdentity("order-confirmation", 3),  // optional: the current definition
+    Components = components,                                   // optional: the current versioned components
+};
+
+TemplateCheckResult copy = TemplateInspector.Check(upload, options);                        // DOCX or ODT
+TemplateCheckResult json = TemplateInspector.CheckDefinition(text, importOptions, buildOptions); // JSON definition
+// copy.Status: Ok, Warning (works, but outdated or of unknown origin) or Broken (will not fill correctly)
+// copy.Problems: code, severity, message, DataPath, Location
 ```
 
-`check.Origin` says whether the copy comes from this template with the current contract (`CurrentContract`), from this
-template with another contract (`DifferentContract`), from another template (`OtherTemplate`) or has no stamp
-(`Unknown`). The stamp stays in filled documents. `TemplateStampRemover.Remove(stream)` removes it before a
-document leaves the organisation.
+A copy is checked against the **catalogue**, not against the contract of the standard template: it may read any field
+the data has, also one the standard template does not use. `Check` validates the syntax, every path the copy reads
+(loop variables are resolved; any path below an open shape such as a dictionary is accepted) and fills the copy once
+with data of the catalogue's shape. `CheckDefinition` imports the JSON with the catalogue and, given build options,
+builds it; its problems carry the JSON pointer.
+
+| Code | Severity | Meaning |
+|---|---|---|
+| TB9300 | error | The syntax is broken (unclosed loop, …) or the file is not a DOCX/ODT template. |
+| TB9301 | error | The copy reads a path the data does not have (`DataPath` names it as the copy writes it). |
+| TB9302 | error | Filling with the data's shape fails, for example a loop over a value. |
+| TB9303 | warning | No stamp: edited in an application that dropped it, or not built by the builder. |
+| TB9304 | warning | The stamp (or the definition's identity) names another template than `Expected`. |
+| TB9305 | warning | Built from an older version of the definition than `Expected`. |
+| TB9306 | warning | Built from an older version of a component, or from one no longer registered in `Components`. |
+| TB92xx, others | error | `CheckDefinition`: the import's and the build's own codes (TB9203: unknown data path). |
+
+**Changing the data.** Adding a field is safe. Renaming or removing one is a breaking change: stored templates that read
+it break. Check every stored template after such a change (for example on deploy) and show the result to the users
+(yellow for warnings, red for broken). The library only checks; storing templates, keeping a changelog of data
+changes, and fixing templates (by hand, or by an agent that reads the changelog) are the host's work.
+`DataCatalog.ToJson()` writes the catalogue (path, kind, C# type) for agents; a host that commits it sees removed
+fields in its diff.
 
 ### Localisation
 
@@ -486,11 +521,13 @@ Known behaviour of the applications:
 ## Known limits
 
 - **Comparison operands in uploaded copies.** A path that an edited copy uses only as a comparison operand
-  (`{{#if order.priority = "high"}}`) is not reported as unknown by the upload check. The engine treats an unresolved
+  (`{{#if order.priority = "high"}}`) is not reported as unknown by `TemplateInspector.Check`. The engine treats an unresolved
   operand as a string literal ([#271](https://github.com/TriasDev/templify/issues/271)).
-- **Condition variables are read from a message.** The upload check reads the variable of a missing-condition-variable
+- **Condition variables are read from a message.** The check of stored templates reads the variable of a missing-condition-variable
   warning from its message text until the engine exposes it
   ([#275](https://github.com/TriasDev/templify/issues/275)).
+- **No location for unknown value paths.** `Check` names the path of a TB9301 problem but not its place in the
+  document; the engine does not report locations of missing variables yet.
 - **Implicit names inside loops.** Inside a loop the engine also resolves names on the current item, so a root path
   such as `order.number` resolves to the item's `order` property if the item has one. The builder cannot see the data.
   The guards are the data contract and the item names a definition chooses. A root path whose first segment is the

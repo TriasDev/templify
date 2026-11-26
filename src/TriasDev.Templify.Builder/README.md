@@ -67,8 +67,8 @@ GeneratedTemplate template = TemplateBuilder.Build(
 using MemoryStream output = new MemoryStream();
 new TemplateProcessor().ProcessTemplate(template.OpenRead(), output, json);
 
-// Later, check a copy the user edited and uploaded:
-UploadCheckResult check = TemplateInspector.CheckUpload(upload, template.Contract, new TemplateIdentity("invoice", 1));
+// Later, check a copy the user edited and uploaded against the current data (Ok, Warning or Broken):
+TemplateCheckResult check = TemplateInspector.Check(upload, new TemplateCheckOptions { Data = DataCatalog.From<InvoiceData>() });
 ```
 
 The output is deterministic: the same definition and options produce the same bytes, so
