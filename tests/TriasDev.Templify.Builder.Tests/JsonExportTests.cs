@@ -41,31 +41,31 @@ public sealed class JsonExportTests
     {
         BrandTheme theme = BrandTheme.CreateDefault();
         TemplateBuildOptions options = Options(TemplateFormat.Docx);
-        TemplateJsonDocument indented = TemplateJson.Export(new OrderConfirmation(theme), options);
+        TemplateJsonDocument indented = TemplateJson.Export(new OrderConfirmation(theme), options, SampleRunner.Components);
 
-        TemplateJsonDocument compact = TemplateJson.Export(new OrderConfirmation(theme), options, new TemplateJsonExportOptions { Indented = false });
+        TemplateJsonDocument compact = TemplateJson.Export(new OrderConfirmation(theme), options, new TemplateJsonExportOptions { Indented = false, Components = SampleRunner.Components });
 
         Assert.DoesNotContain('\n', compact.Json);
         Assert.Equal(JsonSerializer.Serialize(JsonDocument.Parse(compact.Json).RootElement, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }), compact.Json);
         Assert.Equal(JsonLayout.Format(compact.Json), indented.Json);
-        ITemplateDefinition imported = TemplateJson.Import(compact.Json, new TemplateJsonImportOptions { Assets = compact.Assets, AllowRawXml = true });
+        ITemplateDefinition imported = TemplateJson.Import(compact.Json, new TemplateJsonImportOptions { Assets = compact.Assets, AllowRawXml = true, Components = SampleRunner.Components, Shared = [theme] });
         Assert.Equal(TemplateBuilder.Build(new OrderConfirmation(theme), options).ContentHash, TemplateBuilder.Build(imported, options).ContentHash);
-        Assert.Equal(indented.Json, TemplateJson.Export(imported, options).Json);
+        Assert.Equal(indented.Json, TemplateJson.Export(imported, options, SampleRunner.Components).Json);
     }
 
     [Fact]
     public void Export_IsDeterministic_AndDoesNotDependOnTheFormat()
     {
         BrandTheme theme = BrandTheme.CreateDefault();
-        string docx = TemplateJson.Export(new OrderConfirmation(theme), Options(TemplateFormat.Docx)).Json;
+        string docx = TemplateJson.Export(new OrderConfirmation(theme), Options(TemplateFormat.Docx), SampleRunner.Components).Json;
 
         CultureInfo previous = CultureInfo.CurrentCulture;
         try
         {
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("tr-TR");
-            Assert.Equal(docx, TemplateJson.Export(new OrderConfirmation(theme), Options(TemplateFormat.Docx)).Json);
+            Assert.Equal(docx, TemplateJson.Export(new OrderConfirmation(theme), Options(TemplateFormat.Docx), SampleRunner.Components).Json);
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("ar-SA");
-            Assert.Equal(docx, TemplateJson.Export(new OrderConfirmation(theme), Options(TemplateFormat.Odt)).Json);
+            Assert.Equal(docx, TemplateJson.Export(new OrderConfirmation(theme), Options(TemplateFormat.Odt), SampleRunner.Components).Json);
         }
         finally
         {
@@ -78,7 +78,7 @@ public sealed class JsonExportTests
     {
         BrandTheme theme = BrandTheme.CreateDefault();
 
-        TemplateJsonDocument document = TemplateJson.Export(new OrderConfirmation(theme), Options(TemplateFormat.Docx));
+        TemplateJsonDocument document = TemplateJson.Export(new OrderConfirmation(theme), Options(TemplateFormat.Docx), SampleRunner.Components);
 
         HashSet<string> keys = new HashSet<string>(StringComparer.Ordinal);
         using (JsonDocument json = JsonDocument.Parse(document.Json))
@@ -88,8 +88,8 @@ public sealed class JsonExportTests
 
         foreach (string key in new[]
         {
-            "styles", "page", "properties", "paragraph", "if", "elseIf", "else", "table", "forEachRow", "rowsIf", "box", "rule", "list",
-            "forEach", "image", "toc", "raw", "tabRight", "pageNumber", "pageCount", "section",
+            "styles", "page", "properties", "paragraph", "if", "elseIf", "else", "table", "forEachRow", "rowsIf", "box", "list",
+            "forEach", "image", "toc", "raw", "tabRight", "pageNumber", "pageCount", "section", "component",
         })
         {
             Assert.True(keys.Contains(key), $"The export has no '{key}'.");
@@ -100,7 +100,7 @@ public sealed class JsonExportTests
         string logo = Assert.Single(document.Assets.Keys);
         Assert.StartsWith("sha256:", logo, StringComparison.Ordinal);
         Assert.Contains("\"" + logo + "\"", document.Json, StringComparison.Ordinal);
-        Assert.Contains("[[title]]", TemplateJson.Export(new OrderConfirmation(theme), Options(TemplateFormat.Docx, "de-DE")).Json, StringComparison.Ordinal);
+        Assert.Contains("[[title]]", TemplateJson.Export(new OrderConfirmation(theme), Options(TemplateFormat.Docx, "de-DE"), SampleRunner.Components).Json, StringComparison.Ordinal);
     }
 
     [Fact]

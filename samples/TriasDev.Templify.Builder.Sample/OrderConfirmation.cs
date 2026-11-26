@@ -110,6 +110,7 @@ public sealed record AddressBlock(TemplatePath Address) : ITemplateComponent
 /// (<see cref="BlockComposer.Texts"/>, <see cref="BlockComposer.Shared{T}"/>), so a JSON definition refers to it as
 /// <c>{"component": "terms"}</c>.
 /// </summary>
+[ComponentVersion(1)]
 public sealed record Terms : ITemplateComponent
 {
     public void Compose(BlockComposer c) => c

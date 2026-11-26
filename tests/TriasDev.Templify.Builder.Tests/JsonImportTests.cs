@@ -21,14 +21,15 @@ public sealed class JsonImportTests
     public void Import_RoundTripsTheSample(TemplateFormat format, string language)
     {
         TemplateBuildOptions options = new TemplateBuildOptions { Format = format, Language = CultureInfo.GetCultureInfo(language), Texts = SampleTexts.Catalog };
-        OrderConfirmation definition = new OrderConfirmation(BrandTheme.CreateDefault());
-        TemplateJsonDocument exported = TemplateJson.Export(definition, options);
+        BrandTheme theme = BrandTheme.CreateDefault();
+        OrderConfirmation definition = new OrderConfirmation(theme);
+        TemplateJsonDocument exported = TemplateJson.Export(definition, options, SampleRunner.Components);
 
-        ITemplateDefinition imported = TemplateJson.Import(exported.Json, new TemplateJsonImportOptions { Assets = exported.Assets, AllowRawXml = true });
+        ITemplateDefinition imported = TemplateJson.Import(exported.Json, new TemplateJsonImportOptions { Assets = exported.Assets, AllowRawXml = true, Components = SampleRunner.Components, Shared = [theme] });
 
         Assert.Equal(definition.Identity, imported.Identity);
         Assert.Equal(TemplateBuilder.Build(definition, options).ContentHash, TemplateBuilder.Build(imported, options).ContentHash);
-        Assert.Equal(exported.Json, TemplateJson.Export(imported, options).Json);
+        Assert.Equal(exported.Json, TemplateJson.Export(imported, options, SampleRunner.Components).Json);
     }
 
     [Theory]

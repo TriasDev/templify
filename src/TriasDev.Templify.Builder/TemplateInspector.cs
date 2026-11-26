@@ -88,7 +88,7 @@ public static class TemplateInspector
     /// current version, so a definition is never outdated by a component.
     /// </summary>
     /// <param name="json">The JSON definition.</param>
-    /// <param name="import">The import options; <see cref="TemplateJsonImportOptions.Data"/> is required.</param>
+    /// <param name="import">The import options; <see cref="Json.TemplateJsonImportOptions.Data"/> is required.</param>
     /// <param name="build">The options to build with, to find what only the build checks; null to check the import only.</param>
     /// <param name="expected">The identity the definition should have; null to leave it unjudged.</param>
     /// <returns>The status and the problems, located by JSON pointer.</returns>
