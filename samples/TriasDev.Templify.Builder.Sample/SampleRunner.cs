@@ -18,7 +18,7 @@ public static class SampleRunner
     public static readonly CultureInfo[] Languages = [CultureInfo.GetCultureInfo("de-DE"), CultureInfo.GetCultureInfo("en-GB")];
 
     /// <summary>The components a JSON definition of the sample may refer to by name.</summary>
-    public static ComponentCatalog Components { get; } = new ComponentCatalog().Register<AddressBlock>("address");
+    public static ComponentCatalog Components { get; } = new ComponentCatalog().Register<AddressBlock>("address").Register<Terms>("terms");
 
     /// <summary>Runs the sample.</summary>
     /// <param name="outputDirectory">Where the files go.</param>
@@ -114,6 +114,7 @@ public static class SampleRunner
             Assets = exported.Assets,
             Components = Components,
             Data = DataCatalog.From<OrderData>(),
+            Shared = [theme],
             AllowRawXml = true,
         });
 

@@ -7,21 +7,37 @@ namespace TriasDev.Templify.Builder.Sample;
 
 /// <summary>
 /// The product's theme. The customer's "slots" (colours, fonts, logo) come in here; the definitions never hard-code
-/// them, so one theme restyles every template.
+/// them, so one theme restyles every template. The values are theme tokens: the JSON form refers to them as
+/// <c>"$accent"</c>, and a host can replace them when it imports the JSON.
 /// </summary>
-public sealed record BrandTheme(Color Ink, Color Muted, Color Accent, Color Line, Color SuccessBackground, Color WarningBackground, FontFace Body, FontFace Heading, ImageSource Logo)
+public sealed record BrandTheme(
+    Color Ink,
+    Color Muted,
+    Color Accent,
+    Color Line,
+    Color HeaderBackground,
+    Color SuccessLine,
+    Color SuccessBackground,
+    Color WarningLine,
+    Color WarningBackground,
+    FontFace Body,
+    FontFace Heading,
+    ImageSource Logo)
 {
     /// <summary>Creates the sample theme with the embedded logo.</summary>
     public static BrandTheme CreateDefault() => new BrandTheme(
-        Ink: Color.FromHex("1A1A1A"),
-        Muted: Color.FromHex("6B6B6B"),
-        Accent: Color.FromHex("1F4E79"),
-        Line: Color.FromHex("D4D4D4"),
-        SuccessBackground: Color.FromHex("EFF6F1"),
-        WarningBackground: Color.FromHex("FDF3E7"),
-        Body: new FontFace("Liberation Sans"),
-        Heading: new FontFace("Liberation Sans"),
-        Logo: ImageSource.Png(SampleResources.Read("logo.png")));
+        Ink: Color.Token("ink", Color.FromHex("1A1A1A")),
+        Muted: Color.Token("muted", Color.FromHex("6B6B6B")),
+        Accent: Color.Token("accent", Color.FromHex("1F4E79")),
+        Line: Color.Token("line", Color.FromHex("D4D4D4")),
+        HeaderBackground: Color.Token("headerBackground", Color.FromHex("F2F5F8")),
+        SuccessLine: Color.Token("successLine", Color.FromHex("96C6A8")),
+        SuccessBackground: Color.Token("successBackground", Color.FromHex("EFF6F1")),
+        WarningLine: Color.Token("warningLine", Color.FromHex("E3B27A")),
+        WarningBackground: Color.Token("warningBackground", Color.FromHex("FDF3E7")),
+        Body: FontFace.Token("body", new FontFace("Liberation Sans")),
+        Heading: FontFace.Token("heading", new FontFace("Liberation Sans")),
+        Logo: ImageSource.Png(SampleResources.Read("logo.png")).WithName("logo"));
 }
 
 /// <summary>The style keys every template of the product shares.</summary>
@@ -61,14 +77,14 @@ public static class Styles
         s.Character(Strong, c => c.Bold());
         s.Character(Muted, c => c.Color(t.Muted));
         s.Table(Grid, g => g
-            .HeaderBackground(Color.FromHex("F2F5F8"))
+            .HeaderBackground(t.HeaderBackground)
             .HeaderRule(1.Pt(), t.Accent)
             .RowRule(0.5.Pt(), t.Line)
             .CellPadding(3.Pt(), 5.Pt())
             .ParagraphStyle(TableText)
             .HeaderParagraphStyle(TableHeader));
-        s.Box(Success, b => b.Border(0.75.Pt(), Color.FromHex("96C6A8")).Background(t.SuccessBackground).Padding(6.Pt(), 8.Pt()).SpaceAfter(8.Pt()));
-        s.Box(Warning, b => b.Border(0.75.Pt(), Color.FromHex("E3B27A")).Background(t.WarningBackground).Padding(6.Pt(), 8.Pt()).SpaceAfter(8.Pt()));
+        s.Box(Success, b => b.Border(0.75.Pt(), t.SuccessLine).Background(t.SuccessBackground).Padding(6.Pt(), 8.Pt()).SpaceAfter(8.Pt()));
+        s.Box(Warning, b => b.Border(0.75.Pt(), t.WarningLine).Background(t.WarningBackground).Padding(6.Pt(), 8.Pt()).SpaceAfter(8.Pt()));
         s.List(Bullets, l => l.ItemStyle(ListItem).Level(0, "•", 6.Mm(), 4.Mm()).Level(1, "–", 12.Mm(), 4.Mm()));
     });
 }
@@ -83,14 +99,23 @@ public sealed record AddressBlock(TemplatePath Address) : ITemplateComponent
     {
         c.Paragraph(x =>
         {
-            x.Value(Address["street"]);
-            x.LineBreak();
-            x.Value(Address["postalCode"]);
-            x.Text(" ");
-            x.Value(Address["city"]);
+            x.Value(Address["street"]).LineBreak().Value(Address["postalCode"]).Text(" ").Value(Address["city"]);
             x.If(Address["country"].NotEq("DE"), t => t.Text(", ").Value(Address["country"]));
         });
     }
+}
+
+/// <summary>
+/// The terms at the end of every document. It takes no parameters: the texts and the theme come from the build
+/// (<see cref="BlockComposer.Texts"/>, <see cref="BlockComposer.Shared{T}"/>), so a JSON definition refers to it as
+/// <c>{"component": "terms"}</c>.
+/// </summary>
+public sealed record Terms : ITemplateComponent
+{
+    public void Compose(BlockComposer c) => c
+        .Paragraph(Styles.Heading, c.Texts["terms"])
+        .Paragraph(Styles.Small, c.Texts["termsText"])
+        .Rule(0.5.Pt(), c.Shared<BrandTheme>().Line, 12.Pt(), 4.Pt());
 }
 
 /// <summary>
@@ -107,22 +132,17 @@ public sealed class OrderConfirmation(BrandTheme theme) : ITemplateDefinition
         TemplateTexts t = template.Texts;
         TemplatePath order = template.Data["order"];
 
+        template.Share(theme);
         template.Styles(Styles.Create(theme));
         template.Properties(p => p.Title(t["title"]).Author("Example Trading").Subject(t["title"]));
 
         template.Page(page => page
             .Size(PageSize.A4)
             .Margins(25.Mm(), 20.Mm(), 22.Mm(), 20.Mm())
-            .Header(h => h.Paragraph(Styles.Small, x =>
-            {
-                x.Text(t["title"] + " ");
-                x.Value(order["number"]);
-                x.TabRight();
-                x.Text(t["page"] + " ");
-                x.PageNumber();
-                x.Text(" / ");
-                x.PageCount();
-            }))
+            .Header(h => h.Paragraph(Styles.Small, x => x
+                .Text(t["title"] + " ").Value(order["number"])
+                .TabRight()
+                .Text(t["page"] + " ").PageNumber().Text(" / ").PageCount()))
             .Footer(f => f.Paragraph(Styles.Small, t["footer"]))
             .FirstPage(first =>
             {
@@ -134,26 +154,21 @@ public sealed class OrderConfirmation(BrandTheme theme) : ITemplateDefinition
         template.Content(c =>
         {
             c.Paragraph(Styles.Title, t["title"]);
-            c.Paragraph(Styles.Subtitle, x =>
-            {
-                x.Text(t["orderNo"] + " ");
-                x.Value(Styles.Strong, order["number"]);
-                x.Text(" · ");
-                x.Value(order["date"], ValueFormat.Date(t["dateFormat"]));
-            });
+            c.Paragraph(Styles.Subtitle, x => x
+                .Text(t["orderNo"] + " ").Value(Styles.Strong, order["number"])
+                .Text(" · ").Value(order["date"], ValueFormat.Date(t["dateFormat"])));
 
             c.TableOfContents(1);
 
-            Customer(c, t, order);
-            Items(c, t, order);
-            Status(c, t, order);
-            Checks(c, t, order);
-            Notes(c, t, order);
+            // Sections name the parts of the document; in JSON they are the units an editor reads or replaces.
+            c.Section("customer", b => Customer(b, t, order));
+            c.Section("items", b => Items(b, t, order));
+            c.Section("status", b => Status(b, t, order));
+            c.Section("checks", b => Checks(b, t, order));
+            c.Section("notes", b => Notes(b, t, order));
 
             c.PageBreak();
-            c.Paragraph(Styles.Heading, t["terms"]);
-            c.Paragraph(Styles.Small, t["termsText"]);
-            c.Rule(0.5.Pt(), theme.Line, 12.Pt(), 4.Pt());
+            c.Component(new Terms());
             c.Raw(PrintedOn(t["printedOn"]));
         });
     }
@@ -174,7 +189,7 @@ public sealed class OrderConfirmation(BrandTheme theme) : ITemplateDefinition
         c.Component(new AddressBlock(order["customer.address"]));
     }
 
-    private void Items(BlockComposer c, TemplateTexts t, TemplatePath order)
+    private static void Items(BlockComposer c, TemplateTexts t, TemplatePath order)
     {
         c.Paragraph(Styles.Heading, t["items"]);
         c.Table(table =>
@@ -187,13 +202,7 @@ public sealed class OrderConfirmation(BrandTheme theme) : ITemplateDefinition
                 cols.Fixed(16.Mm());
                 cols.Fixed(30.Mm());
             });
-            table.HeaderRow(r =>
-            {
-                r.Cell("#");
-                r.Cell(t["description"]);
-                r.Cell(t["quantity"]);
-                r.Cell(t["amount"]);
-            });
+            table.HeaderRow(r => r.Cell("#").Cell(t["description"]).Cell(t["quantity"]).Cell(t["amount"]));
             table.ForEachRow(order["lines"], "line", (line, rows) =>
             {
                 rows.Row(r =>
@@ -203,8 +212,7 @@ public sealed class OrderConfirmation(BrandTheme theme) : ITemplateDefinition
                     {
                         cell.Paragraph(x =>
                         {
-                            x.Value(line["description"]);
-                            x.Text(Styles.Muted, " — ");
+                            x.Value(line["description"]).Text(Styles.Muted, " — ");
                             x.If(line["inStock"], s => s.Text(Styles.Muted, t["inStock"])).Else(s => s.Text(Styles.Muted, t["backOrdered"]));
                         });
                         cell.If(line["tags"].IsNotEmpty, b => b.Paragraph(Styles.Small, x => x.Value(line["tags"], ValueFormat.Join(separator: " · "))));
@@ -226,11 +234,7 @@ public sealed class OrderConfirmation(BrandTheme theme) : ITemplateDefinition
             });
         });
 
-        c.Paragraph(x =>
-        {
-            x.Text(t["freeExpress"] + " ");
-            x.Expression(order["isExpress"] & order["total"].Gt(1000), ValueFormat.YesNo);
-        });
+        c.Paragraph(x => x.Text(t["freeExpress"] + " ").Expression(order["isExpress"] & order["total"].Gt(1000), ValueFormat.YesNo));
     }
 
     private static void Status(BlockComposer c, TemplateTexts t, TemplatePath order)
@@ -255,12 +259,7 @@ public sealed class OrderConfirmation(BrandTheme theme) : ITemplateDefinition
             b.Paragraph(Styles.Heading, t["checks"]);
             b.List(Styles.Bullets, list => list.ForEach(order["checks"], "check", (check, items) =>
             {
-                items.Item(x =>
-                {
-                    x.Value(check["title"]);
-                    x.Text(": ");
-                    x.Value(check["passed"], ValueFormat.Checkmark);
-                });
+                items.Item(x => x.Value(check["title"]).Text(": ").Value(check["passed"], ValueFormat.Checkmark));
                 items.If(check["note"].Exists, notes => notes.Item(1, check["note"]));
             }));
         });
@@ -268,11 +267,7 @@ public sealed class OrderConfirmation(BrandTheme theme) : ITemplateDefinition
 
     private static void Notes(BlockComposer c, TemplateTexts t, TemplatePath order)
     {
-        c.If(order["notes"].IsNotEmpty, b =>
-        {
-            b.Paragraph(Styles.Heading, t["notes"]);
-            b.Paragraph(order["notes"]);
-        });
+        c.If(order["notes"].IsNotEmpty, b => b.Paragraph(Styles.Heading, t["notes"]).Paragraph(order["notes"]));
     }
 
     /// <summary>

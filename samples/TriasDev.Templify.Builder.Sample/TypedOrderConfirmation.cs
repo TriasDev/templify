@@ -13,11 +13,7 @@ public sealed record OrderAddressBlock(TemplatePath<Address> Address) : ITemplat
     {
         c.Paragraph(x =>
         {
-            x.Value(Address.Street);
-            x.LineBreak();
-            x.Value(Address.PostalCode);
-            x.Text(" ");
-            x.Value(Address.City);
+            x.Value(Address.Street).LineBreak().Value(Address.PostalCode).Text(" ").Value(Address.City);
             x.If(Address.Country.NotEq("DE"), t => t.Text(", ").Value(Address.Country));
         });
     }
@@ -37,22 +33,17 @@ public sealed class TypedOrderConfirmation(BrandTheme theme) : ITemplateDefiniti
         TemplateTexts t = template.Texts;
         TemplatePath<Order> order = template.DataAs<OrderData>().Order;
 
+        template.Share(theme);
         template.Styles(Styles.Create(theme));
         template.Properties(p => p.Title(t["title"]).Author("Example Trading").Subject(t["title"]));
 
         template.Page(page => page
             .Size(PageSize.A4)
             .Margins(25.Mm(), 20.Mm(), 22.Mm(), 20.Mm())
-            .Header(h => h.Paragraph(Styles.Small, x =>
-            {
-                x.Text(t["title"] + " ");
-                x.Value(order.Number);
-                x.TabRight();
-                x.Text(t["page"] + " ");
-                x.PageNumber();
-                x.Text(" / ");
-                x.PageCount();
-            }))
+            .Header(h => h.Paragraph(Styles.Small, x => x
+                .Text(t["title"] + " ").Value(order.Number)
+                .TabRight()
+                .Text(t["page"] + " ").PageNumber().Text(" / ").PageCount()))
             .Footer(f => f.Paragraph(Styles.Small, t["footer"]))
             .FirstPage(first =>
             {
@@ -63,26 +54,20 @@ public sealed class TypedOrderConfirmation(BrandTheme theme) : ITemplateDefiniti
         template.Content(c =>
         {
             c.Paragraph(Styles.Title, t["title"]);
-            c.Paragraph(Styles.Subtitle, x =>
-            {
-                x.Text(t["orderNo"] + " ");
-                x.Value(Styles.Strong, order.Number);
-                x.Text(" · ");
-                x.Value(order.Date, ValueFormat.Date(t["dateFormat"]));
-            });
+            c.Paragraph(Styles.Subtitle, x => x
+                .Text(t["orderNo"] + " ").Value(Styles.Strong, order.Number)
+                .Text(" · ").Value(order.Date, ValueFormat.Date(t["dateFormat"])));
 
             c.TableOfContents(1);
 
-            Customer(c, t, order);
-            Items(c, t, order);
-            Status(c, t, order);
-            Checks(c, t, order);
-            Notes(c, t, order);
+            c.Section("customer", b => Customer(b, t, order));
+            c.Section("items", b => Items(b, t, order));
+            c.Section("status", b => Status(b, t, order));
+            c.Section("checks", b => Checks(b, t, order));
+            c.Section("notes", b => Notes(b, t, order));
 
             c.PageBreak();
-            c.Paragraph(Styles.Heading, t["terms"]);
-            c.Paragraph(Styles.Small, t["termsText"]);
-            c.Rule(0.5.Pt(), theme.Line, 12.Pt(), 4.Pt());
+            c.Component(new Terms());
             c.Raw(OrderConfirmation.PrintedOn(t["printedOn"]));
         });
     }
@@ -117,13 +102,7 @@ public sealed class TypedOrderConfirmation(BrandTheme theme) : ITemplateDefiniti
                 cols.Fixed(16.Mm());
                 cols.Fixed(30.Mm());
             });
-            table.HeaderRow(r =>
-            {
-                r.Cell("#");
-                r.Cell(t["description"]);
-                r.Cell(t["quantity"]);
-                r.Cell(t["amount"]);
-            });
+            table.HeaderRow(r => r.Cell("#").Cell(t["description"]).Cell(t["quantity"]).Cell(t["amount"]));
             table.ForEachRow(order.Lines, "line", (line, rows) =>
             {
                 rows.Row(r =>
@@ -133,8 +112,7 @@ public sealed class TypedOrderConfirmation(BrandTheme theme) : ITemplateDefiniti
                     {
                         cell.Paragraph(x =>
                         {
-                            x.Value(line.Description);
-                            x.Text(Styles.Muted, " — ");
+                            x.Value(line.Description).Text(Styles.Muted, " — ");
                             x.If(line.InStock, s => s.Text(Styles.Muted, t["inStock"])).Else(s => s.Text(Styles.Muted, t["backOrdered"]));
                         });
                         cell.If(line.Tags.IsNotEmpty, b => b.Paragraph(Styles.Small, x => x.Value(line.Tags, ValueFormat.Join(separator: " · "))));
@@ -156,11 +134,7 @@ public sealed class TypedOrderConfirmation(BrandTheme theme) : ITemplateDefiniti
             });
         });
 
-        c.Paragraph(x =>
-        {
-            x.Text(t["freeExpress"] + " ");
-            x.Expression(order.IsExpress & order.Total.Gt(1000), ValueFormat.YesNo);
-        });
+        c.Paragraph(x => x.Text(t["freeExpress"] + " ").Expression(order.IsExpress & order.Total.Gt(1000), ValueFormat.YesNo));
     }
 
     private static void Status(BlockComposer c, TemplateTexts t, TemplatePath<Order> order)
@@ -186,12 +160,7 @@ public sealed class TypedOrderConfirmation(BrandTheme theme) : ITemplateDefiniti
             b.Paragraph(Styles.Heading, t["checks"]);
             b.List(Styles.Bullets, list => list.ForEach(checks, "check", (check, items) =>
             {
-                items.Item(x =>
-                {
-                    x.Value(check.Title);
-                    x.Text(": ");
-                    x.Value(check.Passed, ValueFormat.Checkmark);
-                });
+                items.Item(x => x.Value(check.Title).Text(": ").Value(check.Passed, ValueFormat.Checkmark));
                 items.If(check.Note.Exists, notes => notes.Item(1, check.Note));
             }));
         });
@@ -199,10 +168,6 @@ public sealed class TypedOrderConfirmation(BrandTheme theme) : ITemplateDefiniti
 
     private static void Notes(BlockComposer c, TemplateTexts t, TemplatePath<Order> order)
     {
-        c.If(order.Notes.IsNotEmpty, b =>
-        {
-            b.Paragraph(Styles.Heading, t["notes"]);
-            b.Paragraph(order.Notes);
-        });
+        c.If(order.Notes.IsNotEmpty, b => b.Paragraph(Styles.Heading, t["notes"]).Paragraph(order.Notes));
     }
 }

@@ -120,10 +120,12 @@ public sealed class SampleTests
             Assets = exported.Assets,
             Components = SampleRunner.Components,
             Data = DataCatalog.From<OrderData>(),
+            Shared = [BrandTheme.CreateDefault()],
             AllowRawXml = true,
         });
 
         Assert.Contains("\"component\": \"address\"", exported.Json, StringComparison.Ordinal);
+        Assert.Contains("{\"component\": \"terms\"}", exported.Json, StringComparison.Ordinal);
         Assert.Equal(TemplateBuilder.Build(new OrderConfirmation(BrandTheme.CreateDefault()), options).ContentHash, TemplateBuilder.Build(imported, options).ContentHash);
     }
 }

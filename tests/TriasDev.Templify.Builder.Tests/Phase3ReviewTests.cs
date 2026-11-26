@@ -61,7 +61,7 @@ public sealed class Phase3ReviewTests
         TemplateBuildOptions options = new TemplateBuildOptions { Format = TemplateFormat.Docx, Language = CultureInfo.GetCultureInfo("en-GB"), Texts = SampleTexts.Catalog };
         OrderConfirmation definition = new OrderConfirmation(BrandTheme.CreateDefault());
         TemplateJsonDocument exported = TemplateJson.Export(definition, options, SampleRunner.Components);
-        ITemplateDefinition imported = TemplateJson.Import(exported.Json, new TemplateJsonImportOptions { Assets = exported.Assets, Components = SampleRunner.Components, AllowRawXml = true });
+        ITemplateDefinition imported = TemplateJson.Import(exported.Json, new TemplateJsonImportOptions { Assets = exported.Assets, Components = SampleRunner.Components, Shared = [BrandTheme.CreateDefault()], AllowRawXml = true });
         string expected = TemplateBuilder.Build(definition, options).ContentHash;
 
         string[] hashes = new string[200];
