@@ -72,6 +72,9 @@ internal static class DiagnosticCodes
     /// <summary>Styles inherit from each other in a cycle.</summary>
     public const string BasedOnCycle = "TB2005";
 
+    /// <summary>A style's display name contains a comma, which Word reads as a list of aliases (schema-invalid DOCX).</summary>
+    public const string InvalidStyleName = "TB2006";
+
     /// <summary>Content uses a style the style sheet does not define.</summary>
     public const string UndefinedStyle = "TB2010";
 

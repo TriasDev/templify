@@ -63,6 +63,11 @@ public static class TemplateBuilder
                 $"The margins leave no room for text: the page is {page.Size.Width} wide, the side margins take {page.Left + page.Right}.");
         }
 
+        if (Writers.Spacers.Used(new IReadOnlyList<Block>?[] { body, page.Header, page.Footer, page.FirstHeader, page.FirstFooter }.OfType<IReadOnlyList<Block>>()))
+        {
+            styles = styles.WithParagraphStyle(BuilderStyles.SpacerDefinition());
+        }
+
         if (BlockTree.HasMarkers(allBlocks) && styles.Find(BuilderStyles.TemplateMarker) == null)
         {
             styles = styles.WithParagraphStyle(BuilderStyles.DefaultMarkerDefinition());

@@ -202,6 +202,13 @@ public sealed class StyleSheet
                 $"The display name '{group.Key}' is used by several styles ({string.Join(", ", group.Select(s => s.Id))}). Word requires unique style names."));
         }
 
+        foreach ((string Id, string Name, string Kind) style in all.Where(s => s.Name.Contains(',', StringComparison.Ordinal)))
+        {
+            problems.Add(new BuildDiagnostic(
+                DiagnosticCodes.InvalidStyleName,
+                $"The {style.Kind} style '{style.Id}' has the display name '{style.Name}': a comma is not allowed (Word reads it as a list of aliases)."));
+        }
+
         foreach (ParagraphStyleDefinition style in paragraphStyles)
         {
             if (style.BasedOn is { } basedOn && !paragraphStyles.Any(s => s.Key == basedOn))

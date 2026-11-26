@@ -77,7 +77,7 @@ internal static class OdtWriter
     private static XElement Content(DocumentModel model, PictureStore pictures)
     {
         BlockWriter writer = new BlockWriter(model, "Templify", pictures);
-        XElement text = new XElement(_office + "text", writer.WriteBlocks(model.Body, model.Page.FrameWidth));
+        XElement text = new XElement(_office + "text", writer.WritePartBlocks(model.Body, model.Page.FrameWidth));
 
         return new XElement(
             _office + "document-content",
@@ -101,6 +101,9 @@ internal static class OdtWriter
         public List<XElement> AutomaticStyles { get; } = new List<XElement>();
 
         private readonly Dictionary<string, string> _cellStyles = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        // Each raw block is rendered once (its callbacks see the frame of its container); spacer decisions read its root.
+        private readonly Dictionary<RawXmlBlock, XElement> _raw = new Dictionary<RawXmlBlock, XElement>(ReferenceEqualityComparer.Instance);
         private int _tables;
         private bool _rowKeepStyle;
 
@@ -108,8 +111,33 @@ internal static class OdtWriter
         public Length PageFrame => model.Page.FrameWidth;
 
         /// <summary>Writes blocks in a container whose text frame is <paramref name="frame"/> wide.</summary>
-        public List<XElement> WriteBlocks(IEnumerable<Block> blocks, Length frame) =>
-            BlockFlattener.Flatten(blocks).Select(b => WriteBlock(b, frame)).ToList();
+        public List<XElement> WriteBlocks(IEnumerable<Block> blocks, Length frame)
+        {
+            List<Block> flattened = BlockFlattener.Flatten(blocks).ToList();
+            List<XElement> elements = new List<XElement>();
+            for (int i = 0; i < flattened.Count; i++)
+            {
+                elements.Add(WriteBlock(flattened[i], frame));
+                if (Spacers.After(flattened[i], i + 1 < flattened.Count ? flattened[i + 1] : null, raw => RawIsParagraph(raw, frame)))
+                {
+                    elements.Add(WriteParagraph(Spacers.Paragraph, frame));
+                }
+            }
+
+            return elements;
+        }
+
+        /// <summary>Writes the blocks of the body, a header or a footer; a part ending with a marker gets a spacer.</summary>
+        public List<XElement> WritePartBlocks(IReadOnlyList<Block> blocks, Length frame)
+        {
+            List<XElement> elements = WriteBlocks(blocks, frame);
+            if (Spacers.AtPartEnd(blocks, raw => RawIsParagraph(raw, frame)))
+            {
+                elements.Add(WriteParagraph(Spacers.Paragraph, frame));
+            }
+
+            return elements;
+        }
 
         private XElement WriteBlock(Block block, Length frame) => block switch
         {
@@ -118,13 +146,26 @@ internal static class OdtWriter
             TableBlock table => WriteTable(table, frame),
             RuleBlock rule => new XElement(_text + "p", new XAttribute(_text + "style-name", RuleStyle(rule))),
             TocBlock toc => TableOfContents(toc),
-            RawXmlBlock raw => new XElement(RawContext.Check(raw.Raw.Odt(new RawContext(raw.Raw, frame)), RawContext.OdtRoots, "ODT")),
+            RawXmlBlock raw => new XElement(RawXml(raw, frame)),
             // An empty paragraph of its own carries the break (break-after: no empty line on the new page), so it
             // survives when the engine removes the paragraphs around it.
             PageBreakBlock => new XElement(_text + "p", new XAttribute(_text + "style-name", PageBreakStyle())),
             MarkerBlock marker => WriteMarker(marker),
             _ => throw new NotSupportedException($"Block {block.GetType().Name} is not supported by the ODT writer."),
         };
+
+        private XElement RawXml(RawXmlBlock raw, Length frame)
+        {
+            if (!_raw.TryGetValue(raw, out XElement? element))
+            {
+                element = RawContext.Check(raw.Raw.Odt(new RawContext(raw.Raw, frame)), RawContext.OdtRoots, "ODT");
+                _raw[raw] = element;
+            }
+
+            return element;
+        }
+
+        private bool RawIsParagraph(RawXmlBlock raw, Length frame) => RawXml(raw, frame).Name.LocalName != "table";
 
         private string PageBreakStyle()
         {
@@ -337,8 +378,15 @@ internal static class OdtWriter
                     element.Add(new XAttribute(_table + "number-columns-spanned", cell.Span));
                 }
 
-                List<XElement> content = WriteBlocks(cell.Content, TableLayout.CellFrame(widths, column, cell.Span, paddingH));
-                element.Add(content.Count > 0 && content[^1].Name != _table + "table"
+                Length cellFrame = TableLayout.CellFrame(widths, column, cell.Span, paddingH);
+                List<XElement> content = WriteBlocks(cell.Content, cellFrame);
+                if (Spacers.AtCellEnd(cell.Content, raw => RawIsParagraph(raw, cellFrame)))
+                {
+                    // Also once Templify removed the markers, the cell ends with a paragraph.
+                    content.Add(WriteParagraph(Spacers.Paragraph, cellFrame));
+                }
+
+                element.Add(content.Count > 0
                     ? content
                     : content.Append(new XElement(_text + "p", new XAttribute(_text + "style-name", StandardStyleName))));
                 result.Add(element);
@@ -797,7 +845,7 @@ internal static class OdtWriter
 
     private static XElement Region(string name, List<Block>? blocks, BlockWriter writer)
     {
-        List<XElement> content = blocks is null ? new List<XElement>() : writer.WriteBlocks(blocks, writer.PageFrame);
+        List<XElement> content = blocks is null ? new List<XElement>() : writer.WritePartBlocks(blocks, writer.PageFrame);
         return new XElement(_style + name, content.Count > 0 ? content : new XElement(_text + "p", new XAttribute(_text + "style-name", StandardStyleName)));
     }
 

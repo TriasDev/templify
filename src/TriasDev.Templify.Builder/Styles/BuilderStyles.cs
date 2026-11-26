@@ -19,6 +19,20 @@ public static class BuilderStyles
     /// </remarks>
     public static ParagraphStyleKey TemplateMarker { get; } = ParagraphStyleKey.BuiltIn("TemplifyMarker", "Template Marker");
 
+    /// <summary>The paragraph style of spacer paragraphs that keep cells and tables apart once markers are removed (1 pt, invisible).</summary>
+    internal static ParagraphStyleKey TemplateSpacer { get; } = ParagraphStyleKey.BuiltIn("TemplifySpacer", "Template Spacer");
+
+    /// <summary>The definition of <see cref="TemplateSpacer"/>.</summary>
+    internal static ParagraphStyleDefinition SpacerDefinition()
+    {
+        ParagraphStyleDefinition definition = new ParagraphStyleDefinition(TemplateSpacer);
+        definition.Text.Size = 1.Pt();
+        definition.Paragraph.SpaceBefore = Length.Zero;
+        definition.Paragraph.SpaceAfter = Length.Zero;
+        definition.Paragraph.LineHeight = new LineHeight(LineHeightRule.Exact, 1.Pt(), 0);
+        return definition;
+    }
+
     /// <summary>The default definition of <see cref="TemplateMarker"/>.</summary>
     internal static ParagraphStyleDefinition DefaultMarkerDefinition()
     {

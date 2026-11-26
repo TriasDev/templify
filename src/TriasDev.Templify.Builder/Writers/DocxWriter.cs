@@ -64,7 +64,7 @@ internal static class DocxWriter
         {
             BlockWriter writer = new BlockWriter(model, media, 1, numbering);
             OpenXmlCompositeElement root = part.IsHeader ? new Header() : new Footer();
-            root.Append(EndWithParagraph(writer.WriteBlocks(part.Blocks, model.Page.FrameWidth)));
+            root.Append(EndWithParagraph(writer.WritePartBlocks(part.Blocks, model.Page.FrameWidth)));
             partFiles.Add(new PackagePart("word/" + part.FileName, Utf8(XmlDeclaration + root.OuterXml)));
             if (writer.Images.Count > 0)
             {
@@ -549,7 +549,7 @@ internal static class DocxWriter
     private static Document MainDocument(DocumentModel model, List<HeaderFooterPart> parts, BlockWriter writer)
     {
         Body body = new Body();
-        body.Append(EndWithParagraph(writer.WriteBlocks(model.Body, model.Page.FrameWidth)));
+        body.Append(EndWithParagraph(writer.WritePartBlocks(model.Body, model.Page.FrameWidth)));
         body.Append(SectionProperties(model.Page, parts));
         return new Document(body);
     }
@@ -604,6 +604,9 @@ internal static class DocxWriter
     {
         private readonly Dictionary<string, string> _imageIds = new Dictionary<string, string>(StringComparer.Ordinal);
 
+        // Each raw block is rendered once (its callbacks see the frame of its container); spacer decisions read its root.
+        private readonly Dictionary<RawXmlBlock, System.Xml.Linq.XElement> _raw = new Dictionary<RawXmlBlock, System.Xml.Linq.XElement>(ReferenceEqualityComparer.Instance);
+
         /// <summary>Gets the image relationships of this part (id, target relative to <c>word/</c>).</summary>
         public List<(string Id, string Target)> Images { get; } = new List<(string, string)>();
 
@@ -611,9 +614,10 @@ internal static class DocxWriter
         public List<OpenXmlElement> WriteBlocks(IEnumerable<Block> blocks, Length frame)
         {
             List<OpenXmlElement> elements = new List<OpenXmlElement>();
-            foreach (Block block in BlockFlattener.Flatten(blocks))
+            List<Block> flattened = BlockFlattener.Flatten(blocks).ToList();
+            for (int i = 0; i < flattened.Count; i++)
             {
-                List<OpenXmlElement> written = WriteBlock(block, frame).ToList();
+                List<OpenXmlElement> written = WriteBlock(flattened[i], frame).ToList();
 
                 // Word merges two tables that touch; a paragraph keeps them apart.
                 if (written.Count > 0 && written[0] is Table && elements.Count > 0 && elements[^1] is Table)
@@ -622,6 +626,34 @@ internal static class DocxWriter
                 }
 
                 elements.AddRange(written);
+                if (Spacers.After(flattened[i], i + 1 < flattened.Count ? flattened[i + 1] : null, raw => RawIsParagraph(raw, frame)))
+                {
+                    elements.Add(WriteParagraph(Spacers.Paragraph, frame));
+                }
+            }
+
+            return elements;
+        }
+
+        /// <summary>Writes the blocks of the body, a header or a footer; a part ending with a marker gets a spacer.</summary>
+        public List<OpenXmlElement> WritePartBlocks(IReadOnlyList<Block> blocks, Length frame)
+        {
+            List<OpenXmlElement> elements = WriteBlocks(blocks, frame);
+            if (Spacers.AtPartEnd(blocks, raw => RawIsParagraph(raw, frame)))
+            {
+                elements.Add(WriteParagraph(Spacers.Paragraph, frame));
+            }
+
+            return elements;
+        }
+
+        /// <summary>Writes the blocks of a table cell; it ends with a paragraph also once Templify removed the markers.</summary>
+        public List<OpenXmlElement> WriteCellBlocks(IReadOnlyList<Block> blocks, Length frame)
+        {
+            List<OpenXmlElement> elements = WriteBlocks(blocks, frame);
+            if (Spacers.AtCellEnd(blocks, raw => RawIsParagraph(raw, frame)))
+            {
+                elements.Add(WriteParagraph(Spacers.Paragraph, frame));
             }
 
             return elements;
@@ -637,15 +669,27 @@ internal static class DocxWriter
             TableBlock table => WriteTable(table, frame),
             RuleBlock rule => [RuleParagraph(rule)],
             TocBlock toc => [TocParagraph(toc)],
-            RawXmlBlock raw => [RawElement(raw.Raw, frame)],
+            RawXmlBlock raw => [RawElement(RawXml(raw, frame))],
             _ => throw new NotSupportedException($"Block {block.GetType().Name} is not supported by the DOCX writer."),
         };
 
         /// <summary>A raw block as a typed paragraph or table, so the writer's own checks (tables that touch, the
         /// closing paragraph) see what it is.</summary>
-        private static OpenXmlElement RawElement(RawBlock raw, Length frame)
+        private System.Xml.Linq.XElement RawXml(RawXmlBlock raw, Length frame)
         {
-            System.Xml.Linq.XElement element = RawContext.Check(raw.Docx(new RawContext(raw, frame)), RawContext.DocxRoots, "DOCX");
+            if (!_raw.TryGetValue(raw, out System.Xml.Linq.XElement? element))
+            {
+                element = RawContext.Check(raw.Raw.Docx(new RawContext(raw.Raw, frame)), RawContext.DocxRoots, "DOCX");
+                _raw[raw] = element;
+            }
+
+            return element;
+        }
+
+        private bool RawIsParagraph(RawXmlBlock raw, Length frame) => RawXml(raw, frame).Name.LocalName != "tbl";
+
+        private static OpenXmlElement RawElement(System.Xml.Linq.XElement element)
+        {
             string xml = element.ToString(System.Xml.Linq.SaveOptions.DisableFormatting);
             return element.Name.LocalName == "tbl" ? new Table(xml) : new Paragraph(xml);
         }
@@ -852,7 +896,7 @@ internal static class DocxWriter
             }
 
             TableCell result = new TableCell(properties);
-            result.Append(WriteBlocks(cell.Content, contentFrame));
+            result.Append(WriteCellBlocks(cell.Content, contentFrame));
 
             // A cell ends with a paragraph (schema and Word); an empty cell has one.
             if (result.LastChild is not Paragraph)
