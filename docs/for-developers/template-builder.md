@@ -272,9 +272,12 @@ item has the item type's properties. Every generated property is shorthand for t
 `order.Path(o => o.Customer.Name)`.
 
 - A property whose name the path or loop item type already uses (`Number`, `Count`, `Index` on a loop item; `Path`,
-  `Items`, `Exists`, `IsEmpty` on a path) is not generated (warning TBG001); use the lambda there.
-- Private or protected nested data types are skipped; types not reached from `DataAs` are added with
-  `[assembly: TemplateData(typeof(Address))]` (for example in a component library).
+  `Items`, `Exists`, `IsEmpty` on a path) is not generated (information TBG001); use the lambda there.
+- Types of .NET itself (`Uri`, `Version`, …) get a path but are not walked into, like the lambda API. Private,
+  protected and `file` types, ref structs (`Span<T>`) and ref-returning properties are skipped. An `[Obsolete]` data
+  property gives an `[Obsolete]` path property.
+- Types not reached from `DataAs` are added with `[assembly: TemplateData(typeof(Address))]` (for example in a component
+  library). A project that sees another assembly's internals (a test project) uses that assembly's generated paths.
 - C# 14 or later is required (.NET 10 SDK); below, the generator reports TBG002 and generates nothing.
 
 ## JSON definitions

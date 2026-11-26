@@ -43,6 +43,13 @@ a member of the receiver type (read from the compilation, including `object` mem
 are skipped silently; they can still use lambdas. Without C# 14 (LangVersion below 14) the generator reports error
 **TBG002** and generates nothing. Generated code is `#nullable disable` (no nullability mismatches in strict projects).
 
+Added after the final review: TBG001 is information, not a warning (collisions are accepted, and a file-located
+generator diagnostic cannot be suppressed locally); types in `System.*` are not walked (the lambda API rejects their
+members); `file` types, ref structs, ref-returning properties and names several base interfaces declare are skipped;
+`[Obsolete]` is copied onto the generated property; the generated file marks its blocks with
+`[assembly: GeneratedDataPaths(typeof(T), loopItem)]`, and a compilation that a referenced assembly gives access to its
+internals does not generate those blocks again.
+
 ## 4. Verification
 
 - Generator tests (`CSharpGeneratorDriver`): generated text per type rule, inheritance, `[JsonIgnore]`, keywords,
