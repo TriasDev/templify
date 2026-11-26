@@ -41,6 +41,10 @@ internal sealed class BuildContext
     /// <summary>Records an error at a location in a JSON definition.</summary>
     public void Error(string code, string message, string? location) => _errors.Add(new BuildDiagnostic(code, message) { Location = location });
 
+    /// <summary>Records an error about a data path at a location.</summary>
+    public void Error(string code, string message, string? location, string dataPath) =>
+        _errors.Add(new BuildDiagnostic(code, message) { Location = location, DataPath = dataPath });
+
     /// <summary>Records problems found elsewhere, for example in a style sheet.</summary>
     public void AddRange(IEnumerable<BuildDiagnostic> problems) => _errors.AddRange(problems);
 }

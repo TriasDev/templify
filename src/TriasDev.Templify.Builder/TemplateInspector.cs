@@ -82,6 +82,73 @@ public static class TemplateInspector
         return new TemplateCheckResult(format, stamp, problems);
     }
 
+    /// <summary>
+    /// Checks a stored JSON definition against the current data: it must import with the catalogue (every data path
+    /// known and of the right kind) and, with <paramref name="build"/>, build. Registered components are used at their
+    /// current version, so a definition is never outdated by a component.
+    /// </summary>
+    /// <param name="json">The JSON definition.</param>
+    /// <param name="import">The import options; <see cref="TemplateJsonImportOptions.Data"/> is required.</param>
+    /// <param name="build">The options to build with, to find what only the build checks; null to check the import only.</param>
+    /// <param name="expected">The identity the definition should have; null to leave it unjudged.</param>
+    /// <returns>The status and the problems, located by JSON pointer.</returns>
+    /// <exception cref="ArgumentException">The import options have no data catalogue.</exception>
+    public static TemplateCheckResult CheckDefinition(string json, Json.TemplateJsonImportOptions import, TemplateBuildOptions? build = null, TemplateIdentity? expected = null)
+    {
+        ArgumentNullException.ThrowIfNull(json);
+        ArgumentNullException.ThrowIfNull(import);
+        if (import.Data is null)
+        {
+            throw new ArgumentException("Checking a definition needs the current data catalogue (TemplateJsonImportOptions.Data).", nameof(import));
+        }
+
+        List<TemplateCheckProblem> problems = new List<TemplateCheckProblem>();
+        ITemplateDefinition definition;
+        try
+        {
+            definition = Json.TemplateJson.Import(json, import);
+        }
+        catch (TemplateBuildException exception)
+        {
+            problems.AddRange(exception.Errors.Select(AsProblem));
+            return new TemplateCheckResult(TemplateFormat.Unknown, null, problems);
+        }
+
+        if (build is not null)
+        {
+            try
+            {
+                TemplateBuilder.Build(definition, build);
+            }
+            catch (TemplateBuildException exception)
+            {
+                problems.AddRange(exception.Errors.Select(AsProblem));
+            }
+        }
+
+        if (expected is not null && definition.Identity is { } identity)
+        {
+            JudgeIdentity(identity.Id, identity.Version, expected, problems);
+        }
+
+        return new TemplateCheckResult(TemplateFormat.Unknown, null, problems);
+    }
+
+    private static TemplateCheckProblem AsProblem(BuildDiagnostic error) =>
+        new TemplateCheckProblem(error.Code, TemplateCheckSeverity.Error, error.Message) { Location = error.Location, DataPath = error.DataPath };
+
+    private static void JudgeIdentity(string id, int version, TemplateIdentity expected, List<TemplateCheckProblem> problems)
+    {
+        if (!string.Equals(id, expected.Id, StringComparison.Ordinal))
+        {
+            problems.Add(new TemplateCheckProblem(CheckCodes.OtherTemplate, TemplateCheckSeverity.Warning, $"The template comes from '{id}', not from '{expected.Id}'."));
+        }
+        else if (version < expected.Version)
+        {
+            problems.Add(new TemplateCheckProblem(CheckCodes.OlderVersion, TemplateCheckSeverity.Warning, $"The template comes from version {version} of '{expected.Id}'; the current version is {expected.Version}."));
+        }
+    }
+
     /// <summary>Fills the template with witness data: what validation does not see (a loop over a value) fails here.</summary>
     private static void TrialFill(byte[] bytes, IReadOnlyDictionary<string, object?> witness, List<TemplateCheckProblem> problems)
     {
@@ -104,14 +171,7 @@ public static class TemplateInspector
 
         if (options.Expected is { } expected)
         {
-            if (!string.Equals(stamp.TemplateId, expected.Id, StringComparison.Ordinal))
-            {
-                problems.Add(new TemplateCheckProblem(CheckCodes.OtherTemplate, TemplateCheckSeverity.Warning, $"The template comes from '{stamp.TemplateId}', not from '{expected.Id}'."));
-            }
-            else if (stamp.Version < expected.Version)
-            {
-                problems.Add(new TemplateCheckProblem(CheckCodes.OlderVersion, TemplateCheckSeverity.Warning, $"The template comes from version {stamp.Version} of '{expected.Id}'; the current version is {expected.Version}."));
-            }
+            JudgeIdentity(stamp.TemplateId, stamp.Version, expected, problems);
         }
 
         if (options.Components is { } components)

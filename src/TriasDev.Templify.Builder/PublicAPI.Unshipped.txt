@@ -740,3 +740,4 @@ static TriasDev.Templify.Builder.TemplateCheckOptions.operator ==(TriasDev.Templ
 static TriasDev.Templify.Builder.TemplateCheckProblem.operator !=(TriasDev.Templify.Builder.TemplateCheckProblem? left, TriasDev.Templify.Builder.TemplateCheckProblem? right) -> bool
 static TriasDev.Templify.Builder.TemplateCheckProblem.operator ==(TriasDev.Templify.Builder.TemplateCheckProblem? left, TriasDev.Templify.Builder.TemplateCheckProblem? right) -> bool
 static TriasDev.Templify.Builder.TemplateInspector.Check(System.IO.Stream! template, TriasDev.Templify.Builder.TemplateCheckOptions! options) -> TriasDev.Templify.Builder.TemplateCheckResult!
+static TriasDev.Templify.Builder.TemplateInspector.CheckDefinition(string! json, TriasDev.Templify.Builder.Json.TemplateJsonImportOptions! import, TriasDev.Templify.Builder.TemplateBuildOptions? build = null, TriasDev.Templify.Builder.TemplateIdentity? expected = null) -> TriasDev.Templify.Builder.TemplateCheckResult!

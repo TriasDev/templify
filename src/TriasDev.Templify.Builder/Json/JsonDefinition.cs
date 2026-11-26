@@ -1265,11 +1265,11 @@ internal sealed class JsonComposition
             DataKind? kind = catalog.KindOf(canonical);
             if (kind is null)
             {
-                _context.Error(DiagnosticCodes.UnknownDataPath, $"The data has no '{canonical}' (written as '{text}').", at);
+                _context.Error(DiagnosticCodes.UnknownDataPath, $"The data has no '{canonical}' (written as '{text}').", at, canonical);
             }
             else if (expected is { } wanted && kind != wanted && kind != DataKind.Open)
             {
-                _context.Error(DiagnosticCodes.UnknownDataPath, $"'{canonical}' is {Article(kind.Value)}, not {Article(wanted)}.", at);
+                _context.Error(DiagnosticCodes.UnknownDataPath, $"'{canonical}' is {Article(kind.Value)}, not {Article(wanted)}.", at, canonical);
             }
         }
 

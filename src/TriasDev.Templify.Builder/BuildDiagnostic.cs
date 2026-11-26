@@ -13,6 +13,9 @@ public sealed record BuildDiagnostic(string Code, string Message)
     /// <summary>Gets where the problem is in a JSON definition (a JSON pointer such as <c>/content/3</c>); null for C# definitions.</summary>
     public string? Location { get; init; }
 
+    /// <summary>Gets the data path a TB9203 problem is about (canonical form), for the check of stored definitions.</summary>
+    internal string? DataPath { get; init; }
+
     /// <inheritdoc />
     public override string ToString() => $"{Code}: {Message}";
 }

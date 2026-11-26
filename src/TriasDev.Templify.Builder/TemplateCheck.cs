@@ -60,7 +60,7 @@ public sealed record TemplateCheckOptions
     public ComponentCatalog? Components { get; init; }
 }
 
-/// <summary>The result of <see cref="TemplateInspector.Check"/>.</summary>
+/// <summary>The result of <see cref="TemplateInspector.Check"/> or <see cref="TemplateInspector.CheckDefinition"/>.</summary>
 public sealed class TemplateCheckResult
 {
     internal TemplateCheckResult(TemplateFormat format, TemplateStamp? stamp, IReadOnlyList<TemplateCheckProblem> problems)
@@ -86,7 +86,7 @@ public sealed class TemplateCheckResult
     public TemplateStamp? Stamp { get; }
 }
 
-/// <summary>The codes of <see cref="TemplateInspector.Check"/>.</summary>
+/// <summary>The codes of <see cref="TemplateInspector.Check"/> (TB9304 and TB9305 also of <see cref="TemplateInspector.CheckDefinition"/>).</summary>
 internal static class CheckCodes
 {
     /// <summary>The template's syntax is broken, or the file is not a template.</summary>

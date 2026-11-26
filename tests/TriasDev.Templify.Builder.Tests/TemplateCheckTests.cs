@@ -1,6 +1,7 @@
 // Copyright (c) 2026 TriasDev GmbH & Co. KG
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using TriasDev.Templify.Builder.Json;
 using TriasDev.Templify.Core;
 
 namespace TriasDev.Templify.Builder.Tests;
@@ -250,5 +251,72 @@ public sealed class TemplateCheckTests
             format);
 
         Assert.Equal(TemplateCheckStatus.Ok, Check(copy).Status);
+    }
+
+    private static string InvoiceJson(int version = 2) =>
+        TemplateJson.Export(IdentityTests.Invoice(version), BuilderHarness.Options(TemplateFormat.Docx, "de-DE")).Json;
+
+    private static TemplateJsonImportOptions Import(DataCatalog? data = null) => new TemplateJsonImportOptions { Data = data ?? _catalog };
+
+    [Fact]
+    public void CheckDefinition_Current_IsOk()
+    {
+        TemplateCheckResult result = TemplateInspector.CheckDefinition(InvoiceJson(), Import(), BuilderHarness.Options(TemplateFormat.Docx, "de-DE"), IdentityTests.InvoiceIdentity with { Version = 2 });
+
+        Assert.Equal(TemplateCheckStatus.Ok, result.Status);
+        Assert.Empty(result.Problems);
+        Assert.Equal(TemplateFormat.Unknown, result.Format);
+        Assert.Null(result.Stamp);
+    }
+
+    [Fact]
+    public void CheckDefinition_RemovedField_IsBroken_AtPointer()
+    {
+        TemplateCheckResult result = TemplateInspector.CheckDefinition(InvoiceJson(), Import(DataCatalog.From<RenamedData>()));
+
+        Assert.Equal(TemplateCheckStatus.Broken, result.Status);
+        TemplateCheckProblem problem = Assert.Single(result.Problems);
+        Assert.Equal("TB9203", problem.Code);
+        Assert.Equal("order.number", problem.DataPath);
+        Assert.StartsWith("/content/", problem.Location, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CheckDefinition_NotJson_IsBroken()
+    {
+        TemplateCheckResult result = TemplateInspector.CheckDefinition("{ not json", Import());
+
+        Assert.Equal(TemplateCheckStatus.Broken, result.Status);
+        Assert.Equal("TB9200", Assert.Single(result.Problems).Code);
+    }
+
+    [Fact]
+    public void CheckDefinition_BuildError_IsBroken()
+    {
+        // Imports, but the build rejects it: a paragraph style the style sheet does not define.
+        string json = InvoiceJson().Replace("\"content\": [", "\"content\": [ { \"paragraph\": \"x\", \"style\": \"Missing\" },", StringComparison.Ordinal);
+        Assert.NotNull(TemplateJson.Import(json, Import()));
+
+        TemplateCheckResult withoutBuild = TemplateInspector.CheckDefinition(json, Import());
+        TemplateCheckResult withBuild = TemplateInspector.CheckDefinition(json, Import(), BuilderHarness.Options(TemplateFormat.Docx, "de-DE"));
+
+        Assert.Equal(TemplateCheckStatus.Ok, withoutBuild.Status);
+        Assert.Equal(TemplateCheckStatus.Broken, withBuild.Status);
+        Assert.All(withBuild.Problems, p => Assert.Equal(TemplateCheckSeverity.Error, p.Severity));
+    }
+
+    [Fact]
+    public void CheckDefinition_OlderVersion_IsWarning()
+    {
+        TemplateCheckResult result = TemplateInspector.CheckDefinition(InvoiceJson(version: 1), Import(), expected: IdentityTests.InvoiceIdentity with { Version = 2 });
+
+        Assert.Equal(TemplateCheckStatus.Warning, result.Status);
+        Assert.Equal("TB9305", Assert.Single(result.Problems).Code);
+    }
+
+    [Fact]
+    public void CheckDefinition_NeedsADataCatalogue()
+    {
+        Assert.Throws<ArgumentException>(() => TemplateInspector.CheckDefinition(InvoiceJson(), new TemplateJsonImportOptions()));
     }
 }
