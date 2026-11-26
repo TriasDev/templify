@@ -12,7 +12,7 @@ namespace TriasDev.Templify.Builder;
 /// <remarks>
 /// Start from <see cref="TemplateComposer.Data"/> (or <see cref="Root"/>) and append segments with the indexer:
 /// <c>template.Data["customer"]["address.city"]</c>. Each segment consists of letters, digits and <c>_</c>, as
-/// Templify's placeholder grammar requires. An invalid segment throws <see cref="ArgumentException"/> where the path is
+/// Templify's placeholder grammar requires, optionally with one list index from 0 to 999: <c>items[0].name</c>. An invalid segment throws <see cref="ArgumentException"/> where the path is
 /// written, so the stack trace points at the line in the definition.
 /// </remarks>
 public readonly partial struct TemplatePath : IEquatable<TemplatePath>
@@ -45,7 +45,7 @@ public readonly partial struct TemplatePath : IEquatable<TemplatePath>
     /// Appends one or more dot-separated segments, for example <c>path["address.city"]</c>.
     /// </summary>
     /// <param name="relative">The segments to append, separated by dots.</param>
-    /// <exception cref="ArgumentException">A segment is empty or contains characters other than letters, digits and <c>_</c>.</exception>
+    /// <exception cref="ArgumentException">A segment is empty, contains characters other than letters, digits and <c>_</c>, or has an index other than one <c>[0]</c> … <c>[999]</c>.</exception>
     public TemplatePath this[string relative]
     {
         get
@@ -225,12 +225,12 @@ public readonly partial struct TemplatePath : IEquatable<TemplatePath>
         if (!SegmentPattern().IsMatch(segment))
         {
             throw new ArgumentException(
-                $"'{relative}' is not a valid data path: each dot-separated segment must consist of letters, digits and '_' (offending segment: '{segment}').",
+                $"'{relative}' is not a valid data path: each dot-separated segment must consist of letters, digits and '_', optionally with one list index from 0 to 999 such as items[0] (offending segment: '{segment}').",
                 nameof(relative));
         }
     }
 
     // Templify's placeholder grammar (PlaceholderScanner) accepts \w characters in names.
-    [GeneratedRegex(@"^\w+$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"^\w+(\[\d{1,3}\])?$", RegexOptions.CultureInvariant)]
     private static partial Regex SegmentPattern();
 }

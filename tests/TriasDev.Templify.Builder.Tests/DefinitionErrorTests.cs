@@ -16,7 +16,7 @@ public sealed class DefinitionErrorTests
     [InlineData("customer-name")]
     [InlineData("{{name}}")]
     [InlineData("@index")]
-    [InlineData("items[0]")]
+    [InlineData("items[0][1]")]
     public void Path_InvalidSegment_ThrowsWhereItIsWritten(string relative)
     {
         ArgumentException exception = Assert.Throws<ArgumentException>(() => TemplatePath.Root("order")[relative]);

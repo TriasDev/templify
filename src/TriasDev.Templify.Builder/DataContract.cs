@@ -118,8 +118,8 @@ public sealed class DataContract
     }
 
     /// <summary>
-    /// Builds data in which every path of the contract exists: each collection holds one item, each value is the text
-    /// <c>"x"</c>.
+    /// Builds data in which every path of the contract exists: each collection holds one item (or as many as its highest
+    /// index needs, <c>items[2]</c> → three), every item with the shape of all its uses; each value is the text <c>"x"</c>.
     /// </summary>
     /// <returns>The data, as nested dictionaries and lists.</returns>
     public IReadOnlyDictionary<string, object?> CreateWitness()
@@ -130,13 +130,16 @@ public sealed class DataContract
             WitnessNode node = root;
             foreach (string segment in entry.Path.Split('.'))
             {
-                bool isCollection = segment.EndsWith("[]", StringComparison.Ordinal);
-                string name = isCollection ? segment[..^2] : segment;
-                node = node.Child(name);
-                if (isCollection)
+                int bracket = segment.IndexOf('[', StringComparison.Ordinal);
+                if (bracket < 0)
                 {
-                    node = node.Item();
+                    node = node.Child(segment);
+                    continue;
                 }
+
+                // items[] (every item) or items[2] (one item): the same item shape, at least index + 1 items.
+                string index = segment[(bracket + 1)..^1];
+                node = node.Child(segment[..bracket]).Item(index.Length == 0 ? 1 : int.Parse(index, System.Globalization.CultureInfo.InvariantCulture) + 1);
             }
 
             if (entry.Usage == ContractUsage.Collection)
@@ -311,6 +314,7 @@ public sealed class DataContract
     {
         private readonly Dictionary<string, WitnessNode> _children = new Dictionary<string, WitnessNode>(StringComparer.Ordinal);
         private WitnessNode? _item;
+        private int _count;
 
         public WitnessNode Child(string name)
         {
@@ -323,13 +327,17 @@ public sealed class DataContract
             return child;
         }
 
-        public WitnessNode Item() => _item ??= new WitnessNode();
+        public WitnessNode Item(int count = 1)
+        {
+            _count = Math.Max(_count, count);
+            return _item ??= new WitnessNode();
+        }
 
         public object? ToData()
         {
             if (_item != null)
             {
-                return new List<object?> { _item.ToData() };
+                return Enumerable.Range(0, _count).Select(_ => _item.ToData()).ToList();
             }
 
             if (_children.Count > 0)

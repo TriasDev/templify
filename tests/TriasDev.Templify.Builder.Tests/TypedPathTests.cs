@@ -99,7 +99,7 @@ public sealed class TypedPathTests
             "first" => d.Path(o => o.Order.Lines.First().Description).ToString(),
             "method" => d.Path(o => o.Order.Number.ToUpperInvariant()).ToString(),
             "captured" => d.Path(o => o.Order.Settings[i.ToString(System.Globalization.CultureInfo.InvariantCulture)]).ToString(),
-            _ => d.Path(o => o.Order.Lines[0].Description).ToString(),
+            _ => d.Path(o => o.Order.Lines[i].Description).ToString(),
         });
 
         Assert.Contains("o => o.Order", exception.Message, StringComparison.Ordinal);

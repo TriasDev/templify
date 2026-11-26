@@ -83,6 +83,8 @@ public sealed class DataCatalog
     /// <summary>The kind of a path: its entry's kind, <see cref="DataKind.Open"/> below an open shape, or null.</summary>
     internal DataKind? KindOf(string path)
     {
+        // items[0].name reads an item like items[].name.
+        path = System.Text.RegularExpressions.Regex.Replace(path, @"\[\d+\]", "[]");
         DataCatalogEntry? entry = Entries.FirstOrDefault(e => e.Path == path);
         if (entry != null)
         {

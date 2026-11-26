@@ -133,7 +133,7 @@ internal sealed partial class LoopScope(string itemName, TemplatePath collection
 
         if (path.Scope is null)
         {
-            string first = path.ToString().Split('.')[0];
+            string first = path.ToString().Split('.')[0].Split('[')[0];
             LoopScope? hiding = Chain(current).FirstOrDefault(s => string.Equals(s.ItemName, first, StringComparison.Ordinal));
             if (hiding != null)
             {

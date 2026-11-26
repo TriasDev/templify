@@ -18,6 +18,7 @@ internal static class PathExpression
         ArgumentNullException.ThrowIfNull(lambda);
         JsonNamingPolicy policy = naming ?? JsonNamingPolicy.CamelCase;
         List<string> segments = new List<string>();
+        string index = string.Empty;
         Expression expression = lambda.Body;
         while (true)
         {
@@ -39,7 +40,8 @@ internal static class PathExpression
                         throw Unsupported(lambda, $"'{member.Member.Name}' is computed by {member.Member.DeclaringType.Name}, not a value in the data");
                     }
 
-                    segments.Add(member.Member.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name ?? policy.ConvertName(member.Member.Name));
+                    segments.Add((member.Member.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name ?? policy.ConvertName(member.Member.Name)) + index);
+                    index = string.Empty;
                     expression = member.Expression;
                     continue;
 
@@ -51,17 +53,33 @@ internal static class PathExpression
                             throw Unsupported(lambda, $"the dictionary key '{key}' is not one path segment (letters, digits and '_')");
                         }
 
-                        segments.Add(key);
+                        segments.Add(key + index);
+                        index = string.Empty;
                         expression = indexer.Object;
                         continue;
                     }
 
-                    throw Unsupported(lambda, indexer.Arguments[0] is ConstantExpression ? "builder paths have no list indices" : "a dictionary key must be a constant string");
+                    if (indexer.Arguments[0] is ConstantExpression { Value: int position } && index.Length == 0)
+                    {
+                        // o.Items[1].Name: the index belongs to the segment of the list, which comes next.
+                        index = "[" + position.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]";
+                        expression = indexer.Object;
+                        continue;
+                    }
 
-                case BinaryExpression { NodeType: ExpressionType.ArrayIndex }:
-                    throw Unsupported(lambda, "builder paths have no list indices");
+                    throw Unsupported(lambda, indexer.Arguments[0].Type == typeof(string) ? "a dictionary key must be a constant string" : "a list index must be a constant number, and only one per list");
 
-                case ParameterExpression parameter when parameter == lambda.Parameters[0]:
+                case BinaryExpression { NodeType: ExpressionType.ArrayIndex } array:
+                    if (array.Right is ConstantExpression { Value: int arrayPosition } && index.Length == 0)
+                    {
+                        index = "[" + arrayPosition.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]";
+                        expression = array.Left;
+                        continue;
+                    }
+
+                    throw Unsupported(lambda, "a list index must be a constant number, and only one per list");
+
+                case ParameterExpression parameter when parameter == lambda.Parameters[0] && index.Length == 0:
                     segments.Reverse();
                     return string.Join(".", segments);
 
