@@ -17,4 +17,11 @@ public sealed class TemplateJsonExportOptions
     /// languages of its own <c>texts</c>); the build then translates from <see cref="TemplateBuildOptions.Texts"/>.
     /// </summary>
     public IReadOnlyList<CultureInfo>? TextLanguages { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the JSON is laid out for reading (the default): what fits in 100 columns on one
+    /// line, otherwise one member per line, ending with a line break. False writes it on one line without whitespace,
+    /// for storage and transport; the import reads both the same way.
+    /// </summary>
+    public bool Indented { get; init; } = true;
 }

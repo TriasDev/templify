@@ -47,7 +47,7 @@ internal sealed class ModelJsonWriter
     }
 
     /// <summary>Writes the definition.</summary>
-    public static (string Json, IReadOnlyDictionary<string, byte[]> Assets) Write(ComposedTemplate composed, TemplateIdentity identity, ComponentCatalog? components, Func<IReadOnlyList<string>, IReadOnlyList<TextSection>>? texts = null)
+    public static (string Json, IReadOnlyDictionary<string, byte[]> Assets) Write(ComposedTemplate composed, TemplateIdentity identity, ComponentCatalog? components, Func<IReadOnlyList<string>, IReadOnlyList<TextSection>>? texts = null, bool indented = true)
     {
         using MemoryStream stream = new MemoryStream();
         ModelJsonWriter writer;
@@ -66,7 +66,8 @@ internal sealed class ModelJsonWriter
         }
 
         ThemeSection theme = writer.Theme();
-        return (JsonLayout.Format(WithTextKeys(Encoding.UTF8.GetString(stream.ToArray()), texts, writer._assetNames, theme)), writer._assets);
+        string written = WithTextKeys(Encoding.UTF8.GetString(stream.ToArray()), texts, writer._assetNames, theme);
+        return (indented ? JsonLayout.Format(written) : written, writer._assets);
     }
 
     /// <summary>

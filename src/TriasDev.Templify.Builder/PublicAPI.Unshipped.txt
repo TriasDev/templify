@@ -671,6 +671,8 @@ static TriasDev.Templify.Builder.Json.TemplateJson.Export(TriasDev.Templify.Buil
 TriasDev.Templify.Builder.Json.TemplateJsonExportOptions
 TriasDev.Templify.Builder.Json.TemplateJsonExportOptions.Components.get -> TriasDev.Templify.Builder.ComponentCatalog?
 TriasDev.Templify.Builder.Json.TemplateJsonExportOptions.Components.init -> void
+TriasDev.Templify.Builder.Json.TemplateJsonExportOptions.Indented.get -> bool
+TriasDev.Templify.Builder.Json.TemplateJsonExportOptions.Indented.init -> void
 TriasDev.Templify.Builder.Json.TemplateJsonExportOptions.TemplateJsonExportOptions() -> void
 TriasDev.Templify.Builder.Json.TemplateJsonExportOptions.TextLanguages.get -> System.Collections.Generic.IReadOnlyList<System.Globalization.CultureInfo!>?
 TriasDev.Templify.Builder.Json.TemplateJsonExportOptions.TextLanguages.init -> void

@@ -63,7 +63,7 @@ public static class TemplateJson
                     .ToList()))
                 .Where(section => section.Translations.Count > 0)
                 .ToList();
-        (string json, IReadOnlyDictionary<string, byte[]> assets) = ModelJsonWriter.Write(composed, definition.Identity!, export.Components, texts);
+        (string json, IReadOnlyDictionary<string, byte[]> assets) = ModelJsonWriter.Write(composed, definition.Identity!, export.Components, texts, export.Indented);
         CheckBuildsTheSame(definition, options, export, json, assets);
         return new TemplateJsonDocument(json, assets);
     }

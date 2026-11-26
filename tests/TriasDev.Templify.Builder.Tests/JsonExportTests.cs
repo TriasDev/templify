@@ -37,6 +37,23 @@ public sealed class JsonExportTests
     }
 
     [Fact]
+    public void Export_WithoutIndentation_IsOneLine_AndImportsToTheSameTemplate()
+    {
+        BrandTheme theme = BrandTheme.CreateDefault();
+        TemplateBuildOptions options = Options(TemplateFormat.Docx);
+        TemplateJsonDocument indented = TemplateJson.Export(new OrderConfirmation(theme), options);
+
+        TemplateJsonDocument compact = TemplateJson.Export(new OrderConfirmation(theme), options, new TemplateJsonExportOptions { Indented = false });
+
+        Assert.DoesNotContain('\n', compact.Json);
+        Assert.Equal(JsonSerializer.Serialize(JsonDocument.Parse(compact.Json).RootElement, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }), compact.Json);
+        Assert.Equal(JsonLayout.Format(compact.Json), indented.Json);
+        ITemplateDefinition imported = TemplateJson.Import(compact.Json, new TemplateJsonImportOptions { Assets = compact.Assets, AllowRawXml = true });
+        Assert.Equal(TemplateBuilder.Build(new OrderConfirmation(theme), options).ContentHash, TemplateBuilder.Build(imported, options).ContentHash);
+        Assert.Equal(indented.Json, TemplateJson.Export(imported, options).Json);
+    }
+
+    [Fact]
     public void Export_IsDeterministic_AndDoesNotDependOnTheFormat()
     {
         BrandTheme theme = BrandTheme.CreateDefault();

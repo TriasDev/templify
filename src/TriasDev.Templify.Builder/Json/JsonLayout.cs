@@ -8,9 +8,9 @@ using System.Text.Json;
 namespace TriasDev.Templify.Builder.Json;
 
 /// <summary>
-/// Lays out JSON for reading: an object or array whose one-line form fits in the width (counting its indentation and
-/// its key) is written on one line, otherwise one member per line, recursively. Strings are never wrapped, and values
-/// keep the escaping of the input.
+/// Lays out JSON for reading: an object or array whose one-line form fits in the width (counting its key, not its
+/// indentation, so a member reads the same at every depth) is written on one line, otherwise one member per line,
+/// recursively. Strings are never wrapped, and values keep the escaping of the input.
 /// </summary>
 internal static class JsonLayout
 {
@@ -49,7 +49,7 @@ internal static class JsonLayout
                 Separator(text, ref first);
                 string key = Key(property.Name) + ": ";
                 text.Append(inner).Append(key);
-                Write(text, property.Value, depth + 1, inner.Length + key.Length, width);
+                Write(text, property.Value, depth + 1, key.Length, width);
             }
         }
         else
@@ -58,7 +58,7 @@ internal static class JsonLayout
             {
                 Separator(text, ref first);
                 text.Append(inner);
-                Write(text, item, depth + 1, inner.Length, width);
+                Write(text, item, depth + 1, 0, width);
             }
         }
 
