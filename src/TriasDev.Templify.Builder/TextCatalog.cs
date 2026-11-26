@@ -170,12 +170,16 @@ public sealed class TemplateTexts
     private readonly ITextCatalog _catalog;
     private readonly HashSet<string> _reported = new HashSet<string>(StringComparer.Ordinal);
 
-    internal TemplateTexts(BuildContext context, ITextCatalog catalog, CultureInfo language)
+    internal TemplateTexts(BuildContext context, ITextCatalog catalog, CultureInfo language, bool writesKeys = false)
     {
         _context = context;
         _catalog = catalog;
         Language = language;
+        WritesKeys = writesKeys;
     }
+
+    /// <summary>Whether the texts are key markers instead of translations (composing for the JSON export).</summary>
+    internal bool WritesKeys { get; }
 
     /// <summary>Gets the document language of the build.</summary>
     public CultureInfo Language { get; }
@@ -190,19 +194,38 @@ public sealed class TemplateTexts
         get
         {
             ArgumentNullException.ThrowIfNull(key);
-            if (_catalog.TryGet(key, Language, out string text))
-            {
-                return text;
-            }
-
-            if (_reported.Add(key))
-            {
-                _context.Error(
-                    DiagnosticCodes.MissingText,
-                    $"The text '{key}' has no translation for {Language.Name} ({Language.EnglishName}).");
-            }
-
-            return "[" + key + "]";
+            return Resolve(key, null);
         }
+    }
+
+    /// <summary>
+    /// The text of a key: a key marker while exporting; else from <paramref name="preferred"/> (a JSON definition's own
+    /// texts), then from the catalog; a missing text is reported.
+    /// </summary>
+    internal string Resolve(string key, ITextCatalog? preferred)
+    {
+        if (WritesKeys)
+        {
+            return Json.TextKeys.Marker(key);
+        }
+
+        if (preferred != null && preferred.TryGet(key, Language, out string own))
+        {
+            return own;
+        }
+
+        if (_catalog.TryGet(key, Language, out string text))
+        {
+            return text;
+        }
+
+        if (_reported.Add(key))
+        {
+            _context.Error(
+                DiagnosticCodes.MissingText,
+                $"The text '{key}' has no translation for {Language.Name} ({Language.EnglishName}).");
+        }
+
+        return "[" + key + "]";
     }
 }

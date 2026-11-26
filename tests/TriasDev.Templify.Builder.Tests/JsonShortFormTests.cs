@@ -18,7 +18,6 @@ public sealed class JsonShortFormTests
         {
           "templifyDefinition": 1,
           "identity": { "id": "short", "version": 1 },
-          "language": "en-US",
           "styles": {{styles}},
           "content": {{content}}
         }

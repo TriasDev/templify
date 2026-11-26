@@ -13,7 +13,6 @@ public sealed class JsonDiagnosticsTests
         {
           "templifyDefinition": 1,
           "identity": { "id": "diag", "version": 1 },
-          "language": "en-US",
           "styles": {{styles}},
           "content": {{content}}
         }
@@ -120,7 +119,7 @@ public sealed class JsonDiagnosticsTests
     {
         string json = Definition("""
             [ { "if": "status = paid", "then": [ { "paragraph": "x" } ] } ]
-            """).Replace("\"language\"", "\"extra\": 1, \"language\"", StringComparison.Ordinal);
+            """).Replace("\"identity\"", "\"extra\": 1, \"identity\"", StringComparison.Ordinal);
 
         IReadOnlyList<BuildDiagnostic> errors = ImportErrors(json);
 

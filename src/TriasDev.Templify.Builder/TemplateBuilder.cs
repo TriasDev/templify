@@ -37,7 +37,10 @@ public static class TemplateBuilder
     /// Runs the definition and every check, and returns the model the writers and the JSON export start from; the
     /// definition's own style sheet is kept apart (without the injected marker style).
     /// </summary>
-    internal static ComposedTemplate Compose(ITemplateDefinition definition, TemplateBuildOptions options)
+    internal static ComposedTemplate Compose(ITemplateDefinition definition, TemplateBuildOptions options) => Compose(definition, options, keyMarkers: false);
+
+    /// <summary>Composes a definition; with <paramref name="keyMarkers"/> its texts are key markers (JSON export).</summary>
+    internal static ComposedTemplate Compose(ITemplateDefinition definition, TemplateBuildOptions options, bool keyMarkers)
     {
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(options);
@@ -46,7 +49,7 @@ public static class TemplateBuilder
         BuildContext context = new BuildContext();
         ValidateIdentity(definition.Identity, context);
 
-        TemplateComposer composer = new TemplateComposer(context, new TemplateTexts(context, options.Texts ?? TextCatalog.Empty, options.Language));
+        TemplateComposer composer = new TemplateComposer(context, new TemplateTexts(context, options.Texts ?? TextCatalog.Empty, options.Language, keyMarkers));
         definition.Compose(composer);
         (List<Block> body, StyleSheet styles, DocumentInfo info, PageSetup page) = composer.Close();
         StyleInheritance.Apply(body, page, styles, context);

@@ -40,7 +40,6 @@ public sealed class JsonImportTests
             {
               "templifyDefinition": 1,
               "identity": { "id": "short", "version": 1 },
-              "language": "en-US",
               "styles": { "paragraph": { "Body": { "name": "Body Copy", "spaceAfter": "70.866pt", "color": "#1f4e79", "indentStart": "25mm" } } },
               "content": [
                 { "paragraph": "Hi" },
@@ -75,7 +74,6 @@ public sealed class JsonImportTests
             {
               "templifyDefinition": 1,
               "identity": { "id": "loops", "version": 1 },
-              "language": "en-US",
               "content": [
                 { "forEach": "order.lines", "as": "line", "body": [
                   "{{@number}} {{line.description}}" ] },

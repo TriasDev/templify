@@ -31,15 +31,7 @@ public sealed class JsonExportTests
         TemplateJsonDocument document = TemplateJson.Export(definition, BuilderHarness.Options(TemplateFormat.Docx));
 
         Assert.Equal(
-            """
-            {
-              "templifyDefinition": 1,
-              "identity": {"id": "test", "version": 1},
-              "language": "en-US",
-              "content": ["Hello {{name}}"]
-            }
-
-            """.Replace("\r\n", "\n", StringComparison.Ordinal),
+            "{\"templifyDefinition\": 1, \"identity\": {\"id\": \"test\", \"version\": 1}, \"content\": [\"Hello {{name}}\"]}\n",
             document.Json);
         Assert.Empty(document.Assets);
     }
@@ -91,7 +83,7 @@ public sealed class JsonExportTests
         string logo = Assert.Single(document.Assets.Keys);
         Assert.StartsWith("sha256:", logo, StringComparison.Ordinal);
         Assert.Contains("\"" + logo + "\"", document.Json, StringComparison.Ordinal);
-        Assert.Contains("Auftragsbestätigung", TemplateJson.Export(new OrderConfirmation(theme), Options(TemplateFormat.Docx, "de-DE")).Json, StringComparison.Ordinal);
+        Assert.Contains("[[title]]", TemplateJson.Export(new OrderConfirmation(theme), Options(TemplateFormat.Docx, "de-DE")).Json, StringComparison.Ordinal);
     }
 
     [Fact]

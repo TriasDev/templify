@@ -16,7 +16,6 @@ public sealed class Phase3ReviewTests
         {
           "templifyDefinition": 1,
           "identity": { "id": "review", "version": 1 },
-          "language": "en-US",
           "content": {{content}}
         }
         """;

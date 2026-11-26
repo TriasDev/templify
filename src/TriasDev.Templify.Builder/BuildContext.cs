@@ -96,6 +96,9 @@ internal static class DiagnosticCodes
     /// <summary>A text key has no translation for the build's language.</summary>
     public const string MissingText = "TB5001";
 
+    /// <summary>The JSON export cannot write a text: a literal "[[" (read as a text key) or a key outside the key syntax.</summary>
+    public const string TextNotExportable = "TB9204";
+
     /// <summary><see cref="TemplateComposer.Page"/> was called more than once.</summary>
     public const string PageAlreadySet = "TB6001";
 

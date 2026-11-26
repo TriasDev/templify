@@ -32,7 +32,7 @@ public static class TemplateJson
     {
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(options);
-        ComposedTemplate composed = TemplateBuilder.Compose(definition, options);
+        ComposedTemplate composed = TemplateBuilder.Compose(definition, options, keyMarkers: true);
         (string json, IReadOnlyDictionary<string, byte[]> assets) = ModelJsonWriter.Write(composed, definition.Identity!, components);
         return new TemplateJsonDocument(json, assets);
     }

@@ -353,7 +353,6 @@ public sealed class StyleInheritanceTests
             {
               "templifyDefinition": 1,
               "identity": { "id": "t", "version": 1 },
-              "language": "en-US",
               "styles": { "defaults": { "paragraph": "Nope" } },
               "content": [ "x" ]
             }

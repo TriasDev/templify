@@ -27,8 +27,9 @@ internal sealed class JsonDefinition(JsonElement root, TemplateIdentity identity
 /// <summary>One composition of a JSON definition: the loop scope and diagnostics of a single build.</summary>
 internal sealed class JsonComposition
 {
-    private readonly JsonElement _root;
+    private readonly JsonElement _source;
     private readonly TemplateJsonImportOptions _options;
+    private JsonElement _root;
     private readonly Dictionary<string, ParagraphStyleKey> _paragraphStyles = new Dictionary<string, ParagraphStyleKey>(StringComparer.Ordinal);
     private readonly Dictionary<string, CharacterStyleKey> _characterStyles = new Dictionary<string, CharacterStyleKey>(StringComparer.Ordinal);
     private readonly List<(string Name, LoopItem Item)> _scope = new List<(string, LoopItem)>();
@@ -37,6 +38,7 @@ internal sealed class JsonComposition
 
     public JsonComposition(JsonElement root, TemplateIdentity identity, TemplateJsonImportOptions options)
     {
+        _source = root;
         _root = root;
         Identity = identity;
         _options = options;
@@ -63,8 +65,9 @@ internal sealed class JsonComposition
         _template = template;
         _context = template.Context;
         _scope.Clear();
+        _root = WithTranslations(_source);
 
-        Keys(_root, string.Empty, "templifyDefinition", "identity", "language", "properties", "styles", "page", "content");
+        Keys(_root, string.Empty, "templifyDefinition", "identity", "properties", "styles", "page", "content");
         if (_root.TryGetProperty("styles", out JsonElement styles))
         {
             Guard("/styles", () =>
@@ -1032,6 +1035,88 @@ internal sealed class JsonComposition
     {
         bool join = value.Format is "join" || value.Format?.StartsWith("join:", StringComparison.Ordinal) == true;
         return (Resolve(value.Path, at, join ? null : DataKind.Value), value.Format is { } specifier ? ValueFormat.Custom(specifier) : null);
+    }
+
+    // ── text keys ──────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// The definition with every <c>[[key]]</c> replaced by the build language's text (key markers while exporting).
+    /// Malformed keys are TB9200, missing texts TB5001, a text containing <c>{{</c> TB9201, each at the string.
+    /// </summary>
+    private JsonElement WithTranslations(JsonElement source)
+    {
+        using MemoryStream stream = new MemoryStream();
+        using (Utf8JsonWriter output = new Utf8JsonWriter(stream))
+        {
+            Translate(source, string.Empty, output);
+        }
+
+        using JsonDocument document = JsonDocument.Parse(stream.ToArray());
+        return document.RootElement.Clone();
+    }
+
+    private void Translate(JsonElement element, string at, Utf8JsonWriter output)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Object:
+                output.WriteStartObject();
+                foreach (JsonProperty property in element.EnumerateObject())
+                {
+                    output.WritePropertyName(property.Name);
+                    Translate(property.Value, at + "/" + Escape(property.Name), output);
+                }
+
+                output.WriteEndObject();
+                break;
+            case JsonValueKind.Array:
+                output.WriteStartArray();
+                int i = 0;
+                foreach (JsonElement item in element.EnumerateArray())
+                {
+                    Translate(item, at + "/" + i++, output);
+                }
+
+                output.WriteEndArray();
+                break;
+            case JsonValueKind.String:
+                string text = element.GetString()!;
+                try
+                {
+                    text = TextKeys.Resolve(text, key => Text(key, at));
+                }
+                catch (FormatException exception)
+                {
+                    Fail(at, exception.Message);
+                }
+
+                output.WriteStringValue(text);
+                break;
+            default:
+                element.WriteTo(output);
+                break;
+        }
+    }
+
+    private string Text(string key, string at)
+    {
+        string? outer = _context.CurrentLocation;
+        _context.CurrentLocation = at;
+        try
+        {
+            string text = _template.Texts.Resolve(key, null);
+            if (!_template.Texts.WritesKeys && text.Contains("{{", StringComparison.Ordinal))
+            {
+                _context.Error(DiagnosticCodes.InvalidJsonValue, $"The text '{key}' ({_template.Texts.Language.Name}) contains '{{{{', which would read as a value; texts are literal.", at);
+                return "[" + key + "]";
+            }
+
+            return text;
+        }
+        finally
+        {
+            _context.CurrentLocation = outer;
+        }
     }
 
     // ── paths, conditions, scope ─────────────────────────────────────────────

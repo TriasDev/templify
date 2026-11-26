@@ -83,7 +83,6 @@ public sealed class DataCatalogTests
             {
               "templifyDefinition": 1,
               "identity": { "id": "c", "version": 1 },
-              "language": "en-US",
               "content": [
                 { "paragraph": "{{order.nummer}}" },
                 { "if": "order.totl > 1", "then": [ { "paragraph": "x" } ] },

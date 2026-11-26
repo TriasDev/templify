@@ -49,7 +49,73 @@ internal sealed class ModelJsonWriter
             writer.Document(composed, identity);
         }
 
-        return (JsonLayout.Format(Encoding.UTF8.GetString(stream.ToArray())), writer._assets);
+        return (JsonLayout.Format(WithTextKeys(Encoding.UTF8.GetString(stream.ToArray()))), writer._assets);
+    }
+
+    /// <summary>
+    /// Turns the key markers of the composed texts into <c>[[key]]</c> in every string. A literal <c>[[</c> (the import
+    /// would read a key) or a key outside the key syntax cannot be written: TB9204 at the string's pointer.
+    /// </summary>
+    private static string WithTextKeys(string json)
+    {
+        using JsonDocument document = JsonDocument.Parse(json);
+        List<BuildDiagnostic> problems = new List<BuildDiagnostic>();
+        using MemoryStream stream = new MemoryStream();
+        using (Utf8JsonWriter output = new Utf8JsonWriter(stream, new JsonWriterOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }))
+        {
+            Copy(document.RootElement, string.Empty, output, problems);
+        }
+
+        if (problems.Count > 0)
+        {
+            throw new TemplateBuildException(problems);
+        }
+
+        return Encoding.UTF8.GetString(stream.ToArray());
+    }
+
+    private static void Copy(JsonElement element, string at, Utf8JsonWriter output, List<BuildDiagnostic> problems)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Object:
+                output.WriteStartObject();
+                foreach (JsonProperty property in element.EnumerateObject())
+                {
+                    output.WritePropertyName(property.Name);
+                    Copy(property.Value, at + "/" + JsonComposition.Escape(property.Name), output, problems);
+                }
+
+                output.WriteEndObject();
+                break;
+            case JsonValueKind.Array:
+                output.WriteStartArray();
+                int i = 0;
+                foreach (JsonElement item in element.EnumerateArray())
+                {
+                    Copy(item, at + "/" + i++, output, problems);
+                }
+
+                output.WriteEndArray();
+                break;
+            case JsonValueKind.String:
+                string text = element.GetString()!;
+                if (text.Contains("[[", StringComparison.Ordinal))
+                {
+                    problems.Add(new BuildDiagnostic(DiagnosticCodes.TextNotExportable, $"The text \"{text}\" contains '[[', which a JSON definition reads as a text key [[key]]; change the text.") { Location = at });
+                }
+
+                foreach (string key in TextKeys.MarkedKeys(text).Where(k => !TextKeys.IsKey(k)).Distinct(StringComparer.Ordinal))
+                {
+                    problems.Add(new BuildDiagnostic(DiagnosticCodes.TextNotExportable, $"The text key '{key}' cannot be written as [[key]]: use letters, digits, '_', '.' or '-'.") { Location = at });
+                }
+
+                output.WriteStringValue(TextKeys.MarkersToKeys(text));
+                break;
+            default:
+                element.WriteTo(output);
+                break;
+        }
     }
 
     private void Document(ComposedTemplate composed, TemplateIdentity identity)
@@ -61,7 +127,6 @@ internal sealed class ModelJsonWriter
         _json.WriteString("id", identity.Id);
         _json.WriteNumber("version", identity.Version);
         _json.WriteEndObject();
-        _json.WriteString("language", model.Language.Name);
 
         if (model.Info.Title != null || model.Info.Author != null || model.Info.Subject != null)
         {
