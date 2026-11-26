@@ -231,6 +231,11 @@ template.Page(page => page
 | Component | `Component(component)` |
 | Raw XML | `Raw(new RawBlock { Docx = ctx => …, Odt = ctx => …, Uses = [...] })` (see below) |
 
+Templify removes the marker paragraphs (`{{#if}}`, `{{/foreach}}`, …) when it fills a template. So that a table cell
+still ends with a paragraph and a table never touches the next one afterwards, the builder adds an invisible 1 pt
+paragraph in the style "Template Spacer" where that could happen (a cell ending with a conditional, a loop or a table; a
+table followed by a marker). A style display name must not contain a comma (TB2006).
+
 ### Raw blocks
 
 For a construct the builder does not have, `Raw` writes format XML. Both formats are required, and the paths the XML
